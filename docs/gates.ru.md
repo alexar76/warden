@@ -48,8 +48,19 @@ Severity отвечает на вопрос *сколько внимания э�
 
 ## static-scan
 
-Локальное regex-сканирование `description` и `inputSchema` каждого инструмента — только этих двух
-полей. 25 правил в наборе **v2**: 18 `block`, 7 `advise`.
+Локальное regex-сканирование `name`, `description` и `inputSchema` каждого инструмента. 25 правил в
+наборе **v3**: 18 `block`, 7 `advise`.
+
+Каждое правило объявляет, на каких из этих трёх **поверхностей** оно работает; 17 из 25 включают
+имя. Три, которые не включают, — это правила, завязанные на существительное
+(`TOOL_DEF_SECRET_REQUEST`, `TOOL_DEF_CREDENTIAL_PARAM`, `TOOL_DEF_ENV_REFERENCE`): имя — это
+идентификатор, `api_key` и `private_key` — его обычные части, и блокировать
+`sign_with_private_key` означало бы повторить ошибку калибровки v1 на новой поверхности. Правила,
+завязанные на фразу, требуют пробелов и потому не могут совпасть с `snake_case` вовсе, а два
+правила о скрытой нагрузке — про символы, которые в имени не легитимны никогда: эти работают везде.
+
+До v3 имя не сканировалось **ничем** — то есть инъекционная фраза, zero-width символ или
+base64-блоб в первом поле, которое читает модель, не попадали в отчёт совсем.
 
 Оценка гейта — `1 − штраф(худшая блокирующая severity)`; advisory-срабатывания на неё не влияют.
 
@@ -57,20 +68,20 @@ Severity отвечает на вопрос *сколько внимания э�
 |---|---|---|---|---|---|---|
 | оценка гейта | 1 | 1 | 0.9 | 0.7 | 0.4 | 0 |
 
-| Код | Severity | Tier | Что ловит |
-|---|---|---|---|
-| `TOOL_DEF_INJECTION` | critical / high | block | «ignore all previous instructions», «do not tell the user», теги `<system>`, ссылки на developer prompt |
-| `TOOL_DEF_SECRET_REQUEST` | critical | block | `private_key`, `seed_phrase`/`mnemonic`, пути `~/.ssh` |
-| `TOOL_DEF_SECRET_HARVEST` | critical | block | инструмент, чья заявленная задача — читать/выгружать/раскрывать секреты |
-| `TOOL_DEF_EXFIL` | critical / high | block | «post to https://…», «forward it to…», «exfiltrate», формулировки про upload на хост |
-| `TOOL_DEF_HIDDEN_UNICODE` | high | block | zero-width и bidi-управляющие символы — текст, которого рецензент не видит |
-| `TOOL_DEF_BASE64_BLOB` | high | block | цепочка base64 от 120 символов внутри описания |
-| `TOOL_DEF_DATA_URL` | high | block | URL вида `data:…;base64,` и `javascript:` |
-| `TOOL_DEF_CREDENTIAL_PARAM` | medium / low | advise | схема или описание просит `api_key`, `password`, `secret`, bearer-токены |
-| `TOOL_DEF_ENV_REFERENCE` | medium | advise | `.env`, «environment variables» |
-| `TOOL_DEF_IMPERATIVE` | low / info | advise | «you must», «instead of» — формулировки в форме промпта, сами по себе ничего не доказывающие |
+| Код | Severity | Tier | Имя? | Что ловит |
+|---|---|---|---|---|
+| `TOOL_DEF_INJECTION` | critical / high | block | ✅ | «ignore all previous instructions», «do not tell the user», теги `<system>`, ссылки на developer prompt |
+| `TOOL_DEF_SECRET_REQUEST` | critical | block | — | `private_key`, `seed_phrase`/`mnemonic`, пути `~/.ssh` |
+| `TOOL_DEF_SECRET_HARVEST` | critical | block | ✅ | инструмент, чья заявленная задача — читать/выгружать/раскрывать секреты |
+| `TOOL_DEF_EXFIL` | critical / high | block | ✅ | «post to https://…», «forward it to…», «exfiltrate», формулировки про upload на хост |
+| `TOOL_DEF_HIDDEN_UNICODE` | high | block | ✅ | zero-width и bidi-управляющие символы — текст, которого рецензент не видит |
+| `TOOL_DEF_BASE64_BLOB` | high | block | ✅ | цепочка base64 от 120 символов в имени, описании или схеме |
+| `TOOL_DEF_DATA_URL` | high | block | ✅ | URL вида `data:…;base64,` и `javascript:` |
+| `TOOL_DEF_CREDENTIAL_PARAM` | medium / low | advise | — | схема или описание просит `api_key`, `password`, `secret`, bearer-токены |
+| `TOOL_DEF_ENV_REFERENCE` | medium | advise | — | `.env`, «environment variables» |
+| `TOOL_DEF_IMPERATIVE` | low / info | advise | ✅ | «you must», «instead of» — формулировки в форме промпта, сами по себе ничего не доказывающие |
 
-`staticScanRuleset()` возвращает каждое правило вместе с **исходником регулярки и флагами**, чтобы
+`staticScanRuleset()` возвращает каждое правило вместе с **исходником регулярки, флагами и поверхностями**, чтобы
 третья сторона могла перезапустить ровно то же правило, плюс `{ version, digest }`, где digest —
 sha256 по канонической форме RFC 8785 отсортированного списка правил. Сортировка — сравнением
 code-unit, никогда не `localeCompare`: зависящая от локали коллация давала бы для одной и той же

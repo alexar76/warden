@@ -5,7 +5,7 @@
   <a href="https://github.com/alexar76/warden/actions/workflows/ci.yml"><img src="docs/badges/ci.svg" alt="CI" /></a>
   <a href="https://www.npmjs.com/package/@aimarket/warden"><img src="https://img.shields.io/npm/v/@aimarket/warden?color=cb3837&label=npm" alt="npm 版本" /></a>
   <img src="docs/badges/deps.svg" alt="零运行时依赖" />
-  <img src="docs/badges/tests.svg" alt="96 项测试通过" />
+  <img src="docs/badges/tests.svg" alt="122 项测试通过" />
   <img src="docs/badges/node.svg" alt="Node >= 20" />
   <a href="LICENSE"><img src="docs/badges/license.svg" alt="许可证：MIT" /></a>
 </p>
@@ -78,7 +78,7 @@ flowchart LR
 
 | 门控 | 判定什么 | 网络 | 是否 fatal |
 |---|---|---|---|
-| **static-scan** | `description` 与 `inputSchema` 中的注入、外泄、索要凭据，以及隐藏 Unicode/base64 迹象——25 条规则（v2），其中 18 条可阻止、7 条仅提示 | 无 | 否 |
+| **static-scan** | 工具 `name`、`description` 与 `inputSchema` 中的注入、外泄、索要凭据，以及隐藏 Unicode/base64 迹象——25 条规则（v3），其中 18 条可阻止、7 条仅提示，另有 17 条同时覆盖名称 | 无 | 否 |
 | **threat-feed** | 已知恶意的服务器身份或工具：11 条内置记录，外加可选的已签名 feed | 仅 feed 下载 | 是，服务器范围的 `critical` |
 | **origin** | 该服务器是运营者声明的，还是来自远端目录 | 无 | 是，当 `allowUnknownServers: false` |
 | **pinning** | 工具定义是否仍与用户批准过的一致 | 无 | 是，当 `pinToolDefs: true` |
@@ -98,7 +98,7 @@ flowchart LR
   findings: [{ gate, severity, code: "THREAT_TOOL_MATCH", message, tool, advisory? }],
   allowedTools: ["add"],
   blockedTools: ["sweeper"],
-  rulesets: { staticScan: { version: "2", digest: "sha256-gWC14PR4…" } }
+  rulesets: { staticScan: { version: "3", digest: "sha256-pah/sT4I…" } }
 }
 ```
 
@@ -145,6 +145,7 @@ GET <你的 feed url>
 | [门控链](docs/gates.zh.md) | 每一个规则层级、每一个发现码、综合评分如何构成，以及如何新增一个门控 |
 | [已签名的威胁情报 feed](docs/threat-feed.zh.md) | 线上契约、三项检查，以及如何发布一个 WARDEN 会接受的 feed |
 | [集成指南](docs/integration.zh.md) | 如何把 WARDEN 接入自己的 MCP 宿主、策略取舍，以及应当留档什么 |
+| [实地普查：1 108 个公开 MCP 服务器](docs/mcp-survey.zh.md) | WARDEN 在真实的第三方工具定义上判了什么——拦截 50 个服务器，4 项成立，其余判错的六种方式 |
 
 ## 它不是什么
 
@@ -160,7 +161,7 @@ GET <你的 feed url>
 ## 开发
 
 ```bash
-npm install && npm run build && npm test   # 96 项测试
+npm install && npm run build && npm test   # 122 项测试
 ```
 
 `test/packaging.test.ts` 正是让标题保持诚实的东西：一旦出现运行时依赖、任何源文件从包外 import、或者入口点不

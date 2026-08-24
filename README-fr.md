@@ -5,7 +5,7 @@
   <a href="https://github.com/alexar76/warden/actions/workflows/ci.yml"><img src="docs/badges/ci.svg" alt="CI" /></a>
   <a href="https://www.npmjs.com/package/@aimarket/warden"><img src="https://img.shields.io/npm/v/@aimarket/warden?color=cb3837&label=npm" alt="version npm" /></a>
   <img src="docs/badges/deps.svg" alt="Zéro dépendance d'exécution" />
-  <img src="docs/badges/tests.svg" alt="96 tests au vert" />
+  <img src="docs/badges/tests.svg" alt="122 tests au vert" />
   <img src="docs/badges/node.svg" alt="Node >= 20" />
   <a href="LICENSE"><img src="docs/badges/license.svg" alt="Licence : MIT" /></a>
 </p>
@@ -82,7 +82,7 @@ flowchart LR
 
 | Porte | Ce qu'elle décide | Réseau | Fatale ? |
 |---|---|---|---|
-| **static-scan** | Injection, exfiltration, demandes d'identifiants et indices d'Unicode masqué/base64 dans `description` et `inputSchema` — 25 règles, v2, dont 18 peuvent bloquer et 7 sont purement indicatives | aucun | non |
+| **static-scan** | Injection, exfiltration, demandes d'identifiants et indices d'Unicode masqué/base64 dans le `name`, la `description` et l'`inputSchema` de l'outil — 25 règles, v3, dont 18 peuvent bloquer et 7 sont purement indicatives, et 17 couvrent aussi le nom | aucun | non |
 | **threat-feed** | Identité de serveur ou outil connu comme malveillant : 11 enregistrements intégrés plus un feed signé optionnel | seulement le téléchargement du feed | oui, pour un `critical` de portée serveur |
 | **origin** | Si l'opérateur a déclaré ce serveur ou s'il provient d'un catalogue distant | aucun | oui, avec `allowUnknownServers: false` |
 | **pinning** | Si les définitions d'outils correspondent encore à ce que l'utilisateur a approuvé | aucun | oui, avec `pinToolDefs: true` |
@@ -104,7 +104,7 @@ bloquante pour quiconque durcissait le seuil.
   findings: [{ gate, severity, code: "THREAT_TOOL_MATCH", message, tool, advisory? }],
   allowedTools: ["add"],
   blockedTools: ["sweeper"],
-  rulesets: { staticScan: { version: "2", digest: "sha256-gWC14PR4…" } }
+  rulesets: { staticScan: { version: "3", digest: "sha256-pah/sT4I…" } }
 }
 ```
 
@@ -158,6 +158,7 @@ une absence de protection :
 | [La chaîne de portes](docs/gates.fr.md) | Chaque niveau de règle, chaque code de constat, la construction du score composite et comment ajouter une porte |
 | [Le threat feed signé](docs/threat-feed.fr.md) | Le contrat sur le fil, les trois vérifications, et comment publier un feed que WARDEN acceptera |
 | [Guide d'intégration](docs/integration.fr.md) | Brancher WARDEN sur votre propre hôte MCP, choix de politique, et quoi consigner |
+| [Étude de terrain : 1 108 serveurs MCP publics](docs/mcp-survey.fr.md) | Ce que WARDEN a décidé sur de vraies définitions d'outil tierces — 50 serveurs bloqués, 4 étayés, et les six façons dont le reste était faux |
 
 ## Ce que ce n'est pas
 
@@ -176,7 +177,7 @@ une absence de protection :
 ## Développement
 
 ```bash
-npm install && npm run build && npm test   # 96 tests
+npm install && npm run build && npm test   # 122 tests
 ```
 
 `test/packaging.test.ts` est ce qui tient l'accroche honnête : il échoue si une dépendance d'exécution

@@ -42,8 +42,17 @@ const SEVERITY_RANK = { info: 0, low: 1, medium: 2, high: 3, critical: 4 };
 
 ## static-scan
 
-对每个工具的 `description` 与 `inputSchema` 做本地正则扫描——只看这两个字段。规则集 **v2** 共 25 条规则：
+对每个工具的 `name`、`description` 与 `inputSchema` 做本地正则扫描。规则集 **v3** 共 25 条规则：
 18 条 `block`，7 条 `advise`。
+
+每条规则都声明自己在这三个**面**中的哪些上运行，25 条里有 17 条包含名称。不包含名称的那三条是以**名词**为
+锚的规则（`TOOL_DEF_SECRET_REQUEST`、`TOOL_DEF_CREDENTIAL_PARAM`、`TOOL_DEF_ENV_REFERENCE`）：名称是标识
+符，`api_key` 和 `private_key` 是标识符里再普通不过的组成部分，而拒绝 `sign_with_private_key` 等于把 v1 的
+校准错误换个面重犯一次。以**短语**为锚的规则需要空白字符，因此根本无法匹配 `snake_case`；而两条隐藏载荷规则
+针对的字符在名称里从来都不合法——这些都在所有面上运行。
+
+在 v3 之前，名称**根本没有被任何规则扫描过**：注入短语、零宽字符或 base64 串出现在模型最先读到的那个字段里，
+完全不会被报告。
 
 门控评分为 `1 − 惩罚(最严重的阻止性 severity)`；advisory 命中永远不影响它。
 
@@ -51,20 +60,20 @@ const SEVERITY_RANK = { info: 0, low: 1, medium: 2, high: 3, critical: 4 };
 |---|---|---|---|---|---|---|
 | 门控评分 | 1 | 1 | 0.9 | 0.7 | 0.4 | 0 |
 
-| 代码 | 严重级别 | 层级 | 捕捉什么 |
-|---|---|---|---|
-| `TOOL_DEF_INJECTION` | critical / high | block | 「ignore all previous instructions」「do not tell the user」、`<system>` 标签、对 developer prompt 的引用 |
-| `TOOL_DEF_SECRET_REQUEST` | critical | block | `private_key`、`seed_phrase`/`mnemonic`、`~/.ssh` 路径 |
-| `TOOL_DEF_SECRET_HARVEST` | critical | block | 自称职责就是读取/导出/披露密钥的工具 |
-| `TOOL_DEF_EXFIL` | critical / high | block | 「post to https://…」「forward it to…」「exfiltrate」、上传到某主机的措辞 |
-| `TOOL_DEF_HIDDEN_UNICODE` | high | block | 零宽字符与双向控制字符——审阅者看不见的文本 |
-| `TOOL_DEF_BASE64_BLOB` | high | block | 描述里长达 120+ 字符的 base64 串 |
-| `TOOL_DEF_DATA_URL` | high | block | `data:…;base64,` 与 `javascript:` 形式的 URL |
-| `TOOL_DEF_CREDENTIAL_PARAM` | medium / low | advise | schema 或描述索要 `api_key`、`password`、`secret`、bearer 令牌 |
-| `TOOL_DEF_ENV_REFERENCE` | medium | advise | `.env`、「environment variables」 |
-| `TOOL_DEF_IMPERATIVE` | low / info | advise | 「you must」「instead of」——提示词形态的措辞，单独并不能证明任何事 |
+| 代码 | 严重级别 | 层级 | 名称？ | 捕捉什么 |
+|---|---|---|---|---|
+| `TOOL_DEF_INJECTION` | critical / high | block | ✅ | 「ignore all previous instructions」「do not tell the user」、`<system>` 标签、对 developer prompt 的引用 |
+| `TOOL_DEF_SECRET_REQUEST` | critical | block | — | `private_key`、`seed_phrase`/`mnemonic`、`~/.ssh` 路径 |
+| `TOOL_DEF_SECRET_HARVEST` | critical | block | ✅ | 自称职责就是读取/导出/披露密钥的工具 |
+| `TOOL_DEF_EXFIL` | critical / high | block | ✅ | 「post to https://…」「forward it to…」「exfiltrate」、上传到某主机的措辞 |
+| `TOOL_DEF_HIDDEN_UNICODE` | high | block | ✅ | 零宽字符与双向控制字符——审阅者看不见的文本 |
+| `TOOL_DEF_BASE64_BLOB` | high | block | ✅ | 名称、描述或 schema 里长达 120+ 字符的 base64 串 |
+| `TOOL_DEF_DATA_URL` | high | block | ✅ | `data:…;base64,` 与 `javascript:` 形式的 URL |
+| `TOOL_DEF_CREDENTIAL_PARAM` | medium / low | advise | — | schema 或描述索要 `api_key`、`password`、`secret`、bearer 令牌 |
+| `TOOL_DEF_ENV_REFERENCE` | medium | advise | — | `.env`、「environment variables」 |
+| `TOOL_DEF_IMPERATIVE` | low / info | advise | ✅ | 「you must」「instead of」——提示词形态的措辞，单独并不能证明任何事 |
 
-`staticScanRuleset()` 会连同**正则源码与 flags** 一起返回每条规则，好让第三方能重跑一模一样的规则；同时返回
+`staticScanRuleset()` 会连同**正则源码、flags 与所扫描的面** 一起返回每条规则，好让第三方能重跑一模一样的规则；同时返回
 `{ version, digest }`，其中 digest 是对已排序规则列表的 RFC 8785 规范化形式做的 sha256。排序按 code-unit 比较，
 绝不用 `localeCompare`：依赖 locale 的排序会让同一张规则表在配置不同的主机上算出不同的摘要，而这正是摘要本身
 要检测的分歧。

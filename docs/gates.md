@@ -47,8 +47,19 @@ the threshold.
 
 ## static-scan
 
-Local regex scan over each tool's `description` and its `inputSchema` — those two fields only. 25
-rules in ruleset **v2**: 18 `block`, 7 `advise`.
+Local regex scan over each tool's `name`, its `description` and its `inputSchema`. 25 rules in
+ruleset **v3**: 18 `block`, 7 `advise`.
+
+Every rule declares which of those three **surfaces** it runs on, and 17 of the 25 include the name.
+The three that do not are the noun-keyed ones (`TOOL_DEF_SECRET_REQUEST`,
+`TOOL_DEF_CREDENTIAL_PARAM`, `TOOL_DEF_ENV_REFERENCE`): a name is an identifier, `api_key` and
+`private_key` are ordinary parts of one, and refusing `sign_with_private_key` would be the ruleset
+v1 calibration error committed on a new surface. Phrase-keyed rules need whitespace and so cannot
+match `snake_case` at all, and the two hidden-payload rules are about characters that are never
+legitimate in a name — those run everywhere.
+
+Until v3 the name was scanned by **nothing**, which meant an injection phrase, a zero-width
+character or a base64 blob in the first field the model reads went entirely unreported.
 
 Gate score is `1 − penalty(worst blocking severity)`; advisory hits never affect it.
 
@@ -56,20 +67,20 @@ Gate score is `1 − penalty(worst blocking severity)`; advisory hits never affe
 |---|---|---|---|---|---|---|
 | gate score | 1 | 1 | 0.9 | 0.7 | 0.4 | 0 |
 
-| Code | Severity | Tier | What it catches |
-|---|---|---|---|
-| `TOOL_DEF_INJECTION` | critical / high | block | "ignore all previous instructions", "do not tell the user", `<system>` tags, references to the developer prompt |
-| `TOOL_DEF_SECRET_REQUEST` | critical | block | `private_key`, `seed_phrase`/`mnemonic`, `~/.ssh` paths |
-| `TOOL_DEF_SECRET_HARVEST` | critical | block | a tool whose stated job is to read/dump/reveal secrets |
-| `TOOL_DEF_EXFIL` | critical / high | block | "post to https://…", "forward it to…", "exfiltrate", upload-to-host phrasing |
-| `TOOL_DEF_HIDDEN_UNICODE` | high | block | zero-width and bidi control characters — text the reviewer cannot see |
-| `TOOL_DEF_BASE64_BLOB` | high | block | a 120+ character base64 run inside a description |
-| `TOOL_DEF_DATA_URL` | high | block | `data:…;base64,` and `javascript:` URLs |
-| `TOOL_DEF_CREDENTIAL_PARAM` | medium / low | advise | schema or description asking for `api_key`, `password`, `secret`, bearer tokens |
-| `TOOL_DEF_ENV_REFERENCE` | medium | advise | `.env`, "environment variables" |
-| `TOOL_DEF_IMPERATIVE` | low / info | advise | "you must", "instead of" — prompt-shaped phrasing, not proof of anything |
+| Code | Severity | Tier | Name? | What it catches |
+|---|---|---|---|---|
+| `TOOL_DEF_INJECTION` | critical / high | block | ✅ | "ignore all previous instructions", "do not tell the user", `<system>` tags, references to the developer prompt |
+| `TOOL_DEF_SECRET_REQUEST` | critical | block | — | `private_key`, `seed_phrase`/`mnemonic`, `~/.ssh` paths |
+| `TOOL_DEF_SECRET_HARVEST` | critical | block | ✅ | a tool whose stated job is to read/dump/reveal secrets |
+| `TOOL_DEF_EXFIL` | critical / high | block | ✅ | "post to https://…", "forward it to…", "exfiltrate", upload-to-host phrasing |
+| `TOOL_DEF_HIDDEN_UNICODE` | high | block | ✅ | zero-width and bidi control characters — text the reviewer cannot see |
+| `TOOL_DEF_BASE64_BLOB` | high | block | ✅ | a 120+ character base64 run in a name, description or schema |
+| `TOOL_DEF_DATA_URL` | high | block | ✅ | `data:…;base64,` and `javascript:` URLs |
+| `TOOL_DEF_CREDENTIAL_PARAM` | medium / low | advise | — | schema or description asking for `api_key`, `password`, `secret`, bearer tokens |
+| `TOOL_DEF_ENV_REFERENCE` | medium | advise | — | `.env`, "environment variables" |
+| `TOOL_DEF_IMPERATIVE` | low / info | advise | ✅ | "you must", "instead of" — prompt-shaped phrasing, not proof of anything |
 
-`staticScanRuleset()` returns every rule with its **regex source and flags**, so a third party can
+`staticScanRuleset()` returns every rule with its **regex source, flags and surfaces**, so a third party can
 re-run the exact rule, plus `{ version, digest }` where the digest is sha256 over the RFC 8785
 canonical form of the sorted rule list. Sorting is by code-unit comparison, never `localeCompare`: a
 locale-dependent collation would make the same table digest differently on a differently-configured

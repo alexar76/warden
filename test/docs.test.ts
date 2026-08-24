@@ -6,7 +6,7 @@ import { dirname, join, resolve } from "node:path";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const LANGS = ["", "-ru", "-es", "-fr", "-zh"];      // README suffixes
 const DOC_LANGS = ["", ".ru", ".es", ".fr", ".zh"];  // docs/<name><lang>.md
-const DOCS = ["gates", "threat-feed", "integration"];
+const DOCS = ["gates", "threat-feed", "integration", "mcp-survey"];
 
 const readmes = LANGS.map((l) => `README${l}.md`);
 const docs = DOCS.flatMap((d) => DOC_LANGS.map((l) => join("docs", `${d}${l}.md`)));

@@ -89,7 +89,7 @@ flowchart LR
 
 | Gate | What it decides | Network | Fatal? |
 |---|---|---|---|
-| **static-scan** | Injection, exfiltration, credential requests and hidden-Unicode/base64 tells in `description` and `inputSchema` — 25 rules, v2, of which 18 can block and 7 are advisory-only | none | no |
+| **static-scan** | Injection, exfiltration, credential requests and hidden-Unicode/base64 tells in the tool `name`, its `description` and its `inputSchema` — 25 rules, v3, of which 18 can block and 7 are advisory-only, and 17 also cover the name | none | no |
 | **threat-feed** | Known-bad server identity or tool, from 11 built-in records plus an optional signed feed | only the feed fetch | yes, for a server-scoped `critical` |
 | **origin** | Whether the operator declared this server or it arrived from a remote catalog | none | yes, under `allowUnknownServers: false` |
 | **pinning** | Whether the tool defs still match what the user approved | none | yes, under `pinToolDefs: true` |
@@ -110,7 +110,7 @@ second as a low severity made it blocking again for anyone who tightened the thr
   findings: [{ gate, severity, code: "THREAT_TOOL_MATCH", message, tool, advisory? }],
   allowedTools: ["add"],
   blockedTools: ["sweeper"],
-  rulesets: { staticScan: { version: "2", digest: "sha256-gWC14PR4…" } }
+  rulesets: { staticScan: { version: "3", digest: "sha256-pah/sT4I…" } }
 }
 ```
 
@@ -162,6 +162,7 @@ no protection:
 | [The gate chain](docs/gates.md) | Every rule tier, every finding code, how the composite score is built, and how to add a gate |
 | [The signed threat feed](docs/threat-feed.md) | The wire contract, the three checks, and how to publish a feed WARDEN will accept |
 | [Integration guide](docs/integration.md) | Wiring WARDEN into your own MCP host, policy choices, and what to record |
+| [Field survey: 1 108 public MCP servers](docs/mcp-survey.md) | What WARDEN decided on real third-party tool definitions — 50 servers blocked, 4 substantiated, and the six ways the rest were wrong |
 
 ## What this is not
 
@@ -179,7 +180,7 @@ no protection:
 ## Development
 
 ```bash
-npm install && npm run build && npm test   # 96 tests
+npm install && npm run build && npm test   # 122 tests
 ```
 
 `test/packaging.test.ts` is what keeps the headline honest: it fails if a runtime dependency appears,

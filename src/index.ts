@@ -5,6 +5,7 @@ import type {
   ToolDef,
   WardenFinding,
   WardenGate,
+  WardenGateResult,
   WardenLogger,
   WardenPolicy,
   WardenVerdict,
@@ -15,6 +16,7 @@ import { OriginGate } from "./origin.js";
 import { ThreatFeed, ThreatGate } from "./threat-feed.js";
 import { classifyTools } from "./sandbox.js";
 import { silentLogger } from "./logger.js";
+import { displaySafe } from "./sanitize.js";
 
 export {
   StaticScanGate,
@@ -22,7 +24,7 @@ export {
   staticScanRulesetRef,
   STATIC_SCAN_RULESET_VERSION,
 } from "./static-scan.js";
-export { PinningGate, canonicalToolsHash, tryCanonicalToolsHash, UNCANONICAL_TOOLS_HASH } from "./pinning.js";
+export { PinningGate, canonicalToolsHash, tryCanonicalToolsHash, serverIdentityHash, UNCANONICAL_TOOLS_HASH } from "./pinning.js";
 export { OriginGate } from "./origin.js";
 export { ThreatFeed, ThreatGate, DEFAULT_FEED_MAX_AGE_MS, FEED_CLOCK_SKEW_MS } from "./threat-feed.js";
 export { EgressGuard, isSensitiveTool, classifyTools } from "./sandbox.js";
@@ -31,6 +33,8 @@ export type { CanonicalizationCode } from "./jcs.js";
 export type { StaticScanRule, StaticScanRuleset } from "./static-scan.js";
 export type { ThreatFeedOptions } from "./threat-feed.js";
 export { silentLogger } from "./logger.js";
+export { displaySafe, DEFAULT_DISPLAY_MAX } from "./sanitize.js";
+export { wildcardMatch } from "./glob.js";
 export * from "./types.js";
 
 const SEVERITY_RANK: Record<Severity, number> = {
@@ -65,10 +69,17 @@ export interface WardenCreateDeps {
  *
  * Every MCP server is vetted through an ordered gate chain before its tools are
  * exposed to the agent: cheap static scanning first, then the known-bad threat
- * feed, then network reputation, then drift/pinning. Findings accumulate across
- * gates; the verdict is allow/block plus a composite 0..1 safety score and a
- * per-tool partition so a mostly-trusted server can have one poisoned tool
- * quarantined without severing the whole connection.
+ * feed, then origin (declared by the operator, or offered by a remote catalog),
+ * then drift/pinning. Findings accumulate across gates; the verdict is allow/block
+ * plus a composite 0..1 safety score and a per-tool partition so a mostly-trusted
+ * server can have one poisoned tool quarantined without severing the whole
+ * connection.
+ *
+ * The score is WARDEN's OWN — the product of what each gate contributed, computed
+ * from local facts. No reputation oracle is consulted and no socket is opened while
+ * vetting. Slot three used to be a reputation gate that asked an oracle for a score
+ * it had no data to compute; it is gone, and test/no-phantom-gate.test.ts fails if
+ * anything like it comes back.
  */
 export class Warden {
   private readonly gates: WardenGate[];
@@ -76,33 +87,39 @@ export class Warden {
   private readonly log: WardenLogger;
 
   constructor(init: WardenInit) {
-    this.gates = init.gates;
-    this.policy = init.policy;
+    this.gates = [...init.gates];
     this.log = (init.log ?? silentLogger()).child("warden");
-    this.validatePolicy();
+    this.policy = this.normalizePolicy(init.policy);
   }
 
   /**
-   * Guard against config typos that silently disable blocking. If blockAtSeverity
-   * isn't a valid Severity key, SEVERITY_RANK[bad] is undefined and every
-   * comparison `number >= undefined` is false — zero blocks, zero warnings.
+   * Guard against config typos that silently disable blocking, on a COPY.
+   *
+   * If `blockAtSeverity` isn't a valid Severity key, `SEVERITY_RANK[bad]` is
+   * undefined and every comparison `number >= undefined` is false — zero blocks,
+   * zero warnings — so the value is repaired. Repairing it in place used to write
+   * into the host's own policy object, which is both a surprise (their config
+   * silently changes under them, and any other Warden sharing the object sees it)
+   * and a crash: `Object.freeze(policy)` is a reasonable thing for a host to do,
+   * and assigning to a frozen property throws a TypeError out of the constructor
+   * under ESM strict mode. A firewall that refuses to be constructed because the
+   * config was immutable is not a firewall.
    */
-  private validatePolicy(): void {
+  private normalizePolicy(policy: WardenPolicy): WardenPolicy {
     const valid: Severity[] = ["info", "low", "medium", "high", "critical"];
-    if (!valid.includes(this.policy.blockAtSeverity)) {
-      const fallback: Severity = "high";
-      this.log.warn(
-        `WARDEN: invalid blockAtSeverity "${String(this.policy.blockAtSeverity)}" ` +
-        `(expected one of ${valid.join(", ")}) — falling back to "${fallback}" to keep blocking enabled`,
-      );
-      (this.policy as WardenPolicy).blockAtSeverity = fallback;
-    }
+    if (valid.includes(policy.blockAtSeverity)) return { ...policy };
+    const fallback: Severity = "high";
+    this.log.warn(
+      `WARDEN: invalid blockAtSeverity "${displaySafe(policy.blockAtSeverity, 40)}" ` +
+      `(expected one of ${valid.join(", ")}) — falling back to "${fallback}" to keep blocking enabled`,
+    );
+    return { ...policy, blockAtSeverity: fallback };
   }
 
   /** Build the standard gate chain: static → threat → origin → pinning. */
   static create(deps: WardenCreateDeps): Warden {
     const gates: WardenGate[] = [
-      new StaticScanGate(),
+      new StaticScanGate(deps.log),
       new ThreatGate(deps.threatFeed),
       new OriginGate(),
       new PinningGate(deps.store),
@@ -123,12 +140,7 @@ export class Warden {
     const blockThreshold = SEVERITY_RANK[this.policy.blockAtSeverity];
 
     for (const gate of this.gates) {
-      const result = await gate.evaluate({
-        server,
-        tools,
-        prior: [...findings],
-        policy: this.policy,
-      });
+      const result = await this.runGate(gate, server, tools, findings);
       findings.push(...result.findings);
       scores.push(clamp01(result.score));
 
@@ -142,7 +154,7 @@ export class Warden {
           decidedBy = gate.name;
         }
         if (result.fatal) {
-          this.log.warn(`gate "${gate.name}" returned fatal for server ${server.id}`);
+          this.log.warn(`gate "${displaySafe(gate.name, 60)}" returned fatal for server ${displaySafe(server.id)}`);
           break; // short-circuit only on an explicit fatal
         }
       }
@@ -154,9 +166,12 @@ export class Warden {
     const { allowedTools, blockedTools } = this.partitionTools(tools, findings, blockThreshold);
 
     if (!allow) {
-      this.log.warn(`BLOCK ${server.id} (decidedBy=${decidedBy}, score=${score.toFixed(3)}, findings=${findings.length})`);
+      this.log.warn(
+        `BLOCK ${displaySafe(server.id)} (decidedBy=${displaySafe(decidedBy ?? "-", 60)}, ` +
+          `score=${score.toFixed(3)}, findings=${findings.length})`,
+      );
     } else {
-      this.log.info(`ALLOW ${server.id} (score=${score.toFixed(3)}, sensitive=${blockedTools.length === 0 ? this.sensitiveCount(tools) : "?"})`);
+      this.log.info(`ALLOW ${displaySafe(server.id)} (score=${score.toFixed(3)}, sensitive=${blockedTools.length === 0 ? this.sensitiveCount(tools) : "?"})`);
     }
 
     return {
@@ -171,6 +186,54 @@ export class Warden {
   }
 
   /**
+   * Run one gate, converting a thrown error into a blocking finding.
+   *
+   * A gate that crashed did not clear the server, so the honest result is a
+   * finding at `high` with a zero score — which blocks at the default threshold
+   * and, under a report-only policy (`blockAtSeverity: "critical"`), is reported
+   * without blocking, exactly like every other high-severity finding.
+   *
+   * Letting the exception escape instead was worse than it looks: `vet()`
+   * rejected, so the host got no verdict at all — not the findings the earlier
+   * gates had already produced, not the per-tool partition — and whether that
+   * ended in a blocked connection or an unhandled rejection was up to the host.
+   * A store with a full disk or a custom gate with a bug should not be able to
+   * decide that.
+   */
+  private async runGate(
+    gate: WardenGate,
+    server: McpServerRef,
+    tools: ToolDef[],
+    prior: WardenFinding[],
+  ): Promise<WardenGateResult> {
+    try {
+      const result = await gate.evaluate({ server, tools, prior: [...prior], policy: this.policy });
+      // A third-party gate is not obliged to be well-behaved either.
+      return {
+        findings: Array.isArray(result?.findings) ? result.findings : [],
+        score: typeof result?.score === "number" ? result.score : 0,
+        ...(result?.fatal ? { fatal: true } : {}),
+      };
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err);
+      this.log.error(`gate "${displaySafe(gate.name, 60)}" threw: ${displaySafe(detail, 300)}`);
+      return {
+        findings: [
+          {
+            gate: gate.name,
+            severity: "high",
+            code: "GATE_ERROR",
+            message:
+              `Gate "${displaySafe(gate.name, 60)}" failed to complete (${displaySafe(detail, 300)}), so this ` +
+              `server was not checked by it.`,
+          },
+        ],
+        score: 0,
+      };
+    }
+  }
+
+  /**
    * Record the user's approval: pin the current tool defs so future drift is
    * detected. Idempotent — re-approving just refreshes the snapshot.
    */
@@ -181,7 +244,7 @@ export class Warden {
       return;
     }
     await pinning.pin(server, tools);
-    this.log.info(`pinned tool defs for ${server.id} (${tools.length} tools)`);
+    this.log.info(`pinned tool defs for ${displaySafe(server.id)} (${tools.length} tools)`);
   }
 
   /**

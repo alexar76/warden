@@ -46,8 +46,20 @@ defecto; expresarlo bajando su severidad la volvía bloqueante para quien endure
 
 ## static-scan
 
-Escaneo local con regex sobre la `description` y el `inputSchema` de cada herramienta — solo esos dos
-campos. 25 reglas en el conjunto **v2**: 18 `block`, 7 `advise`.
+Escaneo local con regex sobre el `name`, la `description` y el `inputSchema` de cada herramienta. 25
+reglas en el conjunto **v3**: 18 `block`, 7 `advise`.
+
+Cada regla declara sobre cuál de esas tres **superficies** se ejecuta, y 17 de las 25 incluyen el
+nombre. Las tres que no lo hacen son las que se apoyan en un SUSTANTIVO
+(`TOOL_DEF_SECRET_REQUEST`, `TOOL_DEF_CREDENTIAL_PARAM`, `TOOL_DEF_ENV_REFERENCE`): un nombre es un
+identificador, `api_key` y `private_key` son partes ordinarias de uno, y rechazar
+`sign_with_private_key` sería cometer el error de calibración de v1 en una superficie nueva. Las
+reglas que se apoyan en una FRASE necesitan espacios y no pueden coincidir con `snake_case` en
+absoluto, y las dos reglas de carga oculta hablan de caracteres que nunca son legítimos en un
+nombre: esas se ejecutan en todas partes.
+
+Hasta v3 el nombre no lo escaneaba **nada**, así que una frase de inyección, un carácter de ancho
+cero o un blob base64 en el primer campo que lee el modelo no se reportaban en absoluto.
 
 La puntuación de la puerta es `1 − penalización(peor severidad bloqueante)`; los avisos nunca la
 afectan.
@@ -56,20 +68,20 @@ afectan.
 |---|---|---|---|---|---|---|
 | puntuación | 1 | 1 | 0.9 | 0.7 | 0.4 | 0 |
 
-| Código | Severidad | Nivel | Qué detecta |
-|---|---|---|---|
-| `TOOL_DEF_INJECTION` | critical / high | block | «ignore all previous instructions», «do not tell the user», etiquetas `<system>`, referencias al prompt del desarrollador |
-| `TOOL_DEF_SECRET_REQUEST` | critical | block | `private_key`, `seed_phrase`/`mnemonic`, rutas `~/.ssh` |
-| `TOOL_DEF_SECRET_HARVEST` | critical | block | una herramienta cuyo cometido declarado es leer/volcar/revelar secretos |
-| `TOOL_DEF_EXFIL` | critical / high | block | «post to https://…», «forward it to…», «exfiltrate», fraseo de subida a un host |
-| `TOOL_DEF_HIDDEN_UNICODE` | high | block | caracteres de ancho cero y de control bidi — texto que el revisor no ve |
-| `TOOL_DEF_BASE64_BLOB` | high | block | una tirada base64 de 120+ caracteres dentro de una descripción |
-| `TOOL_DEF_DATA_URL` | high | block | URLs `data:…;base64,` y `javascript:` |
-| `TOOL_DEF_CREDENTIAL_PARAM` | medium / low | advise | esquema o descripción que pide `api_key`, `password`, `secret`, tokens bearer |
-| `TOOL_DEF_ENV_REFERENCE` | medium | advise | `.env`, «environment variables» |
-| `TOOL_DEF_IMPERATIVE` | low / info | advise | «you must», «instead of» — fraseo con forma de prompt, que por sí solo no prueba nada |
+| Código | Severidad | Nivel | ¿Nombre? | Qué detecta |
+|---|---|---|---|---|
+| `TOOL_DEF_INJECTION` | critical / high | block | ✅ | «ignore all previous instructions», «do not tell the user», etiquetas `<system>`, referencias al prompt del desarrollador |
+| `TOOL_DEF_SECRET_REQUEST` | critical | block | — | `private_key`, `seed_phrase`/`mnemonic`, rutas `~/.ssh` |
+| `TOOL_DEF_SECRET_HARVEST` | critical | block | ✅ | una herramienta cuyo cometido declarado es leer/volcar/revelar secretos |
+| `TOOL_DEF_EXFIL` | critical / high | block | ✅ | «post to https://…», «forward it to…», «exfiltrate», fraseo de subida a un host |
+| `TOOL_DEF_HIDDEN_UNICODE` | high | block | ✅ | caracteres de ancho cero y de control bidi — texto que el revisor no ve |
+| `TOOL_DEF_BASE64_BLOB` | high | block | ✅ | una tirada base64 de 120+ caracteres en un nombre, una descripción o un esquema |
+| `TOOL_DEF_DATA_URL` | high | block | ✅ | URLs `data:…;base64,` y `javascript:` |
+| `TOOL_DEF_CREDENTIAL_PARAM` | medium / low | advise | — | esquema o descripción que pide `api_key`, `password`, `secret`, tokens bearer |
+| `TOOL_DEF_ENV_REFERENCE` | medium | advise | — | `.env`, «environment variables» |
+| `TOOL_DEF_IMPERATIVE` | low / info | advise | ✅ | «you must», «instead of» — fraseo con forma de prompt, que por sí solo no prueba nada |
 
-`staticScanRuleset()` devuelve cada regla con **el fuente de su regex y sus flags**, para que un
+`staticScanRuleset()` devuelve cada regla con **el fuente de su regex, sus flags y sus superficies**, para que un
 tercero pueda reejecutar exactamente la misma regla, más `{ version, digest }`, donde el digest es
 sha256 sobre la forma canónica RFC 8785 de la lista ordenada de reglas. La ordenación es por
 comparación de unidades de código, nunca `localeCompare`: una collation dependiente del locale haría

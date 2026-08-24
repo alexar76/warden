@@ -1,5 +1,7 @@
 import { verify, createPublicKey } from "node:crypto";
+import { countWildcards, MAX_GLOB_WILDCARDS, threatMatch } from "./glob.js";
 import { canonicalize, parseJsonStrict, CanonicalizationError } from "./jcs.js";
+import { displaySafe } from "./sanitize.js";
 import type {
   McpServerRef,
   Severity,
@@ -70,6 +72,18 @@ export const FEED_CLOCK_SKEW_MS = 5 * 60 * 1000;
 
 /** Hard cap on a feed response body (OOM guard). */
 const MAX_FEED_BYTES = 512_000;
+
+/**
+ * Hard cap on how many records a feed may add.
+ *
+ * Matching is `records x (1 + tools)` string walks on every single connection
+ * check, so an enormous deny-list is a way to make vetting too slow to keep
+ * enabled. The body cap alone bounds this loosely (a minimal record is ~120
+ * bytes); this states the limit instead of leaving it to arithmetic. Exceeding it
+ * refuses the whole feed loudly rather than truncating it silently: a deny-list
+ * quietly cut off at record 2000 is worse than one that says it was refused.
+ */
+const MAX_FEED_RECORDS = 2000;
 
 /**
  * Built-in deny-list. Small but real — patterns seen in poisoned MCP servers.
@@ -191,8 +205,21 @@ export interface ThreatFeedOptions {
   now?: () => number;
 }
 
+/**
+ * A record plus what matching needs, computed once instead of per connection: the
+ * lowercased pattern, and whether it carries a wildcard at all.
+ */
+interface CompiledRecord {
+  rec: ThreatRecord;
+  /** Lowercased pattern. Haystacks arrive lowercased too. */
+  pattern: string;
+  /** No wildcard means a plain substring test, which is what a bare pattern meant. */
+  glob: boolean;
+}
+
 export class ThreatFeed {
   private records: ThreatRecord[] = [...BUILTIN];
+  private compiled: CompiledRecord[] = compile([...BUILTIN]);
   private feedPublicKey?: string;
   private readonly maxAgeMs: number;
   private readonly now: () => number;
@@ -215,6 +242,12 @@ export class ThreatFeed {
 
   all(): ThreatRecord[] {
     return [...this.records];
+  }
+
+  /** Single place where the record set changes, so the match cache cannot go stale. */
+  private setRecords(records: ThreatRecord[]): void {
+    this.records = records;
+    this.compiled = compile(records);
   }
 
   /**
@@ -251,17 +284,24 @@ export class ThreatFeed {
         this.log?.warn(`threat feed fetch returned ${res.status} — keeping built-in floor`);
         return;
       }
-      // Reject oversized responses before parsing (OOM guard).
+      // Reject oversized responses before reading them (OOM guard).
       const cl = res.headers.get("content-length");
       if (cl && Number(cl) > MAX_FEED_BYTES) {
         this.log?.warn(`threat feed: content-length ${cl} exceeds ${MAX_FEED_BYTES} byte limit — rejected`);
         return;
       }
       // Read text, not res.json(): the received characters are what the canonical
-      // parser needs for its duplicate-key and number-literal checks.
-      const body = await res.text();
-      if (Buffer.byteLength(body, "utf8") > MAX_FEED_BYTES) {
-        this.log?.warn(`threat feed: body exceeds the ${MAX_FEED_BYTES} byte limit (content-length absent or wrong) — rejected`);
+      // parser needs for its duplicate-key and number-literal checks. Read it in
+      // BOUNDED chunks rather than with res.text(): content-length is advisory —
+      // a chunked response can omit it or lie — and res.text() buffers whatever
+      // arrives before anyone can check the size, so the guard above was one
+      // missing header away from being no guard at all.
+      const body = await readCapped(res, MAX_FEED_BYTES);
+      if (body === undefined) {
+        this.log?.warn(
+          `threat feed: response exceeds the ${MAX_FEED_BYTES} byte limit (content-length absent or wrong) — ` +
+            `download aborted, feed rejected`,
+        );
         return;
       }
 
@@ -312,6 +352,16 @@ export class ThreatFeed {
         this.log?.warn(`threat feed: feedPublicKey is not a valid hex SPKI DER key (${(err as Error).message}) — feed REFUSED`);
         return;
       }
+      // An RSA or P-256 key parses fine and then makes verify() throw, which used
+      // to land in the outer catch and be logged at debug — indistinguishable from
+      // "the feed had nothing new". Say it here, once, at warn level.
+      if (pubKey.asymmetricKeyType !== "ed25519") {
+        this.log?.warn(
+          `threat feed: feedPublicKey is a ${String(pubKey.asymmetricKeyType)} key, but feed signatures are ` +
+            `Ed25519 — feed REFUSED (built-in floor preserved)`,
+        );
+        return;
+      }
       const ok = verify(null, Buffer.from(payload, "utf8"), pubKey, sigBuf);
       if (!ok) {
         this.log?.warn("threat feed: Ed25519 signature INVALID — feed rejected, built-in floor preserved");
@@ -336,8 +386,21 @@ export class ThreatFeed {
         return;
       }
 
+      if (records.length > MAX_FEED_RECORDS) {
+        this.log?.warn(
+          `threat feed: ${records.length} records exceeds the ${MAX_FEED_RECORDS} cap — feed REFUSED ` +
+            `(built-in floor preserved); split the feed or raise the cap deliberately`,
+        );
+        return;
+      }
       const remote = records.filter(isThreatRecord);
-      this.records = [...BUILTIN, ...remote];
+      const dropped = records.length - remote.length;
+      if (dropped > 0) {
+        // Silence here used to hide a publisher shipping records nobody enforces:
+        // a wildcard-heavy pattern or a bad severity is dropped, not applied.
+        this.log?.warn(`threat feed: ${dropped} record(s) refused by validation — the rest are in effect`);
+      }
+      this.setRecords([...BUILTIN, ...remote]);
       this.log?.info(
         `threat feed loaded: ${this.records.length} records (${BUILTIN.length} builtin + ${remote.length} remote, ` +
           `signature valid, snapshot ${formatDuration(age)} old)`,
@@ -386,26 +449,32 @@ export class ThreatFeed {
     }));
 
     const findings: WardenFinding[] = [];
-    for (const rec of this.records) {
+    for (const { rec, pattern, glob } of this.compiled) {
       const scope: ThreatScope = rec.scope ?? "any";
+      // `reason`, `pattern` and `source` come off the wire from a publisher; the
+      // tool name comes from the server being inspected. All four end up in an
+      // operator's terminal, so none of them is interpolated raw.
+      const why = `${displaySafe(rec.reason, 400)} (matched "${displaySafe(pattern)}" in`;
+      const from = `source: ${displaySafe(rec.source, 80)})`;
 
-      if (scope !== "tool" && patternMatches(rec.pattern, serverHay)) {
+      if (scope !== "tool" && matches(pattern, glob, serverHay)) {
         findings.push({
           gate: "threat-feed",
           severity: rec.severity,
           code: rec.code,
-          message: `${rec.reason} (matched "${rec.pattern}" in server identity, source: ${rec.source})`,
+          message: `${why} server identity, ${from}`,
         });
       }
 
       if (scope === "server") continue;
       for (const tool of toolHays) {
-        if (patternMatches(rec.pattern, tool.hay)) {
+        if (matches(pattern, glob, tool.hay)) {
           findings.push({
             gate: "threat-feed",
             severity: rec.severity,
             code: rec.code,
-            message: `Tool "${tool.name}": ${rec.reason} (matched "${rec.pattern}" in the tool definition, source: ${rec.source})`,
+            message: `Tool "${displaySafe(tool.name)}": ${why} the tool definition, ${from}`,
+            // Raw name: this is the key the host filters its tool list with.
             tool: tool.name,
           });
         }
@@ -439,28 +508,64 @@ export class ThreatGate implements WardenGate {
 }
 
 /**
- * Case-insensitive match. `*` is a wildcard (glob); a pattern with no `*` is a
- * plain substring test. `hay` is expected to be pre-lowercased.
+ * Read a response body as UTF-8 text, giving up as soon as it passes `cap` bytes.
+ *
+ * Returns `undefined` when the cap is exceeded, having cancelled the download —
+ * the point is to stop reading, not to read it all and then complain. Falls back
+ * to `res.text()` only when the runtime gives us no stream to read.
  */
-function patternMatches(pattern: string, hay: string): boolean {
-  const p = pattern.toLowerCase();
-  if (!p.includes("*")) return hay.includes(p);
-  const re = globToRegExp(p);
-  return re.test(hay);
+async function readCapped(res: Response, cap: number): Promise<string | undefined> {
+  const stream = res.body;
+  if (!stream) {
+    const text = await res.text();
+    return Buffer.byteLength(text, "utf8") > cap ? undefined : text;
+  }
+  const reader = stream.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value) continue;
+      total += value.byteLength;
+      if (total > cap) {
+        await reader.cancel().catch(() => {});
+        return undefined;
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  return Buffer.concat(chunks).toString("utf8");
+}
+
+/** Lowercase every pattern once, and note whether it needs wildcard matching. */
+function compile(records: ThreatRecord[]): CompiledRecord[] {
+  return records.map((rec) => {
+    const pattern = rec.pattern.toLowerCase();
+    return { rec, pattern, glob: pattern.includes("*") };
+  });
 }
 
 /**
- * Translate a `*`-glob into an anchored regex, escaping all other metachars.
- * The `s` (dotAll) flag is essential: a haystack joins several fields with
- * newlines, and without it `.*` would not cross a newline — silently defeating
- * every `*…*` pattern. (Regression-tested in test/warden.test.ts.)
+ * Case-insensitive match against a pre-lowercased haystack. A pattern with no
+ * `*` is a plain substring test; one with `*` goes to `threatMatch`, which is the
+ * linear glob matcher plus a bounded interior gap and a word-boundary start.
+ *
+ * This used to compile `*` into `.*` and run a regex, which took 112 seconds on a
+ * 32-character pattern against a 220-character haystack — see ./glob.ts. A signed
+ * record could therefore hang every connection check, which is the one thing the
+ * feed's trust model says a publisher must not be able to do.
+ *
+ * It then used plain glob semantics, and the field survey (docs/mcp-survey.md)
+ * showed what that costs on real tool definitions: every multi-segment built-in
+ * fired on unrelated words in the same paragraph, and `*sweep*funds*` matched
+ * `funds` inside "refunds". Those are the constraints `threatMatch` adds.
  */
-function globToRegExp(glob: string): RegExp {
-  const escaped = glob
-    .split("*")
-    .map((seg) => seg.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
-    .join(".*");
-  return new RegExp(`^${escaped}$`, "is");
+function matches(pattern: string, glob: boolean, hay: string): boolean {
+  return glob ? threatMatch(pattern, hay) : hay.includes(pattern);
 }
 
 /**
@@ -492,6 +597,9 @@ function isThreatRecord(v: unknown): v is ThreatRecord {
   const severities: Severity[] = ["info", "low", "medium", "high", "critical"];
   return (
     typeof r.pattern === "string" && r.pattern.length > 0 && r.pattern.length <= 2000 &&
+    // Bounded wildcards: see MAX_GLOB_WILDCARDS. A pattern past the bound is
+    // refused, never run, because the cost of running it is the attack.
+    countWildcards(r.pattern) <= MAX_GLOB_WILDCARDS &&
     typeof r.code === "string" && r.code.length > 0 && r.code.length <= 200 &&
     typeof r.reason === "string" && r.reason.length > 0 && r.reason.length <= 2000 &&
     typeof r.source === "string" && r.source.length > 0 && r.source.length <= 200 &&

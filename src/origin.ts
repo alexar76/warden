@@ -1,3 +1,4 @@
+import { displaySafe } from "./sanitize.js";
 import type {
   WardenFinding,
   WardenGate,
@@ -36,14 +37,18 @@ export class OriginGate implements WardenGate {
     }
 
     const strict = input.policy.allowUnknownServers !== true;
+    // Both the id and the catalog name can come from a remote catalog entry, and
+    // this message is printed to the operator's terminal.
+    const id = displaySafe(input.server.id);
+    const from = displaySafe(catalog);
     const finding: WardenFinding = {
       gate: this.name,
       severity: strict ? "high" : "info",
       code: "SERVER_UNDECLARED",
       message: strict
-        ? `Server "${input.server.id}" was discovered from catalog "${catalog}" and is not declared under mcp.servers; ` +
+        ? `Server "${id}" was discovered from catalog "${from}" and is not declared under mcp.servers; ` +
           `policy forbids undeclared servers (allowUnknownServers=false) — blocking. Add it to mcp.servers to allow it.`
-        : `Server "${input.server.id}" was discovered from catalog "${catalog}", not declared under mcp.servers.`,
+        : `Server "${id}" was discovered from catalog "${from}", not declared under mcp.servers.`,
     };
     // Catalog provenance on its own is not a defect, so the permissive path does
     // not tax the composite score; it only says where the server came from.

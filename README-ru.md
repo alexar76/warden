@@ -5,7 +5,7 @@
   <a href="https://github.com/alexar76/warden/actions/workflows/ci.yml"><img src="docs/badges/ci.svg" alt="CI" /></a>
   <a href="https://www.npmjs.com/package/@aimarket/warden"><img src="https://img.shields.io/npm/v/@aimarket/warden?color=cb3837&label=npm" alt="npm version" /></a>
   <img src="docs/badges/deps.svg" alt="Zero runtime dependencies" />
-  <img src="docs/badges/tests.svg" alt="96 tests passing" />
+  <img src="docs/badges/tests.svg" alt="122 tests passing" />
   <img src="docs/badges/node.svg" alt="Node >= 20" />
   <a href="LICENSE"><img src="docs/badges/license.svg" alt="License: MIT" /></a>
 </p>
@@ -82,7 +82,7 @@ flowchart LR
 
 | Гейт | Что решает | Сеть | Fatal? |
 |---|---|---|---|
-| **static-scan** | Инъекции, эксфильтрация, запросы учётных данных, скрытый Unicode и base64-признаки в `description` и `inputSchema` — 25 правил, версия 2, из них 18 могут блокировать и 7 только сообщают | нет | нет |
+| **static-scan** | Инъекции, эксфильтрация, запросы учётных данных, скрытый Unicode и base64-признаки в `name`, `description` и `inputSchema` инструмента — 25 правил, версия 3, из них 18 могут блокировать и 7 только сообщают, а 17 покрывают и имя | нет | нет |
 | **threat-feed** | Известный плохой сервер или инструмент: 11 встроенных записей плюс опциональный подписанный feed | только загрузка feed | да, для `critical` на уровне сервера |
 | **origin** | Объявил ли оператор этот сервер, или он пришёл из удалённого каталога | нет | да, при `allowUnknownServers: false` |
 | **pinning** | Совпадают ли определения инструментов с тем, что подтвердил пользователь | нет | да, при `pinToolDefs: true` |
@@ -103,7 +103,7 @@ severity снова делало находку блокирующей для в
   findings: [{ gate, severity, code: "THREAT_TOOL_MATCH", message, tool, advisory? }],
   allowedTools: ["add"],
   blockedTools: ["sweeper"],
-  rulesets: { staticScan: { version: "2", digest: "sha256-gWC14PR4…" } }
+  rulesets: { staticScan: { version: "3", digest: "sha256-pah/sT4I…" } }
 }
 ```
 
@@ -157,6 +157,7 @@ GET <ваш feed url>
 | [Цепочка гейтов](docs/gates.ru.md) | Все уровни правил, все коды находок, как складывается composite score и как добавить свой гейт |
 | [Подписанный threat feed](docs/threat-feed.ru.md) | Контракт на проводе, три проверки и как публиковать feed, который WARDEN примет |
 | [Руководство по интеграции](docs/integration.ru.md) | Как встроить WARDEN в свой MCP-хост, выбор политики и что записывать |
+| [Полевой обзор: 1 108 публичных MCP-серверов](docs/mcp-survey.ru.md) | Что WARDEN решил на настоящих чужих определениях инструментов — 50 серверов заблокировано, 4 подтверждено, и шесть способов, которыми остальные оказались ошибкой |
 
 ## Чем это не является
 
@@ -175,7 +176,7 @@ GET <ваш feed url>
 ## Разработка
 
 ```bash
-npm install && npm run build && npm test   # 96 тестов
+npm install && npm run build && npm test   # 122 тестов
 ```
 
 `test/packaging.test.ts` — то, что удерживает заголовок честным: он падает, если появляется

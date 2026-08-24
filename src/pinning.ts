@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { canonicalize, CanonicalizationError } from "./jcs.js";
+import { displaySafe } from "./sanitize.js";
 import type {
   McpServerRef,
   PinStore,
@@ -37,6 +38,8 @@ export class PinningGate implements WardenGate {
       return this.uncanonical(input, pin, err);
     }
 
+    const identityDrift = this.identityDrift(input, pin);
+
     if (!pin) {
       const finding: WardenFinding = {
         gate: this.name,
@@ -54,23 +57,48 @@ export class PinningGate implements WardenGate {
       return { findings: [finding], score: 0.9 };
     }
 
+    const findings: WardenFinding[] = [];
     if (pin.toolsHash !== hash) {
-      const finding: WardenFinding = {
+      findings.push({
         gate: this.name,
         severity: "high",
         code: "TOOL_DEF_DRIFT",
         message:
-          `Tool definitions for "${input.server.id}" changed since approval ` +
+          `Tool definitions for "${displaySafe(input.server.id)}" changed since approval ` +
           `(pinned ${short(pin.toolsHash)} → now ${short(hash)}). Possible rug-pull; re-approval required.`,
-      };
-      return {
-        findings: [finding],
-        score: 0,
-        fatal: input.policy.pinToolDefs === true,
-      };
+      });
+    }
+    // Both are reported when both changed: "the tools moved AND so did the
+    // program serving them" is a different picture from either one alone, and
+    // returning on the first one found used to hide the second.
+    if (identityDrift) findings.push(identityDrift);
+
+    if (findings.length > 0) {
+      return { findings, score: 0, fatal: input.policy.pinToolDefs === true };
     }
 
     return { findings: [], score: 1 };
+  }
+
+  /**
+   * Has the program behind this server changed since approval?
+   *
+   * Silent when the pin predates {@link PinnedServer.identityHash}: an absent
+   * value is "not recorded", never "changed". The next `approve()` records it.
+   */
+  private identityDrift(input: WardenGateInput, pin: PinnedServer | undefined): WardenFinding | undefined {
+    if (!pin?.identityHash) return undefined;
+    const now = serverIdentityHash(input.server);
+    if (now === pin.identityHash) return undefined;
+    return {
+      gate: this.name,
+      severity: "high",
+      code: "SERVER_IDENTITY_DRIFT",
+      message:
+        `The launch identity of "${displaySafe(input.server.id)}" changed since approval ` +
+        `(pinned ${short(pin.identityHash)} → now ${short(now)}): transport, command, args, url or name ` +
+        `is not what was approved. The advertised tools may be identical while the program serving them is not.`,
+    };
   }
 
   /**
@@ -93,7 +121,7 @@ export class PinningGate implements WardenGate {
             severity: "medium",
             code: "TOOL_DEF_UNCANONICAL",
             message:
-              `Tool definitions for "${input.server.id}" have no canonical form (${err.message}), ` +
+              `Tool definitions for "${displaySafe(input.server.id)}" have no canonical form (${err.message}), ` +
               `so no reproducible pin can be taken — drift detection is unavailable for this server.`,
           },
         ],
@@ -107,7 +135,7 @@ export class PinningGate implements WardenGate {
           severity: "high",
           code: "TOOL_DEF_UNCANONICAL",
           message:
-            `Tool definitions for "${input.server.id}" have no canonical form (${err.message}), so the pinned ` +
+            `Tool definitions for "${displaySafe(input.server.id)}" have no canonical form (${err.message}), so the pinned ` +
             `snapshot ${short(pin.toolsHash)} cannot be re-verified. Treated as drift; re-approval required.`,
         },
       ],
@@ -129,7 +157,8 @@ export class PinningGate implements WardenGate {
       serverId: server.id,
       toolsHash: canonicalToolsHash(tools),
       approvedAt: new Date().toISOString(),
-      toolNames: [...tools.map((t) => t.name)].sort(),
+      toolNames: [...tools.map((t) => t.name)].sort(compareCodeUnits),
+      identityHash: serverIdentityHash(server),
     };
     await this.store.putPin(pinned);
   }
@@ -186,6 +215,27 @@ export function tryCanonicalToolsHash(tools: ToolDef[]): string | undefined {
     if (err instanceof CanonicalizationError) return undefined;
     throw err;
   }
+}
+
+/**
+ * sha256 over the server's launch identity: transport, command, args, url, name.
+ *
+ * Deliberately NOT the whole `McpServerRef`: `catalog` is provenance rather than
+ * identity (the origin gate is what has an opinion about it), and `env` holds
+ * secrets that must not be hashed into a value stored on disk next to the pin.
+ *
+ * Missing fields serialize as empty rather than being omitted, so a server that
+ * gains a `url` reads as a change instead of hashing the same as before.
+ */
+export function serverIdentityHash(server: McpServerRef): string {
+  const identity = {
+    transport: server.transport,
+    command: server.command ?? "",
+    args: server.args ?? [],
+    url: server.url ?? "",
+    name: server.name,
+  };
+  return createHash("sha256").update(canonicalize(identity), "utf8").digest("hex");
 }
 
 /** RFC 8785 §3.2.3 ordering: arrays of UTF-16 code units as unsigned integers. */

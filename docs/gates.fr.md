@@ -50,8 +50,20 @@ durcissait le seuil.
 
 ## static-scan
 
-Analyse locale par expressions régulières de la `description` et de l'`inputSchema` de chaque outil —
-ces deux champs seulement. 25 règles dans le jeu **v2** : 18 `block`, 7 `advise`.
+Analyse locale par expressions régulières du `name`, de la `description` et de l'`inputSchema` de
+chaque outil. 25 règles dans le jeu **v3** : 18 `block`, 7 `advise`.
+
+Chaque règle déclare sur laquelle de ces trois **surfaces** elle s'exécute, et 17 des 25 incluent le
+nom. Les trois qui ne l'incluent pas sont celles qui reposent sur un NOM COMMUN
+(`TOOL_DEF_SECRET_REQUEST`, `TOOL_DEF_CREDENTIAL_PARAM`, `TOOL_DEF_ENV_REFERENCE`) : un nom d'outil
+est un identifiant, `api_key` et `private_key` en sont des morceaux ordinaires, et refuser
+`sign_with_private_key` reviendrait à commettre l'erreur de calibrage de v1 sur une nouvelle
+surface. Les règles reposant sur une PHRASE exigent des espaces et ne peuvent donc pas correspondre
+à du `snake_case`, et les deux règles de charge cachée portent sur des caractères qui ne sont jamais
+légitimes dans un nom : celles-là s'exécutent partout.
+
+Jusqu'à v3, le nom n'était analysé par **rien** : une phrase d'injection, un caractère de largeur
+nulle ou un blob base64 dans le premier champ que lit le modèle n'était pas rapporté du tout.
 
 Le score de la porte est `1 − pénalité(pire sévérité bloquante)` ; les constats indicatifs ne
 l'affectent jamais.
@@ -60,20 +72,20 @@ l'affectent jamais.
 |---|---|---|---|---|---|---|
 | score de la porte | 1 | 1 | 0.9 | 0.7 | 0.4 | 0 |
 
-| Code | Sévérité | Palier | Ce qu'il attrape |
-|---|---|---|---|
-| `TOOL_DEF_INJECTION` | critical / high | block | « ignore all previous instructions », « do not tell the user », balises `<system>`, références au prompt développeur |
-| `TOOL_DEF_SECRET_REQUEST` | critical | block | `private_key`, `seed_phrase`/`mnemonic`, chemins `~/.ssh` |
-| `TOOL_DEF_SECRET_HARVEST` | critical | block | un outil dont la mission déclarée est de lire/extraire/révéler des secrets |
-| `TOOL_DEF_EXFIL` | critical / high | block | « post to https://… », « forward it to… », « exfiltrate », formulations d'upload vers un hôte |
-| `TOOL_DEF_HIDDEN_UNICODE` | high | block | caractères de largeur nulle et de contrôle bidi — du texte que le relecteur ne voit pas |
-| `TOOL_DEF_BASE64_BLOB` | high | block | une suite base64 de 120+ caractères dans une description |
-| `TOOL_DEF_DATA_URL` | high | block | URLs `data:…;base64,` et `javascript:` |
-| `TOOL_DEF_CREDENTIAL_PARAM` | medium / low | advise | schéma ou description réclamant `api_key`, `password`, `secret`, jetons bearer |
-| `TOOL_DEF_ENV_REFERENCE` | medium | advise | `.env`, « environment variables » |
-| `TOOL_DEF_IMPERATIVE` | low / info | advise | « you must », « instead of » — formulation en forme de prompt, qui à elle seule ne prouve rien |
+| Code | Sévérité | Palier | Nom ? | Ce qu'il attrape |
+|---|---|---|---|---|
+| `TOOL_DEF_INJECTION` | critical / high | block | ✅ | « ignore all previous instructions », « do not tell the user », balises `<system>`, références au prompt développeur |
+| `TOOL_DEF_SECRET_REQUEST` | critical | block | — | `private_key`, `seed_phrase`/`mnemonic`, chemins `~/.ssh` |
+| `TOOL_DEF_SECRET_HARVEST` | critical | block | ✅ | un outil dont la mission déclarée est de lire/extraire/révéler des secrets |
+| `TOOL_DEF_EXFIL` | critical / high | block | ✅ | « post to https://… », « forward it to… », « exfiltrate », formulations d'upload vers un hôte |
+| `TOOL_DEF_HIDDEN_UNICODE` | high | block | ✅ | caractères de largeur nulle et de contrôle bidi — du texte que le relecteur ne voit pas |
+| `TOOL_DEF_BASE64_BLOB` | high | block | ✅ | une suite base64 de 120+ caractères dans un nom, une description ou un schéma |
+| `TOOL_DEF_DATA_URL` | high | block | ✅ | URLs `data:…;base64,` et `javascript:` |
+| `TOOL_DEF_CREDENTIAL_PARAM` | medium / low | advise | — | schéma ou description réclamant `api_key`, `password`, `secret`, jetons bearer |
+| `TOOL_DEF_ENV_REFERENCE` | medium | advise | — | `.env`, « environment variables » |
+| `TOOL_DEF_IMPERATIVE` | low / info | advise | ✅ | « you must », « instead of » — formulation en forme de prompt, qui à elle seule ne prouve rien |
 
-`staticScanRuleset()` renvoie chaque règle avec **la source de sa regex et ses drapeaux**, pour qu'un
+`staticScanRuleset()` renvoie chaque règle avec **la source de sa regex, ses drapeaux et ses surfaces**, pour qu'un
 tiers puisse rejouer exactement la même règle, plus `{ version, digest }`, où l'empreinte est un sha256
 sur la forme canonique RFC 8785 de la liste triée des règles. Le tri se fait par comparaison d'unités
 de code, jamais `localeCompare` : une collation dépendante de la locale ferait que la même table

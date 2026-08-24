@@ -132,6 +132,21 @@ export interface PinnedServer {
   toolsHash: string;
   approvedAt: string;
   toolNames: string[];
+  /**
+   * sha256 over the server's launch identity — transport, command, args, url,
+   * name — as it stood when the user approved it.
+   *
+   * Tool-def pinning catches a server that changes what it advertises. It does
+   * not catch a server that keeps the advertisement and changes the program
+   * behind it: same id, same tools, different `command`. For an operator-declared
+   * server that is a local config edit and not much of a threat. For a server
+   * discovered from a remote **catalog** it is one, because the catalog decides
+   * the command and can repoint an already-approved id at a new one.
+   *
+   * Optional because pins written before this field existed do not have it, and a
+   * missing value must not be read as a change. Re-approving fills it in.
+   */
+  identityHash?: string;
 }
 
 /**

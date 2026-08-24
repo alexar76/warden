@@ -1,3 +1,4 @@
+import { wildcardMatch } from "./glob.js";
 import type { ToolDef, WardenPolicy } from "./types.js";
 
 /**
@@ -70,12 +71,14 @@ export class EgressGuard {
   }
 }
 
-/** `*`-glob match (case-insensitive). Inputs are matched as whole strings. */
+/**
+ * `*`-glob match (case-insensitive). Inputs are matched as whole strings.
+ *
+ * The pattern comes from the operator's policy, the value from the server being
+ * inspected. Compiling `*` into `.*` and running a regex made that pair a denial
+ * of service: an operator pattern with a dozen wildcards plus a 200-character
+ * tool name took 89 SECONDS to answer "not sensitive". See ./glob.ts.
+ */
 function globMatch(pattern: string, value: string): boolean {
-  const re = pattern
-    .toLowerCase()
-    .split("*")
-    .map((seg) => seg.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
-    .join(".*");
-  return new RegExp(`^${re}$`, "i").test(value);
+  return wildcardMatch(pattern.toLowerCase(), value);
 }

@@ -5,7 +5,7 @@
   <a href="https://github.com/alexar76/warden/actions/workflows/ci.yml"><img src="docs/badges/ci.svg" alt="CI" /></a>
   <a href="https://www.npmjs.com/package/@aimarket/warden"><img src="https://img.shields.io/npm/v/@aimarket/warden?color=cb3837&label=npm" alt="npm version" /></a>
   <img src="docs/badges/deps.svg" alt="Cero dependencias de ejecución" />
-  <img src="docs/badges/tests.svg" alt="96 pruebas en verde" />
+  <img src="docs/badges/tests.svg" alt="122 pruebas en verde" />
   <img src="docs/badges/node.svg" alt="Node >= 20" />
   <a href="LICENSE"><img src="docs/badges/license.svg" alt="Licencia: MIT" /></a>
 </p>
@@ -82,7 +82,7 @@ flowchart LR
 
 | Puerta | Qué decide | Red | ¿Fatal? |
 |---|---|---|---|
-| **static-scan** | Inyección, exfiltración, peticiones de credenciales y señales de Unicode oculto/base64 en `description` e `inputSchema` — 25 reglas, v2, de las cuales 18 pueden bloquear y 7 son solo de aviso | ninguna | no |
+| **static-scan** | Inyección, exfiltración, peticiones de credenciales y señales de Unicode oculto/base64 en el `name`, la `description` y el `inputSchema` de la herramienta — 25 reglas, v3, de las cuales 18 pueden bloquear y 7 son solo de aviso, y 17 cubren también el nombre | ninguna | no |
 | **threat-feed** | Identidad de servidor o herramienta conocida como maliciosa: 11 registros integrados más un feed firmado opcional | solo la descarga del feed | sí, para un `critical` con alcance de servidor |
 | **origin** | Si el operador declaró este servidor o llegó desde un catálogo remoto | ninguna | sí, con `allowUnknownServers: false` |
 | **pinning** | Si las definiciones de herramientas siguen coincidiendo con lo que el usuario aprobó | ninguna | sí, con `pinToolDefs: true` |
@@ -104,7 +104,7 @@ endureciera el umbral.
   findings: [{ gate, severity, code: "THREAT_TOOL_MATCH", message, tool, advisory? }],
   allowedTools: ["add"],
   blockedTools: ["sweeper"],
-  rulesets: { staticScan: { version: "2", digest: "sha256-gWC14PR4…" } }
+  rulesets: { staticScan: { version: "3", digest: "sha256-pah/sT4I…" } }
 }
 ```
 
@@ -158,6 +158,7 @@ degradar a ninguna protección:
 | [La cadena de puertas](docs/gates.es.md) | Cada nivel de regla, cada código de hallazgo, cómo se construye la puntuación compuesta y cómo añadir una puerta |
 | [El threat feed firmado](docs/threat-feed.es.md) | El contrato en el cable, las tres comprobaciones y cómo publicar un feed que WARDEN acepte |
 | [Guía de integración](docs/integration.es.md) | Cómo conectar WARDEN a tu propio host MCP, elecciones de política y qué registrar |
+| [Estudio de campo: 1 108 servidores MCP públicos](docs/mcp-survey.es.md) | Qué decidió WARDEN sobre definiciones de herramienta reales de terceros — 50 servidores bloqueados, 4 sustentados, y las seis formas en que el resto se equivocó |
 
 ## Lo que esto no es
 
@@ -176,7 +177,7 @@ degradar a ninguna protección:
 ## Desarrollo
 
 ```bash
-npm install && npm run build && npm test   # 96 pruebas
+npm install && npm run build && npm test   # 122 pruebas
 ```
 
 `test/packaging.test.ts` es lo que mantiene honesto el titular: falla si aparece una dependencia de

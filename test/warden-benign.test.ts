@@ -252,13 +252,29 @@ describe("exfil detection is anchored on an external destination", () => {
 describe("ruleset is versioned and digestible", () => {
   it("exposes a stable digest over the rule table", () => {
     const rs = staticScanRuleset();
-    expect(rs.version).toBe("2");
+    expect(rs.version).toBe("4");
     // If this fails you changed a rule: bump STATIC_SCAN_RULESET_VERSION and
     // update the value here. A scan result is only comparable within one digest.
-    expect(rs.digest).toBe("sha256-gWC14PR4kUylkJaAGMnIYYX6tPhZTJ60cSB61UZxuWc=");
+    expect(rs.digest).toBe("sha256-jl+onxhgP54zRd2xFr0IYc2lwX9LXsDkDV0FmdeIL40=");
     expect(rs.rules.length).toBe(25);
-    expect(rs.rules.filter((r) => r.tier === "block").length).toBe(18);
-    expect(rs.rules.filter((r) => r.tier === "advise").length).toBe(7);
+    // v4 moved four rules from block to advise after the field survey.
+    expect(rs.rules.filter((r) => r.tier === "block").length).toBe(15);
+    expect(rs.rules.filter((r) => r.tier === "advise").length).toBe(10);
+    // A rule's guards are part of the table, so the digest changes when a guard
+    // is added even if every regex stays byte-identical.
+    expect(rs.rules.filter((r) => r.guards.length > 0).length).toBe(12);
+    // v3: every rule declares its surfaces, and the tool name is scanned by the
+    // phrase and hidden-payload rules but by none of the noun-keyed ones.
+    expect(rs.rules.every((r) => r.surfaces.includes("description") && r.surfaces.includes("inputSchema"))).toBe(true);
+    expect(rs.rules.filter((r) => r.surfaces.includes("name")).length).toBe(17);
+    const nounCodes = new Set(
+      rs.rules.filter((r) => !r.surfaces.includes("name")).map((r) => r.code),
+    );
+    expect([...nounCodes].sort()).toEqual([
+      "TOOL_DEF_CREDENTIAL_PARAM",
+      "TOOL_DEF_ENV_REFERENCE",
+      "TOOL_DEF_SECRET_REQUEST",
+    ]);
   });
 
   it("is independent of declaration order", () => {
