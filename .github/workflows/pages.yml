@@ -1,0 +1,60 @@
+# Publish the landing to GitHub Pages.
+#
+# The site is ONE self-contained file (docs/landing/index.html, five languages
+# inlined, no external assets), uploaded as the artifact ROOT so the published URL
+# is the repository's Pages root rather than /landing/.
+#
+# The landing quotes the ruleset version and digest, the field-survey figures and
+# the test count. `npm test` includes test/landing.test.ts, which checks every one
+# of those against the code and the docs they describe — so a stale page fails the
+# job instead of going live.
+name: Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/landing/**"
+      - "src/**"
+      - "docs/mcp-survey*.md"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      # The whole suite, not just the landing test: the page quotes numbers the
+      # rest of the suite is what keeps true.
+      - run: npm test
+
+  deploy:
+    needs: verify
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/landing
+      - id: deployment
+        uses: actions/deploy-pages@v4

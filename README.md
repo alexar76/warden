@@ -10,8 +10,8 @@
 <!-- aicom-readme-badges -->
 <p align="center">
   <a href="https://github.com/alexar76/warden/actions/workflows/ci.yml"><img src="https://raw.githubusercontent.com/alexar76/warden/main/docs/badges/ci.svg" alt="CI" /></a>
-  <a href="https://www.npmjs.com/package/@aimarket/warden"><img src="https://raw.githubusercontent.com/alexar76/warden/main/docs/badges/deps.svg" alt="0 runtime deps" /></a>
-  <a href="https://www.npmjs.com/package/@aimarket/warden"><img src="https://img.shields.io/npm/v/@aimarket/warden.svg" alt="npm @aimarket/warden" /></a>
+  <a href="https://warden.modelmarket.dev/"><img src="https://raw.githubusercontent.com/alexar76/warden/main/docs/badges/deps.svg" alt="0 runtime deps" /></a>
+  <a href="https://warden.modelmarket.dev/"><img src="https://img.shields.io/npm/v/@aimarket/warden.svg" alt="npm @aimarket/warden" /></a>
   <img src="https://raw.githubusercontent.com/alexar76/warden/main/docs/badges/tests.svg" alt="96 tests passing" />
   <img src="https://raw.githubusercontent.com/alexar76/warden/main/docs/badges/node.svg" alt="node >=20" />
   <img src="https://raw.githubusercontent.com/alexar76/warden/main/docs/badges/warden.svg" alt="WARDEN MCP firewall" />
@@ -180,7 +180,7 @@ no protection:
 ## Development
 
 ```bash
-npm install && npm run build && npm test   # 141 tests
+npm install && npm run build && npm test   # 146 tests
 ```
 
 `test/packaging.test.ts` is what keeps the headline honest: it fails if a runtime dependency appears,

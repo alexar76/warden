@@ -1,0 +1,1013 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>WARDEN — the MCP firewall that publishes what it got wrong</title>
+<meta name="description" content="WARDEN is a zero-dependency MCP security firewall: four gates vet a third-party server before a tool definition reaches your model. Pointed at 1 108 public MCP servers, with the false positives published."/>
+<meta name="color-scheme" content="dark"/>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23071018'/%3E%3Cpath d='M16 5l9 4v8c0 6-4 8.6-9 10-5-1.4-9-4-9-10V9l9-4z' fill='none' stroke='%232bb8a8' stroke-width='2.2'/%3E%3Ccircle cx='16' cy='15' r='2.6' fill='%237dd3c7'/%3E%3C/svg%3E"/>
+<link rel="alternate" hreflang="en" href="https://warden.modelmarket.dev/?lang=en"/>
+<link rel="alternate" hreflang="ru" href="https://warden.modelmarket.dev/?lang=ru"/>
+<link rel="alternate" hreflang="es" href="https://warden.modelmarket.dev/?lang=es"/>
+<link rel="alternate" hreflang="fr" href="https://warden.modelmarket.dev/?lang=fr"/>
+<link rel="alternate" hreflang="zh" href="https://warden.modelmarket.dev/?lang=zh"/>
+<link rel="alternate" hreflang="x-default" href="https://warden.modelmarket.dev/"/>
+<style>
+  :root{
+    --bg:#071018; --bg2:#0c1824; --panel:#0b151e; --panel2:#12202c;
+    --line:#1b2c3a; --ink:#e6f1f5; --dim:#93a9ba; --dimmer:#5c7183;
+    --teal:#2bb8a8; --teal2:#7dd3c7; --teal3:#4ad9c4; --amber:#e0b35a; --red:#e0685a;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:
+      radial-gradient(60% 40% at 12% 0%,rgba(43,184,168,.13),transparent 70%),
+      radial-gradient(50% 40% at 92% 12%,rgba(224,179,90,.08),transparent 72%),
+      linear-gradient(165deg,var(--bg) 0%,var(--bg2) 55%,var(--bg) 100%);
+    color:var(--ink);font-family:var(--sans);line-height:1.62;-webkit-font-smoothing:antialiased}
+  a{color:var(--teal2);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:1060px;margin:0 auto;padding:0 22px}
+  code,kbd{font-family:var(--mono);font-size:.92em}
+  .mono{font-family:var(--mono)}
+
+  header{position:sticky;top:0;z-index:20;backdrop-filter:blur(10px);
+    background:rgba(7,16,24,.82);border-bottom:1px solid var(--line)}
+  .bar{display:flex;align-items:center;gap:18px;padding:12px 0;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:10px;font-family:var(--mono);letter-spacing:.14em;
+    font-weight:600;color:var(--ink)}
+  .brand svg{width:22px;height:22px}
+  nav{display:flex;gap:16px;flex-wrap:wrap;font-size:.88rem}
+  nav a{color:var(--dim)}
+  .langs{margin-left:auto;display:flex;gap:4px}
+  .langs button{font-family:var(--mono);font-size:.74rem;letter-spacing:.06em;background:transparent;
+    color:var(--dimmer);border:1px solid var(--line);border-radius:6px;padding:4px 8px;cursor:pointer}
+  .langs button[aria-pressed="true"]{color:var(--bg);background:var(--teal2);border-color:var(--teal2)}
+
+  section{padding:60px 0;border-bottom:1px solid var(--line)}
+  section:last-of-type{border-bottom:0}
+  h1{font-size:clamp(2rem,5.4vw,3.3rem);line-height:1.12;margin:.1em 0 .5em;letter-spacing:-.02em}
+  h2{font-size:clamp(1.35rem,3vw,1.85rem);margin:0 0 .35em;letter-spacing:-.01em}
+  h3{font-size:1.02rem;margin:0 0 .3em}
+  .kicker{font-family:var(--mono);font-size:.76rem;letter-spacing:.22em;color:var(--teal);
+    text-transform:uppercase;margin-bottom:14px}
+  .lede{font-size:clamp(1.02rem,2.1vw,1.2rem);color:var(--dim);max-width:66ch}
+  p{max-width:72ch}
+
+  .cta{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:26px 0 8px}
+  .install{font-family:var(--mono);background:var(--panel);border:1px solid var(--teal);
+    border-radius:9px;padding:11px 15px;color:var(--teal2);font-size:.95rem}
+  .btn{display:inline-block;border:1px solid var(--line);border-radius:9px;padding:11px 16px;
+    color:var(--ink);font-size:.92rem;background:var(--panel2)}
+  .btn:hover{border-color:var(--teal);text-decoration:none}
+  .badges{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;font-family:var(--mono);font-size:.74rem}
+  .badge{border:1px solid var(--line);border-radius:20px;padding:3px 11px;color:var(--dim)}
+  .badge b{color:var(--teal2);font-weight:600}
+
+  .grid{display:grid;gap:14px;margin-top:26px}
+  .g2{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+  .g3{grid-template-columns:repeat(auto-fit,minmax(215px,1fr))}
+  .g4{grid-template-columns:repeat(auto-fit,minmax(178px,1fr))}
+  .card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);
+    border-radius:12px;padding:17px 18px}
+  .card h3{font-family:var(--mono);font-size:.86rem;letter-spacing:.08em;color:var(--teal2);
+    text-transform:uppercase}
+  .card p{color:var(--dim);font-size:.93rem;margin:.2em 0 0}
+  .card .num{font-family:var(--mono);font-size:1.9rem;color:var(--ink);display:block;line-height:1.1}
+  .card .num.warn{color:var(--amber)}
+  .card .num.good{color:var(--teal3)}
+  .card small{color:var(--dimmer);font-family:var(--mono);font-size:.74rem}
+
+  table{width:100%;border-collapse:collapse;margin-top:20px;font-size:.9rem}
+  th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-family:var(--mono);font-size:.74rem;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--dimmer);font-weight:500}
+  td.mono{font-family:var(--mono);color:var(--teal2);white-space:nowrap}
+  .scroll{overflow-x:auto}
+
+  pre{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:16px 18px;
+    overflow-x:auto;font-family:var(--mono);font-size:.855rem;line-height:1.6;color:#cfe6ea}
+  pre .c{color:var(--dimmer)}
+  pre .k{color:var(--teal2)}
+  pre .s{color:var(--amber)}
+
+  .hero-svg{width:100%;height:auto;border:1px solid var(--line);border-radius:14px;
+    background:linear-gradient(160deg,#071018,#0c1824 55%,#061016)}
+
+  /* The gate chain in depth. A canvas, one inline fragment shader, no library and
+     nothing fetched — the page argues for zero dependencies, so its own hero is not
+     allowed to pull three.js off a CDN. The flat SVG below stays in the DOM as the
+     fallback for no-WebGL and reduced-motion, and as the labelled diagram. */
+  .stage{position:relative;margin-top:26px;border:1px solid var(--line);border-radius:16px;
+    overflow:hidden;background:linear-gradient(160deg,#050c12,#0a1620 55%,#040d13)}
+  .stage canvas{display:block;width:100%;height:clamp(260px,42vh,420px);opacity:0;
+    transition:opacity 1.1s ease}
+  .stage.live canvas{opacity:1}
+  .stage .legend{position:absolute;left:0;right:0;bottom:0;display:flex;gap:18px;
+    justify-content:center;flex-wrap:wrap;padding:12px 16px;font-family:var(--mono);
+    font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--dimmer);
+    background:linear-gradient(180deg,transparent,rgba(5,12,18,.9))}
+  .stage .legend b{color:var(--teal2);font-weight:500}
+  .stage .legend .blocked b{color:var(--amber)}
+  /* No WebGL: the stage carries nothing but the canvas, so it goes away entirely.
+     The labelled diagram in the Gate chain section is what actually explains the
+     product, and it is plain SVG that renders everywhere. */
+  .stage.fallback{display:none}
+  .diagram{margin:26px 0 0}
+  .diagram figcaption{color:var(--dimmer);font-family:var(--mono);font-size:.76rem;
+    margin-top:9px;letter-spacing:.03em}
+  @media (prefers-reduced-motion:reduce){ .stage canvas{opacity:1} }
+  .note{border-left:2px solid var(--teal);padding:2px 0 2px 15px;color:var(--dim);
+    font-size:.94rem;margin:22px 0;max-width:72ch}
+  .not li{color:var(--dim);margin-bottom:9px}
+  .not b{color:var(--ink)}
+  footer{padding:44px 0 60px;color:var(--dimmer);font-size:.87rem}
+  .flinks{display:flex;gap:18px;flex-wrap:wrap;margin-bottom:18px}
+  @media (max-width:640px){ section{padding:44px 0} nav{display:none} }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap bar">
+    <span class="brand">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 4l10 4.4v8.8c0 6.6-4.4 9.5-10 11-5.6-1.5-10-4.4-10-11V8.4L16 4z" fill="none" stroke="#2bb8a8" stroke-width="2"/><circle cx="16" cy="15" r="2.8" fill="#7dd3c7"/></svg>
+      WARDEN
+    </span>
+    <nav>
+      <a href="#survey" data-i18n="nav.survey">The survey</a>
+      <a href="#gates" data-i18n="nav.gates">Gate chain</a>
+      <a href="#verdict" data-i18n="nav.verdict">Verdict</a>
+      <a href="#feed" data-i18n="nav.feed">Threat feed</a>
+      <a href="#not" data-i18n="nav.not">What it is not</a>
+      <a href="#start" data-i18n="nav.start">Quick start</a>
+    </nav>
+    <span class="langs">
+      <button data-lang="en" aria-pressed="true">EN</button>
+      <button data-lang="ru" aria-pressed="false">RU</button>
+      <button data-lang="es" aria-pressed="false">ES</button>
+      <button data-lang="fr" aria-pressed="false">FR</button>
+      <button data-lang="zh" aria-pressed="false">中文</button>
+    </span>
+  </div>
+</header>
+
+<section id="hero">
+  <div class="wrap">
+    <div class="kicker" data-i18n="hero.kicker">MCP security firewall · zero runtime dependencies</div>
+    <h1 data-i18n="hero.h1">An MCP server tells your agent what its tools do.<br/>The agent believes it.</h1>
+    <p class="lede" data-i18n="hero.lede">A tool description is prompt text a third party delivers straight into your model's context, and a schema field named <code>api_key</code> is a request for your secrets phrased as an API. WARDEN vets a server <b>before any of its tools reach the model</b>, and returns a verdict you can record.</p>
+    <div class="cta">
+      <span class="install">npm i @aimarket/warden</span>
+      <a class="btn" href="https://github.com/alexar76/warden" data-i18n="hero.btn.repo">Read the source</a>
+      <a class="btn" href="#survey" data-i18n="hero.btn.survey">See what it got wrong</a>
+    </div>
+    <div class="badges">
+      <span class="badge"><b>0</b> <span data-i18n="badge.deps">runtime dependencies</span></span>
+      <span class="badge"><b>4</b> <span data-i18n="badge.gates">gates</span></span>
+      <span class="badge"><span data-i18n="badge.ruleset">ruleset</span> <b>v4</b></span>
+      <span class="badge"><b>146</b> <span data-i18n="badge.tests">tests</span></span>
+      <span class="badge"><b>node:crypto</b> <span data-i18n="badge.import">the only import</span></span>
+    </div>
+    <div class="stage" id="stage">
+      <canvas id="gl" aria-hidden="true"></canvas>
+      <div class="legend">
+        <span><b>&#9679;</b> <span data-i18n="stage.legend.defs">tool definitions</span></span>
+        <span><b>4</b> <span data-i18n="stage.legend.gates">gates</span></span>
+        <span class="blocked"><b>&#9679;</b> <span data-i18n="stage.legend.blocked">blocked at a gate</span></span>
+        <span><b>&#9670;</b> <span data-i18n="stage.legend.verdict">recorded verdict</span></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="survey">
+  <div class="wrap">
+    <div class="kicker" data-i18n="survey.kicker">Calibrated against the ecosystem, not against fixtures</div>
+    <h2 data-i18n="survey.h2">We pointed it at 1 108 public MCP servers and published what it got wrong</h2>
+    <p data-i18n="survey.p1">Hours after the first release we reached every public MCP server we legitimately could: 2 787 registry entries with a network endpoint, of which 1 108 answered a real <code>tools/list</code> and handed over 17 491 tool definitions. No third-party code was executed — every definition came from the server's own answer.</p>
+    <div class="grid g4">
+      <div class="card"><span class="num">1 108</span><small data-i18n="survey.k1">servers answered</small></div>
+      <div class="card"><span class="num">17 491</span><small data-i18n="survey.k2">tool definitions</small></div>
+      <div class="card"><span class="num warn">50 → 6</span><small data-i18n="survey.k3">servers blocked, v3 → v4</small></div>
+      <div class="card"><span class="num good">4 → 4</span><small data-i18n="survey.k4">real findings, still caught</small></div>
+    </div>
+    <p data-i18n="survey.p2">The headline is not about the ecosystem, it is about us. Ruleset v3 blocked 50 of those servers and only <b>4</b> held up on review. The other 46 were blocked for saying the right thing: <i>"Never send a private key"</i>, <i>"the private key never leaves your machine"</i>, a security scanner listing the attacks it detects, a Persian description spelled with the ZERO WIDTH NON-JOINER its language requires.</p>
+    <div class="note" data-i18n="survey.note">A scanner's false-positive profile is the only number that decides whether anyone switches it on. One that refuses honest servers is not cautious — it is uninstalled. So the failures are published with the evidence, and the regression suite is built from this corpus's real text rather than from invented fixtures.</div>
+    <div class="scroll"><table>
+      <thead><tr><th data-i18n="survey.t.head">Re-measured on the same 1 108 servers</th><th>ruleset v3</th><th>ruleset v4</th></tr></thead>
+      <tbody>
+        <tr><td data-i18n="survey.t.blocked">servers blocked</td><td class="mono">50</td><td class="mono">6</td></tr>
+        <tr><td data-i18n="survey.t.subst">of those, substantiated</td><td class="mono">4</td><td class="mono">4</td></tr>
+        <tr><td data-i18n="survey.t.bfind">blocking findings</td><td class="mono">492</td><td class="mono">12</td></tr>
+        <tr><td data-i18n="survey.t.afind">advisory findings</td><td class="mono">3 472</td><td class="mono">3 494</td></tr>
+      </tbody>
+    </table></div>
+    <p data-i18n="survey.p3">Ruleset v4 gets there with <b>guards</b> — named context checks that are part of the published rule table, and therefore of its digest. <code>polarity</code> alone accounted for 390 of those 492 blocking findings: a credential noun inside a refusal is a promise, not a request. <code>mention</code> knows that a phrase in quotes, in backticks or as a bare JSON <code>enum</code> value is cited rather than said.</p>
+    <div class="cta"><a class="btn" href="https://github.com/alexar76/warden/blob/main/docs/mcp-survey.md" data-i18n="survey.btn">Read the full survey</a></div>
+  </div>
+</section>
+
+<section id="gates">
+  <div class="wrap">
+    <div class="kicker" data-i18n="gates.kicker">The chain</div>
+    <h2 data-i18n="gates.h2">Four gates, cheapest and most local first</h2>
+    <p data-i18n="gates.p1">Nothing in the chain performs a network request. The only fetch WARDEN ever makes is the threat feed you asked for by passing a URL. The composite score is the <b>product</b> of gate contributions, so one bad gate drags a server down instead of being averaged away.</p>
+    <div class="scroll"><table>
+      <thead><tr><th data-i18n="gates.t.gate">Gate</th><th data-i18n="gates.t.decides">What it decides</th><th data-i18n="gates.t.net">Network</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">static-scan</td><td data-i18n="gates.t.g1">Injection, exfiltration, credential requests and hidden-Unicode or base64 payloads in the tool <b>name</b>, its description and its input schema. 25 rules in ruleset v4 — 15 can block, 10 are advisory-only, and 17 also cover the name.</td><td data-i18n="gates.t.none">none</td></tr>
+        <tr><td class="mono">threat-feed</td><td data-i18n="gates.t.g2">A known-bad server identity or tool, from 11 built-in records plus an optional signed feed. Fatal for a server-scoped <code>critical</code>.</td><td data-i18n="gates.t.feedonly">the feed fetch only</td></tr>
+        <tr><td class="mono">origin</td><td data-i18n="gates.t.g3">Whether the operator declared this server or it arrived from a remote catalog. Fail-closed under <code>allowUnknownServers: false</code>.</td><td data-i18n="gates.t.none2">none</td></tr>
+        <tr><td class="mono">pinning</td><td data-i18n="gates.t.g4">Whether the tool definitions — and the server's launch identity — still match what the user approved. A catalog can repoint an approved id at a different command; that is drift too.</td><td data-i18n="gates.t.none3">none</td></tr>
+      </tbody>
+    </table></div>
+    <figure class="diagram">
+      <svg class="hero-svg" viewBox="0 0 1120 300" role="img" aria-label="Tool definitions pass four gates inside the host process before a recorded verdict">
+      <defs>
+        <linearGradient id="flow" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#2bb8a8" stop-opacity=".15"/>
+          <stop offset="60%" stop-color="#2bb8a8" stop-opacity=".8"/>
+          <stop offset="100%" stop-color="#7dd3c7" stop-opacity=".95"/>
+        </linearGradient>
+        <filter id="glow"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+      <rect x="252" y="58" width="620" height="184" rx="18" fill="none" stroke="#2bb8a8" stroke-opacity=".3" stroke-width="1.4" stroke-dasharray="8 8"/>
+      <text x="562" y="46" text-anchor="middle" fill="#5c7183" font-family="ui-monospace,monospace" font-size="13" letter-spacing="3" data-i18n="hero.svg.host">IN THE HOST PROCESS</text>
+      <g filter="url(#glow)">
+        <rect x="52" y="128" width="128" height="18" rx="5" fill="#0b151e" stroke="#2bb8a8" stroke-opacity=".8" stroke-width="1.6"/>
+        <rect x="52" y="154" width="128" height="18" rx="5" fill="#0b151e" stroke="#2bb8a8" stroke-opacity=".55" stroke-width="1.6"/>
+        <rect x="52" y="180" width="128" height="18" rx="5" fill="#0b151e" stroke="#2bb8a8" stroke-opacity=".32" stroke-width="1.6"/>
+      </g>
+      <text x="116" y="116" text-anchor="middle" fill="#93a9ba" font-family="ui-monospace,monospace" font-size="13" data-i18n="hero.svg.tools">tool definitions</text>
+      <path d="M186 150 H1000" fill="none" stroke="url(#flow)" stroke-width="2.6" stroke-linecap="round"/>
+      <path d="M186 150 H1000" fill="none" stroke="#7dd3c7" stroke-width="2.2" stroke-dasharray="4 14" opacity=".85">
+        <animate attributeName="stroke-dashoffset" from="36" to="0" dur="1.7s" repeatCount="indefinite"/>
+      </path>
+      <g font-family="ui-monospace,monospace" font-size="14" text-anchor="middle">
+        <g filter="url(#glow)">
+          <rect x="288" y="122" width="56" height="56" rx="12" fill="#0b151e" stroke="#2bb8a8" stroke-width="2"/>
+          <rect x="428" y="122" width="56" height="56" rx="12" fill="#0b151e" stroke="#2bb8a8" stroke-width="2"/>
+          <rect x="568" y="122" width="56" height="56" rx="12" fill="#0b151e" stroke="#2bb8a8" stroke-width="2"/>
+          <rect x="708" y="122" width="56" height="56" rx="12" fill="#0b151e" stroke="#2bb8a8" stroke-width="2"/>
+        </g>
+        <circle cx="316" cy="150" r="4.6" fill="#7dd3c7"/><circle cx="456" cy="150" r="4.6" fill="#7dd3c7"/>
+        <circle cx="596" cy="150" r="4.6" fill="#7dd3c7"/><circle cx="736" cy="150" r="4.6" fill="#7dd3c7"/>
+        <text x="316" y="200" fill="#e6f1f5">static-scan</text>
+        <text x="456" y="200" fill="#e6f1f5">threat-feed</text>
+        <text x="596" y="200" fill="#e6f1f5">origin</text>
+        <text x="736" y="200" fill="#e6f1f5">pinning</text>
+        <text x="316" y="220" fill="#5c7183" font-size="11.5">25 rules · v4</text>
+        <text x="456" y="220" fill="#5c7183" font-size="11.5" data-i18n="hero.svg.feed">11 + feed</text>
+        <text x="596" y="220" fill="#5c7183" font-size="11.5" data-i18n="hero.svg.origin">declared?</text>
+        <text x="736" y="220" fill="#5c7183" font-size="11.5" data-i18n="hero.svg.pinning">drift?</text>
+      </g>
+      <g filter="url(#glow)">
+        <polygon points="1000,150 1036,114 1072,150 1036,186" fill="#041018" stroke="#7dd3c7" stroke-width="2"/>
+        <circle cx="1036" cy="150" r="4.6" fill="#7dd3c7"><animate attributeName="opacity" values=".45;1;.45" dur="2.4s" repeatCount="indefinite"/></circle>
+      </g>
+      <text x="1036" y="206" text-anchor="middle" fill="#93a9ba" font-family="ui-monospace,monospace" font-size="13" data-i18n="hero.svg.verdict">verdict</text>
+      <text x="1036" y="224" text-anchor="middle" fill="#5c7183" font-family="ui-monospace,monospace" font-size="11.5">allow · block</text>
+      <text x="562" y="272" text-anchor="middle" fill="#5c7183" font-family="ui-monospace,monospace" font-size="12.5" data-i18n="hero.svg.foot">no network I/O while vetting · no model · no oracle</text>
+    </svg>
+      <figcaption data-i18n="gates.figcaption">Tool definitions enter on the left, four gates run in the host's own process, and a recorded verdict leaves on the right.</figcaption>
+    </figure>
+    <div class="note" data-i18n="gates.note">Severity and blocking are separate axes. An <code>advise</code>-tier finding is reported and never blocks and never costs a tool, at any threshold — because "how much attention does this deserve" and "is this a defect at all" are different questions, and encoding the second as a low severity made it blocking again for anyone who tightened the threshold.</div>
+  </div>
+</section>
+
+<section id="verdict">
+  <div class="wrap">
+    <div class="kicker" data-i18n="verdict.kicker">The output</div>
+    <h2 data-i18n="verdict.h2">A verdict meant to be recorded</h2>
+    <pre><span class="c">// warden.vet(server, tools)</span>
+{
+  <span class="k">allow</span>: false,
+  <span class="k">score</span>: 0,
+  <span class="k">decidedBy</span>: <span class="s">"threat-feed"</span>,
+  <span class="k">findings</span>: [{ gate, severity, code: <span class="s">"THREAT_TOOL_MATCH"</span>, message, tool, advisory? }],
+  <span class="k">allowedTools</span>: [<span class="s">"add"</span>],
+  <span class="k">blockedTools</span>: [<span class="s">"sweeper"</span>],
+  <span class="k">rulesets</span>: { staticScan: { version: <span class="s">"4"</span>, digest: <span class="s">"sha256-klRyTiD3…"</span> } }
+}</pre>
+    <p data-i18n="verdict.p1"><code>rulesets</code> is not decoration. The same server scores differently under a later rule table, and without the version <i>and</i> a digest over the rules there is no way to tell that apart from the server having changed. A stored scan without them is not reproducible — and because guards are part of the table, the same regex with and without <code>polarity</code> is a different ruleset.</p>
+    <div class="grid g3">
+      <div class="card"><h3 data-i18n="verdict.c1.h">Per-tool partition</h3><p data-i18n="verdict.c1.p">A server with one poisoned tool and nine good ones stays usable: only what the verdict named is dropped.</p></div>
+      <div class="card"><h3 data-i18n="verdict.c2.h">Display-safe</h3><p data-i18n="verdict.c2.p">Control and invisible characters in a tool name are escaped in the message — a name carrying <code>ESC[2K</code> used to overwrite the operator's terminal line.</p></div>
+      <div class="card"><h3 data-i18n="verdict.c3.h">Deterministic</h3><p data-i18n="verdict.c3.p">No LLM anywhere in the chain. Same inputs, same verdict, offline, in milliseconds.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="feed">
+  <div class="wrap">
+    <div class="kicker" data-i18n="feed.kicker">Optional, signed, fail-closed</div>
+    <h2 data-i18n="feed.h2">A threat feed that cannot switch your protection off</h2>
+    <p data-i18n="feed.p1">WARDEN ships 11 built-in threat records as a floor, and will not read an unsigned remote feed at all. Three properties are checked, and <b>any failure keeps the floor</b> rather than degrading to nothing.</p>
+    <div class="grid g3">
+      <div class="card"><h3>1 · <span data-i18n="feed.c1.h">Authenticity</span></h3><p data-i18n="feed.c1.p">Ed25519 against a key you pinned in advance, over the RFC 8785 canonical form of <code>{records, timestamp}</code> — not over the raw body.</p></div>
+      <div class="card"><h3>2 · <span data-i18n="feed.c2.h">Freshness</span></h3><p data-i18n="feed.c2.p">The <i>signed</i> timestamp must be inside the window. A signature says who wrote a document, never when you were handed it.</p></div>
+      <div class="card"><h3>3 · <span data-i18n="feed.c3.h">Determinism</span></h3><p data-i18n="feed.c3.p">Canonical bytes, so publisher and verifier agree regardless of JSON key order.</p></div>
+    </div>
+    <p data-i18n="feed.p2">Remote records are <b>appended to</b> the built-ins. A feed can never remove one, so a compromised publisher can only add protection — and the download is bounded and aborted past its cap, because a feed URL is otherwise a memory-exhaustion vector. <a href="https://github.com/alexar76/momus">MOMUS</a> is a reference publisher of the contract.</p>
+  </div>
+</section>
+
+<section id="not">
+  <div class="wrap">
+    <div class="kicker" data-i18n="not.kicker">Limits, stated</div>
+    <h2 data-i18n="not.h2">What this is not</h2>
+    <ul class="not">
+      <li><b data-i18n="not.l1.b">Not a sandbox.</b> <span data-i18n="not.l1.t">These are in-process decisions. OS-level confinement of the MCP child process — seccomp, Landlock, <code>sandbox-exec</code> — is not here.</span></li>
+      <li><b data-i18n="not.l2.b">Not a model.</b> <span data-i18n="not.l2.t">No LLM is called anywhere in the chain. That is why <code>vet()</code> is fast, offline and deterministic — and why the static scan is regex-shaped and will miss a paraphrase no rule covers.</span></li>
+      <li><b data-i18n="not.l3.b">Not a reputation service.</b> <span data-i18n="not.l3.t">An earlier version had a gate that asked a trust oracle for a score it had no data to compute, then reported the oracle as unreachable without having sent a request. It was removed, and a test fails if any gate claims unreachability again.</span></li>
+      <li><b data-i18n="not.l4.b">Not a substitute for reading the tool definitions.</b> <span data-i18n="not.l4.t">11 built-in threat records is a floor, not a catalog, and the survey above is an honest account of how a rule table gets a benign server wrong.</span></li>
+    </ul>
+  </div>
+</section>
+
+<section id="start">
+  <div class="wrap">
+    <div class="kicker" data-i18n="start.kicker">In front of any MCP host</div>
+    <h2 data-i18n="start.h2">Quick start</h2>
+    <pre><span class="k">import</span> { Warden, ThreatFeed, silentLogger } <span class="k">from</span> <span class="s">"@aimarket/warden"</span>;
+
+<span class="k">const</span> threatFeed = <span class="k">new</span> ThreatFeed({ feedPublicKey: process.env.FEED_PUBKEY });
+<span class="k">await</span> threatFeed.load(process.env.FEED_URL);   <span class="c">// omit → built-in floor only, no network</span>
+
+<span class="k">const</span> pins = <span class="k">new</span> Map();
+<span class="k">const</span> warden = Warden.create({
+  policy: {
+    blockAtSeverity: <span class="s">"high"</span>,
+    sensitiveToolPatterns: [<span class="s">"*delete*"</span>, <span class="s">"*transfer*"</span>, <span class="s">"*key*"</span>],
+    allowUnknownServers: <span class="k">false</span>,   <span class="c">// fail-closed: only servers you declared</span>
+    pinToolDefs: <span class="k">true</span>,
+  },
+  threatFeed,
+  store: { getPin: <span class="k">async</span> (id) => pins.get(id), putPin: <span class="k">async</span> (p) => <span class="k">void</span> pins.set(p.serverId, p) },
+  log: silentLogger(),
+});
+
+<span class="k">const</span> verdict = <span class="k">await</span> warden.vet(server, <span class="k">await</span> client.listTools());
+<span class="k">if</span> (!verdict.allow) <span class="k">throw new</span> Error(`blocked by ${verdict.decidedBy}`);
+<span class="k">const</span> usable = verdict.allowedTools;      <span class="c">// a poisoned tool can be quarantined alone</span>
+<span class="k">await</span> warden.approve(server, tools);      <span class="c">// pin what the user accepted</span></pre>
+    <p data-i18n="start.p1">Used by <a href="https://github.com/alexar76/argus">ARGUS</a> as its reference host, by <a href="https://github.com/alexar76/momus">MOMUS</a> on the publisher side, and by the AICOM MCP-security course. It is a library, not a service — which is why on the <a href="https://magic-ai-factory.com/monitor/?node=warden">ecosystem map</a> it is drawn as a layer rather than a host.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="flinks">
+      <a href="https://github.com/alexar76/warden">GitHub</a>
+      <a href="https://www.npmjs.com/package/@aimarket/warden">npm</a>
+      <a href="https://github.com/alexar76/warden/blob/main/docs/gates.md" data-i18n="foot.gates">The gate chain</a>
+      <a href="https://github.com/alexar76/warden/blob/main/docs/threat-feed.md" data-i18n="foot.feed">Threat feed contract</a>
+      <a href="https://github.com/alexar76/warden/blob/main/docs/integration.md" data-i18n="foot.integration">Integration guide</a>
+      <a href="https://github.com/alexar76/warden/blob/main/docs/mcp-survey.md" data-i18n="foot.survey">Field survey</a>
+    </div>
+    <p data-i18n="foot.legal">MIT · AICOM. WARDEN reports what it checked and nothing more: it is a scanner over advertised text, not a guarantee about a server's behaviour.</p>
+  </div>
+</footer>
+<script>
+/* ────────────────────────────────────────────────────────────────────────────
+   The gate chain, in depth.
+
+   Written in the ecosystem's own visual language — the Alien Monitor look: deep
+   space, glowing rings like a node's, teal particles running the link, amber only
+   ever meaning "stopped". Four rings are the four gates; the dots streaming toward
+   the viewer are tool definitions; roughly one in eight is extinguished at the gate
+   that would have caught it, which is the honest ratio to draw when the survey says
+   6 of 1 108 servers get blocked and the rest pass.
+
+   No library, nothing fetched. One fullscreen quad and one fragment shader, inline,
+   because the page's whole argument is that this thing has no dependencies — a hero
+   that pulled three.js off a CDN would refute the copy underneath it.
+
+   Degrades on purpose: no WebGL, or prefers-reduced-motion, and the labelled SVG
+   diagram in the DOM is shown instead.
+   ──────────────────────────────────────────────────────────────────────────── */
+(function () {
+  "use strict";
+  const stage = document.getElementById('stage');
+  const canvas = document.getElementById('gl');
+  if (!stage || !canvas) return;
+
+  const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let gl = null;
+  try {
+    gl = canvas.getContext('webgl', { antialias: false, alpha: false, powerPreference: 'low-power' })
+      || canvas.getContext('experimental-webgl');
+  } catch (_) { gl = null; }
+  if (!gl) { stage.classList.add('fallback'); return; }
+
+  const VERT = 'attribute vec2 p;void main(){gl_Position=vec4(p,0.0,1.0);}';
+
+  const FRAG = [
+    'precision highp float;',
+    'uniform vec2 uRes; uniform float uT; uniform vec2 uM;',
+    'float h(float n){ return fract(sin(n*127.1+13.7)*43758.5453123); }',
+    // one gate ring, projected: radius shrinks with depth, so perspective does the work
+    // The corridor leans, so its rings walk toward a vanishing point instead of
+    // sitting concentric. Without this the four gates read as a radar dial.
+    'vec2 axis(float z){ return vec2(0.30,-0.13)*(1.0-1.0/z); }',
+    'float ring(vec2 uv, float z, float rad){',
+    '  float R = rad/z;',
+    '  float d = abs(length(uv-axis(z))-R);',
+    '  float w = 0.0011 + 0.0016*z;',
+    '  return w/(d+w*0.85);',
+    '}',
+    'void main(){',
+    '  vec2 uv = (gl_FragCoord.xy - 0.5*uRes)/uRes.y;',
+    '  uv += uM*0.03;',
+    '  float rot = uT*0.045;',
+    '  vec3 col = vec3(0.0);',
+    // starfield: the monitor's faint dust
+    '  vec2 g = floor(uv*46.0);',
+    '  float st = h(g.x*57.0+g.y*131.0);',
+    '  if (st > 0.988) {',
+    '    vec2 c = (g+0.5)/46.0;',
+    '    float tw = 0.55+0.45*sin(uT*1.7+st*40.0);',
+    '    col += vec3(0.35,0.62,0.70)*tw*0.055/(1.0+400.0*dot(uv-c,uv-c));',
+    '  }',
+    // four gates
+    '  for (int i=0;i<4;i++){',
+    '    float fi = float(i);',
+    '    float z = 1.05 + fi*0.60;',
+    '    float pulse = 0.86 + 0.14*sin(uT*0.9 - fi*0.7);',
+    '    float r = ring(uv, z, 0.40);',
+    '    col += vec3(0.16,0.80,0.72)*r*(0.62/z)*pulse;',
+    '    float d = abs(length(uv-axis(z)) - 0.40/z);',
+    '    col += vec3(0.07,0.34,0.33)*exp(-d*d*520.0*z)*(0.30/z);',
+    '  }',
+    // tool definitions running the link, toward the viewer
+    '  for (int i=0;i<64;i++){',
+    '    float fi = float(i);',
+    '    float a = h(fi)*6.28318 + rot;',
+    '    float rr = 0.09 + 0.31*h(fi+7.0);',
+    '    float sp = 0.42 + 0.40*h(fi+19.0);',
+    '    float ph = h(fi+29.0)*7.0;',
+    '    float bad = step(0.875, h(fi+41.0));',
+    '    float gate = floor(h(fi+53.0)*4.0);',
+    '    float zGate = 1.05 + gate*0.60;',
+    '    float t = mod(uT*sp + ph, 7.0);',
+    '    float z = 3.30 - t*0.42;',
+    '    float on = step(0.70, z);',                       // gone once it passes the near plane
+    '    float alive = mix(1.0, smoothstep(zGate-0.05, zGate+0.09, z), bad);',
+    '    float death = bad * (1.0-alive) * smoothstep(zGate-0.30, zGate+0.02, z);',
+    '    vec2 pos = axis(z) + vec2(cos(a), sin(a))*rr/z;',
+    '    float d2 = dot(uv-pos, uv-pos);',
+    '    float core = 0.0000085/(d2*z*0.55 + 0.0000085);',
+    '    vec3 tint = mix(vec3(0.30,0.95,0.86), vec3(1.00,0.72,0.35), bad);',
+    '    col += tint*core*on*(alive*0.85 + death*1.9)*(1.25/z);',
+    '  }',
+    // the verdict, at the near end: a soft core with a four-fold flare
+    '  vec2 near = axis(0.70);',
+    '  float rl = length(uv-near);',
+    '  float beat = 0.55 + 0.45*sin(uT*1.15);',
+    '  col += vec3(0.22,0.85,0.78)*0.020*beat/(rl*rl*8.0+0.020);',
+    '  float flare = pow(max(0.0, 1.0-abs(uv.x-near.x)*7.0), 6.0) + pow(max(0.0, 1.0-abs(uv.y-near.y)*7.0), 6.0);',
+    '  col += vec3(0.16,0.62,0.58)*flare*0.030*beat;',
+    // ground: the monitor's navy, plus a vignette so the legend stays readable
+    '  vec3 bg = mix(vec3(0.016,0.043,0.062), vec3(0.027,0.075,0.098), 0.5+0.5*uv.y);',
+    '  col += bg;',
+    '  col *= 1.0 - 0.62*smoothstep(0.34, 1.02, rl);',
+    '  col = col/(col+vec3(0.85));',                        // filmic-ish, keeps the glow soft
+    '  gl_FragColor = vec4(pow(col, vec3(0.87)), 1.0);',
+    '}'
+  ].join('\n');
+
+  function compile(type, src) {
+    const sh = gl.createShader(type);
+    gl.shaderSource(sh, src);
+    gl.compileShader(sh);
+    if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) return null;
+    return sh;
+  }
+  const vs = compile(gl.VERTEX_SHADER, VERT);
+  const fs = compile(gl.FRAGMENT_SHADER, FRAG);
+  if (!vs || !fs) { stage.classList.add('fallback'); return; }
+  const prog = gl.createProgram();
+  gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) { stage.classList.add('fallback'); return; }
+  gl.useProgram(prog);
+
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
+  const loc = gl.getAttribLocation(prog, 'p');
+  gl.enableVertexAttribArray(loc);
+  gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+  const uRes = gl.getUniformLocation(prog, 'uRes');
+  const uT = gl.getUniformLocation(prog, 'uT');
+  const uM = gl.getUniformLocation(prog, 'uM');
+
+  const mouse = { x: 0, y: 0, tx: 0, ty: 0 };
+  window.addEventListener('pointermove', (e) => {
+    const r = canvas.getBoundingClientRect();
+    mouse.tx = ((e.clientX - r.left) / Math.max(1, r.width) - 0.5) * 2;
+    mouse.ty = -((e.clientY - r.top) / Math.max(1, r.height) - 0.5) * 2;
+  }, { passive: true });
+
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = Math.max(1, Math.round(canvas.clientWidth * dpr));
+    const h = Math.max(1, Math.round(canvas.clientHeight * dpr));
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w; canvas.height = h;
+      gl.viewport(0, 0, w, h);
+    }
+  }
+
+  let visible = true;
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver((entries) => { visible = entries[0].isIntersecting; })
+      .observe(canvas);
+  }
+
+  function frame(now) {
+    resize();
+    gl.uniform2f(uRes, canvas.width, canvas.height);
+    mouse.x += (mouse.tx - mouse.x) * 0.06;
+    mouse.y += (mouse.ty - mouse.y) * 0.06;
+    gl.uniform2f(uM, mouse.x, mouse.y);
+    gl.uniform1f(uT, now * 0.001);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    stage.classList.add('live');
+    if (!reduced) requestAnimationFrame(() => { if (visible) frame(performance.now()); else setTimeout(() => frame(performance.now()), 400); });
+  }
+  frame(0);
+})();
+</script>
+<script>
+(function () {
+  "use strict";
+  /* Four dictionaries. English is NOT here: it is snapshotted from the markup below,
+     so the default copy cannot drift away from what the page actually says. */
+  const DICT = {
+  "ru": {
+    "nav.survey": "Исследование",
+    "nav.gates": "Цепочка гейтов",
+    "nav.verdict": "Вердикт",
+    "nav.feed": "Threat feed",
+    "nav.not": "Чем это не является",
+    "nav.start": "Быстрый старт",
+    "hero.kicker": "Файрвол безопасности MCP · ноль рантайм-зависимостей",
+    "hero.h1": "MCP-сервер сам говорит вашему агенту, что делают его инструменты.<br/>Агент этому верит.",
+    "hero.lede": "Описание инструмента — это текст промпта, который третья сторона доставляет прямо в контекст модели, а поле схемы с именем <code>api_key</code> — запрос ваших секретов, сформулированный как API. WARDEN проверяет сервер <b>до того, как его инструменты дойдут до модели</b>, и возвращает вердикт, который можно записать.",
+    "hero.btn.repo": "Читать исходники",
+    "hero.btn.survey": "Посмотреть, где он ошибся",
+    "badge.deps": "рантайм-зависимостей",
+    "badge.gates": "гейта",
+    "badge.ruleset": "набор правил",
+    "badge.tests": "тестов",
+    "badge.import": "единственный импорт",
+    "hero.svg.tools": "определения инструментов",
+    "hero.svg.origin": "объявлен?",
+    "hero.svg.pinning": "дрейф?",
+    "hero.svg.verdict": "вердикт",
+    "hero.svg.foot": "ни одного сетевого запроса при проверке · без модели · без оракула",
+    "survey.kicker": "Калибровка по экосистеме, а не по фикстурам",
+    "survey.h2": "Мы направили его на 1 108 публичных MCP-серверов и опубликовали, где он ошибся",
+    "survey.p1": "Через считанные часы после первого релиза мы дотянулись до каждого публичного MCP-сервера, до которого имели право: 2 787 записей реестра с сетевым эндпоинтом, из них 1 108 ответили на настоящий <code>tools/list</code> и отдали 17 491 определение инструмента. Никакой сторонний код не исполнялся — каждое определение пришло из ответа самого сервера.",
+    "survey.k1": "серверов ответили",
+    "survey.k2": "определений инструментов",
+    "survey.k3": "серверов заблокировано, v3 → v4",
+    "survey.k4": "реальных находок, по-прежнему ловятся",
+    "survey.p2": "Главное здесь не про экосистему, а про нас. Набор правил v3 заблокировал 50 серверов, и только <b>4</b> выдержали проверку. Остальные 46 были заблокированы за то, что говорили правильные вещи: <i>«Никогда не отправляйте приватный ключ»</i>, <i>«приватный ключ никогда не покидает вашу машину»</i>, сканер безопасности, перечисляющий атаки, которые он детектит, персидское описание, написанное с ZERO WIDTH NON-JOINER, который требует этот язык.",
+    "survey.note": "Профиль ложных срабатываний — единственное число, которое решает, включит ли сканер хоть кто-нибудь. Тот, который отвергает честные серверы, не осторожный — он удалённый. Поэтому ошибки опубликованы вместе с доказательствами, а регресс-набор собран из настоящего текста этого корпуса, а не из выдуманных фикстур.",
+    "survey.t.head": "Перемерено на тех же 1 108 серверах",
+    "survey.t.blocked": "серверов заблокировано",
+    "survey.t.subst": "из них подтверждено",
+    "survey.t.bfind": "блокирующих находок",
+    "survey.t.afind": "уведомительных находок",
+    "survey.p3": "v4 достигает этого через <b>guards</b> — именованные проверки контекста, которые входят в опубликованную таблицу правил, а значит и в её дайджест. Один только <code>polarity</code> дал 390 из тех 492 блокирующих находок: существительное-креденшл внутри запрета — это обещание, а не просьба. <code>mention</code> знает, что фраза в кавычках, в бэктиках или как значение JSON <code>enum</code> цитируется, а не произносится.",
+    "survey.btn": "Прочитать исследование целиком",
+    "gates.kicker": "Цепочка",
+    "gates.h2": "Четыре гейта, от самого дешёвого и локального",
+    "gates.p1": "Ни один гейт в цепочке не делает сетевых запросов. Единственная загрузка, которую WARDEN вообще выполняет, — это threat feed, о котором вы попросили сами, передав URL. Composite score — <b>произведение</b> вкладов гейтов, поэтому один плохой гейт тянет сервер вниз, а не усредняется.",
+    "gates.t.gate": "Гейт",
+    "gates.t.decides": "Что решает",
+    "gates.t.net": "Сеть",
+    "gates.t.g1": "Инъекции, эксфильтрация, запросы учётных данных и скрытые Unicode- или base64-нагрузки в <b>имени</b> инструмента, его описании и схеме ввода. 25 правил в наборе v4 — 15 могут блокировать, 10 только уведомляют, и 17 покрывают также имя.",
+    "gates.t.none": "нет",
+    "gates.t.g2": "Известный плохой сервер или инструмент: 11 встроенных записей плюс опциональный подписанный feed. Фатален для <code>critical</code> на уровне сервера.",
+    "gates.t.feedonly": "только загрузка feed",
+    "gates.t.g3": "Объявил ли оператор этот сервер, или он пришёл из удалённого каталога. Fail-closed при <code>allowUnknownServers: false</code>.",
+    "gates.t.none2": "нет",
+    "gates.t.g4": "Совпадают ли определения инструментов — и launch-identity сервера — с тем, что одобрил пользователь. Каталог может перенаправить одобренный id на другую команду; это тоже дрейф.",
+    "gates.t.none3": "нет",
+    "gates.note": "Severity и блокировка — разные оси. Находка уровня <code>advise</code> сообщается, но никогда не блокирует и никогда не стоит инструмента, при любом пороге. Потому что «сколько внимания это заслуживает» и «дефект ли это вообще» — разные вопросы, а кодирование второго через низкую severity снова делало находку блокирующей для всех, кто ужесточил порог.",
+    "verdict.kicker": "Выход",
+    "verdict.h2": "Вердикт, рассчитанный на то, чтобы его записали",
+    "verdict.p1": "<code>rulesets</code> — не украшение. Один и тот же сервер получит другую оценку под более поздней таблицей правил, и без версии <i>и</i> дайджеста по правилам невозможно отличить это от того, что изменился сам сервер. Сохранённый скан без них невоспроизводим — а поскольку guards входят в таблицу, одна и та же регулярка с <code>polarity</code> и без него — это разные наборы правил.",
+    "verdict.c1.h": "Разбиение по инструментам",
+    "verdict.c1.p": "Сервер с одним отравленным инструментом и девятью нормальными остаётся пригодным: убирается только то, что назвал вердикт.",
+    "verdict.c2.h": "Безопасно печатать",
+    "verdict.c2.p": "Управляющие и невидимые символы в имени инструмента экранируются в сообщении — имя с <code>ESC[2K</code> раньше перезатирало строку в терминале оператора.",
+    "verdict.c3.h": "Детерминированность",
+    "verdict.c3.p": "Никакой LLM нигде в цепочке. Те же входы — тот же вердикт, офлайн, за миллисекунды.",
+    "feed.kicker": "Опционально, подписано, fail-closed",
+    "feed.h2": "Threat feed, который не может отключить вашу защиту",
+    "feed.p1": "WARDEN поставляется с 11 встроенными записями об угрозах как минимумом и вообще не станет читать неподписанный удалённый feed. Проверяются три свойства, и <b>любой сбой сохраняет этот минимум</b>, а не деградирует до ничего.",
+    "feed.c1.h": "Подлинность",
+    "feed.c1.p": "Ed25519 против ключа, закреплённого заранее, по канонической форме RFC 8785 от <code>{records, timestamp}</code> — а не по сырому телу ответа.",
+    "feed.c2.h": "Свежесть",
+    "feed.c2.p": "<i>Подписанный</i> timestamp должен попадать в окно. Подпись говорит, кто написал документ, но никогда — когда его вам вручили.",
+    "feed.c3.h": "Детерминизм",
+    "feed.c3.p": "Канонические байты, чтобы издатель и проверяющий совпадали независимо от порядка ключей в JSON.",
+    "feed.p2": "Удалённые записи <b>добавляются к</b> встроенным. Feed никогда не может удалить встроенную запись, поэтому скомпрометированный издатель способен только дополнить защиту — а загрузка ограничена и обрывается на пороге, потому что иначе URL фида это вектор исчерпания памяти. <a href=\"https://github.com/alexar76/momus\">MOMUS</a> — референсный издатель этого контракта.",
+    "not.kicker": "Границы, названные прямо",
+    "not.h2": "Чем это не является",
+    "not.l1.b": "Не песочница.",
+    "not.l1.t": "Это внутрипроцессные решения. Изоляции дочернего MCP-процесса на уровне ОС — seccomp, Landlock, <code>sandbox-exec</code> — здесь нет.",
+    "not.l2.b": "Не модель.",
+    "not.l2.t": "В цепочке нигде не вызывается LLM. Именно поэтому <code>vet()</code> быстрый, офлайновый и детерминированный — и именно поэтому static scan имеет форму регулярок и пропустит перефразировку, которую не покрывает ни одно правило.",
+    "not.l3.b": "Не сервис репутации.",
+    "not.l3.t": "В более ранней версии был гейт, который спрашивал у trust-оракула оценку, для вычисления которой у того не было данных, а затем сообщал, что оракул недоступен, так и не отправив запроса. Гейт удалён, и тест падает, если какой-нибудь гейт снова заявит о недоступности.",
+    "not.l4.b": "Не замена чтению определений инструментов.",
+    "not.l4.t": "11 встроенных записей об угрозах — это минимум, а не каталог, и исследование выше — честный отчёт о том, как таблица правил ошибается на безобидном сервере.",
+    "start.kicker": "Перед любым MCP-хостом",
+    "start.h2": "Быстрый старт",
+    "start.p1": "Используется в <a href=\"https://github.com/alexar76/argus\">ARGUS</a> как референсном хосте, в <a href=\"https://github.com/alexar76/momus\">MOMUS</a> на стороне издателя и в курсе AICOM по безопасности MCP. Это библиотека, а не сервис — поэтому на <a href=\"https://magic-ai-factory.com/monitor/?node=warden\">карте экосистемы</a> он нарисован слоем, а не хостом.",
+    "foot.gates": "Цепочка гейтов",
+    "foot.feed": "Контракт threat feed",
+    "foot.integration": "Руководство по интеграции",
+    "foot.survey": "Полевое исследование",
+    "foot.legal": "MIT · AICOM. WARDEN сообщает только то, что проверил: это сканер по объявленному тексту, а не гарантия поведения сервера.",
+    "hero.svg.feed": "11 + feed",
+    "stage.legend.defs": "определения инструментов",
+    "stage.legend.gates": "гейта",
+    "stage.legend.blocked": "остановлено на гейте",
+    "stage.legend.verdict": "записанный вердикт",
+    "gates.figcaption": "Определения инструментов входят слева, четыре гейта работают внутри процесса хоста, справа выходит записанный вердикт.",
+    "hero.svg.host": "В ПРОЦЕССЕ ХОСТА"
+  },
+  "es": {
+    "nav.survey": "El estudio",
+    "nav.gates": "Cadena de puertas",
+    "nav.verdict": "Veredicto",
+    "nav.feed": "Threat feed",
+    "nav.not": "Lo que no es",
+    "nav.start": "Inicio rápido",
+    "hero.kicker": "Cortafuegos de seguridad MCP · cero dependencias de ejecución",
+    "hero.h1": "Un servidor MCP le dice a tu agente qué hacen sus herramientas.<br/>El agente se lo cree.",
+    "hero.lede": "La descripción de una herramienta es texto de prompt que un tercero entrega directamente al contexto de tu modelo, y un campo de esquema llamado <code>api_key</code> es una petición de tus secretos redactada como API. WARDEN examina un servidor <b>antes de que ninguna de sus herramientas llegue al modelo</b> y devuelve un veredicto que puedes registrar.",
+    "hero.btn.repo": "Leer el código",
+    "hero.btn.survey": "Ver en qué se equivocó",
+    "badge.deps": "dependencias de ejecución",
+    "badge.gates": "puertas",
+    "badge.ruleset": "conjunto de reglas",
+    "badge.tests": "pruebas",
+    "badge.import": "el único import",
+    "hero.svg.tools": "definiciones de herramientas",
+    "hero.svg.origin": "¿declarado?",
+    "hero.svg.pinning": "¿deriva?",
+    "hero.svg.verdict": "veredicto",
+    "hero.svg.foot": "sin E/S de red al examinar · sin modelo · sin oráculo",
+    "survey.kicker": "Calibrado contra el ecosistema, no contra fixtures",
+    "survey.h2": "Lo apuntamos a 1 108 servidores MCP públicos y publicamos en qué se equivocó",
+    "survey.p1": "Horas después del primer lanzamiento alcanzamos todos los servidores MCP públicos que legítimamente pudimos: 2 787 entradas del registro con endpoint de red, de las cuales 1 108 respondieron a un <code>tools/list</code> real y entregaron 17 491 definiciones de herramientas. No se ejecutó código de terceros: cada definición vino de la propia respuesta del servidor.",
+    "survey.k1": "servidores respondieron",
+    "survey.k2": "definiciones de herramientas",
+    "survey.k3": "servidores bloqueados, v3 → v4",
+    "survey.k4": "hallazgos reales, aún detectados",
+    "survey.p2": "El titular no es sobre el ecosistema, es sobre nosotros. El conjunto v3 bloqueó 50 de esos servidores y solo <b>4</b> resistieron la revisión. Los otros 46 fueron bloqueados por decir lo correcto: <i>«Nunca envíes una clave privada»</i>, <i>«la clave privada nunca sale de tu máquina»</i>, un escáner de seguridad enumerando los ataques que detecta, una descripción en persa escrita con el ZERO WIDTH NON-JOINER que su idioma exige.",
+    "survey.note": "El perfil de falsos positivos de un escáner es el único número que decide si alguien lo enciende. Uno que rechaza servidores honestos no es prudente: es un escáner desinstalado. Así que los fallos se publican con la evidencia, y la suite de regresión está construida con el texto real de este corpus, no con fixtures inventados.",
+    "survey.t.head": "Vuelto a medir en los mismos 1 108 servidores",
+    "survey.t.blocked": "servidores bloqueados",
+    "survey.t.subst": "de ellos, fundamentados",
+    "survey.t.bfind": "hallazgos bloqueantes",
+    "survey.t.afind": "hallazgos de aviso",
+    "survey.p3": "v4 lo consigue con <b>guards</b>: comprobaciones de contexto con nombre que forman parte de la tabla publicada y por tanto de su digest. Solo <code>polarity</code> explicó 390 de esos 492 hallazgos bloqueantes: un sustantivo de credencial dentro de una negativa es una promesa, no una petición. <code>mention</code> sabe que una frase entre comillas, en backticks o como valor de un <code>enum</code> JSON está citada, no dicha.",
+    "survey.btn": "Leer el estudio completo",
+    "gates.kicker": "La cadena",
+    "gates.h2": "Cuatro puertas, primero la más barata y local",
+    "gates.p1": "Nada en la cadena hace una petición de red. La única descarga que WARDEN llega a hacer es el threat feed que tú pediste al pasar una URL. La puntuación compuesta es el <b>producto</b> de las contribuciones, así que una puerta mala arrastra al servidor en vez de quedar promediada.",
+    "gates.t.gate": "Puerta",
+    "gates.t.decides": "Qué decide",
+    "gates.t.net": "Red",
+    "gates.t.g1": "Inyección, exfiltración, peticiones de credenciales y cargas ocultas en Unicode o base64 en el <b>nombre</b> de la herramienta, su descripción y su esquema de entrada. 25 reglas en el conjunto v4: 15 pueden bloquear, 10 son solo de aviso y 17 cubren también el nombre.",
+    "gates.t.none": "ninguna",
+    "gates.t.g2": "Identidad de servidor o herramienta conocida como maliciosa: 11 registros integrados más un feed firmado opcional. Fatal para un <code>critical</code> con alcance de servidor.",
+    "gates.t.feedonly": "solo la descarga del feed",
+    "gates.t.g3": "Si el operador declaró este servidor o llegó desde un catálogo remoto. Fail-closed con <code>allowUnknownServers: false</code>.",
+    "gates.t.none2": "ninguna",
+    "gates.t.g4": "Si las definiciones —y la identidad de arranque del servidor— siguen coincidiendo con lo que aprobó el usuario. Un catálogo puede reapuntar un id aprobado a otro comando; eso también es deriva.",
+    "gates.t.none3": "ninguna",
+    "gates.note": "Severidad y bloqueo son ejes distintos. Un hallazgo de nivel <code>advise</code> se reporta y nunca bloquea ni cuesta una herramienta, con cualquier umbral, porque «cuánta atención merece» y «¿es un defecto?» son preguntas distintas, y codificar la segunda como severidad baja la volvía bloqueante para quien endureciera el umbral.",
+    "verdict.kicker": "La salida",
+    "verdict.h2": "Un veredicto pensado para quedar registrado",
+    "verdict.p1": "<code>rulesets</code> no es decoración. El mismo servidor puntúa distinto bajo una tabla posterior, y sin la versión <i>y</i> un digest sobre las reglas no hay forma de distinguirlo de que el servidor haya cambiado. Un escaneo guardado sin ellos no es reproducible; y como los guards forman parte de la tabla, la misma regex con y sin <code>polarity</code> es otro conjunto.",
+    "verdict.c1.h": "Partición por herramienta",
+    "verdict.c1.p": "Un servidor con una herramienta envenenada y nueve buenas sigue siendo utilizable: solo se quita lo que el veredicto nombró.",
+    "verdict.c2.h": "Seguro de imprimir",
+    "verdict.c2.p": "Los caracteres de control e invisibles en un nombre se escapan en el mensaje: un nombre con <code>ESC[2K</code> sobrescribía la línea del terminal del operador.",
+    "verdict.c3.h": "Determinista",
+    "verdict.c3.p": "Ningún LLM en toda la cadena. Mismas entradas, mismo veredicto, offline, en milisegundos.",
+    "feed.kicker": "Opcional, firmado, fail-closed",
+    "feed.h2": "Un threat feed que no puede apagar tu protección",
+    "feed.p1": "WARDEN trae 11 registros de amenazas integrados como suelo y no leerá un feed remoto sin firma. Se comprueban tres propiedades y <b>cualquier fallo conserva ese suelo</b> en vez de degradar a nada.",
+    "feed.c1.h": "Autenticidad",
+    "feed.c1.p": "Ed25519 contra una clave que fijaste de antemano, sobre la forma canónica RFC 8785 de <code>{records, timestamp}</code>, no sobre el cuerpo crudo.",
+    "feed.c2.h": "Frescura",
+    "feed.c2.p": "El timestamp <i>firmado</i> debe caer dentro de la ventana. Una firma dice quién escribió un documento, nunca cuándo te lo entregaron.",
+    "feed.c3.h": "Determinismo",
+    "feed.c3.p": "Bytes canónicos, para que editor y verificador coincidan sin importar el orden de las claves JSON.",
+    "feed.p2": "Los registros remotos <b>se añaden a</b> los integrados. Un feed nunca puede eliminar uno, así que un editor comprometido solo puede sumar protección; y la descarga está acotada y se aborta al llegar al límite, porque de lo contrario el URL del feed es un vector de agotamiento de memoria. <a href=\"https://github.com/alexar76/momus\">MOMUS</a> es un editor de referencia del contrato.",
+    "not.kicker": "Límites, dichos",
+    "not.h2": "Lo que esto no es",
+    "not.l1.b": "No es un sandbox.",
+    "not.l1.t": "Son decisiones dentro del proceso. Aquí no hay confinamiento del proceso hijo MCP a nivel de sistema operativo: seccomp, Landlock, <code>sandbox-exec</code>.",
+    "not.l2.b": "No es un modelo.",
+    "not.l2.t": "No se llama a ningún LLM en la cadena. Por eso <code>vet()</code> es rápido, offline y determinista, y por eso el escaneo estático tiene forma de regex y se le escapará una paráfrasis que ninguna regla cubra.",
+    "not.l3.b": "No es un servicio de reputación.",
+    "not.l3.t": "Una versión anterior tenía una puerta que pedía a un oráculo de confianza una puntuación para la que no tenía datos y luego informaba de que el oráculo era inalcanzable sin haber enviado nada. Se eliminó, y una prueba falla si alguna puerta vuelve a declarar inalcanzabilidad.",
+    "not.l4.b": "No sustituye a leer las definiciones.",
+    "not.l4.t": "11 registros integrados son un suelo, no un catálogo, y el estudio de arriba es un relato honesto de cómo una tabla de reglas se equivoca con un servidor benigno.",
+    "start.kicker": "Delante de cualquier host MCP",
+    "start.h2": "Inicio rápido",
+    "start.p1": "Usado por <a href=\"https://github.com/alexar76/argus\">ARGUS</a> como host de referencia, por <a href=\"https://github.com/alexar76/momus\">MOMUS</a> en el lado editor y por el curso de seguridad MCP de AICOM. Es una biblioteca, no un servicio, y por eso en el <a href=\"https://magic-ai-factory.com/monitor/?node=warden\">mapa del ecosistema</a> está dibujado como capa y no como host.",
+    "foot.gates": "La cadena de puertas",
+    "foot.feed": "Contrato del threat feed",
+    "foot.integration": "Guía de integración",
+    "foot.survey": "Estudio de campo",
+    "foot.legal": "MIT · AICOM. WARDEN informa de lo que comprobó y nada más: es un escáner sobre texto anunciado, no una garantía sobre el comportamiento de un servidor.",
+    "hero.svg.feed": "11 + feed",
+    "stage.legend.defs": "definiciones de herramientas",
+    "stage.legend.gates": "puertas",
+    "stage.legend.blocked": "detenido en una puerta",
+    "stage.legend.verdict": "veredicto registrado",
+    "gates.figcaption": "Las definiciones entran por la izquierda, las cuatro puertas corren dentro del propio proceso del host, y por la derecha sale un veredicto registrado.",
+    "hero.svg.host": "EN EL PROCESO DEL HOST"
+  },
+  "fr": {
+    "nav.survey": "L'étude",
+    "nav.gates": "Chaîne de portes",
+    "nav.verdict": "Verdict",
+    "nav.feed": "Threat feed",
+    "nav.not": "Ce que ce n'est pas",
+    "nav.start": "Démarrage rapide",
+    "hero.kicker": "Pare-feu de sécurité MCP · zéro dépendance d’exécution",
+    "hero.h1": "Un serveur MCP dit à votre agent ce que font ses outils.<br/>L’agent le croit.",
+    "hero.lede": "La description d’un outil est du texte de prompt qu’un tiers livre directement dans le contexte de votre modèle, et un champ de schéma nommé <code>api_key</code> est une demande de vos secrets formulée comme une API. WARDEN examine un serveur <b>avant qu’aucun de ses outils n’atteigne le modèle</b> et renvoie un verdict que vous pouvez consigner.",
+    "hero.btn.repo": "Lire le code",
+    "hero.btn.survey": "Voir ce qu’il a eu faux",
+    "badge.deps": "dépendances d’exécution",
+    "badge.gates": "portes",
+    "badge.ruleset": "jeu de règles",
+    "badge.tests": "tests",
+    "badge.import": "le seul import",
+    "hero.svg.tools": "définitions des outils",
+    "hero.svg.origin": "déclaré ?",
+    "hero.svg.pinning": "dérive ?",
+    "hero.svg.verdict": "verdict",
+    "hero.svg.foot": "aucune E/S réseau pendant l’examen · aucun modèle · aucun oracle",
+    "survey.kicker": "Calibré sur l’écosystème, pas sur des fixtures",
+    "survey.h2": "Nous l’avons pointé sur 1 108 serveurs MCP publics et publié ce qu’il a eu faux",
+    "survey.p1": "Quelques heures après la première version, nous avons atteint tous les serveurs MCP publics que nous pouvions légitimement joindre : 2 787 entrées du registre avec un point d’accès réseau, dont 1 108 ont répondu à un vrai <code>tools/list</code> et livré 17 491 définitions d’outils. Aucun code tiers n’a été exécuté : chaque définition vient de la réponse du serveur lui-même.",
+    "survey.k1": "serveurs ont répondu",
+    "survey.k2": "définitions d’outils",
+    "survey.k3": "serveurs bloqués, v3 → v4",
+    "survey.k4": "constats réels, toujours attrapés",
+    "survey.p2": "Le titre ne parle pas de l’écosystème, il parle de nous. Le jeu v3 a bloqué 50 de ces serveurs et seuls <b>4</b> ont tenu à la relecture. Les 46 autres ont été bloqués pour avoir dit la bonne chose : <i>« N’envoyez jamais une clé privée »</i>, <i>« la clé privée ne quitte jamais votre machine »</i>, un scanner de sécurité énumérant les attaques qu’il détecte, une description en persan écrite avec le ZERO WIDTH NON-JOINER que sa langue exige.",
+    "survey.note": "Le profil de faux positifs est le seul chiffre qui décide si quelqu’un active un scanner. Celui qui refuse des serveurs honnêtes n’est pas prudent : il est désinstallé. Les échecs sont donc publiés avec les preuves, et la suite de régression est bâtie sur le texte réel de ce corpus plutôt que sur des fixtures inventées.",
+    "survey.t.head": "Re-mesuré sur les mêmes 1 108 serveurs",
+    "survey.t.blocked": "serveurs bloqués",
+    "survey.t.subst": "dont étayés",
+    "survey.t.bfind": "constats bloquants",
+    "survey.t.afind": "constats indicatifs",
+    "survey.p3": "v4 y parvient avec des <b>guards</b> : des vérifications de contexte nommées qui font partie de la table publiée, et donc de son empreinte. À lui seul, <code>polarity</code> expliquait 390 de ces 492 constats bloquants : un nom de justificatif à l’intérieur d’un refus est une promesse, pas une demande. <code>mention</code> sait qu’une phrase entre guillemets, en backticks ou comme valeur d’un <code>enum</code> JSON est citée, pas dite.",
+    "survey.btn": "Lire l’étude complète",
+    "gates.kicker": "La chaîne",
+    "gates.h2": "Quatre portes, la moins coûteuse et la plus locale d’abord",
+    "gates.p1": "Rien dans la chaîne n’effectue de requête réseau. Le seul téléchargement que WARDEN émette est le threat feed que vous avez demandé en passant une URL. Le score composite est le <b>produit</b> des contributions : une porte mauvaise tire tout le serveur vers le bas au lieu d’être moyennée.",
+    "gates.t.gate": "Porte",
+    "gates.t.decides": "Ce qu’elle décide",
+    "gates.t.net": "Réseau",
+    "gates.t.g1": "Injection, exfiltration, demandes d’identifiants et charges cachées en Unicode ou base64 dans le <b>nom</b> de l’outil, sa description et son schéma d’entrée. 25 règles dans le jeu v4 : 15 peuvent bloquer, 10 sont purement indicatives, et 17 couvrent aussi le nom.",
+    "gates.t.none": "aucun",
+    "gates.t.g2": "Identité de serveur ou outil connu comme malveillant : 11 enregistrements intégrés plus un feed signé optionnel. Fatal pour un <code>critical</code> de portée serveur.",
+    "gates.t.feedonly": "seulement le téléchargement du feed",
+    "gates.t.g3": "Si l’opérateur a déclaré ce serveur ou s’il provient d’un catalogue distant. Fail-closed avec <code>allowUnknownServers: false</code>.",
+    "gates.t.none2": "aucun",
+    "gates.t.g4": "Si les définitions — et l’identité de lancement du serveur — correspondent encore à ce que l’utilisateur a approuvé. Un catalogue peut réorienter un id approuvé vers une autre commande ; c’est aussi une dérive.",
+    "gates.t.none3": "aucun",
+    "gates.note": "Sévérité et blocage sont deux axes distincts. Un constat de palier <code>advise</code> est rapporté et ne bloque jamais et ne coûte jamais un outil, quel que soit le seuil — parce que « quelle attention cela mérite-t-il » et « est-ce un défaut » sont deux questions différentes, et encoder la seconde par une sévérité basse la rendait de nouveau bloquante pour quiconque durcissait le seuil.",
+    "verdict.kicker": "La sortie",
+    "verdict.h2": "Un verdict fait pour être consigné",
+    "verdict.p1": "<code>rulesets</code> n’est pas un ornement. Le même serveur obtient un autre score sous une table plus récente, et sans la version <i>et</i> une empreinte des règles, rien ne distingue cela d’un serveur qui a changé. Un scan conservé sans elles n’est pas reproductible — et comme les guards font partie de la table, la même regex avec et sans <code>polarity</code> est un autre jeu.",
+    "verdict.c1.h": "Partition par outil",
+    "verdict.c1.p": "Un serveur avec un outil empoisonné et neuf bons reste utilisable : seul ce que le verdict a nommé est retiré.",
+    "verdict.c2.h": "Sûr à afficher",
+    "verdict.c2.p": "Les caractères de contrôle et invisibles d’un nom sont échappés dans le message : un nom portant <code>ESC[2K</code> écrasait la ligne du terminal de l’opérateur.",
+    "verdict.c3.h": "Déterministe",
+    "verdict.c3.p": "Aucun LLM dans la chaîne. Mêmes entrées, même verdict, hors ligne, en millisecondes.",
+    "feed.kicker": "Optionnel, signé, fail-closed",
+    "feed.h2": "Un threat feed qui ne peut pas éteindre votre protection",
+    "feed.p1": "WARDEN embarque 11 enregistrements de menaces comme socle et ne lira pas un feed distant non signé. Trois propriétés sont vérifiées, et <b>tout échec conserve ce socle</b> au lieu de dégrader vers rien.",
+    "feed.c1.h": "Authenticité",
+    "feed.c1.p": "Ed25519 contre une clé épinglée à l’avance, sur la forme canonique RFC 8785 de <code>{records, timestamp}</code> — pas sur le corps brut.",
+    "feed.c2.h": "Fraîcheur",
+    "feed.c2.p": "Le timestamp <i>signé</i> doit tomber dans la fenêtre. Une signature dit qui a écrit un document, jamais quand il vous a été remis.",
+    "feed.c3.h": "Déterminisme",
+    "feed.c3.p": "Octets canoniques, pour que l’éditeur et le vérificateur s’accordent quel que soit l’ordre des clés JSON.",
+    "feed.p2": "Les enregistrements distants <b>s’ajoutent aux</b> intégrés. Un feed ne peut jamais en supprimer un, donc un éditeur compromis ne peut qu’ajouter de la protection — et le téléchargement est borné et interrompu à la limite, sinon l’URL du feed est un vecteur d’épuisement mémoire. <a href=\"https://github.com/alexar76/momus\">MOMUS</a> est un éditeur de référence du contrat.",
+    "not.kicker": "Limites, énoncées",
+    "not.h2": "Ce que ce n’est pas",
+    "not.l1.b": "Pas un sandbox.",
+    "not.l1.t": "Ce sont des décisions intra-processus. Le confinement du processus enfant MCP au niveau du système — seccomp, Landlock, <code>sandbox-exec</code> — n’est pas ici.",
+    "not.l2.b": "Pas un modèle.",
+    "not.l2.t": "Aucun LLM n’est appelé dans la chaîne. C’est pourquoi <code>vet()</code> est rapide, hors ligne et déterministe — et pourquoi le scan statique a la forme d’expressions régulières et laissera passer une paraphrase qu’aucune règle ne couvre.",
+    "not.l3.b": "Pas un service de réputation.",
+    "not.l3.t": "Une version antérieure avait une porte qui demandait à un oracle de confiance un score qu’il n’avait aucune donnée pour calculer, puis signalait l’oracle comme injoignable sans avoir rien envoyé. Elle a été supprimée, et un test échoue si une porte redéclare une injoignabilité.",
+    "not.l4.b": "Pas un substitut à la lecture des définitions.",
+    "not.l4.t": "11 enregistrements intégrés sont un socle, pas un catalogue, et l’étude ci-dessus est un compte rendu honnête de la façon dont une table de règles se trompe sur un serveur bénin.",
+    "start.kicker": "Devant n’importe quel hôte MCP",
+    "start.h2": "Démarrage rapide",
+    "start.p1": "Utilisé par <a href=\"https://github.com/alexar76/argus\">ARGUS</a> comme hôte de référence, par <a href=\"https://github.com/alexar76/momus\">MOMUS</a> du côté éditeur, et par le cours AICOM sur la sécurité MCP. C’est une bibliothèque, pas un service — d’où son tracé en couche, et non en hôte, sur la <a href=\"https://magic-ai-factory.com/monitor/?node=warden\">carte de l’écosystème</a>.",
+    "foot.gates": "La chaîne de portes",
+    "foot.feed": "Contrat du threat feed",
+    "foot.integration": "Guide d’intégration",
+    "foot.survey": "Étude de terrain",
+    "foot.legal": "MIT · AICOM. WARDEN rapporte ce qu’il a vérifié et rien de plus : c’est un scanner sur du texte annoncé, pas une garantie sur le comportement d’un serveur.",
+    "hero.svg.feed": "11 + feed",
+    "stage.legend.defs": "définitions d'outils",
+    "stage.legend.gates": "portes",
+    "stage.legend.blocked": "arrêté à une porte",
+    "stage.legend.verdict": "verdict consigné",
+    "gates.figcaption": "Les définitions entrent à gauche, les quatre portes s'exécutent dans le processus de l'hôte, et un verdict consigné sort à droite.",
+    "hero.svg.host": "DANS LE PROCESSUS DE L'HÔTE"
+  },
+  "zh": {
+    "nav.survey": "实测",
+    "nav.gates": "门控链",
+    "nav.verdict": "裁定",
+    "nav.feed": "威胁情报",
+    "nav.not": "它不是什么",
+    "nav.start": "快速开始",
+    "hero.kicker": "MCP 安全防火墙 · 零运行时依赖",
+    "hero.h1": "MCP 服务器自己告诉你的智能体，它的工具是做什么的。<br/>智能体就信了。",
+    "hero.lede": "工具描述是第三方直接投递进模型上下文的提示词文本；而一个名叫 <code>api_key</code> 的 schema 字段，就是以 API 形式写出来的索要密钥的请求。WARDEN 在<b>该服务器的任何工具到达模型之前</b>审查它，并返回一份可以留档的裁定。",
+    "hero.btn.repo": "阅读源码",
+    "hero.btn.survey": "看看它错在哪",
+    "badge.deps": "个运行时依赖",
+    "badge.gates": "道门",
+    "badge.ruleset": "规则集",
+    "badge.tests": "项测试",
+    "badge.import": "唯一的 import",
+    "hero.svg.tools": "工具定义",
+    "hero.svg.origin": "已声明？",
+    "hero.svg.pinning": "漂移？",
+    "hero.svg.verdict": "裁定",
+    "hero.svg.foot": "审查过程中不发起任何网络请求 · 不用模型 · 不用预言机",
+    "survey.kicker": "对着生态校准，而不是对着测试数据",
+    "survey.h2": "我们把它指向 1 108 台公开 MCP 服务器，并公开了它错在哪里",
+    "survey.p1": "首个版本发布数小时后，我们联系了所有能合法触达的公开 MCP 服务器：注册表里有网络端点的 2 787 条记录，其中 1 108 台真的响应了 <code>tools/list</code>，交出 17 491 条工具定义。没有执行任何第三方代码——每条定义都来自服务器自己的应答。",
+    "survey.k1": "台服务器响应",
+    "survey.k2": "条工具定义",
+    "survey.k3": "台被阻止，v3 → v4",
+    "survey.k4": "个真实发现，依然被抓住",
+    "survey.p2": "重点不在生态，而在我们自己。规则集 v3 阻止了其中 50 台，而只有 <b>4</b> 台经复核站得住脚。另外 46 台被阻止，恰恰因为它们说了对的话：<i>「永远不要发送私钥」</i>、<i>「私钥永不离开你的机器」</i>、一个安全扫描器在列举自己能检测的攻击、一段波斯语描述里带着该语言必需的 ZERO WIDTH NON-JOINER。",
+    "survey.note": "扫描器的误报画像，是决定有没有人愿意开启它的唯一数字。会拒绝诚实服务器的扫描器不是谨慎，而是会被卸载。所以我们连证据一起公开这些失败，并且回归测试用的是这份语料的真实文本，而不是编造的测试数据。",
+    "survey.t.head": "在同样这 1 108 台上重新测量",
+    "survey.t.blocked": "被阻止的服务器",
+    "survey.t.subst": "其中站得住脚的",
+    "survey.t.bfind": "阻止性发现",
+    "survey.t.afind": "提示性发现",
+    "survey.p3": "v4 靠 <b>guards</b> 做到这一点——具名的上下文检查，它们属于已发布的规则表，因而也属于摘要。仅 <code>polarity</code> 一项就解释了那 492 条阻止性发现中的 390 条：出现在否定句里的凭据名词是一个承诺，而不是一个请求。<code>mention</code> 知道引号里、反引号里或作为 JSON <code>enum</code> 值出现的短语是被引用，而不是被说出。",
+    "survey.btn": "阅读完整实测报告",
+    "gates.kicker": "这条链",
+    "gates.h2": "四道门，最便宜、最本地的先来",
+    "gates.p1": "链上没有任何环节发起网络请求。WARDEN 唯一会发出的下载，是你自己传入 URL 要求的威胁情报。综合评分是各门控贡献的<b>乘积</b>，所以一个坏门控会把整台服务器拉下来，而不是被平均掉。",
+    "gates.t.gate": "门控",
+    "gates.t.decides": "判定什么",
+    "gates.t.net": "网络",
+    "gates.t.g1": "工具<b>名称</b>、描述与输入 schema 中的注入、外泄、索要凭据，以及隐藏 Unicode 或 base64 载荷。规则集 v4 共 25 条：15 条可阻止，10 条仅提示，另有 17 条同时覆盖名称。",
+    "gates.t.none": "无",
+    "gates.t.g2": "已知恶意的服务器身份或工具：11 条内置记录，外加可选的已签名 feed。服务器范围的 <code>critical</code> 为致命。",
+    "gates.t.feedonly": "仅 feed 下载",
+    "gates.t.g3": "该服务器是运营者声明的，还是来自远端目录。<code>allowUnknownServers: false</code> 时失败即关闭。",
+    "gates.t.none2": "无",
+    "gates.t.g4": "工具定义——以及服务器的启动身份——是否仍与用户批准过的一致。目录可以把已批准的 id 重新指向另一条命令；那也是漂移。",
+    "gates.t.none3": "无",
+    "gates.note": "严重级别与是否阻止是两个独立维度。<code>advise</code> 层级的发现会被报告，但在任何阈值下都不会阻止连接、也不会牺牲工具——因为「这值得多少注意」和「这算不算缺陷」是两个不同的问题，而把后者编码成较低的严重级别，会让它对任何收紧阈值的人重新变成阻止性的。",
+    "verdict.kicker": "输出",
+    "verdict.h2": "裁定就是为了留档",
+    "verdict.p1": "<code>rulesets</code> 不是装饰。同一台服务器在更晚的规则表下会得到不同评分；如果既没有版本号、也没有对规则的摘要，就无法把这种情况与「服务器本身变了」区分开。缺了它们，留档的扫描不可复现——而且由于 guards 属于规则表，同一条正则带不带 <code>polarity</code> 就是两个不同的规则集。",
+    "verdict.c1.h": "按工具划分",
+    "verdict.c1.p": "一台有一个被投毒工具、九个正常工具的服务器仍然可用：只丢掉裁定点名的那些。",
+    "verdict.c2.h": "可安全打印",
+    "verdict.c2.p": "工具名里的控制字符与不可见字符在消息中被转义——带 <code>ESC[2K</code> 的名字曾经会覆盖运营者终端里的那一行。",
+    "verdict.c3.h": "确定性",
+    "verdict.c3.p": "整条链上没有 LLM。相同输入、相同裁定、离线、毫秒级。",
+    "feed.kicker": "可选、已签名、失败即关闭",
+    "feed.h2": "一份无法关掉你防护的威胁情报",
+    "feed.p1": "WARDEN 自带 11 条内置威胁记录作为底线，并且根本不会读取未签名的远端 feed。会检查三项性质，且<b>任何一项失败都保留这条底线</b>，而不是退化成毫无防护。",
+    "feed.c1.h": "真实性",
+    "feed.c1.p": "用事先固定的公钥做 Ed25519 验签，对象是 <code>{records, timestamp}</code> 的 RFC 8785 规范化形式，而不是原始响应体。",
+    "feed.c2.h": "新鲜度",
+    "feed.c2.p": "被<i>签名</i>的时间戳必须落在窗口内。签名说明的是谁写了这份文件，从不说明它何时交到你手上。",
+    "feed.c3.h": "确定性",
+    "feed.c3.p": "规范化字节，使发布方与验证方无论 JSON 键顺序如何都能对上。",
+    "feed.p2": "远端记录是<b>追加到</b>内置记录之上的。feed 永远无法删除其中任何一条，因此即便发布方被攻陷，也只能往上加防护；而下载有上限并会在触顶时中止，否则 feed 的 URL 就是一个内存耗尽向量。<a href=\"https://github.com/alexar76/momus\">MOMUS</a> 是该契约的参考发布方。",
+    "not.kicker": "把边界说清楚",
+    "not.h2": "它不是什么",
+    "not.l1.b": "不是沙箱。",
+    "not.l1.t": "这些都是进程内的判定。操作系统层面对 MCP 子进程的约束——seccomp、Landlock、<code>sandbox-exec</code>——不在这里。",
+    "not.l2.b": "不是模型。",
+    "not.l2.t": "整条链上不调用任何 LLM。这正是 <code>vet()</code> 快速、离线且确定的原因——也正因如此，静态扫描是正则形态的，会漏掉任何规则都没覆盖的改写说法。",
+    "not.l3.b": "不是信誉服务。",
+    "not.l3.t": "早期版本里有一个门控，会向信任预言机索要一个它根本没有数据可算的评分，然后在一个请求都没发出的情况下报告预言机不可达。该门控已被移除，并且只要有门控再次声称不可达，测试就会失败。",
+    "not.l4.b": "不能替代你亲自读工具定义。",
+    "not.l4.t": "11 条内置威胁记录是底线，不是目录；而上面那份实测报告，是对「一张规则表如何冤枉一台无害服务器」的诚实交代。",
+    "start.kicker": "放在任何 MCP 宿主前面",
+    "start.h2": "快速开始",
+    "start.p1": "被 <a href=\"https://github.com/alexar76/argus\">ARGUS</a>（参考宿主）、<a href=\"https://github.com/alexar76/momus\">MOMUS</a>（发布方一侧）以及 AICOM 的 MCP 安全课程使用。它是库而不是服务——这也是它在<a href=\"https://magic-ai-factory.com/monitor/?node=warden\">生态地图</a>上被画成一个层而不是一台宿主的原因。",
+    "foot.gates": "门控链",
+    "foot.feed": "威胁情报契约",
+    "foot.integration": "集成指南",
+    "foot.survey": "现场实测",
+    "foot.legal": "MIT · AICOM。WARDEN 只报告它检查过的东西：它是针对已公布文本的扫描器，而不是对服务器行为的保证。",
+    "hero.svg.feed": "11 + feed",
+    "stage.legend.defs": "工具定义",
+    "stage.legend.gates": "道门",
+    "stage.legend.blocked": "在门前被拦下",
+    "stage.legend.verdict": "留档的裁定",
+    "gates.figcaption": "工具定义从左侧进入，四道门在宿主自己的进程里运行，右侧输出一份留档的裁定。",
+    "hero.svg.host": "在宿主进程内"
+  }
+};
+
+  const META = {
+  "en": {
+    "title": "WARDEN — the MCP firewall that publishes what it got wrong",
+    "desc": "WARDEN is a zero-dependency MCP security firewall: four gates vet a third-party server before a tool definition reaches your model. Pointed at 1 108 public MCP servers, with the false positives published."
+  },
+  "ru": {
+    "title": "WARDEN — MCP-файрвол, который публикует свои ошибки",
+    "desc": "WARDEN — файрвол безопасности MCP без зависимостей: четыре гейта проверяют сторонний сервер до того, как определение инструмента дойдёт до модели. Направлен на 1 108 публичных MCP-серверов, ложные срабатывания опубликованы."
+  },
+  "es": {
+    "title": "WARDEN — el cortafuegos MCP que publica en qué se equivocó",
+    "desc": "WARDEN es un cortafuegos de seguridad MCP sin dependencias: cuatro puertas examinan un servidor de terceros antes de que una definición llegue a tu modelo. Apuntado a 1 108 servidores MCP públicos, con los falsos positivos publicados."
+  },
+  "fr": {
+    "title": "WARDEN — le pare-feu MCP qui publie ses erreurs",
+    "desc": "WARDEN est un pare-feu de sécurité MCP sans dépendances : quatre portes examinent un serveur tiers avant qu'une définition n'atteigne votre modèle. Pointé sur 1 108 serveurs MCP publics, faux positifs publiés."
+  },
+  "zh": {
+    "title": "WARDEN —— 公开自己错在哪的 MCP 防火墙",
+    "desc": "WARDEN 是零依赖的 MCP 安全防火墙：四道门在工具定义到达模型之前审查第三方服务器。已指向 1 108 台公开 MCP 服务器，并公开了误报画像。"
+  }
+};
+
+  const nodes = [...document.querySelectorAll('[data-i18n]')];
+  const EN = {};
+  nodes.forEach((node) => { EN[node.dataset.i18n] = node.innerHTML; });
+
+  let lang = 'en';
+
+  function t(key) {
+    const table = lang === 'en' ? EN : (DICT[lang] || EN);
+    const value = table[key];
+    return value === undefined ? (EN[key] === undefined ? key : EN[key]) : value;
+  }
+
+  function apply(next, persist) {
+    lang = next === 'en' || DICT[next] ? next : 'en';
+    nodes.forEach((node) => { node.innerHTML = t(node.dataset.i18n); });
+    document.documentElement.lang = lang;
+    const meta = META[lang];
+    if (meta) {
+      document.title = meta.title;
+      const description = document.querySelector('meta[name="description"]');
+      if (description) description.setAttribute('content', meta.desc);
+    }
+    document.querySelectorAll('[data-lang]').forEach((button) => {
+      button.setAttribute('aria-pressed', String(button.dataset.lang === lang));
+    });
+    if (persist) { try { localStorage.setItem('warden-lang', lang); } catch (_) {} }
+  }
+
+  document.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-lang]');
+    if (button) apply(button.dataset.lang, true);
+  });
+
+  let initial = new URLSearchParams(location.search).get('lang');
+  if (!initial) { try { initial = localStorage.getItem('warden-lang'); } catch (_) {} }
+  if (!initial) {
+    const preferred = (navigator.languages || [navigator.language || 'en']).map((code) =>
+      String(code).slice(0, 2).toLowerCase()
+    );
+    initial = preferred.find((code) => code === 'en' || DICT[code]) || 'en';
+  }
+  apply(initial, false);
+})();
+</script>
+</body>
+</html>
