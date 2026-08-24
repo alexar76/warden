@@ -1,0 +1,144 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 420" role="img" aria-labelledby="title desc">
+  <title id="title">WARDEN  MCP security firewall</title>
+  <desc id="desc">Conceptual hero: MCP tool definitions pass four gates  static scan, threat feed, origin, pinning  before a recorded allow/block verdict.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#071018"/>
+      <stop offset="55%" stop-color="#0c1824"/>
+      <stop offset="100%" stop-color="#061016"/>
+    </linearGradient>
+    <radialGradient id="glowL" cx="18%" cy="35%" r="45%">
+      <stop offset="0%" stop-color="#3ecfbf" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#3ecfbf" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowR" cx="88%" cy="60%" r="40%">
+      <stop offset="0%" stop-color="#e0b35a" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#e0b35a" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#2bb8a8"/>
+      <stop offset="100%" stop-color="#7dd3c7"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#12202c"/>
+      <stop offset="100%" stop-color="#0b151e"/>
+    </linearGradient>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1120" height="420" fill="url(#bg)"/>
+  <rect width="1120" height="420" fill="url(#glowL)"/>
+  <rect width="1120" height="420" fill="url(#glowR)"/>
+
+  <!-- faint grid -->
+  <g stroke="#3ecfbf" stroke-opacity="0.05" stroke-width="1">
+    <path d="M0 70H1120M0 140H1120M0 210H1120M0 280H1120M0 350H1120"/>
+    <path d="M80 0V420M200 0V420M320 0V420M440 0V420M560 0V420M680 0V420M800 0V420M920 0V420M1040 0V420"/>
+  </g>
+
+  <!-- title -->
+  <text x="560" y="48" text-anchor="middle"
+        font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif"
+        font-size="34" font-weight="800" letter-spacing="6" fill="url(#accent)">WARDEN</text>
+  <text x="560" y="74" text-anchor="middle"
+        font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
+        font-size="13" letter-spacing="3.5" fill="#8fa3b0">MCP SECURITY FIREWALL · ZERO RUNTIME DEPS</text>
+
+  <!-- LEFT: inbound tool defs -->
+  <g transform="translate(48,110)">
+    <rect width="210" height="230" rx="16" fill="url(#panel)" stroke="#3a5564" stroke-width="1.2"/>
+    <text x="18" y="28" font-family="ui-monospace, Menlo, monospace" font-size="11" letter-spacing="1.5" fill="#e0b35a">INBOUND</text>
+    <text x="18" y="48" font-family="ui-sans-serif, system-ui, sans-serif" font-size="15" font-weight="700" fill="#e7eef2">tool definitions</text>
+    <text x="18" y="68" font-family="ui-monospace, Menlo, monospace" font-size="10" fill="#5f7382">from the MCP server</text>
+
+    <g font-family="ui-monospace, Menlo, monospace" font-size="11">
+      <rect x="16" y="90" width="178" height="32" rx="8" fill="#1a2833" stroke="#4a3a2a"/>
+      <text x="28" y="110" fill="#c9a06a">desc: ignore policy&</text>
+      <rect x="16" y="130" width="178" height="32" rx="8" fill="#1a2833" stroke="#4a3a2a"/>
+      <text x="28" y="150" fill="#c9a06a">schema: api_key</text>
+      <rect x="16" y="170" width="178" height="32" rx="8" fill="#1a2833" stroke="#2a3a44"/>
+      <text x="28" y="190" fill="#7a8d9a">tool: search_docs</text>
+    </g>
+  </g>
+
+  <!-- arrows into gates -->
+  <g stroke="#3ecfbf" stroke-width="2" fill="none" opacity="0.55">
+    <path d="M268 225 H310"/>
+    <path d="M305 220 L318 225 L305 230"/>
+  </g>
+
+  <!-- CENTER: four gates -->
+  <g transform="translate(330,110)">
+    <text x="0" y="-12" font-family="ui-monospace, Menlo, monospace" font-size="11" letter-spacing="2" fill="#3ecfbf">GATE CHAIN</text>
+
+    <!-- gate cards -->
+    <g font-family="ui-sans-serif, system-ui, sans-serif">
+      <rect x="0" y="8" width="200" height="46" rx="10" fill="url(#panel)" stroke="#2f6f68"/>
+      <circle cx="22" cy="31" r="6" fill="#3ecfbf" filter="url(#soft)"/>
+      <text x="38" y="28" font-size="13" font-weight="700" fill="#e7eef2">static-scan</text>
+      <text x="38" y="44" font-family="ui-monospace, Menlo, monospace" font-size="10" fill="#7a8d9a">25 rules · injection / exfil</text>
+
+      <rect x="0" y="64" width="200" height="46" rx="10" fill="url(#panel)" stroke="#2f6f68"/>
+      <circle cx="22" cy="87" r="6" fill="#3ecfbf"/>
+      <text x="38" y="84" font-size="13" font-weight="700" fill="#e7eef2">threat-feed</text>
+      <text x="38" y="100" font-family="ui-monospace, Menlo, monospace" font-size="10" fill="#7a8d9a">11 built-ins + Ed25519 feed</text>
+
+      <rect x="0" y="120" width="200" height="46" rx="10" fill="url(#panel)" stroke="#2f6f68"/>
+      <circle cx="22" cy="143" r="6" fill="#3ecfbf"/>
+      <text x="38" y="140" font-size="13" font-weight="700" fill="#e7eef2">origin</text>
+      <text x="38" y="156" font-family="ui-monospace, Menlo, monospace" font-size="10" fill="#7a8d9a">declared vs catalog · fail-closed</text>
+
+      <rect x="0" y="176" width="200" height="46" rx="10" fill="url(#panel)" stroke="#2f6f68"/>
+      <circle cx="22" cy="199" r="6" fill="#3ecfbf"/>
+      <text x="38" y="196" font-size="13" font-weight="700" fill="#e7eef2">pinning</text>
+      <text x="38" y="212" font-family="ui-monospace, Menlo, monospace" font-size="10" fill="#7a8d9a">drift vs what you approved</text>
+    </g>
+
+    <!-- connector ticks -->
+    <g stroke="#3ecfbf" stroke-opacity="0.35" stroke-width="1.5">
+      <path d="M100 54 V64"/><path d="M100 110 V120"/><path d="M100 166 V176"/>
+    </g>
+  </g>
+
+  <!-- arrow to verdict -->
+  <g stroke="#3ecfbf" stroke-width="2" fill="none" opacity="0.55">
+    <path d="M540 225 H590"/>
+    <path d="M585 220 L598 225 L585 230"/>
+  </g>
+
+  <!-- RIGHT: verdict -->
+  <g transform="translate(610,110)">
+    <rect width="460" height="230" rx="16" fill="url(#panel)" stroke="#2f6f68" stroke-width="1.2"/>
+    <text x="22" y="28" font-family="ui-monospace, Menlo, monospace" font-size="11" letter-spacing="1.5" fill="#3ecfbf">VERDICT</text>
+    <text x="22" y="52" font-family="ui-sans-serif, system-ui, sans-serif" font-size="22" font-weight="800" fill="#e7eef2">recorded · reproducible</text>
+
+    <!-- allow / block chips -->
+    <rect x="22" y="72" width="88" height="28" rx="8" fill="#123528" stroke="#3ecf8e"/>
+    <text x="66" y="91" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="12" font-weight="700" fill="#3ecf8e">ALLOW</text>
+    <rect x="120" y="72" width="88" height="28" rx="8" fill="#2a1a1a" stroke="#c07070"/>
+    <text x="164" y="91" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="12" font-weight="700" fill="#e09090">BLOCK</text>
+
+    <text x="230" y="91" font-family="ui-monospace, Menlo, monospace" font-size="12" fill="#8fa3b0">score 0..1 · decidedBy</text>
+
+    <!-- mini JSON hint -->
+    <g font-family="ui-monospace, Menlo, Consolas, monospace" font-size="11" fill="#9fb0bc">
+      <text x="22" y="130">{</text>
+      <text x="40" y="148">"allow": false,</text>
+      <text x="40" y="166">"decidedBy": "threat-feed",</text>
+      <text x="40" y="184">"blockedTools": ["sweeper"],</text>
+      <text x="40" y="202">"rulesets": { "staticScan": { "digest": "sha256-&" } }</text>
+      <text x="22" y="220">}</text>
+    </g>
+  </g>
+
+  <!-- footer strip -->
+  <text x="560" y="390" text-anchor="middle"
+        font-family="ui-sans-serif, system-ui, sans-serif"
+        font-size="14" fill="#8fa3b0">Tool defs never reach the model unchecked.</text>
+  <text x="560" y="408" text-anchor="middle"
+        font-family="ui-monospace, Menlo, monospace"
+        font-size="11" letter-spacing="1" fill="#5f7382">vet() · no network I/O · @aimarket/warden</text>
+</svg>

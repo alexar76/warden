@@ -5,11 +5,16 @@
   <a href="https://github.com/alexar76/warden/actions/workflows/ci.yml"><img src="docs/badges/ci.svg" alt="CI" /></a>
   <a href="https://www.npmjs.com/package/@aimarket/warden"><img src="https://img.shields.io/npm/v/@aimarket/warden?color=cb3837&label=npm" alt="npm version" /></a>
   <img src="docs/badges/deps.svg" alt="Cero dependencias de ejecución" />
-  <img src="docs/badges/tests.svg" alt="95 pruebas en verde" />
+  <img src="docs/badges/tests.svg" alt="96 pruebas en verde" />
   <img src="docs/badges/node.svg" alt="Node >= 20" />
   <a href="LICENSE"><img src="docs/badges/license.svg" alt="Licencia: MIT" /></a>
 </p>
 <!-- /aicom-readme-badges -->
+
+<p align="center">
+  <img src="docs/assets/hero.svg" alt="WARDEN — MCP security firewall: tool defs pass static-scan, threat-feed, origin, and pinning before a recorded verdict" width="920" />
+</p>
+
 
 > 🌐 [English](README.md) · [Русский](README-ru.md) · **Español** · [Français](README-fr.md) · [中文](README-zh.md) · [Glosario](https://github.com/alexar76/aicom/blob/main/docs/localization-glossary.md)
 
@@ -171,7 +176,7 @@ degradar a ninguna protección:
 ## Desarrollo
 
 ```bash
-npm install && npm run build && npm test   # 95 pruebas
+npm install && npm run build && npm test   # 96 pruebas
 ```
 
 `test/packaging.test.ts` es lo que mantiene honesto el titular: falla si aparece una dependencia de

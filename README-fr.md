@@ -5,11 +5,16 @@
   <a href="https://github.com/alexar76/warden/actions/workflows/ci.yml"><img src="docs/badges/ci.svg" alt="CI" /></a>
   <a href="https://www.npmjs.com/package/@aimarket/warden"><img src="https://img.shields.io/npm/v/@aimarket/warden?color=cb3837&label=npm" alt="version npm" /></a>
   <img src="docs/badges/deps.svg" alt="Zéro dépendance d'exécution" />
-  <img src="docs/badges/tests.svg" alt="95 tests au vert" />
+  <img src="docs/badges/tests.svg" alt="96 tests au vert" />
   <img src="docs/badges/node.svg" alt="Node >= 20" />
   <a href="LICENSE"><img src="docs/badges/license.svg" alt="Licence : MIT" /></a>
 </p>
 <!-- /aicom-readme-badges -->
+
+<p align="center">
+  <img src="docs/assets/hero.svg" alt="WARDEN — MCP security firewall: tool defs pass static-scan, threat-feed, origin, and pinning before a recorded verdict" width="920" />
+</p>
+
 
 > 🌐 [English](README.md) · [Русский](README-ru.md) · [Español](README-es.md) · **Français** · [中文](README-zh.md) · [Glossaire](https://github.com/alexar76/aicom/blob/main/docs/localization-glossary.md)
 
@@ -171,7 +176,7 @@ une absence de protection :
 ## Développement
 
 ```bash
-npm install && npm run build && npm test   # 95 tests
+npm install && npm run build && npm test   # 96 tests
 ```
 
 `test/packaging.test.ts` est ce qui tient l'accroche honnête : il échoue si une dépendance d'exécution

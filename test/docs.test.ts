@@ -66,6 +66,14 @@ describe("documentation set", () => {
     expect(missing).toEqual([]);
   });
 
+  it("ships a conceptual hero (no UI screenshots — library has none)", () => {
+    expect(existsSync(join(root, "docs", "assets", "hero.svg"))).toBe(true);
+    for (const f of readmes) {
+      const text = readFileSync(join(root, f), "utf8");
+      expect(text, `${f} missing hero`).toContain("docs/assets/hero.svg");
+    }
+  });
+
   it("quotes the same test count in every README as the badge does", () => {
     const badge = readFileSync(join(root, "docs", "badges", "tests.svg"), "utf8");
     const n = /(\d+) passing/.exec(badge)?.[1];
