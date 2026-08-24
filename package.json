@@ -1,0 +1,75 @@
+{
+  "name": "@aimarket/warden",
+  "version": "0.3.0",
+  "description": "WARDEN — MCP security firewall. Vets an MCP server's tool definitions, threat feed, origin and pinning before any tool runs. Zero runtime dependencies.",
+  "type": "module",
+  "license": "MIT",
+  "author": "AICOM (alexar76)",
+  "homepage": "https://github.com/alexar76/warden",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alexar76/warden.git"
+  },
+  "bugs": {
+    "url": "https://github.com/alexar76/warden/issues"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./jcs": {
+      "types": "./dist/jcs.d.ts",
+      "import": "./dist/jcs.js",
+      "default": "./dist/jcs.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "README-ru.md",
+    "README-es.md",
+    "README-fr.md",
+    "README-zh.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "keywords": [
+    "mcp",
+    "mcp-security",
+    "model-context-protocol",
+    "prompt-injection",
+    "tool-poisoning",
+    "warden",
+    "firewall",
+    "security",
+    "ai-agent",
+    "llm",
+    "aimarket",
+    "aicom"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@vitest/coverage-v8": "^2.1.9",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["20", "22", "24"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npm test
+
+  packaging:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      # The published tarball is the product. Prove it installs and imports on
+      # its own, outside the repo, with nothing else on disk — the zero-dependency
+      # claim is not verifiable from inside a node_modules tree that already has
+      # the dev toolchain in it.
+      - name: pack and import from a clean directory
+        run: |
+          set -euo pipefail
+          TARBALL="$(npm pack --silent | tail -1)"
+          mkdir -p /tmp/consumer && mv "$TARBALL" /tmp/consumer/
+          cd /tmp/consumer
+          npm init -y >/dev/null
+          npm install "./$TARBALL"
+          test "$(ls node_modules | grep -vc '^\.' || true)" -eq 1 \
+            || { echo "installing the package pulled in more than itself:"; ls node_modules; exit 1; }
+          node --input-type=module -e "
+            import { Warden, ThreatFeed, silentLogger, staticScanRuleset } from '@aimarket/warden';
+            import { canonicalize } from '@aimarket/warden/jcs';
+            const feed = new ThreatFeed(); await feed.load();
+            const pins = new Map();
+            const w = Warden.create({
+              policy: { blockAtSeverity: 'high', sensitiveToolPatterns: [], allowUnknownServers: true, pinToolDefs: true },
+              threatFeed: feed,
+              store: { getPin: async (i) => pins.get(i), putPin: async (p) => void pins.set(p.serverId, p) },
+              log: silentLogger(),
+            });
+            const v = await w.vet(
+              { id: 's@0', name: 's', transport: 'stdio', command: 'node' },
+              [{ name: 'add', description: 'Add two integers.', inputSchema: { type: 'object' } }],
+            );
+            if (!v.allow) throw new Error('a clean server was blocked');
+            if (v.rulesets.staticScan.digest !== staticScanRuleset().digest) throw new Error('ruleset digest mismatch');
+            if (canonicalize({ b: 1, a: 2 }) !== '{\"a\":2,\"b\":1}') throw new Error('canonicalizer is wrong');
+            console.log('published tarball OK — verdict', v.score);
+          "

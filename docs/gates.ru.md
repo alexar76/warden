@@ -1,0 +1,173 @@
+# Цепочка гейтов
+
+> 🌐 [English](gates.md) · **Русский** · [Español](gates.es.md) · [Français](gates.fr.md) · [中文](gates.zh.md)
+
+`Warden.vet(server, tools)` прогоняет упорядоченную цепочку и возвращает один вердикт. Эта страница —
+вся процедура принятия решения: на что смотрит каждый гейт, что он может заблокировать и как
+складывается итоговое число.
+
+```
+static-scan  →  threat-feed  →  origin  →  pinning
+ (бесплатно)     (бесплатно      (бесплатно) (бесплатно)
+                  после load)
+```
+
+Порядок — от самого дешёвого и самого локального. Ни один гейт в цепочке не делает сетевых запросов:
+единственная загрузка, которую WARDEN вообще выполняет, — это `ThreatFeed.load(url)`, и её вызываете
+вы сами, до проверки.
+
+## Как собирается вердикт
+
+Каждый гейт возвращает `{ findings, score, fatal? }`. Цепочка:
+
+1. прогоняет все гейты по порядку, накапливая находки (каждый гейт видит `prior`);
+2. перемножает оценки гейтов — composite score это **произведение**, поэтому один плохой гейт тянет
+   сервер вниз, а не усредняется тремя хорошими;
+3. блокирует, если какой-то гейт вернул `fatal` или если какая-то не-advisory находка достигает
+   `policy.blockAtSeverity`;
+4. обрывает цепочку **только** на явном `fatal`. Блокирующая, но не фатальная находка позволяет
+   остальным гейтам отчитаться, чтобы запись о том, *почему*, осталась полной.
+
+```ts
+const SEVERITY_RANK = { info: 0, low: 1, medium: 2, high: 3, critical: 4 };
+```
+
+Если `policy.blockAtSeverity` не один из этих пяти ключей, конструктор пишет предупреждение и
+откатывается на `"high"`. Опечатка здесь раньше была худшим из возможных отказов: `rank >= undefined`
+ложно при любом сравнении, поэтому неправильно написанный порог молча отключал блокировку целиком.
+
+### Две оси: severity и tier
+
+Severity отвечает на вопрос *сколько внимания это заслуживает*. **Tier** отвечает на вопрос *дефект
+ли это вообще* — и он является данными на находке (`advisory: true`), а не следствием severity.
+
+Находка с `advisory` сообщается, никогда не блокирует и никогда не стоит инструмента — при **любом**
+`blockAtSeverity`. Инструмент, чья схема принимает `api_key`, стоит того, чтобы на него указали, и не
+является дефектом; выражение этого через понижение severity снова делало бы его блокирующим для всех,
+кто ужесточил порог.
+
+## static-scan
+
+Локальное regex-сканирование `description` и `inputSchema` каждого инструмента — только этих двух
+полей. 25 правил в наборе **v2**: 18 `block`, 7 `advise`.
+
+Оценка гейта — `1 − штраф(худшая блокирующая severity)`; advisory-срабатывания на неё не влияют.
+
+| худшая блокирующая severity | нет | info | low | medium | high | critical |
+|---|---|---|---|---|---|---|
+| оценка гейта | 1 | 1 | 0.9 | 0.7 | 0.4 | 0 |
+
+| Код | Severity | Tier | Что ловит |
+|---|---|---|---|
+| `TOOL_DEF_INJECTION` | critical / high | block | «ignore all previous instructions», «do not tell the user», теги `<system>`, ссылки на developer prompt |
+| `TOOL_DEF_SECRET_REQUEST` | critical | block | `private_key`, `seed_phrase`/`mnemonic`, пути `~/.ssh` |
+| `TOOL_DEF_SECRET_HARVEST` | critical | block | инструмент, чья заявленная задача — читать/выгружать/раскрывать секреты |
+| `TOOL_DEF_EXFIL` | critical / high | block | «post to https://…», «forward it to…», «exfiltrate», формулировки про upload на хост |
+| `TOOL_DEF_HIDDEN_UNICODE` | high | block | zero-width и bidi-управляющие символы — текст, которого рецензент не видит |
+| `TOOL_DEF_BASE64_BLOB` | high | block | цепочка base64 от 120 символов внутри описания |
+| `TOOL_DEF_DATA_URL` | high | block | URL вида `data:…;base64,` и `javascript:` |
+| `TOOL_DEF_CREDENTIAL_PARAM` | medium / low | advise | схема или описание просит `api_key`, `password`, `secret`, bearer-токены |
+| `TOOL_DEF_ENV_REFERENCE` | medium | advise | `.env`, «environment variables» |
+| `TOOL_DEF_IMPERATIVE` | low / info | advise | «you must», «instead of» — формулировки в форме промпта, сами по себе ничего не доказывающие |
+
+`staticScanRuleset()` возвращает каждое правило вместе с **исходником регулярки и флагами**, чтобы
+третья сторона могла перезапустить ровно то же правило, плюс `{ version, digest }`, где digest —
+sha256 по канонической форме RFC 8785 отсортированного списка правил. Сортировка — сравнением
+code-unit, никогда не `localeCompare`: зависящая от локали коллация давала бы для одной и той же
+таблицы разный digest на по-разному настроенном хосте, а это ровно то расхождение, для обнаружения
+которого digest и существует.
+
+## threat-feed
+
+Сопоставляет идентичность сервера и определения инструментов с записями `ThreatRecord` — 11
+встроенных плюс то, что добавил подписанный feed (см. [контракт feed](threat-feed.ru.md)).
+
+- Любое совпадение ⇒ оценка гейта **0**.
+- `fatal` **только** для записи `critical`, совпавшей с *сервером*. Критическое совпадение на одном
+  *инструменте* не фатально: остальная цепочка всё равно отчитывается, а вина остаётся привязанной к
+  этому инструменту — именно это позволяет в основном нормальному серверу продолжать работать с одним
+  изолированным инструментом.
+- `ThreatRecord.scope` выбирает поверхность: `server` (id/name/url/command/args), `tool`
+  (name/description/inputSchema) или `any` — значение по умолчанию, когда запись его не указывает.
+
+Встроенные коды: `THREAT_TYPOSQUAT`, `THREAT_CRYPTO_DRAINER`, `THREAT_SEED_PHRASE`,
+`THREAT_SSH_KEY_READ`, `THREAT_ENV_EXFIL`, `THREAT_DESTRUCTIVE_CMD`, `THREAT_FORK_BOMB`.
+
+## origin
+
+Объявил ли оператор этот сервер, или он пришёл из удалённого каталога (заполнено
+`McpServerRef.catalog`)?
+
+| `allowUnknownServers` | находка | оценка | fatal |
+|---|---|---|---|
+| `false` (fail-closed) | `SERVER_UNDECLARED`, high | 0 | да |
+| `true` | `SERVER_UNDECLARED`, info | 1 | нет |
+
+Раньше этот переключатель означал «ещё нет оценки репутации», чего не могло выполнить ни одно
+развёртывание: оракулу никто никогда не передавал trust-рёбра, поэтому каждый сервер возвращался
+непоручённым, и `false` блокировал их все. Происхождение из каталога — факт, которым хост уже
+располагает локально, он не требует сети и не может привести к дедлоку.
+
+## pinning
+
+Сравнивает текущие определения инструментов со снимком, который подтвердил пользователь. Хеш — sha256
+по канонической форме RFC 8785 набора определений; та же канонизация, что у подписи feed, а не вторая
+сериализация.
+
+| Ситуация | Код | Severity | Оценка | Fatal |
+|---|---|---|---|---|
+| Pin ещё нет (первый контакт) | `TOOL_DEF_UNPINNED` | info | 0.9 | нет |
+| Хеш отличается от pin | `TOOL_DEF_DRIFT` | high | 0 | при `pinToolDefs` |
+| У определений нет канонической формы (без pin) | `TOOL_DEF_UNCANONICAL` | medium | 0.5 | нет |
+| У определений нет канонической формы (с pin) | `TOOL_DEF_UNCANONICAL` | high | 0 | при `pinToolDefs` |
+
+Первый контакт стоит 0.1, а не блокировки: чистый объявленный сервер без pin получает ровно **0.9**, а
+`TOOL_DEF_UNPINNED` имеет severity `info` намеренно — при `blockAtSeverity: "info"` блокирующий первый
+взгляд сделал бы любой сервер навсегда непригодным, ведь ничего нельзя зафиксировать до того, как это
+хоть раз подтвердили.
+
+`warden.approve(server, tools)` записывает pin через ваш `PinStore`. Операция идемпотентна.
+
+## Разбиение по инструментам
+
+`allowedTools` / `blockedTools` делят объявленные инструменты:
+
+- инструмент **заблокирован**, если не-advisory находка называет его (`finding.tool`) и достигает
+  порога;
+- все остальные инструменты разрешены;
+- чувствительные инструменты (`policy.sensitiveToolPatterns`) остаются *разрешёнными* — они помечены,
+  чтобы цикл вашего агента мог требовать подтверждение на каждый вызов во время работы. См.
+  `classifyTools` / `isSensitiveTool`.
+
+## Как добавить свой гейт
+
+`WardenGate` — интерфейс из трёх строк, а `new Warden({ gates, policy, log })` принимает цепочку
+напрямую, поэтому свой гейт можно вставить без форка:
+
+```ts
+import { Warden, StaticScanGate, ThreatGate, OriginGate, PinningGate } from "@aimarket/warden";
+import type { WardenGate, WardenGateInput, WardenGateResult } from "@aimarket/warden";
+
+class DenyByPublisher implements WardenGate {
+  readonly name = "publisher-allowlist";
+  async evaluate(input: WardenGateInput): Promise<WardenGateResult> {
+    const ok = ALLOWED.has(input.server.name);
+    return ok
+      ? { findings: [], score: 1 }
+      : { findings: [{ gate: this.name, severity: "high", code: "PUBLISHER_UNKNOWN",
+                       message: `${input.server.name} не входит в список разрешённых издателей` }],
+          score: 0, fatal: true };
+  }
+}
+
+const warden = new Warden({
+  gates: [new StaticScanGate(), new ThreatGate(feed), new DenyByPublisher(), new OriginGate(), new PinningGate(store)],
+  policy,
+});
+```
+
+Два правила для гейта, который вы пишете сами: **никогда не заявляйте, что удалённый сервис
+недоступен, если вы действительно не отправили запрос** (`test/no-phantom-gate.test.ts` следит за этим
+на поставляемых гейтах) и возвращайте оценку, которую можете защитить — гейт, который ничего не
+измерил, должен вернуть `1`, а не «нейтральные» 0.6, иначе он штрафует каждый сервер за измерение,
+которого не проводил.
