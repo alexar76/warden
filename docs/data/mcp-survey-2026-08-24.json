@@ -4928,48 +4928,5 @@
         }
       ]
     }
-  ],
-  "remediation": {
-    "shipped_as": "@aimarket/warden 0.4.0, ruleset v4",
-    "ruleset": {
-      "version": "4",
-      "digest": "sha256-klRyTiD3njdBs7sOjcDCfmAHaKsfQi75/wlQjjWWkXI="
-    },
-    "re_measured_on_same_corpus": {
-      "scanned": 1108,
-      "servers_blocked": {
-        "v3": 50,
-        "v4": 6
-      },
-      "substantiated_retained": {
-        "of": 4,
-        "still_blocked": 4
-      },
-      "blocking_findings": {
-        "v3": 492,
-        "v4": 9
-      },
-      "advisory_findings": {
-        "v3": 3472,
-        "v4": 3494
-      },
-      "servers_with_any_finding": {
-        "v3": 444,
-        "v4": 439
-      }
-    },
-    "residual_false_positives": [
-      {
-        "server": "co.fingersai/fingers",
-        "code": "THREAT_CRYPTO_DRAINER",
-        "why": "blockchain-forensics tool whose description genuinely reads 'did they drain the project wallet' — role blindness at the threat-feed layer, which has no guard mechanism"
-      },
-      {
-        "server": "cloud.redu/mcp",
-        "code": "THREAT_SSH_KEY_READ / TOOL_DEF_SECRET_REQUEST",
-        "why": "a documented `ssh -i ~/.ssh/<keypair_name>` invocation; arguably worth a flag, arguably not worth a block — left rather than tuned by one example"
-      }
-    ],
-    "release_gate": "npm run check:ruleset — fails when the version in package.json is already published carrying a different ruleset ref"
-  }
+  ]
 }

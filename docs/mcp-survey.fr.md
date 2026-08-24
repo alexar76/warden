@@ -104,9 +104,7 @@ Soit 4 sur 50 bloqués, ou 4 sur 1 108 scannés. Tout ce qui suit concerne les 4
 ### 1. Aveuglement à la polarité — le plus gros défaut
 
 `TOOL_DEF_SECRET_REQUEST` cherche le groupe nominal `private key`. Il ne lit pas la phrase autour.
-Tout ce qui suit a donc été bloqué en `critical`. Au seuil par défaut, `high` comme `critical`
-refusent la connexion — le serveur entier, tous ses outils — et `critical` ramène en plus le score de
-la porte à zéro :
+Tout ce qui suit a donc été bloqué en `critical`, qui est fatal — le serveur entier, tous ses outils :
 
 > Never send a private key: none is needed and the request is refused if one is present.
 > — un générateur d'enregistrements DANE/TLSA
@@ -126,8 +124,8 @@ la porte à zéro :
 > — un serveur SAP, dans le gabarit de schéma de **ses 377 outils**
 
 Ce dernier résume tout le problème en une ligne : un serveur qui dit au modèle de *ne pas* envoyer de
-clés privées est noté comme celui qui en demande, et comme la règle est `critical`, une seule
-occurrence nominale dans un gabarit partagé a refusé le serveur et l'a ramené à 0,00. 390 de nos
+clés privées est noté comme celui qui en demande, et comme la règle est `critical` donc fatale, une
+seule occurrence nominale dans un gabarit partagé a ramené un serveur de 377 outils à 0,00. 390 de nos
 492 constats bloquants tiennent à ce seul nom.
 
 `TOOL_DEF_SECRET_HARVEST` — un verbe parmi `read|extract|retrieve|fetch|obtain|dump|reveal|collect|…`
@@ -274,80 +272,31 @@ attrape et que v2 laisse passer. La publication périmée est un vrai défaut de
 et sur ce corpus, son impact comportemental est nul, et nous préférons le dire
 plutôt que de laisser entendre une gravité que nous n'avons pas mesurée.
 
-## Ce qui a changé en conséquence
+## Ce qui change en conséquence
 
-Le tout est sorti en ruleset **v4** dans `@aimarket/warden` 0.4.0, digest
-`sha256-klRyTiD3njdBs7sOjcDCfmAHaKsfQi75/wlQjjWWkXI=`. Les règles portent maintenant des **guards**
-nommés — des vérifications de contexte qui décident si une correspondance est bien ce que la règle
-cherche. Un guard fait partie de la table de règles publiée, et donc du digest : la même expression
-régulière avec et sans `polarity` est un scanner différent, et un verdict enregistré doit pouvoir dire
-lequel.
+Classé par le nombre des 46 que chaque point corrige :
 
-| Guard | Ce qu'il décide |
-|---|---|
-| `polarity` | Un nom d'identifiant dans une négation est une promesse, pas une demande ; la proposition autour et la correspondance elle-même sont examinées |
-| `mention` | Une expression entre guillemets, en backticks ou comme valeur d'`enum` JSON est citée, pas énoncée |
-| `detection` | Un secret nommé comme objet de `detect` / `scan` / `find` / `leaked` est ce qu'un scanner cherche |
-| `identifierFragment` | `mnemonic` dans `bip39-mnemonic-checksum` est le nom de cet identifiant |
-| `harvestTarget` | Une instruction de collecte dit *à qui* est le secret, ou *où* il se trouve |
-| `uri` | `javascript:` est désormais sensible à la casse et exige une charge utile |
-| `payload` | Un `data:…;base64,` avec moins de 32 caractères après la virgule documente le format |
-| `blob` | Seuil d'entropie et mots-clés de schéma, pour qu'un pointeur `$ref` ne passe pas pour une charge cachée |
-| `zeroWidth` | U+200C/U+200D adjacent à une écriture arabe, persane ou indienne est de l'orthographe |
-| `publicKeyPath` | `authorized_keys`, `known_hosts` et `*.pub` sont publics par définition |
-
-Quatre règles bloquantes sont passées en advisory, chacune ayant été mesurée en train de sélectionner
-des serveurs honnêtes : le nom `exfiltrat*` seul, `system prompt` / `developer message`,
-`do not tell the user`, et — en sévérité seulement, de `critical` à `high` — les noms d'identifiants,
-pour qu'un mot dans un gabarit de schéma partagé ne se lise plus comme « compromis au maximum ».
-
-Le threat feed a son propre comparateur : les écarts intérieurs des jokers sont bornés à 24
-caractères et un segment commençant par une lettre doit démarrer sur une frontière de mot. `_` et `-`
-comptent comme des frontières, donc un champ de schéma `seed_phrase` correspond toujours alors que
-`funds` dans « refunds » non. `policy.sensitiveToolPatterns` conserve la sémantique glob ordinaire :
-là, le motif est celui de l'opérateur, contre ses propres noms d'outils.
-
-Les messages de constat citent désormais le texte correspondant. Les nôtres tronquaient le motif en
-`signature (\b(?:read|extract|…)`, si bien qu'un relecteur ne pouvait savoir ni quelle alternative
-s'était déclenchée ni sur quoi. Le reconstituer à la main a représenté l'essentiel du travail de cette
-étude.
-
-### Remesuré sur les mêmes 1 108 serveurs
-
-| | ruleset v3 (tel qu'étudié) | ruleset v4 |
-|---|---|---|
-| serveurs bloqués | 50 | **6** |
-| dont étayés | 4 | **4** |
-| constats bloquants | 492 | 9 |
-| constats advisory | 3 472 | 3 494 |
-| serveurs avec au moins un constat | 444 | 439 |
-
-Les quatre constats réels bloquent toujours : la suite de régression vérifie les deux sens, et elle
-est bâtie sur le texte réel de ce corpus plutôt que sur des fixtures — personne qui s'assied pour
-inventer des données de test n'écrira « the private key never leaves your machine » ni ne rédigera une
-description avec un ZERO WIDTH NON-JOINER persan.
-
-### Ce qui se déclenche encore, et pourquoi nous l'avons laissé
-
-Deux des six blocages restants sont encore les nôtres :
-
-- Un outil d'analyse forensique blockchain nommé `wallet_funds`, sur le motif intégré
-  `*drain*wallet*`. Sa description demande *« did they drain the project wallet »* : les deux mots
-  sont réellement voisins, une borne de proximité n'y peut rien. C'est de l'aveuglement au rôle au
-  niveau du threat feed, et le feed n'a pas la notion de défenseur. Doter les enregistrements signés
-  d'un mécanisme de guards est un changement de leur modèle de confiance plus large que ce que cette
-  passe doit faire.
-- Le `get_ssh_command` d'un hébergeur, sur `~/.ssh` dans une invocation documentée
-  `ssh -i ~/.ssh/<keypair_name>`. Qu'une définition d'outil pointe le modèle vers le répertoire de
-  clés SSH de l'utilisateur mérite peut-être un signalement ; le blocage, peut-être pas. Laissé tel
-  quel plutôt qu'ajusté sur un seul exemple.
-
-### Le garde-fou de release
-
-`npm run check:ruleset` échoue si la version de `package.json` est déjà sur le registre avec un autre
-ruleset ref. Il tourne en CI et dans `prepublishOnly`, et dès sa première exécution il a attrapé le
-défaut vivant décrit plus haut : 0.3.0 publié en v2, source en v4. Changer les règles exige désormais
-de changer la version.
+1. **Polarité.** Un nom d'identifiant précédé d'un marqueur de refus (`never`, `not`, `no`,
+   `does not`, `without`, `refused`) dans la même proposition n'est pas une demande. En attendant,
+   les correspondances purement nominales ne doivent pas être `critical`, car `critical` est fatal et
+   un nom dans un gabarit partagé ne devrait jamais abattre 377 outils.
+2. **Texte cité et énuméré.** Une expression dans un littéral de chaîne, un `enum` JSON ou une
+   taxonomie séparée par des virgules est une *mention*. Les mentions ne bloquent pas.
+3. **`do not tell the user`** → rétrograder en `advisory` en attendant une règle exigeant un objet de
+   dissimulation (l'outil, le transfert, le fichier) et non la formule seule.
+4. **`\bjavascript:`** → la rendre sensible à la casse et exiger un contexte d'URI ; `JavaScript:`
+   comme étiquette n'est pas un schéma.
+5. **U+200C / U+200D** → exemptés lorsqu'ils sont adjacents à une écriture arabe, persane ou indienne.
+   Continuer de signaler U+200B, U+FEFF et les overrides bidi.
+6. **Détection base64** → exclure les pointeurs JSON et les chemins ; exiger un remplissage ou un
+   seuil d'entropie, pas seulement l'alphabet.
+7. **Jokers du threat-feed** → sémantique de frontière de mot et borne de proximité, pour que
+   `*sweep*funds*` ne puisse pas correspondre à `refunds`.
+8. **Messages de constat** → porter l'extrait correspondant assaini. Les nôtres tronquent le motif en
+   `signature (\b(?:read|extract|…)`, si bien qu'un relecteur ne peut pas savoir quelle alternative
+   s'est déclenchée sans la source. Dans cette étude même, cela nous a coûté des heures.
+9. **Digest du ruleset en CI** → une release doit échouer si le `dist` publié annonce une version de
+   ruleset différente de celle de la source dont il est issu.
 
 ## Limites
 

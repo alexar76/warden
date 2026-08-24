@@ -99,7 +99,9 @@ That is 4 of 50 blocked, or 4 of 1 108 scanned. Everything below is the other 46
 ### 1. Polarity blindness — the biggest single defect
 
 `TOOL_DEF_SECRET_REQUEST` matches the noun phrase `private key`. It does not read the sentence
-around it. So these were all blocked at `critical`, which is fatal — the whole server, every tool:
+around it. So these were all blocked at `critical`. At the default threshold both `high` and `critical` refuse
+the connection — the whole server, every tool — and `critical` additionally takes the gate score to
+zero:
 
 > Never send a private key: none is needed and the request is refused if one is present.
 > — a DANE/TLSA record generator
@@ -120,8 +122,7 @@ around it. So these were all blocked at `critical`, which is fatal — the whole
 
 That last one is the whole shape of the problem in one line: a server that tells the model *not* to
 send private keys is scored identically to one that asks for them, and because the rule is
-`critical` and therefore fatal, a single noun match in shared boilerplate took a 377-tool server to
-score 0.00. 390 of our 492 blocking findings are this one noun.
+`critical`, a single noun match in shared boilerplate refused the server and took it to score 0.00. 390 of our 492 blocking findings are this one noun.
 
 `TOOL_DEF_SECRET_HARVEST` — a verb from `read|extract|retrieve|fetch|obtain|dump|reveal|collect|…`
 within 30 characters of a credential noun — fails the same way:
@@ -263,31 +264,76 @@ rulesets. Not one of the 1 108 real servers puts anything in a tool name that v3
 misses. The stale publish is a real process defect — the CI guard for it is item 9 below — and on this
 corpus its behavioural impact is nil, and we would rather say so than imply a severity we did not measure.
 
-## What changes because of this
+## What changed because of this
 
-Ordered by how much of the 46 each fixes:
+All of it shipped as ruleset **v4** in `@aimarket/warden` 0.4.0, digest
+`sha256-klRyTiD3njdBs7sOjcDCfmAHaKsfQi75/wlQjjWWkXI=`. Rules now carry named **guards** — context
+checks that decide whether a match is the thing the rule is looking for. A guard is part of the
+published rule table and therefore of the digest, because the same regex with and without `polarity`
+is a different scanner and a recorded verdict has to be able to say which one it was.
 
-1. **Polarity.** A credential noun preceded by a refusal cue (`never`, `not`, `no`, `does not`,
-   `without`, `refused`) inside the same clause is not a request. Until that is implemented,
-   noun-only matches must not be `critical`, because `critical` is fatal and one noun in shared
-   boilerplate should never take down 377 tools.
-2. **Quoted and enumerated text.** A phrase inside a quoted string, a JSON `enum`, or a
-   comma-separated taxonomy is a *mention*. Mentions do not block.
-3. **`do not tell the user`** → demote to `advisory` pending a rule that requires a concealment
-   object (the tool, the transfer, the file) rather than the bare phrase.
-4. **`\bjavascript:`** → make it case-sensitive and require a URI context; `JavaScript:` as a label
-   is not a scheme.
-5. **U+200C / U+200D** → exempt when adjacent to Arabic, Persian or Indic script. Keep flagging
-   U+200B, U+FEFF and the bidi overrides.
-6. **base64 detection** → exclude JSON pointers and paths; require padding or an entropy floor
-   rather than the bare alphabet.
-7. **Threat-feed wildcards** → word-boundary semantics and a proximity bound, so `*sweep*funds*`
-   cannot match `refunds`.
-8. **Finding messages** → carry the sanitized matched span. Ours truncate the pattern to
-   `signature (\b(?:read|extract|…)`, so a reviewer cannot tell which alternative fired without
-   the source. That cost us hours in this very survey.
-9. **Ruleset digest in CI** → a release must fail if the published `dist` reports a different
-   ruleset version than the source it was built from.
+| Guard | Decides |
+|---|---|
+| `polarity` | A credential noun inside a refusal is a promise, not a request — the clause around it, and the match itself, are checked for a refusal cue |
+| `mention` | A phrase in quotes, in backticks, or as a bare JSON `enum` value is cited, not said |
+| `detection` | A secret named as the object of `detect` / `scan` / `find` / `leaked` is what a scanner looks for |
+| `identifierFragment` | `mnemonic` inside `bip39-mnemonic-checksum` is that identifier's name |
+| `harvestTarget` | A harvest instruction says *whose* secret, or *where* it lives |
+| `uri` | `javascript:` is matched case-**sensitively** and must be followed by a payload |
+| `payload` | A `data:…;base64,` URI with fewer than 32 characters behind the comma documents the format |
+| `blob` | Entropy floor and schema keywords, so a `$ref` pointer is not a hidden payload |
+| `zeroWidth` | U+200C/U+200D adjacent to Arabic, Persian or Indic script is orthography |
+| `publicKeyPath` | `authorized_keys`, `known_hosts` and `*.pub` are public by definition |
+
+Four blocking rules were demoted to advisory, because each was measured selecting for honest servers:
+the bare `exfiltrat*` noun, `system prompt` / `developer message`, `do not tell the user`, and — in
+severity only, from `critical` to `high` — the credential nouns, so one noun in a shared schema
+template no longer reads as "maximally compromised".
+
+The threat feed got its own matcher: interior wildcard gaps are bounded to 24 characters and a
+segment starting with a letter must begin on a word boundary. `_` and `-` count as boundaries, so a
+`seed_phrase` schema field still matches while `funds` inside "refunds" does not.
+`policy.sensitiveToolPatterns` keeps plain glob semantics — that is the operator's own pattern
+against their own tool names.
+
+Finding messages now quote the matched text. Ours used to truncate the pattern to
+`signature (\b(?:read|extract|…)`, so a reviewer could not tell which alternative fired or on what.
+Recovering that by hand was most of the work of this survey.
+
+### Re-measured on the same 1 108 servers
+
+| | ruleset v3 (as surveyed) | ruleset v4 |
+|---|---|---|
+| servers blocked | 50 | **6** |
+| of those, substantiated | 4 | **4** |
+| blocking findings | 492 | 12 |
+| advisory findings | 3 472 | 3 494 |
+| servers with any finding | 444 | 439 |
+
+Every one of the four real findings still blocks — the regression suite asserts both directions, and
+it is built from this corpus's actual text rather than from fixtures, because nobody sitting down to
+invent test data would write "the private key never leaves your machine" or spell a description with
+a Persian ZERO WIDTH NON-JOINER.
+
+### What still fires, and why we left it
+
+Two of the six remaining blocks are still ours:
+
+- A blockchain-forensics tool named `wallet_funds`, on the built-in `*drain*wallet*` pattern. Its
+  description asks *"did they drain the project wallet"* — the two words genuinely are adjacent, so a
+  proximity bound cannot help. This is role blindness at the threat-feed layer, and the feed has no
+  notion of a defender. Giving signed threat records a guard mechanism is a larger change to the
+  feed's trust model than this pass should make.
+- A cloud host's `get_ssh_command`, on `~/.ssh` inside a documented `ssh -i ~/.ssh/<keypair_name>`
+  invocation. A tool definition pointing the model at the user's SSH key directory is arguably worth
+  a flag; blocking on it is arguably not. Left as-is rather than tuned by one example.
+
+### The release gate
+
+`npm run check:ruleset` fails if the version in `package.json` is already on the registry carrying a
+different ruleset ref. It runs in CI and in `prepublishOnly`, and the first time it ran it caught the
+live defect described above: 0.3.0 published as v2, source at v4. Changing the rules now requires
+changing the version.
 
 ## Limitations
 
