@@ -51,7 +51,9 @@ durcissait le seuil.
 ## static-scan
 
 Analyse locale par expressions régulières du `name`, de la `description` et de l'`inputSchema` de
-chaque outil. 25 règles dans le jeu **v3** : 18 `block`, 7 `advise`.
+chaque outil. 25 règles dans le jeu **v4** : 15 `block`, 10 `advise`, et 12 d'entre elles portent un **guard** de
+contexte — une vérification nommée qui décide si une correspondance est vraiment ce que la règle
+cherche. Voir [l'étude de terrain](mcp-survey.fr.md), le passage sur 1 108 serveurs qui les a produites.
 
 Chaque règle déclare sur laquelle de ces trois **surfaces** elle s'exécute, et 17 des 25 incluent le
 nom. Les trois qui ne l'incluent pas sont celles qui reposent sur un NOM COMMUN

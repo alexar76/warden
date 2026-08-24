@@ -1,6 +1,6 @@
 {
   "name": "@aimarket/warden",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "WARDEN — MCP security firewall. Vets an MCP server's tool definitions, threat feed, origin and pinning before any tool runs. Zero runtime dependencies.",
   "type": "module",
   "license": "MIT",
@@ -47,7 +47,8 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
-    "prepublishOnly": "npm run build && npm test"
+    "prepublishOnly": "npm run build && npm test && npm run check:ruleset",
+    "check:ruleset": "node scripts/check-published-ruleset.mjs"
   },
   "keywords": [
     "mcp",

@@ -23,6 +23,10 @@ jobs:
       - run: npm run typecheck
       - run: npm run build
       - run: npm test
+      # A published version must mean exactly one rule table. See
+      # scripts/check-published-ruleset.mjs — 0.3.0 shipped ruleset v2 while its
+      # own bundled README documented v3, and nothing noticed for weeks.
+      - run: npm run check:ruleset
 
   packaging:
     runs-on: ubuntu-latest

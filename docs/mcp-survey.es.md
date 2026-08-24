@@ -103,8 +103,9 @@ Son 4 de 50 bloqueados, o 4 de 1 108 escaneados. Todo lo que sigue son los otros
 ### 1. Ceguera a la polaridad — el mayor defecto
 
 `TOOL_DEF_SECRET_REQUEST` busca la frase nominal `private key`. No lee la oración que la rodea. Así
-que todo lo siguiente quedó bloqueado en `critical`, que es fatal — el servidor entero, todas sus
-herramientas:
+que todo lo siguiente quedó bloqueado en `critical`. Con el umbral por defecto, tanto `high` como
+`critical` rechazan la conexión — el servidor entero, todas sus herramientas — y `critical` además
+lleva la puntuación de la puerta a cero:
 
 > Never send a private key: none is needed and the request is refused if one is present.
 > — un generador de registros DANE/TLSA
@@ -124,9 +125,8 @@ herramientas:
 > — un servidor SAP, en la plantilla de esquema de **sus 377 herramientas**
 
 Ese último es toda la forma del problema en una línea: un servidor que le dice al modelo que *no*
-envíe claves privadas se puntúa igual que uno que las pide y, como la regla es `critical` y por tanto
-fatal, una coincidencia nominal en una plantilla compartida llevó a un servidor de 377 herramientas a
-puntuación 0,00. 390 de nuestros 492 hallazgos bloqueantes son ese único sustantivo.
+envíe claves privadas se puntúa igual que uno que las pide y, como la regla es `critical`, una
+coincidencia nominal en una plantilla compartida rechazó el servidor y lo llevó a puntuación 0,00. 390 de nuestros 492 hallazgos bloqueantes son ese único sustantivo.
 
 `TOOL_DEF_SECRET_HARVEST` — un verbo de `read|extract|retrieve|fetch|obtain|dump|reveal|collect|…`
 a menos de 30 caracteres de un sustantivo de credencial — falla igual:
@@ -272,31 +272,77 @@ v3 detecte y v2 pase por alto. La publicación desactualizada es un defecto de p
 abajo — y en este corpus su impacto de comportamiento es nulo, y preferimos decirlo antes que
 insinuar una gravedad que no medimos.
 
-## Qué cambia por esto
+## Qué cambió por esto
 
-Ordenado por cuántos de los 46 corrige cada punto:
+Todo ello salió como ruleset **v4** en `@aimarket/warden` 0.4.0, digest
+`sha256-klRyTiD3njdBs7sOjcDCfmAHaKsfQi75/wlQjjWWkXI=`. Las reglas ahora llevan **guards** con
+nombre: comprobaciones de contexto que deciden si una coincidencia es lo que la regla busca. Un guard
+forma parte de la tabla de reglas publicada y por tanto del digest, porque la misma expresión regular
+con y sin `polarity` es un escáner distinto y un veredicto registrado tiene que poder decir cuál era.
 
-1. **Polaridad.** Un sustantivo de credencial precedido por una marca de negación (`never`, `not`,
-   `no`, `does not`, `without`, `refused`) dentro de la misma cláusula no es una petición. Hasta que
-   eso esté implementado, las coincidencias sólo nominales no deben ser `critical`, porque `critical`
-   es fatal y un sustantivo en una plantilla compartida nunca debería tumbar 377 herramientas.
-2. **Texto citado y enumerado.** Una frase dentro de un literal de cadena, un `enum` de JSON o una
-   taxonomía separada por comas es una *mención*. Las menciones no bloquean.
-3. **`do not tell the user`** → degradar a `advisory` a la espera de una regla que exija un objeto de
-   ocultación (la herramienta, la transferencia, el archivo) y no la frase suelta.
-4. **`\bjavascript:`** → hacerla sensible a mayúsculas y exigir contexto de URI; `JavaScript:` como
-   etiqueta no es un esquema.
-5. **U+200C / U+200D** → exentos cuando son adyacentes a escritura árabe, persa o índica. Seguir
-   marcando U+200B, U+FEFF y los overrides bidi.
-6. **Detección de base64** → excluir punteros JSON y rutas; exigir relleno o un umbral de entropía, no
-   sólo el alfabeto.
-7. **Comodines del threat-feed** → semántica de límites de palabra y una cota de proximidad, para que
-   `*sweep*funds*` no pueda coincidir con `refunds`.
-8. **Mensajes de hallazgo** → llevar el fragmento coincidente saneado. Los nuestros truncan el patrón
-   a `signature (\b(?:read|extract|…)`, así que quien revisa no puede saber qué alternativa se activó
-   sin mirar el código fuente. En este mismo estudio nos costó horas.
-9. **Digest del ruleset en CI** → un release debe fallar si el `dist` publicado reporta una versión de
-   ruleset distinta de la del código del que se construyó.
+| Guard | Qué decide |
+|---|---|
+| `polarity` | Un sustantivo de credencial dentro de una negación es una promesa, no una petición; se revisa la cláusula alrededor y la propia coincidencia |
+| `mention` | Una frase entre comillas, en backticks o como valor de un `enum` JSON está citada, no dicha |
+| `detection` | Un secreto nombrado como objeto de `detect` / `scan` / `find` / `leaked` es lo que un escáner busca |
+| `identifierFragment` | `mnemonic` dentro de `bip39-mnemonic-checksum` es el nombre de ese identificador |
+| `harvestTarget` | Una instrucción de recolección dice *de quién* es el secreto, o *dónde* vive |
+| `uri` | `javascript:` se compara distinguiendo mayúsculas y exige una carga útil detrás |
+| `payload` | Un `data:…;base64,` con menos de 32 caracteres tras la coma documenta el formato |
+| `blob` | Umbral de entropía y palabras clave de esquema, para que un puntero `$ref` no sea una carga oculta |
+| `zeroWidth` | U+200C/U+200D junto a escritura árabe, persa o índica es ortografía |
+| `publicKeyPath` | `authorized_keys`, `known_hosts` y `*.pub` son públicos por definición |
+
+Cuatro reglas bloqueantes pasaron a advisory, porque se midió que cada una seleccionaba servidores
+honestos: el sustantivo `exfiltrat*` a secas, `system prompt` / `developer message`,
+`do not tell the user` y —sólo en severidad, de `critical` a `high`— los sustantivos de credencial,
+para que una palabra en una plantilla de esquema compartida no se lea como «máximamente
+comprometido».
+
+El threat feed tiene su propio comparador: los huecos interiores de comodín están acotados a 24
+caracteres y un segmento que empieza por letra debe empezar en un límite de palabra. `_` y `-` cuentan
+como límites, así que un campo de esquema `seed_phrase` sigue coincidiendo mientras `funds` dentro de
+«refunds» no. `policy.sensitiveToolPatterns` conserva la semántica glob simple: ahí el patrón es del
+operador y va contra sus propios nombres de herramienta.
+
+Los mensajes de hallazgo ahora citan el texto coincidente. Antes truncaban el patrón a
+`signature (\b(?:read|extract|…)`, así que quien revisaba no podía saber qué alternativa se activó ni
+sobre qué. Recuperarlo a mano fue la mayor parte del trabajo de este estudio.
+
+### Vuelto a medir sobre los mismos 1 108 servidores
+
+| | ruleset v3 (según el estudio) | ruleset v4 |
+|---|---|---|
+| servidores bloqueados | 50 | **6** |
+| de ellos, sustentados | 4 | **4** |
+| hallazgos bloqueantes | 492 | 9 |
+| hallazgos advisory | 3 472 | 3 494 |
+| servidores con algún hallazgo | 444 | 439 |
+
+Los cuatro hallazgos reales siguen bloqueando: la suite de regresión comprueba ambas direcciones y
+está construida con el texto real de este corpus, no con fixtures, porque nadie que se siente a
+inventar datos de prueba escribirá «the private key never leaves your machine» ni redactará una
+descripción con un ZERO WIDTH NON-JOINER persa.
+
+### Qué sigue disparándose, y por qué lo dejamos
+
+Dos de los seis bloqueos restantes siguen siendo nuestros:
+
+- Una herramienta de análisis forense de blockchain llamada `wallet_funds`, por el patrón integrado
+  `*drain*wallet*`. Su descripción dice *«did they drain the project wallet»*: las dos palabras están
+  de verdad juntas, así que una cota de proximidad no puede ayudar. Es ceguera al rol en la capa del
+  threat feed, y el feed no tiene noción de defensor. Dar a los registros firmados un mecanismo de
+  guards es un cambio mayor en su modelo de confianza que lo que corresponde a esta pasada.
+- El `get_ssh_command` de un hosting en la nube, por `~/.ssh` dentro de una invocación documentada
+  `ssh -i ~/.ssh/<keypair_name>`. Que una definición de herramienta apunte al directorio de claves SSH
+  del usuario quizá merezca una marca; bloquear por ello, quizá no. Se deja como está en vez de
+  ajustarlo con un solo ejemplo.
+
+### La puerta de release
+
+`npm run check:ruleset` falla si la versión de `package.json` ya está en el registro con otro ruleset
+ref. Corre en CI y en `prepublishOnly`, y la primera vez que se ejecutó cazó el defecto vivo descrito
+arriba: 0.3.0 publicado como v2, código en v4. Cambiar las reglas exige ahora cambiar la versión.
 
 ## Limitaciones
 

@@ -48,7 +48,9 @@ the threshold.
 ## static-scan
 
 Local regex scan over each tool's `name`, its `description` and its `inputSchema`. 25 rules in
-ruleset **v3**: 18 `block`, 7 `advise`.
+ruleset **v4**: 15 `block`, 10 `advise`, and 12 of them carry a context **guard** — a named
+check that decides whether a match is really the thing the rule is looking for. See
+[the field survey](mcp-survey.md) for the 1 108-server run that produced them.
 
 Every rule declares which of those three **surfaces** it runs on, and 17 of the 25 include the name.
 The three that do not are the noun-keyed ones (`TOOL_DEF_SECRET_REQUEST`,

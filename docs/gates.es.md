@@ -47,7 +47,9 @@ defecto; expresarlo bajando su severidad la volvía bloqueante para quien endure
 ## static-scan
 
 Escaneo local con regex sobre el `name`, la `description` y el `inputSchema` de cada herramienta. 25
-reglas en el conjunto **v3**: 18 `block`, 7 `advise`.
+reglas en el conjunto **v4**: 15 `block`, 10 `advise`, y 12 de ellas llevan un **guard** de contexto:
+una comprobación con nombre que decide si una coincidencia es de verdad lo que la regla busca. Véase
+[el estudio de campo](mcp-survey.es.md), la ejecución sobre 1 108 servidores que las produjo.
 
 Cada regla declara sobre cuál de esas tres **superficies** se ejecuta, y 17 de las 25 incluyen el
 nombre. Las tres que no lo hacen son las que se apoyan en un SUSTANTIVO

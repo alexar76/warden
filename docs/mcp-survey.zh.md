@@ -92,8 +92,8 @@
 
 ### 1. 极性盲视——最大的缺陷
 
-`TOOL_DEF_SECRET_REQUEST` 匹配名词短语 `private key`。它不读周围的句子。于是以下全部以 `critical` 被拦截，
-而 `critical` 是致命级——整个服务器、所有工具：
+`TOOL_DEF_SECRET_REQUEST` 匹配名词短语 `private key`。它不读周围的句子。于是以下全部以 `critical` 被拦截。在默认阈值下，`high` 与 `critical` 都会拒绝连接——整个服务器、所有
+工具——而 `critical` 还会额外把该 gate 的评分打到零：
 
 > Never send a private key: none is needed and the request is refused if one is present.
 > ——一个 DANE/TLSA 记录生成器
@@ -113,7 +113,7 @@
 > ——一个 SAP 服务器，出现在**它全部 377 个工具**的 schema 模板里
 
 最后一例把整个问题的形状压进了一行：一个叫模型*不要*发送私钥的服务器，与索取私钥的服务器得到相同的评分；又因
-为该规则是 `critical` 因而致命，共享模板中一次名词命中就把一个 377 工具的服务器打到 0.00 分。我们 492 条拦截级
+为该规则是 `critical`，共享模板中一次名词命中就拒绝了该服务器，并把它打到 0.00 分。我们 492 条拦截级
 发现中的 390 条，都出自这一个名词。
 
 `TOOL_DEF_SECRET_HARVEST`——`read|extract|retrieve|fetch|obtain|dump|reveal|collect|…` 中的动词，出现在凭据
@@ -241,23 +241,68 @@ ruleset **v3**，并打印 digest `sha256-pah/sT4I…`。两句话都对——�
 没有任何一个在工具名里放了 v3 能抓到而 v2 会漏掉的东西。过期发布是一个真实的流程缺陷——对应的 CI 校验是下文第 9 项；但在这份语料上
 它对行为的影响为零，我们宁愿把这点说清楚，也不愿暗示一个我们并未测到的严重性。
 
-## 因此要改什么
+## 因此改了什么
 
-按每一项能修掉 46 个中的多少来排序：
+这些都已作为 ruleset **v4** 随 `@aimarket/warden` 0.4.0 发布，digest 为
+`sha256-klRyTiD3njdBs7sOjcDCfmAHaKsfQi75/wlQjjWWkXI=`。规则现在带有具名 **guard**——用于判断某次命中
+是否真是该规则要找的东西的上下文检查。guard 属于已发布的规则表，因而也进入 digest：同一个正则加不加
+`polarity` 就是两个不同的扫描器，而一份已记录的裁定必须能说清用的是哪一个。
 
-1. **极性。** 同一小句中被否定标记（`never`、`not`、`no`、`does not`、`without`、`refused`）领起的凭据名词
-   不是索取。在此实现之前，仅凭名词的命中不得为 `critical`，因为 `critical` 是致命级，而共享模板里的一个名词
-   绝不该拖垮 377 个工具。
-2. **引号内与枚举中的文本。** 出现在字符串字面量、JSON `enum` 或逗号分隔的分类法里的短语是*提及*。提及不拦截。
-3. **`do not tell the user`** → 降为 `advisory`，等到有一条要求隐瞒对象（该工具、该转账、该文件）而非仅凭这句话
-   的规则再说。
-4. **`\bjavascript:`** → 改为区分大小写并要求 URI 上下文；作为标签的 `JavaScript:` 不是 scheme。
-5. **U+200C / U+200D** → 与阿拉伯、波斯或印度系文字相邻时豁免。U+200B、U+FEFF 和 bidi 覆写继续标记。
-6. **base64 检测** → 排除 JSON 指针与路径；要求补位或熵阈值，而不只是字母表。
-7. **threat-feed 通配符** → 采用词边界语义与邻近上限，使 `*sweep*funds*` 无法命中 `refunds`。
-8. **发现消息** → 携带经净化的命中片段。我们现在把模式截断成 `signature (\b(?:read|extract|…)`，复核者不看源码
-   就无法知道是哪个分支触发的。在这份普查里，这一点就花掉了我们几小时。
-9. **CI 中校验 ruleset digest** → 若已发布的 `dist` 报告的 ruleset 版本与构建它的源码不一致，发布必须失败。
+| Guard | 判断什么 |
+|---|---|
+| `polarity` | 处在否定中的凭据名词是承诺而非索取；既检查周围的小句，也检查命中本身 |
+| `mention` | 处在引号、反引号中或作为 JSON `enum` 取值的短语是引用，不是陈述 |
+| `detection` | 作为 `detect` / `scan` / `find` / `leaked` 宾语出现的密钥，是扫描器要找的东西 |
+| `identifierFragment` | `bip39-mnemonic-checksum` 中的 `mnemonic` 属于该标识符的名字 |
+| `harvestTarget` | 收集类指令会说明密钥*属于谁*、或*存在哪里* |
+| `uri` | `javascript:` 现在区分大小写，且后面必须跟有效载荷 |
+| `payload` | 逗号后不足 32 个字符的 `data:…;base64,` 是在说明格式 |
+| `blob` | 熵阈值加 schema 关键词，使 `$ref` 指针不再被当成隐藏载荷 |
+| `zeroWidth` | 与阿拉伯、波斯或印度系文字相邻的 U+200C/U+200D 属于正字法 |
+| `publicKeyPath` | `authorized_keys`、`known_hosts` 与 `*.pub` 按定义是公开的 |
+
+四条拦截级规则降为 advisory——每一条都被实测出在筛选诚实服务器：孤立的 `exfiltrat*` 名词、
+`system prompt` / `developer message`、`do not tell the user`，以及（仅就等级而言，从 `critical` 降到
+`high`）凭据名词，好让共享 schema 模板里的一个词不再被读成"该服务器已被最大程度攻陷"。
+
+threat-feed 有了自己的匹配器：通配符的内部间隔被限制在 24 个字符内，以字母开头的片段必须落在词边界
+上。`_` 与 `-` 算作边界，因此 schema 字段 `seed_phrase` 仍然命中，而 "refunds" 里的 `funds` 不再命中。
+`policy.sensitiveToolPatterns` 保留普通 glob 语义——那是运营者针对自己工具名写的模式。
+
+发现消息现在会引用命中的文本。以前它把模式截断成 `signature (\b(?:read|extract|…)`，复核者既不知道
+哪个分支触发，也不知道命中在什么上。手工还原这一点，构成了本次普查的大部分工作量。
+
+### 在同样的 1 108 台服务器上重新测量
+
+| | ruleset v3（普查时） | ruleset v4 |
+|---|---|---|
+| 被拦截的服务器 | 50 | **6** |
+| 其中成立的 | 4 | **4** |
+| 拦截级发现 | 492 | 9 |
+| advisory 发现 | 3 472 | 3 494 |
+| 有任何发现的服务器 | 444 | 439 |
+
+四项真实发现依然全部拦截：回归测试对两个方向都做断言，并且用的是这份语料的真实文本而非自造 fixture
+——没有人在坐下来编测试数据时会写出 "the private key never leaves your machine"，也不会用波斯语的
+ZERO WIDTH NON-JOINER 去拼一段描述。
+
+### 还在触发的、以及我们为何留着
+
+剩下六个拦截里有两个仍然是我们的问题：
+
+- 一个名为 `wallet_funds` 的链上取证工具，命中内置模式 `*drain*wallet*`。它的描述里写着
+  *"did they drain the project wallet"*——这两个词确实相邻，邻近上限帮不上忙。这是角色盲视出现在
+  threat-feed 这一层，而 feed 里没有"防御者"这个概念。给已签名的威胁记录加上 guard 机制，对 feed 的
+  信任模型改动过大，不属于这一轮该做的事。
+- 某云主机的 `get_ssh_command`，命中的是文档化调用 `ssh -i ~/.ssh/<keypair_name>` 里的 `~/.ssh`。
+  一条把模型指向用户 SSH 密钥目录的工具定义，也许值得标记；据此拦截，也许不值得。就此保留，而不是
+  按单个例子去调。
+
+### 发布门禁
+
+若 `package.json` 中的版本已经带着不同的 ruleset ref 存在于注册表，`npm run check:ruleset` 就会失败。
+它在 CI 和 `prepublishOnly` 中运行，而它第一次运行就抓到了上文那个活生生的缺陷：0.3.0 发布为 v2，源码
+已是 v4。现在改规则就必须改版本。
 
 ## 局限
 

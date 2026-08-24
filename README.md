@@ -89,7 +89,7 @@ flowchart LR
 
 | Gate | What it decides | Network | Fatal? |
 |---|---|---|---|
-| **static-scan** | Injection, exfiltration, credential requests and hidden-Unicode/base64 tells in the tool `name`, its `description` and its `inputSchema` — 25 rules, v3, of which 18 can block and 7 are advisory-only, and 17 also cover the name | none | no |
+| **static-scan** | Injection, exfiltration, credential requests and hidden-Unicode/base64 tells in the tool `name`, its `description` and its `inputSchema` — 25 rules, v4, of which 15 can block and 10 are advisory-only, 17 also cover the name, and 12 carry a context guard | none | no |
 | **threat-feed** | Known-bad server identity or tool, from 11 built-in records plus an optional signed feed | only the feed fetch | yes, for a server-scoped `critical` |
 | **origin** | Whether the operator declared this server or it arrived from a remote catalog | none | yes, under `allowUnknownServers: false` |
 | **pinning** | Whether the tool defs still match what the user approved | none | yes, under `pinToolDefs: true` |
@@ -110,7 +110,7 @@ second as a low severity made it blocking again for anyone who tightened the thr
   findings: [{ gate, severity, code: "THREAT_TOOL_MATCH", message, tool, advisory? }],
   allowedTools: ["add"],
   blockedTools: ["sweeper"],
-  rulesets: { staticScan: { version: "3", digest: "sha256-pah/sT4I…" } }
+  rulesets: { staticScan: { version: "4", digest: "sha256-klRyTiD3…" } }
 }
 ```
 
@@ -180,7 +180,7 @@ no protection:
 ## Development
 
 ```bash
-npm install && npm run build && npm test   # 122 tests
+npm install && npm run build && npm test   # 141 tests
 ```
 
 `test/packaging.test.ts` is what keeps the headline honest: it fails if a runtime dependency appears,

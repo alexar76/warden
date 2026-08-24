@@ -2,6 +2,96 @@
 
 All notable changes to `@aimarket/warden`.
 
+## 0.4.0 — 2026-08-24
+
+Calibrated against the ecosystem, not against fixtures. WARDEN was pointed at every public MCP
+server it could legitimately reach — 1 108 of them answered a live `tools/list` with 17 491 tool
+definitions — and the result is written up in [`docs/mcp-survey.md`](docs/mcp-survey.md).
+
+Ruleset `v3` blocked 50 of those 1 108 servers. Four held up on review. The other 46 were blocked
+for saying the right thing: *"Never send a private key"*, *"the private key never leaves your
+machine"*, a security scanner listing the attacks it detects, a Persian tool description spelled with
+the ZERO WIDTH NON-JOINER its language requires. A scanner with that false-positive profile does not
+get tuned by its users; it gets uninstalled.
+
+Ruleset **v4** brings blocking from 50 servers down to **6** on the same corpus, with all four real
+findings still caught.
+
+### Rules read context now
+
+Rules gained **guards** — named context checks that decide whether a match is the thing the rule is
+looking for. A guard is part of the published rule table and therefore of the digest: the same regex
+with and without `polarity` is a different ruleset, and a recorded verdict has to be able to say
+which one it was.
+
+- **`polarity`** — a credential noun inside a refusal is a promise, not a request. This one
+  distinction accounted for 390 of the 492 blocking findings in the survey.
+- **`mention`** — a phrase in quotes, in backticks, or as a bare JSON `enum` value is cited, not said.
+- **`detection`** — a secret named as the object of `detect`/`scan`/`find`/`leaked` is what a scanner
+  looks for, not what it wants.
+- **`identifierFragment`** — `mnemonic` inside `bip39-mnemonic-checksum` is that identifier's name.
+- **`harvestTarget`** — a harvest instruction says *whose* secret or *where* it lives. Without it,
+  "Obtain a permanent anonymous API key" read as theft rather than issuance.
+- **`uri`** — `javascript:` is now matched case-**sensitively** and needs a payload. Under `/i` it
+  matched the word *JavaScript* followed by a colon, i.e. every language list ever written.
+- **`payload`** — a `data:…;base64,` URI with fewer than 32 characters behind the comma is the format
+  being documented.
+- **`blob`** — `/` is in the base64 alphabet, so a JSON Schema `$ref` pointer read as a hidden blob.
+  Now gated on entropy and on schema keywords.
+- **`zeroWidth`** — U+200C/U+200D adjacent to Arabic, Persian or Indic script is orthography. U+200B,
+  U+FEFF and the bidi overrides still block.
+- **`publicKeyPath`** — `authorized_keys`, `known_hosts` and `*.pub` are public by definition.
+
+### Rules demoted from block to advise
+
+Each of these was measured selecting for honest servers. They are still reported.
+
+- **`exfiltrat*`** as a bare noun. An attacker does not name the attack; a defender names it in every
+  sentence. All three hits were defensive tools. The anchored *"send X to &lt;external destination&gt;"*
+  rules keep the blocking weight.
+- **`system prompt` / `developer message`**. 15 findings across 6 servers, every one an LLM proxy,
+  persona manager or agent-configuration tool that declares a `system` parameter because setting a
+  system prompt is its job.
+- **`do not tell the user`**. Four real uses, four of them the opposite of concealment — *"no refund
+  is issued automatically … do not tell the user a refund is coming"*. A blocking rule needs a
+  concealment target that refers to the tool's own action; the bare phrase carries none.
+- The **credential nouns** keep blocking but drop from `critical` to `high`: still over the default
+  threshold, no longer zeroing the gate score. One noun in a schema template shared by 377 tools
+  should not read as "maximally compromised".
+
+### Threat feed
+
+- Wildcard threat patterns now use `threatMatch`: **interior gaps are bounded** to 24 characters and
+  a segment starting with a letter must **start on a word boundary**. `*sweep*funds*` was matching
+  `funds` inside "re**funds**", and `*drain*wallet*` was joining two words from different clauses.
+  Leading and trailing `*` stay unbounded, and `_`/`-` count as boundaries so a `seed_phrase` schema
+  field still matches. `policy.sensitiveToolPatterns` keeps plain glob semantics — that is the
+  operator's own pattern against their own tool names.
+
+### Findings say what they matched
+
+- Every finding message now quotes the matched text: `… signature (\b(?:read|extract|…) at "obtain
+  the redacted credential"`. Without it a reviewer cannot tell which alternative of an alternation
+  fired, or on what. Recovering that by hand is most of the work of judging a finding, and it cost
+  hours in the survey itself.
+- Dropped matches are logged at `debug` with the guard's reason, because a guard silently discarding a
+  finding is the one behaviour in this gate that a verdict cannot show.
+
+### Release gate
+
+- `npm run check:ruleset` fails if the version in `package.json` is already on the registry with a
+  different ruleset ref, and runs in CI and in `prepublishOnly`. **0.3.0 was published carrying
+  ruleset v2 sixty-four seconds before the extraction commit, v3 landed in the source 52 minutes
+  later, and nothing republished** — so `npm install @aimarket/warden@0.3.0` handed strangers a
+  scanner with no rules on the tool-name surface while the README in that same tarball documented v3.
+  Measured after the fact, that cost nothing on the 1 108-server corpus; the ambiguity in every
+  recorded verdict was the real defect.
+
+### Tests
+
+- `test/field-survey-regression.test.ts` — 19 cases built from the survey's real text. Both
+  directions: the 46 false positives must not block, and the four real findings must.
+
 ## 0.3.0 — 2026-08-24
 
 First standalone release. The gates, the threat feed, the pinning store contract and the RFC 8785

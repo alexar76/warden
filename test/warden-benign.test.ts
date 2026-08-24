@@ -255,7 +255,7 @@ describe("ruleset is versioned and digestible", () => {
     expect(rs.version).toBe("4");
     // If this fails you changed a rule: bump STATIC_SCAN_RULESET_VERSION and
     // update the value here. A scan result is only comparable within one digest.
-    expect(rs.digest).toBe("sha256-jl+onxhgP54zRd2xFr0IYc2lwX9LXsDkDV0FmdeIL40=");
+    expect(rs.digest).toBe("sha256-klRyTiD3njdBs7sOjcDCfmAHaKsfQi75/wlQjjWWkXI=");
     expect(rs.rules.length).toBe(25);
     // v4 moved four rules from block to advise after the field survey.
     expect(rs.rules.filter((r) => r.tier === "block").length).toBe(15);

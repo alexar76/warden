@@ -5,7 +5,7 @@
   <a href="https://github.com/alexar76/warden/actions/workflows/ci.yml"><img src="docs/badges/ci.svg" alt="CI" /></a>
   <a href="https://www.npmjs.com/package/@aimarket/warden"><img src="https://img.shields.io/npm/v/@aimarket/warden?color=cb3837&label=npm" alt="version npm" /></a>
   <img src="docs/badges/deps.svg" alt="Zéro dépendance d'exécution" />
-  <img src="docs/badges/tests.svg" alt="122 tests au vert" />
+  <img src="docs/badges/tests.svg" alt="141 tests au vert" />
   <img src="docs/badges/node.svg" alt="Node >= 20" />
   <a href="LICENSE"><img src="docs/badges/license.svg" alt="Licence : MIT" /></a>
 </p>
@@ -82,7 +82,7 @@ flowchart LR
 
 | Porte | Ce qu'elle décide | Réseau | Fatale ? |
 |---|---|---|---|
-| **static-scan** | Injection, exfiltration, demandes d'identifiants et indices d'Unicode masqué/base64 dans le `name`, la `description` et l'`inputSchema` de l'outil — 25 règles, v3, dont 18 peuvent bloquer et 7 sont purement indicatives, et 17 couvrent aussi le nom | aucun | non |
+| **static-scan** | Injection, exfiltration, demandes d'identifiants et indices d'Unicode masqué/base64 dans le `name`, la `description` et l'`inputSchema` de l'outil — 25 règles, v4, dont 15 peuvent bloquer et 10 sont purement indicatives, 17 couvrent aussi le nom et 12 portent un guard de contexte | aucun | non |
 | **threat-feed** | Identité de serveur ou outil connu comme malveillant : 11 enregistrements intégrés plus un feed signé optionnel | seulement le téléchargement du feed | oui, pour un `critical` de portée serveur |
 | **origin** | Si l'opérateur a déclaré ce serveur ou s'il provient d'un catalogue distant | aucun | oui, avec `allowUnknownServers: false` |
 | **pinning** | Si les définitions d'outils correspondent encore à ce que l'utilisateur a approuvé | aucun | oui, avec `pinToolDefs: true` |
@@ -104,7 +104,7 @@ bloquante pour quiconque durcissait le seuil.
   findings: [{ gate, severity, code: "THREAT_TOOL_MATCH", message, tool, advisory? }],
   allowedTools: ["add"],
   blockedTools: ["sweeper"],
-  rulesets: { staticScan: { version: "3", digest: "sha256-pah/sT4I…" } }
+  rulesets: { staticScan: { version: "4", digest: "sha256-klRyTiD3…" } }
 }
 ```
 
@@ -177,7 +177,7 @@ une absence de protection :
 ## Développement
 
 ```bash
-npm install && npm run build && npm test   # 122 tests
+npm install && npm run build && npm test   # 141 tests
 ```
 
 `test/packaging.test.ts` est ce qui tient l'accroche honnête : il échoue si une dépendance d'exécution

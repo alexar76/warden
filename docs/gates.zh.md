@@ -42,7 +42,7 @@ const SEVERITY_RANK = { info: 0, low: 1, medium: 2, high: 3, critical: 4 };
 
 ## static-scan
 
-对每个工具的 `name`、`description` 与 `inputSchema` 做本地正则扫描。规则集 **v3** 共 25 条规则：
+对每个工具的 `name`、`description` 与 `inputSchema` 做本地正则扫描。规则集 **v4** 共 25 条规则（其中 12 条带有上下文 **guard**——一项具名检查，用于判断某次命中是否真是该规则要找的东西；参见[实地普查](mcp-survey.zh.md)，即产出这些 guard 的 1 108 台服务器实测）：
 18 条 `block`，7 条 `advise`。
 
 每条规则都声明自己在这三个**面**中的哪些上运行，25 条里有 17 条包含名称。不包含名称的那三条是以**名词**为

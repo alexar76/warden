@@ -5,7 +5,7 @@
   <a href="https://github.com/alexar76/warden/actions/workflows/ci.yml"><img src="docs/badges/ci.svg" alt="CI" /></a>
   <a href="https://www.npmjs.com/package/@aimarket/warden"><img src="https://img.shields.io/npm/v/@aimarket/warden?color=cb3837&label=npm" alt="npm version" /></a>
   <img src="docs/badges/deps.svg" alt="Cero dependencias de ejecución" />
-  <img src="docs/badges/tests.svg" alt="122 pruebas en verde" />
+  <img src="docs/badges/tests.svg" alt="141 pruebas en verde" />
   <img src="docs/badges/node.svg" alt="Node >= 20" />
   <a href="LICENSE"><img src="docs/badges/license.svg" alt="Licencia: MIT" /></a>
 </p>
@@ -82,7 +82,7 @@ flowchart LR
 
 | Puerta | Qué decide | Red | ¿Fatal? |
 |---|---|---|---|
-| **static-scan** | Inyección, exfiltración, peticiones de credenciales y señales de Unicode oculto/base64 en el `name`, la `description` y el `inputSchema` de la herramienta — 25 reglas, v3, de las cuales 18 pueden bloquear y 7 son solo de aviso, y 17 cubren también el nombre | ninguna | no |
+| **static-scan** | Inyección, exfiltración, peticiones de credenciales y señales de Unicode oculto/base64 en el `name`, la `description` y el `inputSchema` de la herramienta — 25 reglas, v4, de las cuales 15 pueden bloquear y 10 son solo de aviso, 17 cubren también el nombre y 12 llevan un guard de contexto | ninguna | no |
 | **threat-feed** | Identidad de servidor o herramienta conocida como maliciosa: 11 registros integrados más un feed firmado opcional | solo la descarga del feed | sí, para un `critical` con alcance de servidor |
 | **origin** | Si el operador declaró este servidor o llegó desde un catálogo remoto | ninguna | sí, con `allowUnknownServers: false` |
 | **pinning** | Si las definiciones de herramientas siguen coincidiendo con lo que el usuario aprobó | ninguna | sí, con `pinToolDefs: true` |
@@ -104,7 +104,7 @@ endureciera el umbral.
   findings: [{ gate, severity, code: "THREAT_TOOL_MATCH", message, tool, advisory? }],
   allowedTools: ["add"],
   blockedTools: ["sweeper"],
-  rulesets: { staticScan: { version: "3", digest: "sha256-pah/sT4I…" } }
+  rulesets: { staticScan: { version: "4", digest: "sha256-klRyTiD3…" } }
 }
 ```
 
@@ -177,7 +177,7 @@ degradar a ninguna protección:
 ## Desarrollo
 
 ```bash
-npm install && npm run build && npm test   # 122 pruebas
+npm install && npm run build && npm test   # 141 pruebas
 ```
 
 `test/packaging.test.ts` es lo que mantiene honesto el titular: falla si aparece una dependencia de

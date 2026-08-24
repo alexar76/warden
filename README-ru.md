@@ -5,7 +5,7 @@
   <a href="https://github.com/alexar76/warden/actions/workflows/ci.yml"><img src="docs/badges/ci.svg" alt="CI" /></a>
   <a href="https://www.npmjs.com/package/@aimarket/warden"><img src="https://img.shields.io/npm/v/@aimarket/warden?color=cb3837&label=npm" alt="npm version" /></a>
   <img src="docs/badges/deps.svg" alt="Zero runtime dependencies" />
-  <img src="docs/badges/tests.svg" alt="122 tests passing" />
+  <img src="docs/badges/tests.svg" alt="141 tests passing" />
   <img src="docs/badges/node.svg" alt="Node >= 20" />
   <a href="LICENSE"><img src="docs/badges/license.svg" alt="License: MIT" /></a>
 </p>
@@ -82,7 +82,7 @@ flowchart LR
 
 | Гейт | Что решает | Сеть | Fatal? |
 |---|---|---|---|
-| **static-scan** | Инъекции, эксфильтрация, запросы учётных данных, скрытый Unicode и base64-признаки в `name`, `description` и `inputSchema` инструмента — 25 правил, версия 3, из них 18 могут блокировать и 7 только сообщают, а 17 покрывают и имя | нет | нет |
+| **static-scan** | Инъекции, эксфильтрация, запросы учётных данных, скрытый Unicode и base64-признаки в `name`, `description` и `inputSchema` инструмента — 25 правил, версия 4, из них 15 могут блокировать и 10 только сообщают, 17 покрывают и имя, а у 12 есть контекстный guard | нет | нет |
 | **threat-feed** | Известный плохой сервер или инструмент: 11 встроенных записей плюс опциональный подписанный feed | только загрузка feed | да, для `critical` на уровне сервера |
 | **origin** | Объявил ли оператор этот сервер, или он пришёл из удалённого каталога | нет | да, при `allowUnknownServers: false` |
 | **pinning** | Совпадают ли определения инструментов с тем, что подтвердил пользователь | нет | да, при `pinToolDefs: true` |
@@ -103,7 +103,7 @@ severity снова делало находку блокирующей для в
   findings: [{ gate, severity, code: "THREAT_TOOL_MATCH", message, tool, advisory? }],
   allowedTools: ["add"],
   blockedTools: ["sweeper"],
-  rulesets: { staticScan: { version: "3", digest: "sha256-pah/sT4I…" } }
+  rulesets: { staticScan: { version: "4", digest: "sha256-klRyTiD3…" } }
 }
 ```
 
@@ -176,7 +176,7 @@ GET <ваш feed url>
 ## Разработка
 
 ```bash
-npm install && npm run build && npm test   # 122 тестов
+npm install && npm run build && npm test   # 141 тестов
 ```
 
 `test/packaging.test.ts` — то, что удерживает заголовок честным: он падает, если появляется
