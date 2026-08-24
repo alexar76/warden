@@ -94,31 +94,55 @@
   pre .k{color:var(--teal2)}
   pre .s{color:var(--amber)}
 
-  .hero-svg{width:100%;height:auto;border:1px solid var(--line);border-radius:14px;
-    background:linear-gradient(160deg,#071018,#0c1824 55%,#061016)}
 
   /* The gate chain in depth. A canvas, one inline fragment shader, no library and
      nothing fetched — the page argues for zero dependencies, so its own hero is not
      allowed to pull three.js off a CDN. The flat SVG below stays in the DOM as the
-     fallback for no-WebGL and reduced-motion, and as the labelled diagram. */
+     product; the flat SVG diagram that used to sit below it is gone, so this is
+     the only drawing of the chain. */
   .stage{position:relative;margin-top:26px;border:1px solid var(--line);border-radius:16px;
-    overflow:hidden;background:linear-gradient(160deg,#050c12,#0a1620 55%,#040d13)}
-  .stage canvas{display:block;width:100%;height:clamp(260px,42vh,420px);opacity:0;
-    transition:opacity 1.1s ease}
+    overflow:hidden;background:radial-gradient(120% 90% at 62% 44%,#0a1a24 0%,#061018 58%,#040c12 100%)}
+  /* touch-action:pan-y so a horizontal drag orbits the scene while a vertical
+     swipe still scrolls the page on a phone. */
+  .stage canvas{display:block;width:100%;height:clamp(320px,56vh,540px);opacity:0;
+    transition:opacity 1.1s ease;touch-action:pan-y;cursor:grab}
+  .stage canvas.grabbing{cursor:grabbing}
   .stage.live canvas{opacity:1}
+  /* Projected onto the geometry every frame, so no transition here — an
+     interpolating opacity would fight the per-frame value and read as flicker. */
+  .stage .lbl{position:absolute;left:0;top:0;pointer-events:none;white-space:nowrap;
+    opacity:0;font-family:var(--mono);font-size:.63rem;letter-spacing:.13em;
+    text-transform:uppercase;color:var(--dimmer);will-change:transform}
+  .stage .lbl b{color:var(--teal2);font-weight:500}
+  .stage .lbl.vd b{color:var(--teal3)}
+  .stage .lbl.host{letter-spacing:.24em;color:#41586a}
+  /* On a phone the stage is nearly square, so the chain's two end labels have
+     nowhere to go: the four gates and the verdict are what matter. */
+  @media (max-width:620px){
+    .stage .lbl{font-size:.55rem;letter-spacing:.09em}
+    .stage .lbl.host,.stage .lbl[data-anchor="src"]{display:none}
+    .stage .legend{gap:6px 12px;padding:10px 12px;font-size:.6rem;letter-spacing:.05em}
+  }
+  .stage .hint{position:absolute;right:14px;top:13px;pointer-events:none;
+    font-family:var(--mono);font-size:.64rem;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--dim);border:1px solid var(--line);border-radius:999px;padding:5px 12px;
+    background:rgba(7,16,24,.62);transition:opacity .8s ease}
+  .stage .hint.gone{opacity:0}
   .stage .legend{position:absolute;left:0;right:0;bottom:0;display:flex;gap:18px;
     justify-content:center;flex-wrap:wrap;padding:12px 16px;font-family:var(--mono);
     font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--dimmer);
     background:linear-gradient(180deg,transparent,rgba(5,12,18,.9))}
   .stage .legend b{color:var(--teal2);font-weight:500}
   .stage .legend .blocked b{color:var(--amber)}
-  /* No WebGL: the stage carries nothing but the canvas, so it goes away entirely.
-     The labelled diagram in the Gate chain section is what actually explains the
-     product, and it is plain SVG that renders everywhere. */
-  .stage.fallback{display:none}
-  .diagram{margin:26px 0 0}
-  .diagram figcaption{color:var(--dimmer);font-family:var(--mono);font-size:.76rem;
-    margin-top:9px;letter-spacing:.03em}
+  /* No WebGL, or a context lost when a laptop wakes from sleep: drop the scene
+     but keep the block, its legend and a line saying why — deleting the whole
+     stage also deleted the legend, and the gate table in that section names
+     every gate in prose. */
+  .stage.fallback canvas,.stage.fallback .lbl,.stage.fallback .hint{display:none}
+  .stage .glnote{display:none}
+  .stage.fallback .glnote{display:block;margin:0;padding:22px 20px 4px;max-width:58ch;
+    color:var(--dim);font-size:.92rem}
+  .stage.fallback .legend{position:static;background:none}
   @media (prefers-reduced-motion:reduce){ .stage canvas{opacity:1} }
   .note{border-left:2px solid var(--teal);padding:2px 0 2px 15px;color:var(--dim);
     font-size:.94rem;margin:22px 0;max-width:72ch}
@@ -169,11 +193,20 @@
       <span class="badge"><b>0</b> <span data-i18n="badge.deps">runtime dependencies</span></span>
       <span class="badge"><b>4</b> <span data-i18n="badge.gates">gates</span></span>
       <span class="badge"><span data-i18n="badge.ruleset">ruleset</span> <b>v4</b></span>
-      <span class="badge"><b>146</b> <span data-i18n="badge.tests">tests</span></span>
+      <span class="badge"><b>148</b> <span data-i18n="badge.tests">tests</span></span>
       <span class="badge"><b>node:crypto</b> <span data-i18n="badge.import">the only import</span></span>
     </div>
     <div class="stage" id="stage">
       <canvas id="gl" aria-hidden="true"></canvas>
+      <div class="lbl host" data-anchor="host" data-i18n="stage.lbl.host">IN THE HOST PROCESS</div>
+      <div class="lbl" data-anchor="src"><b>tools/list</b></div>
+      <div class="lbl" data-anchor="0"><b>G1</b> static-scan</div>
+      <div class="lbl" data-anchor="1"><b>G2</b> threat-feed</div>
+      <div class="lbl" data-anchor="2"><b>G3</b> origin</div>
+      <div class="lbl" data-anchor="3"><b>G4</b> pinning</div>
+      <div class="lbl vd" data-anchor="verdict"><b>&#9670;</b> <span data-i18n="stage.lbl.verdict">verdict</span></div>
+      <div class="hint" id="stagehint" data-i18n="stage.hint">drag to rotate</div>
+      <p class="glnote" data-i18n="stage.nowebgl">WebGL is unavailable here, so the gate chain is not drawn. The table below names all four gates and what each one decides.</p>
       <div class="legend">
         <span><b>&#9679;</b> <span data-i18n="stage.legend.defs">tool definitions</span></span>
         <span><b>4</b> <span data-i18n="stage.legend.gates">gates</span></span>
@@ -225,56 +258,6 @@
         <tr><td class="mono">pinning</td><td data-i18n="gates.t.g4">Whether the tool definitions — and the server's launch identity — still match what the user approved. A catalog can repoint an approved id at a different command; that is drift too.</td><td data-i18n="gates.t.none3">none</td></tr>
       </tbody>
     </table></div>
-    <figure class="diagram">
-      <svg class="hero-svg" viewBox="0 0 1120 300" role="img" aria-label="Tool definitions pass four gates inside the host process before a recorded verdict">
-      <defs>
-        <linearGradient id="flow" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stop-color="#2bb8a8" stop-opacity=".15"/>
-          <stop offset="60%" stop-color="#2bb8a8" stop-opacity=".8"/>
-          <stop offset="100%" stop-color="#7dd3c7" stop-opacity=".95"/>
-        </linearGradient>
-        <filter id="glow"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-      </defs>
-      <rect x="252" y="58" width="620" height="184" rx="18" fill="none" stroke="#2bb8a8" stroke-opacity=".3" stroke-width="1.4" stroke-dasharray="8 8"/>
-      <text x="562" y="46" text-anchor="middle" fill="#5c7183" font-family="ui-monospace,monospace" font-size="13" letter-spacing="3" data-i18n="hero.svg.host">IN THE HOST PROCESS</text>
-      <g filter="url(#glow)">
-        <rect x="52" y="128" width="128" height="18" rx="5" fill="#0b151e" stroke="#2bb8a8" stroke-opacity=".8" stroke-width="1.6"/>
-        <rect x="52" y="154" width="128" height="18" rx="5" fill="#0b151e" stroke="#2bb8a8" stroke-opacity=".55" stroke-width="1.6"/>
-        <rect x="52" y="180" width="128" height="18" rx="5" fill="#0b151e" stroke="#2bb8a8" stroke-opacity=".32" stroke-width="1.6"/>
-      </g>
-      <text x="116" y="116" text-anchor="middle" fill="#93a9ba" font-family="ui-monospace,monospace" font-size="13" data-i18n="hero.svg.tools">tool definitions</text>
-      <path d="M186 150 H1000" fill="none" stroke="url(#flow)" stroke-width="2.6" stroke-linecap="round"/>
-      <path d="M186 150 H1000" fill="none" stroke="#7dd3c7" stroke-width="2.2" stroke-dasharray="4 14" opacity=".85">
-        <animate attributeName="stroke-dashoffset" from="36" to="0" dur="1.7s" repeatCount="indefinite"/>
-      </path>
-      <g font-family="ui-monospace,monospace" font-size="14" text-anchor="middle">
-        <g filter="url(#glow)">
-          <rect x="288" y="122" width="56" height="56" rx="12" fill="#0b151e" stroke="#2bb8a8" stroke-width="2"/>
-          <rect x="428" y="122" width="56" height="56" rx="12" fill="#0b151e" stroke="#2bb8a8" stroke-width="2"/>
-          <rect x="568" y="122" width="56" height="56" rx="12" fill="#0b151e" stroke="#2bb8a8" stroke-width="2"/>
-          <rect x="708" y="122" width="56" height="56" rx="12" fill="#0b151e" stroke="#2bb8a8" stroke-width="2"/>
-        </g>
-        <circle cx="316" cy="150" r="4.6" fill="#7dd3c7"/><circle cx="456" cy="150" r="4.6" fill="#7dd3c7"/>
-        <circle cx="596" cy="150" r="4.6" fill="#7dd3c7"/><circle cx="736" cy="150" r="4.6" fill="#7dd3c7"/>
-        <text x="316" y="200" fill="#e6f1f5">static-scan</text>
-        <text x="456" y="200" fill="#e6f1f5">threat-feed</text>
-        <text x="596" y="200" fill="#e6f1f5">origin</text>
-        <text x="736" y="200" fill="#e6f1f5">pinning</text>
-        <text x="316" y="220" fill="#5c7183" font-size="11.5">25 rules · v4</text>
-        <text x="456" y="220" fill="#5c7183" font-size="11.5" data-i18n="hero.svg.feed">11 + feed</text>
-        <text x="596" y="220" fill="#5c7183" font-size="11.5" data-i18n="hero.svg.origin">declared?</text>
-        <text x="736" y="220" fill="#5c7183" font-size="11.5" data-i18n="hero.svg.pinning">drift?</text>
-      </g>
-      <g filter="url(#glow)">
-        <polygon points="1000,150 1036,114 1072,150 1036,186" fill="#041018" stroke="#7dd3c7" stroke-width="2"/>
-        <circle cx="1036" cy="150" r="4.6" fill="#7dd3c7"><animate attributeName="opacity" values=".45;1;.45" dur="2.4s" repeatCount="indefinite"/></circle>
-      </g>
-      <text x="1036" y="206" text-anchor="middle" fill="#93a9ba" font-family="ui-monospace,monospace" font-size="13" data-i18n="hero.svg.verdict">verdict</text>
-      <text x="1036" y="224" text-anchor="middle" fill="#5c7183" font-family="ui-monospace,monospace" font-size="11.5">allow · block</text>
-      <text x="562" y="272" text-anchor="middle" fill="#5c7183" font-family="ui-monospace,monospace" font-size="12.5" data-i18n="hero.svg.foot">no network I/O while vetting · no model · no oracle</text>
-    </svg>
-      <figcaption data-i18n="gates.figcaption">Tool definitions enter on the left, four gates run in the host's own process, and a recorded verdict leaves on the right.</figcaption>
-    </figure>
     <div class="note" data-i18n="gates.note">Severity and blocking are separate axes. An <code>advise</code>-tier finding is reported and never blocks and never costs a tool, at any threshold — because "how much attention does this deserve" and "is this a defect at all" are different questions, and encoding the second as a low severity made it blocking again for anyone who tightened the threshold.</div>
   </div>
 </section>
@@ -374,172 +357,734 @@
 </footer>
 <script>
 /* ────────────────────────────────────────────────────────────────────────────
-   The gate chain, in depth.
+   The gate chain, in depth — and you can turn it.
 
-   Written in the ecosystem's own visual language — the Alien Monitor look: deep
-   space, glowing rings like a node's, teal particles running the link, amber only
-   ever meaning "stopped". Four rings are the four gates; the dots streaming toward
-   the viewer are tool definitions; roughly one in eight is extinguished at the gate
-   that would have caught it, which is the honest ratio to draw when the survey says
-   6 of 1 108 servers get blocked and the rest pass.
+   A real 3D scene, not a shader trick. Four gate plates hang along a conduit
+   inside a dashed cage — the host process, because WARDEN is a library and runs
+   in-process. Tool definitions thread the apertures as beads with trails; the one
+   that a gate would catch is stopped in that gate's plane and bursts amber; what
+   gets through reaches a wireframe verdict outside the cage. Drag it: the plates
+   are OPAQUE and depth-buffered, so the occlusion order actually inverts as you
+   orbit, which is the one 3D cue that cannot be faked in two dimensions.
 
-   No library, nothing fetched. One fullscreen quad and one fragment shader, inline,
-   because the page's whole argument is that this thing has no dependencies — a hero
-   that pulled three.js off a CDN would refute the copy underneath it.
+   Each gate wears its own number. Gate 1 carries 25 fine ticks — the 25 rules in
+   ruleset v4. Gate 2 carries exactly 11, the built-in threat-feed floor, plus the
+   one dashed line in the whole scene that leaves the cage, because the optional
+   feed is the only fetch WARDEN ever performs. Gate 3 carries two marks that snap
+   into alignment when something passes: declared identity against what launched.
+   Gate 4 carries twelve with one out of place: drift.
 
-   Degrades on purpose: no WebGL, or prefers-reduced-motion, and the labelled SVG
-   diagram in the DOM is shown instead.
+   Hand-rolled on purpose. No library, nothing fetched, own matrix math, geometry
+   generated in code: the page argues that this package has zero dependencies and
+   is served with default-src 'none', so a hero pulling three.js off a CDN would
+   refute the copy underneath it. Two tiny programs — flat triangles for the
+   plates, point sprites drawn twice (a wide dim pass for bloom, a tight bright
+   pass for the core) for everything that glows. Additive is order-independent and
+   the plates' depth does all the occluding, so nothing is ever sorted.
+
+   The amber rate here is set for legibility, not as a statistic: the ecosystem
+   number is 6 servers of 1 108, and it is in the survey section with its evidence.
+
+   Degrades on purpose: no WebGL, a lost context, or prefers-reduced-motion.
    ──────────────────────────────────────────────────────────────────────────── */
 (function () {
   "use strict";
-  const stage = document.getElementById('stage');
-  const canvas = document.getElementById('gl');
+  var stage  = document.getElementById('stage');
+  var canvas = document.getElementById('gl');
+  var hint   = document.getElementById('stagehint');
   if (!stage || !canvas) return;
 
-  const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let gl = null;
+  function bail() { stage.classList.add('fallback'); }
+  var reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+  var gl = null;
   try {
-    gl = canvas.getContext('webgl', { antialias: false, alpha: false, powerPreference: 'low-power' })
-      || canvas.getContext('experimental-webgl');
+    gl = canvas.getContext('webgl', {
+      antialias: false, alpha: true, premultipliedAlpha: true,
+      depth: true, stencil: false, powerPreference: 'default'
+    }) || canvas.getContext('experimental-webgl');
   } catch (_) { gl = null; }
-  if (!gl) { stage.classList.add('fallback'); return; }
+  if (!gl) { bail(); return; }
+  // A laptop waking from sleep drops the context; a permanently black hero is
+  // worse than one that never started.
+  canvas.addEventListener('webglcontextlost', function (e) { e.preventDefault(); bail(); });
 
-  const VERT = 'attribute vec2 p;void main(){gl_Position=vec4(p,0.0,1.0);}';
+  /* ── the palette comes from the page's own custom properties, so the hero
+        cannot drift away from the rest of the site ────────────────────────── */
+  function token(name, fallback) {
+    var v = '';
+    try { v = getComputedStyle(document.documentElement).getPropertyValue(name).trim(); } catch (_) {}
+    var m = /^#([0-9a-f]{6})$/i.exec(v);
+    if (!m) return fallback;
+    var n = parseInt(m[1], 16);
+    return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
+  }
+  var TEAL  = token('--teal3',  [0.29, 0.85, 0.77]);
+  var DEEP  = token('--teal',   [0.17, 0.72, 0.66]);
+  var AMBER = token('--amber',  [0.88, 0.70, 0.35]);
 
-  const FRAG = [
+  /* ── program A: flat opaque triangles. The gate plates, and the only thing
+        in the scene that writes depth. ────────────────────────────────────── */
+  var FLAT_V = [
     'precision highp float;',
-    'uniform vec2 uRes; uniform float uT; uniform vec2 uM;',
-    'float h(float n){ return fract(sin(n*127.1+13.7)*43758.5453123); }',
-    // one gate ring, projected: radius shrinks with depth, so perspective does the work
-    // The corridor leans, so its rings walk toward a vanishing point instead of
-    // sitting concentric. Without this the four gates read as a radar dial.
-    'vec2 axis(float z){ return vec2(0.30,-0.13)*(1.0-1.0/z); }',
-    'float ring(vec2 uv, float z, float rad){',
-    '  float R = rad/z;',
-    '  float d = abs(length(uv-axis(z))-R);',
-    '  float w = 0.0011 + 0.0016*z;',
-    '  return w/(d+w*0.85);',
-    '}',
+    'attribute vec3 aP; attribute vec3 aC;',
+    'uniform mat4 uMVP; varying vec3 vC;',
+    'void main(){ gl_Position = uMVP * vec4(aP, 1.0); vC = aC; }'
+  ].join('\n');
+  var FLAT_F = [
+    'precision highp float;',
+    'varying vec3 vC;',
+    'void main(){ gl_FragColor = vec4(vC, 1.0); }'
+  ].join('\n');
+
+  /* ── program B: a point sprite with a soft radial falloff ───────────────── */
+  var PT_V = [
+    'precision highp float;',
+    'attribute vec3 aPos; attribute vec3 aCol; attribute float aSize;',
+    'uniform mat4 uMVP; uniform float uScale; uniform float uSizeMul; uniform float uGain;',
+    'uniform float uDist;',
+    'varying vec3 vCol;',
     'void main(){',
-    '  vec2 uv = (gl_FragCoord.xy - 0.5*uRes)/uRes.y;',
-    '  uv += uM*0.03;',
-    '  float rot = uT*0.045;',
-    '  vec3 col = vec3(0.0);',
-    // starfield: the monitor's faint dust
-    '  vec2 g = floor(uv*46.0);',
-    '  float st = h(g.x*57.0+g.y*131.0);',
-    '  if (st > 0.988) {',
-    '    vec2 c = (g+0.5)/46.0;',
-    '    float tw = 0.55+0.45*sin(uT*1.7+st*40.0);',
-    '    col += vec3(0.35,0.62,0.70)*tw*0.055/(1.0+400.0*dot(uv-c,uv-c));',
-    '  }',
-    // four gates
-    '  for (int i=0;i<4;i++){',
-    '    float fi = float(i);',
-    '    float z = 1.05 + fi*0.60;',
-    '    float pulse = 0.86 + 0.14*sin(uT*0.9 - fi*0.7);',
-    '    float r = ring(uv, z, 0.40);',
-    '    col += vec3(0.16,0.80,0.72)*r*(0.62/z)*pulse;',
-    '    float d = abs(length(uv-axis(z)) - 0.40/z);',
-    '    col += vec3(0.07,0.34,0.33)*exp(-d*d*520.0*z)*(0.30/z);',
-    '  }',
-    // tool definitions running the link, toward the viewer
-    '  for (int i=0;i<64;i++){',
-    '    float fi = float(i);',
-    '    float a = h(fi)*6.28318 + rot;',
-    '    float rr = 0.09 + 0.31*h(fi+7.0);',
-    '    float sp = 0.42 + 0.40*h(fi+19.0);',
-    '    float ph = h(fi+29.0)*7.0;',
-    '    float bad = step(0.875, h(fi+41.0));',
-    '    float gate = floor(h(fi+53.0)*4.0);',
-    '    float zGate = 1.05 + gate*0.60;',
-    '    float t = mod(uT*sp + ph, 7.0);',
-    '    float z = 3.30 - t*0.42;',
-    '    float on = step(0.70, z);',                       // gone once it passes the near plane
-    '    float alive = mix(1.0, smoothstep(zGate-0.05, zGate+0.09, z), bad);',
-    '    float death = bad * (1.0-alive) * smoothstep(zGate-0.30, zGate+0.02, z);',
-    '    vec2 pos = axis(z) + vec2(cos(a), sin(a))*rr/z;',
-    '    float d2 = dot(uv-pos, uv-pos);',
-    '    float core = 0.0000085/(d2*z*0.55 + 0.0000085);',
-    '    vec3 tint = mix(vec3(0.30,0.95,0.86), vec3(1.00,0.72,0.35), bad);',
-    '    col += tint*core*on*(alive*0.85 + death*1.9)*(1.25/z);',
-    '  }',
-    // the verdict, at the near end: a soft core with a four-fold flare
-    '  vec2 near = axis(0.70);',
-    '  float rl = length(uv-near);',
-    '  float beat = 0.55 + 0.45*sin(uT*1.15);',
-    '  col += vec3(0.22,0.85,0.78)*0.020*beat/(rl*rl*8.0+0.020);',
-    '  float flare = pow(max(0.0, 1.0-abs(uv.x-near.x)*7.0), 6.0) + pow(max(0.0, 1.0-abs(uv.y-near.y)*7.0), 6.0);',
-    '  col += vec3(0.16,0.62,0.58)*flare*0.030*beat;',
-    // ground: the monitor's navy, plus a vignette so the legend stays readable
-    '  vec3 bg = mix(vec3(0.016,0.043,0.062), vec3(0.027,0.075,0.098), 0.5+0.5*uv.y);',
-    '  col += bg;',
-    '  col *= 1.0 - 0.62*smoothstep(0.34, 1.02, rl);',
-    '  col = col/(col+vec3(0.85));',                        // filmic-ish, keeps the glow soft
-    '  gl_FragColor = vec4(pow(col, vec3(0.87)), 1.0);',
+    '  vec4 clip = uMVP * vec4(aPos, 1.0);',
+    '  gl_Position = clip;',
+    // clip.w is the view-space distance, so a sprite shrinks as 1/distance the way
+    // a real sphere would, and the same number drives the depth fog below.
+    '  float w = max(clip.w, 0.85);',
+    '  gl_PointSize = clamp(aSize * uSizeMul * uScale / w, 1.0, 180.0);',
+    '  float fog = clamp(1.0 - (w - uDist) * 0.055, 0.17, 1.32);',
+    '  vCol = aCol * fog * uGain;',
+    '}'
+  ].join('\n');
+  var PT_F = [
+    'precision highp float;',
+    'varying vec3 vCol;',
+    'void main(){',
+    '  vec2 d = gl_PointCoord - 0.5;',
+    '  float r2 = dot(d, d) * 4.0;',
+    '  if (r2 > 1.0) discard;',
+    '  float a = exp(-r2 * 3.2) * (1.0 - r2 * 0.26);',
+    '  gl_FragColor = vec4(vCol * a, a);',      // premultiplied, blended ONE/ONE
     '}'
   ].join('\n');
 
-  function compile(type, src) {
-    const sh = gl.createShader(type);
-    gl.shaderSource(sh, src);
-    gl.compileShader(sh);
-    if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) return null;
-    return sh;
+  function build_program(vsrc, fsrc) {
+    function sh(type, src) {
+      var s = gl.createShader(type);
+      gl.shaderSource(s, src); gl.compileShader(s);
+      return gl.getShaderParameter(s, gl.COMPILE_STATUS) ? s : null;
+    }
+    var v = sh(gl.VERTEX_SHADER, vsrc), f = sh(gl.FRAGMENT_SHADER, fsrc);
+    if (!v || !f) return null;
+    var p = gl.createProgram();
+    gl.attachShader(p, v); gl.attachShader(p, f); gl.linkProgram(p);
+    return gl.getProgramParameter(p, gl.LINK_STATUS) ? p : null;
   }
-  const vs = compile(gl.VERTEX_SHADER, VERT);
-  const fs = compile(gl.FRAGMENT_SHADER, FRAG);
-  if (!vs || !fs) { stage.classList.add('fallback'); return; }
-  const prog = gl.createProgram();
-  gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
-  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) { stage.classList.add('fallback'); return; }
-  gl.useProgram(prog);
+  var flat = build_program(FLAT_V, FLAT_F);
+  var pts  = build_program(PT_V, PT_F);
+  if (!flat || !pts) { bail(); return; }
 
-  const buf = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
-  const loc = gl.getAttribLocation(prog, 'p');
-  gl.enableVertexAttribArray(loc);
-  gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-  const uRes = gl.getUniformLocation(prog, 'uRes');
-  const uT = gl.getUniformLocation(prog, 'uT');
-  const uM = gl.getUniformLocation(prog, 'uM');
+  var fA_P = gl.getAttribLocation(flat, 'aP'), fA_C = gl.getAttribLocation(flat, 'aC');
+  var fU_MVP = gl.getUniformLocation(flat, 'uMVP');
+  var pA_P = gl.getAttribLocation(pts, 'aPos'), pA_C = gl.getAttribLocation(pts, 'aCol'),
+      pA_S = gl.getAttribLocation(pts, 'aSize');
+  var pU_MVP = gl.getUniformLocation(pts, 'uMVP'), pU_SC = gl.getUniformLocation(pts, 'uScale'),
+      pU_SM = gl.getUniformLocation(pts, 'uSizeMul'), pU_G = gl.getUniformLocation(pts, 'uGain'),
+      pU_D = gl.getUniformLocation(pts, 'uDist');
 
-  const mouse = { x: 0, y: 0, tx: 0, ty: 0 };
-  window.addEventListener('pointermove', (e) => {
-    const r = canvas.getBoundingClientRect();
-    mouse.tx = ((e.clientX - r.left) / Math.max(1, r.width) - 0.5) * 2;
-    mouse.ty = -((e.clientY - r.top) / Math.max(1, r.height) - 0.5) * 2;
-  }, { passive: true });
+  gl.enable(gl.DEPTH_TEST);
+  gl.depthFunc(gl.LESS);
+  gl.clearColor(0, 0, 0, 0);
+  gl.clearDepth(1);
 
-  function resize() {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const w = Math.max(1, Math.round(canvas.clientWidth * dpr));
-    const h = Math.max(1, Math.round(canvas.clientHeight * dpr));
+  /* ── buffers ───────────────────────────────────────────────────────────── */
+  var PS = 7;                                        // x y z  r g b  size
+  function Cloud(max, stride) {
+    this.st = stride; this.a = new Float32Array(max * stride);
+    this.n = 0; this.max = max; this.buf = gl.createBuffer();
+  }
+  Cloud.prototype.put = function (x, y, z, r, g, b, s) {
+    if (this.n >= this.max) return;
+    var o = this.n * 7, a = this.a;
+    a[o] = x; a[o+1] = y; a[o+2] = z; a[o+3] = r; a[o+4] = g; a[o+5] = b; a[o+6] = s;
+    this.n++;
+  };
+  Cloud.prototype.tri = function (x, y, z, r, g, b) {
+    if (this.n >= this.max) return;
+    var o = this.n * 6, a = this.a;
+    a[o] = x; a[o+1] = y; a[o+2] = z; a[o+3] = r; a[o+4] = g; a[o+5] = b;
+    this.n++;
+  };
+  Cloud.prototype.upload = function (mode) {
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.buf);
+    gl.bufferData(gl.ARRAY_BUFFER, this.a.subarray(0, this.n * this.st), mode);
+  };
+  Cloud.prototype.drawPts = function () {
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.buf);
+    gl.enableVertexAttribArray(pA_P); gl.vertexAttribPointer(pA_P, 3, gl.FLOAT, false, 28, 0);
+    gl.enableVertexAttribArray(pA_C); gl.vertexAttribPointer(pA_C, 3, gl.FLOAT, false, 28, 12);
+    gl.enableVertexAttribArray(pA_S); gl.vertexAttribPointer(pA_S, 1, gl.FLOAT, false, 28, 24);
+    gl.drawArrays(gl.POINTS, 0, this.n);
+  };
+  Cloud.prototype.drawTris = function () {
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.buf);
+    gl.enableVertexAttribArray(fA_P); gl.vertexAttribPointer(fA_P, 3, gl.FLOAT, false, 24, 0);
+    gl.enableVertexAttribArray(fA_C); gl.vertexAttribPointer(fA_C, 3, gl.FLOAT, false, 24, 12);
+    gl.drawArrays(gl.TRIANGLES, 0, this.n);
+  };
+
+  /* ── scene constants ───────────────────────────────────────────────────── */
+  var TAU = Math.PI * 2;
+  var R = 2.15;                                      // conduit radius
+  var AP = R * 0.52;                                 // aperture: what gets through
+  var GZ = [-5.70, -1.90, 1.90, 5.70];               // the four gates
+  var SRC = -8.9, VZ = 8.2;                          // tools/list ... verdict
+  var CAGE = [2.78, 2.78, 7.15];                     // the host process
+  var GROUND = -3.45;
+
+  function hash(n) { var s = Math.sin(n * 127.1 + 13.7) * 43758.5453123; return s - Math.floor(s); }
+
+  /* ── the plates: opaque, depth-written, and the reason this reads as 3D ── */
+  var plates = new Cloud(1000, 6);
+  (function buildPlates() {
+    var SEG = 40;
+    for (var g = 0; g < 4; g++) {
+      var z = GZ[g], ro = R * 0.80, ri = AP;
+      for (var i = 0; i < SEG; i++) {
+        var a0 = i / SEG * TAU, a1 = (i + 1) / SEG * TAU;
+        // a value ramp from the rim to the aperture, so the annulus reads as a
+        // machined surface catching axis light and not as a hole cut in space
+        var br = 0.86 + 0.14 * Math.sin(a0 * 4.0 + g);
+        var oR = 0.042 * br, oG = 0.082 * br, oB = 0.107 * br;
+        var iR = 0.020 * br, iG = 0.043 * br, iB = 0.058 * br;
+        var c0 = Math.cos(a0), s0 = Math.sin(a0), c1 = Math.cos(a1), s1 = Math.sin(a1);
+        plates.tri(c0*ro, s0*ro, z, oR, oG, oB);
+        plates.tri(c1*ro, s1*ro, z, oR, oG, oB);
+        plates.tri(c1*ri, s1*ri, z, iR, iG, iB);
+        plates.tri(c0*ro, s0*ro, z, oR, oG, oB);
+        plates.tri(c1*ri, s1*ri, z, iR, iG, iB);
+        plates.tri(c0*ri, s0*ri, z, iR, iG, iB);
+      }
+    }
+    plates.upload(gl.STATIC_DRAW);
+  })();
+
+  var statc = new Cloud(6000, PS);   // structure: core pass only
+  var glowc = new Cloud(500, PS);    // stars and the far mouth: bloomed
+  (function buildStatic() {
+    var k, s, i, a, m;
+    // rails along the conduit. Sparse rails read as scattered dust: the samples
+    // have to sit closer together than a sprite is wide before a line appears.
+    for (k = 0; k < 8; k++) {
+      a = k / 8 * TAU;
+      var cx = Math.cos(a) * R, cy = Math.sin(a) * R;
+      for (s = 0; s < 300; s++) {
+        var z = SRC + 0.6 + (17.2 * s) / 299;
+        m = 0.30 + 0.14 * Math.sin(a * 3.0 + s * 0.09);
+        statc.put(cx, cy, z, DEEP[0]*m, DEEP[1]*m, DEEP[2]*m, 0.042);
+      }
+    }
+    // the dashed cage: IN THE HOST PROCESS. A wire box is the cheapest honest 3D
+    // cue there is — its silhouette goes rectangular to hexagonal as you orbit.
+    var C = CAGE, corners = [[-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]];
+    var edges = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+    for (i = 0; i < edges.length; i++) {
+      var pa = corners[edges[i][0]], pb = corners[edges[i][1]];
+      var ax = pa[0]*C[0], ay = pa[1]*C[1], az = pa[2]*C[2];
+      var bx = pb[0]*C[0], by = pb[1]*C[1], bz = pb[2]*C[2];
+      var len = Math.sqrt((bx-ax)*(bx-ax) + (by-ay)*(by-ay) + (bz-az)*(bz-az));
+      var steps = Math.max(24, Math.round(len / 0.055));
+      for (s = 0; s <= steps; s++) {
+        var f = s / steps;
+        if ((f * len / 0.62) % 1.0 > 0.46) continue;          // dashes
+        m = 0.34;
+        statc.put(ax + (bx-ax)*f, ay + (by-ay)*f, az + (bz-az)*f,
+                  DEEP[0]*m, DEEP[1]*m, DEEP[2]*m, 0.040);
+      }
+    }
+    // a ground grid: the vanishing-point anchor, and it fills a band that would
+    // otherwise be dead navy under a wide letterbox
+    for (i = -3; i <= 3; i++) {
+      for (s = 0; s < 150; s++) {
+        m = 0.048 * (1.0 - Math.abs(i) / 4.4);
+        statc.put(i * 1.75, GROUND, -8.6 + (17.2 * s) / 149,
+                  DEEP[0]*m, DEEP[1]*m, DEEP[2]*m, 0.040);
+      }
+    }
+    for (i = -4; i <= 4; i++) {
+      for (s = 0; s < 60; s++) {
+        m = 0.042 * (1.0 - Math.abs(i) / 6.0);
+        statc.put(-5.25 + (10.5 * s) / 59, GROUND, i * 1.9,
+                  DEEP[0]*m, DEEP[1]*m, DEEP[2]*m, 0.040);
+      }
+    }
+    // the far mouth the definitions come out of
+    for (i = 0; i < 130; i++) {
+      var th = hash(i * 2.3) * TAU, rr = Math.sqrt(hash(i * 4.1)) * R * 0.98;
+      m = 0.30 + 0.36 * hash(i * 6.7);
+      glowc.put(Math.cos(th)*rr, Math.sin(th)*rr, SRC + hash(i*8.9)*0.7,
+                DEEP[0]*m, DEEP[1]*m, DEEP[2]*m, 0.046);
+    }
+    // starfield on a shell, so orbiting parallaxes it against the geometry
+    for (i = 0; i < 240; i++) {
+      var u = hash(i * 1.7) * 2 - 1, ph = hash(i * 3.1) * TAU, rad = 34 + hash(i * 5.3) * 24;
+      var sp = Math.sqrt(Math.max(0, 1 - u * u));
+      var v = 0.42 + 1.10 * Math.pow(hash(i * 7.9), 3.0);
+      glowc.put(Math.cos(ph)*sp*rad, u*rad*0.60, Math.sin(ph)*sp*rad,
+                0.30*v, 0.58*v, 0.70*v, 0.105);
+    }
+    statc.upload(gl.STATIC_DRAW);
+    glowc.upload(gl.STATIC_DRAW);
+  })();
+
+  var dync = new Cloud(5200, PS);
+
+  /* ── simulation state ──────────────────────────────────────────────────── */
+  var gatePulse = [0, 0, 0, 0];       // a definition just crossed this gate
+  var gateAmber = [0, 0, 0, 0];       // this gate just stopped one
+  var sweep = [0, 1.9, 3.7, 5.1];     // the scan arc racing each rim
+  var align = 0;                      // gate 3's two marks snapping into line
+  var verdict = 0;
+  var beads = [], sparks = [], waves = [], flashes = [], bursts = [];
+
+  function respawn(b) {
+    b.a = Math.random() * TAU;
+    b.r = (0.10 + Math.random() * 0.36) * R;        // inside the aperture
+    b.sp = 1.95 + Math.random() * 1.15;
+    b.z = SRC - 0.4 - Math.random() * 6.5;
+    b.spin = (Math.random() * 2 - 1) * 0.20;
+    b.bad = Math.random() < 0.0833;
+    var d = Math.random();                          // static scan catches most
+    b.gate = b.bad ? (d < 0.45 ? 0 : d < 0.70 ? 1 : d < 0.90 ? 2 : 3) : -1;
+    return b;
+  }
+  for (var bi = 0; bi < 34; bi++) respawn(beads[bi] = {});
+
+  function boom(b, g) {
+    gateAmber[g] = 1;
+    var x = Math.cos(b.a) * b.r, y = Math.sin(b.a) * b.r;
+    if (bursts.length < 6) bursts.push({ x: x, y: y, z: GZ[g], t: 0 });
+    for (var i = 0; i < 15 && sparks.length < 150; i++) {
+      var a = Math.random() * TAU, sp = 1.1 + Math.random() * 2.6;
+      // the shards stay in the gate's plane: that is the whole message
+      sparks.push({ x: x, y: y, z: GZ[g],
+        vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, vz: (Math.random() - 0.5) * 0.35,
+        life: 0.5 + Math.random() * 0.4, max: 0.9 });
+    }
+    respawn(b);
+  }
+
+  function step(dt) {
+    for (var g = 0; g < 4; g++) {
+      gatePulse[g] = Math.max(0, gatePulse[g] - dt * 2.1);
+      gateAmber[g] = Math.max(0, gateAmber[g] - dt * 1.5);
+      sweep[g] += dt * (1.05 + g * 0.24);
+    }
+    align = Math.max(0, align - dt * 2.9);
+    verdict = Math.max(0, verdict - dt * 1.6);
+    for (var i = 0; i < beads.length; i++) {
+      var b = beads[i], pz = b.z;
+      b.z += b.sp * dt; b.a += b.spin * dt;
+      var died = false;
+      for (var g2 = 0; g2 < 4; g2++) {
+        if (pz < GZ[g2] && b.z >= GZ[g2]) {
+          if (b.bad && b.gate === g2) { boom(b, g2); died = true; break; }
+          gatePulse[g2] = 1;
+          if (g2 === 2) align = 1;
+          // the rim brightens exactly where it let something through
+          if (flashes.length < 10) flashes.push({ g: g2, a: b.a, t: 0 });
+        }
+      }
+      if (!died && b.z > VZ + 0.35) {
+        verdict = 1;
+        if (waves.length < 3) waves.push({ t: 0 });
+        respawn(b);
+      }
+    }
+    for (var s = sparks.length - 1; s >= 0; s--) {
+      var p = sparks[s];
+      p.life -= dt;
+      if (p.life <= 0) { sparks.splice(s, 1); continue; }
+      p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
+      var drag = 1 - Math.min(0.6, dt * 2.0);
+      p.vx *= drag; p.vy *= drag; p.vz *= drag;
+    }
+    for (var w = waves.length - 1; w >= 0; w--) { waves[w].t += dt; if (waves[w].t > 0.95) waves.splice(w, 1); }
+    for (var f = flashes.length - 1; f >= 0; f--) { flashes[f].t += dt; if (flashes[f].t > 0.55) flashes.splice(f, 1); }
+    for (var u = bursts.length - 1; u >= 0; u--) { bursts[u].t += dt; if (bursts[u].t > 0.5) bursts.splice(u, 1); }
+  }
+
+  var OCTA = [[1,0,0], [-1,0,0], [0,1,0], [0,-1,0], [0,0,1], [0,0,-1]];
+  var EDGES = [[0,2],[0,3],[0,4],[0,5],[1,2],[1,3],[1,4],[1,5],[2,4],[2,5],[3,4],[3,5]];
+  var rp = [0, 0, 0], rq = [0, 0, 0];
+  function spin3(out, p, s, cy, sy, cx, sx) {      // rotate about Y then X, scaled
+    var x = p[0]*s, y = p[1]*s, z = p[2]*s;
+    var x2 = x*cy + z*sy, z2 = -x*sy + z*cy;
+    out[0] = x2; out[1] = y*cx - z2*sx; out[2] = y*sx + z2*cx;
+    return out;
+  }
+
+  // How many ticks each rim carries, and what the number means. Gate 3 is the
+  // pair that snaps into alignment; gate 4 has one tick deliberately out of place.
+  var TICKS = [25, 11, 2, 12];
+
+  function build(t) {
+    var d = dync; d.n = 0;
+    var g, i, j, k, a, m, cr, cg, cb;
+
+    for (g = 0; g < 4; g++) {
+      var z = GZ[g];
+      var spin = t * (0.11 + g * 0.04) * (g % 2 ? -1 : 1);
+      var amber = gateAmber[g], pulse = gatePulse[g];
+      var lit = 0.85 + 0.45 * pulse;
+
+      for (i = 0; i < 250; i++) {                     // rim — always teal: the gate
+        a = i / 250 * TAU + spin;                     // is fine, it is the traffic
+        m = lit * (0.84 + 0.16 * Math.sin(a * 5.0 + t * 1.5 + g));   // that gets stopped
+        d.put(Math.cos(a) * R, Math.sin(a) * R, z, TEAL[0]*m, TEAL[1]*m, TEAL[2]*m, 0.066);
+      }
+      for (i = 0; i < 110; i++) {                     // the aperture: what passes
+        a = i / 110 * TAU - spin * 0.6;
+        m = 0.52 + 0.42 * pulse;
+        d.put(Math.cos(a) * AP, Math.sin(a) * AP, z, TEAL[0]*m, TEAL[1]*m, TEAL[2]*m, 0.048);
+      }
+      cr = TEAL[0]*(1-amber) + AMBER[0]*amber;         // ticks carry the amber
+      cg = TEAL[1]*(1-amber) + AMBER[1]*amber;
+      cb = TEAL[2]*(1-amber) + AMBER[2]*amber;
+      var nt = TICKS[g];
+      for (j = 0; j < nt; j++) {
+        var ta = j / nt * TAU - spin * 1.7;
+        if (g === 2) ta = (j === 0 ? 0 : Math.PI + 0.105 * (1 - align)) - spin * 1.7;
+        if (g === 3 && j === 5) ta += 0.075;           // the one that drifted
+        var heavy = (g === 1 || g === 2) ? 4 : (g === 3 ? 3 : 2);
+        for (k = 0; k < heavy; k++) {
+          var rr = R * (0.965 - k * 0.045);           // struts: rim to plate
+          m = (0.90 - k * 0.13) * (0.80 + 0.50 * pulse) + amber * 0.55;
+          d.put(Math.cos(ta) * rr, Math.sin(ta) * rr, z, cr*m, cg*m, cb*m, 0.046);
+        }
+      }
+      for (i = 0; i < 22; i++) {                      // the scan arc racing the rim
+        var sa = sweep[g] + i * 0.019;
+        m = (1 - i / 22) * 1.20;
+        d.put(Math.cos(sa) * R * 1.045, Math.sin(sa) * R * 1.045, z,
+              TEAL[0]*m, TEAL[1]*m, TEAL[2]*m, 0.060);
+      }
+      if (g === 1) {                                  // the feed's freshness arc
+        for (i = 0; i < 34; i++) {
+          var fa = t * 0.15 + i * 0.021;
+          m = 0.85;
+          d.put(Math.cos(fa) * R * 1.045, Math.sin(fa) * R * 1.045, z,
+                TEAL[0]*m, TEAL[1]*m, TEAL[2]*m, 0.050);
+        }
+      }
+    }
+
+    // the one dashed line that leaves the cage: the optional signed threat feed,
+    // the only fetch WARDEN ever performs
+    var fz = GZ[1], dash = (t * 0.59) % 1.0;
+    for (i = 0; i < 120; i++) {
+      var fy = R * 1.02 + (CAGE[1] + 1.5 - R * 1.02) * (i / 119);
+      if (((i / 119 * 5.6) + dash) % 1.0 > 0.44) continue;
+      m = 0.42;
+      d.put(0, fy, fz, TEAL[0]*m, TEAL[1]*m, TEAL[2]*m, 0.040);
+    }
+    for (i = 0; i < 28; i++) {                         // the publisher's signature
+      a = i / 7 * TAU;                                 // a lozenge, four dotted edges
+      var side = Math.floor(i / 7), f4 = (i % 7) / 7;
+      var lx = [0.36, 0, -0.36, 0][side], ly = [0, 0.36, 0, -0.36][side];
+      var nx = [0, -0.36, 0, 0.36][side], ny = [0.36, 0, -0.36, 0][side];
+      m = 0.72 + 0.26 * Math.sin(t * 2.6);
+      d.put(lx + (nx-lx)*f4, CAGE[1] + 1.5 + ly + (ny-ly)*f4, fz,
+            TEAL[0]*m, TEAL[1]*m, TEAL[2]*m, 0.048);
+    }
+
+    for (i = 0; i < flashes.length; i++) {            // where a definition went through
+      var fl = flashes[i], fm = Math.max(0, 1 - fl.t / 0.55);
+      fm *= fm * 1.30;
+      for (k = -9; k <= 9; k++) {
+        a = fl.a + k * 0.030;
+        m = fm * (1 - Math.abs(k) / 10);
+        d.put(Math.cos(a) * R, Math.sin(a) * R, GZ[fl.g],
+              TEAL[0]*m, TEAL[1]*m, TEAL[2]*m, 0.074);
+      }
+    }
+
+    for (i = 0; i < beads.length; i++) {              // tool definitions, with trails
+      var b = beads[i];
+      var col = b.bad ? AMBER : TEAL;
+      var bx = Math.cos(b.a) * b.r, by = Math.sin(b.a) * b.r;
+      for (k = 0; k < 9; k++) {
+        var zz = b.z - k * 0.20;
+        if (zz < SRC - 7.4) break;
+        var f2 = 1 - k / 9;
+        m = f2 * f2 * 1.55;
+        d.put(bx, by, zz, col[0]*m, col[1]*m, col[2]*m, 0.020 + 0.098 * f2);
+      }
+    }
+
+    for (i = 0; i < bursts.length; i++) {             // the moment of the block
+      var bu = bursts[i], bm = Math.max(0, 1 - bu.t / 0.5);
+      m = bm * bm * 1.40;                             // capped: teal + amber must
+      d.put(bu.x, bu.y, bu.z, AMBER[0]*m, AMBER[1]*m, AMBER[2]*m, 0.10 + 0.40 * bm);
+    }                                                 // never sum to white
+    for (i = 0; i < sparks.length; i++) {
+      var p = sparks[i];
+      m = Math.max(0, p.life / p.max); m *= m * 1.10;
+      d.put(p.x, p.y, p.z, AMBER[0]*m, AMBER[1]*m, AMBER[2]*m, 0.018 + 0.046 * m);
+    }
+
+    var vs2 = 0.94 + 0.14 * verdict;                  // the recorded verdict
+    var cy = Math.cos(t * 0.30), sy = Math.sin(t * 0.30);
+    var cx = Math.cos(t * 0.17), sx = Math.sin(t * 0.17);
+    var vb = 1.00 + 0.45 * verdict;
+    for (i = 0; i < EDGES.length; i++) {
+      var pa2 = spin3(rp, OCTA[EDGES[i][0]], vs2, cy, sy, cx, sx);
+      var ax2 = pa2[0], ay2 = pa2[1], az2 = pa2[2];
+      var pb2 = spin3(rq, OCTA[EDGES[i][1]], vs2, cy, sy, cx, sx);
+      for (k = 0; k <= 26; k++) {
+        var f3 = k / 26;
+        d.put(ax2 + (pb2[0]-ax2)*f3, ay2 + (pb2[1]-ay2)*f3, VZ + az2 + (pb2[2]-az2)*f3,
+              TEAL[0]*vb, TEAL[1]*vb, TEAL[2]*vb, 0.052);
+      }
+    }
+    var core = 0.85 + 0.55 * verdict;
+    d.put(0, 0, VZ, TEAL[0]*core, TEAL[1]*core, TEAL[2]*core, 0.28 + 0.14 * verdict);
+
+    for (i = 0; i < waves.length; i++) {              // a verdict being written
+      var wt = waves[i].t, wr = 0.9 + wt * 3.6, wa = Math.max(0, 1 - wt / 0.95);
+      m = wa * wa * 1.05;
+      for (k = 0; k < 60; k++) {
+        a = k / 60 * TAU;
+        d.put(Math.cos(a) * wr, Math.sin(a) * wr, VZ,
+              TEAL[0]*m, TEAL[1]*m, TEAL[2]*m, 0.030);
+      }
+    }
+    d.upload(gl.DYNAMIC_DRAW);
+  }
+
+  /* ── camera. Own matrices; there is no library to borrow them from. ────── */
+  var proj = new Float32Array(16), view = new Float32Array(16), mvp = new Float32Array(16);
+  function perspective(out, fovy, aspect, near, far) {
+    var f = 1 / Math.tan(fovy / 2), nf = 1 / (near - far);
+    out[0]=f/aspect; out[1]=0; out[2]=0; out[3]=0;
+    out[4]=0; out[5]=f; out[6]=0; out[7]=0;
+    out[8]=0; out[9]=0; out[10]=(far+near)*nf; out[11]=-1;
+    out[12]=0; out[13]=0; out[14]=2*far*near*nf; out[15]=0;
+  }
+  function lookAt(out, ex, ey, ez, tx, ty, tz) {
+    var zx = ex-tx, zy = ey-ty, zz = ez-tz;
+    var l = Math.sqrt(zx*zx+zy*zy+zz*zz) || 1; zx/=l; zy/=l; zz/=l;
+    var xx = zz, xy = 0, xz = -zx;                 // cross((0,1,0), z)
+    l = Math.sqrt(xx*xx+xy*xy+xz*xz) || 1; xx/=l; xy/=l; xz/=l;
+    var yx = zy*xz - zz*xy, yy = zz*xx - zx*xz, yz = zx*xy - zy*xx;
+    out[0]=xx; out[1]=yx; out[2]=zx; out[3]=0;
+    out[4]=xy; out[5]=yy; out[6]=zy; out[7]=0;
+    out[8]=xz; out[9]=yz; out[10]=zz; out[11]=0;
+    out[12]=-(xx*ex+xy*ey+xz*ez);
+    out[13]=-(yx*ex+yy*ey+yz*ez);
+    out[14]=-(zx*ex+zy*ey+zz*ez);
+    out[15]=1;
+  }
+  function mul(out, a, b) {
+    for (var c = 0; c < 4; c++) {
+      var b0=b[c*4], b1=b[c*4+1], b2=b[c*4+2], b3=b[c*4+3];
+      out[c*4]   = a[0]*b0 + a[4]*b1 + a[8]*b2  + a[12]*b3;
+      out[c*4+1] = a[1]*b0 + a[5]*b1 + a[9]*b2  + a[13]*b3;
+      out[c*4+2] = a[2]*b0 + a[6]*b1 + a[10]*b2 + a[14]*b3;
+      out[c*4+3] = a[3]*b0 + a[7]*b1 + a[11]*b2 + a[15]*b3;
+    }
+  }
+
+  // Negative yaw puts the camera on the -X side, so the chain reads left to
+  // right: tools/list arrives at the left edge, the verdict is written at the
+  // right. A long lens, because at 40° the near end ballooned into the frame.
+  var cam = { yaw: -1.00, pitch: 0.19, dist: 21.5 };
+  var TARGET = [0, 0.25, 0.7];
+  var FOV = 32 * Math.PI / 180;
+
+  /* ── labels: real DOM text projected onto the geometry every frame. This is
+        the cue that sells the 3D — they walk with their own geometry, and being
+        DOM they still carry data-i18n into all five languages. ─────────────── */
+  var LBL = [];
+  (function collectLabels() {
+    var els = stage.querySelectorAll('[data-anchor]');
+    for (var i = 0; i < els.length; i++) {
+      var key = els[i].getAttribute('data-anchor'), g = parseInt(key, 10);
+      // heights alternate, and the cage's own label hangs under it, because at
+      // this depth adjacent anchors project into each other's text
+      var p = key === 'src'  ? [0, R * 2.30, SRC]
+            : key === 'host' ? [0, -CAGE[1] - 0.95, -CAGE[2] * 0.98]
+            : key === 'verdict' ? [0, 1.45, VZ]
+            : [0, R * (g % 2 ? 1.86 : 1.08), GZ[g]];
+      LBL.push({ el: els[i], p: p, w: 90, h: 13, cw: 0, sx: 0, sy: 0, on: false });
+    }
+  })();
+
+  var cssW = 1, cssH = 1;
+  function measure() {
+    cssW = Math.max(1, canvas.clientWidth);
+    cssH = Math.max(1, canvas.clientHeight);
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var w = Math.round(cssW * dpr), h = Math.round(cssH * dpr);
     if (canvas.width !== w || canvas.height !== h) {
       canvas.width = w; canvas.height = h;
       gl.viewport(0, 0, w, h);
     }
   }
+  if ('ResizeObserver' in window) new ResizeObserver(measure).observe(canvas);
+  // a window resize also covers dragging the window to a display with another
+  // pixel ratio, which no ResizeObserver reports
+  window.addEventListener('resize', measure, { passive: true });
+  measure();
 
-  let visible = true;
-  if ('IntersectionObserver' in window) {
-    new IntersectionObserver((entries) => { visible = entries[0].isIntersecting; })
-      .observe(canvas);
-  }
+  function render(t) {
+    build(t);
+    var aspect = canvas.width / Math.max(1, canvas.height);
+    // the frustum is fitted to the HEIGHT, so on a narrow stage a 17-unit chain
+    // ran off both sides and took its end labels with it
+    var fov = FOV * (aspect < 1.75 ? Math.min(1.5, 1.75 / aspect) : 1);
+    perspective(proj, fov, aspect, 0.6, 160);
+    var dist = cam.dist, cp = Math.cos(cam.pitch);
+    lookAt(view,
+      TARGET[0] + Math.sin(cam.yaw) * cp * dist,
+      TARGET[1] + Math.sin(cam.pitch) * dist,
+      TARGET[2] + Math.cos(cam.yaw) * cp * dist,
+      TARGET[0], TARGET[1], TARGET[2]);
+    mul(mvp, proj, view);
 
-  function frame(now) {
-    resize();
-    gl.uniform2f(uRes, canvas.width, canvas.height);
-    mouse.x += (mouse.tx - mouse.x) * 0.06;
-    mouse.y += (mouse.ty - mouse.y) * 0.06;
-    gl.uniform2f(uM, mouse.x, mouse.y);
-    gl.uniform1f(uT, now * 0.001);
-    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    // 1. the plates, opaque, writing depth. Nudged back by a polygon offset so
+    //    each plate's own rim and ticks sit in front of it instead of fighting it.
+    gl.useProgram(flat);
+    gl.disable(gl.BLEND);
+    gl.depthMask(true);
+    gl.enable(gl.POLYGON_OFFSET_FILL);
+    gl.polygonOffset(1.4, 4.0);
+    gl.uniformMatrix4fv(fU_MVP, false, mvp);
+    plates.drawTris();
+    gl.disable(gl.POLYGON_OFFSET_FILL);
+
+    // 2. everything that glows, additively, depth-tested but not depth-writing,
+    //    so the plates occlude it and nothing else needs sorting.
+    gl.useProgram(pts);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE);
+    gl.depthMask(false);
+    gl.uniformMatrix4fv(pU_MVP, false, mvp);
+    gl.uniform1f(pU_SC, (canvas.height * 0.5) / Math.tan(fov / 2));
+    gl.uniform1f(pU_D, dist);
+    gl.uniform1f(pU_SM, 3.2); gl.uniform1f(pU_G, 0.115);       // bloom
+    glowc.drawPts(); dync.drawPts();
+    gl.uniform1f(pU_SM, 1.0); gl.uniform1f(pU_G, 1.0);         // core
+    statc.drawPts(); glowc.drawPts(); dync.drawPts();
+
+    placeLabels();
     stage.classList.add('live');
-    if (!reduced) requestAnimationFrame(() => { if (visible) frame(performance.now()); else setTimeout(() => frame(performance.now()), 400); });
   }
-  frame(0);
+
+  /* ── the labels, projected and then de-conflicted. Orbit far enough and the
+        anchors pile up — at the barrel view all six land in one column — so the
+        nearest label wins its rectangle and the ones it covers step aside. ─── */
+  var lblAge = 99;
+  function placeLabels() {
+    var i, L;
+    // read every size first, then write every transform: interleaving them forces
+    // a layout per label, and that shows up as a stutter on a page with a sticky header
+    if (++lblAge > 20) {
+      lblAge = 0;
+      for (i = 0; i < LBL.length; i++) {
+        L = LBL[i];
+        if (L.el.offsetWidth) { L.w = L.el.offsetWidth; L.h = L.el.offsetHeight; }
+      }
+    }
+    var vis = [];
+    for (i = 0; i < LBL.length; i++) {
+      L = LBL[i];
+      var p = L.p;
+      var cw = mvp[3]*p[0] + mvp[7]*p[1] + mvp[11]*p[2] + mvp[15];
+      if (cw < 1.2) { if (L.on) { L.el.style.opacity = '0'; L.on = false; } continue; }
+      var qx = mvp[0]*p[0] + mvp[4]*p[1] + mvp[8]*p[2] + mvp[12];
+      var qy = mvp[1]*p[0] + mvp[5]*p[1] + mvp[9]*p[2] + mvp[13];
+      L.cw = cw;
+      L.sx = (qx / cw * 0.5 + 0.5) * cssW;
+      L.sy = (1 - (qy / cw * 0.5 + 0.5)) * cssH;
+      vis.push(L);
+    }
+    vis.sort(function (a, b) { return a.cw - b.cw; });        // nearest wins
+    var boxes = [];
+    for (i = 0; i < vis.length; i++) {
+      L = vis[i];
+      var x0 = L.sx - L.w * 0.5, y0 = L.sy - L.h * 1.2;
+      var x1 = x0 + L.w, y1 = y0 + L.h;
+      // a label half off the canvas reads as a typo, and the stage clips it anyway
+      var clash = (x0 < 2 || x1 > cssW - 2 || y0 < 0 || y1 > cssH - 4);
+      for (var j = 0; j < boxes.length && !clash; j++) {
+        var b = boxes[j];
+        if (x0 < b[2] + 7 && b[0] - 7 < x1 && y0 < b[3] + 3 && b[1] - 3 < y1) { clash = true; }
+      }
+      if (clash) { L.el.style.opacity = '0'; L.on = false; continue; }
+      boxes.push([x0, y0, x1, y1]);
+      L.el.style.transform = 'translate(' + L.sx.toFixed(1) + 'px,' + L.sy.toFixed(1) + 'px) translate(-50%,-120%)';
+      L.el.style.opacity = Math.max(0.18, Math.min(1, 2.25 - L.cw * 0.060)).toFixed(2);
+      L.on = true;
+    }
+  }
+
+  /* ── drag to orbit. Pointer events cover mouse, pen and touch; touch-action
+        is pan-y so a vertical swipe still scrolls the page on a phone. ────── */
+  var dragging = false, lastX = 0, lastY = 0, vel = 0, idle = 0, touched = false;
+  function down(e) {
+    dragging = true; idle = 0;
+    lastX = e.clientX; lastY = e.clientY;
+    canvas.classList.add('grabbing');
+    if (!touched) { touched = true; if (hint) hint.classList.add('gone'); }
+    try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
+  }
+  function move(e) {
+    if (!dragging) return;
+    var dx = e.clientX - lastX, dy = e.clientY - lastY;
+    lastX = e.clientX; lastY = e.clientY;
+    cam.yaw -= dx * 0.0064;
+    cam.pitch = Math.max(-0.72, Math.min(0.88, cam.pitch + dy * 0.0046));
+    vel = Math.max(-2.0, Math.min(2.0, -dx * 0.0064 * 24));
+    idle = 0;
+    if (reduced) render(0);
+  }
+  function up() { dragging = false; canvas.classList.remove('grabbing'); }
+  canvas.addEventListener('pointerdown', down);
+  canvas.addEventListener('pointermove', move, { passive: true });
+  canvas.addEventListener('pointerup', up);
+  canvas.addEventListener('pointercancel', up);
+  canvas.addEventListener('lostpointercapture', up);
+
+  var visible = true;
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(function (es) { visible = es[0].isIntersecting; },
+      { threshold: 0 }).observe(canvas);
+  }
+
+  if (reduced) { render(0); if (hint) hint.classList.add('gone'); return; }
+
+  var t = 0, last = 0;
+  document.addEventListener('visibilitychange', function () { last = 0; });
+  function loop(now) {
+    requestAnimationFrame(loop);
+    if (!last) last = now;
+    var dt = (now - last) / 1000;
+    last = now;
+    if (!visible) return;                       // no catch-up jump when scrolled away
+    if (dt > 0.05) dt = 0.05;                   // a dropped frame must not teleport anything
+    t += dt;
+    if (!dragging) {
+      cam.yaw += vel * dt;
+      vel -= vel * Math.min(1, dt * 2.6);
+      idle += dt;
+      if (idle > 1.2) cam.yaw += 0.075 * dt * Math.min(1, (idle - 1.2) / 1.6);
+    }
+    step(dt);
+    render(t);
+  }
+  requestAnimationFrame(loop);
 })();
 </script>
 <script>
@@ -565,11 +1110,7 @@
     "badge.ruleset": "набор правил",
     "badge.tests": "тестов",
     "badge.import": "единственный импорт",
-    "hero.svg.tools": "определения инструментов",
-    "hero.svg.origin": "объявлен?",
-    "hero.svg.pinning": "дрейф?",
-    "hero.svg.verdict": "вердикт",
-    "hero.svg.foot": "ни одного сетевого запроса при проверке · без модели · без оракула",
+    "stage.lbl.verdict": "вердикт",
     "survey.kicker": "Калибровка по экосистеме, а не по фикстурам",
     "survey.h2": "Мы направили его на 1 108 публичных MCP-серверов и опубликовали, где он ошибся",
     "survey.p1": "Через считанные часы после первого релиза мы дотянулись до каждого публичного MCP-сервера, до которого имели право: 2 787 записей реестра с сетевым эндпоинтом, из них 1 108 ответили на настоящий <code>tools/list</code> и отдали 17 491 определение инструмента. Никакой сторонний код не исполнялся — каждое определение пришло из ответа самого сервера.",
@@ -638,13 +1179,13 @@
     "foot.integration": "Руководство по интеграции",
     "foot.survey": "Полевое исследование",
     "foot.legal": "MIT · AICOM. WARDEN сообщает только то, что проверил: это сканер по объявленному тексту, а не гарантия поведения сервера.",
-    "hero.svg.feed": "11 + feed",
+    "stage.nowebgl": "WebGL здесь недоступен, поэтому цепочка гейтов не нарисована. Таблица ниже называет все четыре гейта и что решает каждый.",
+    "stage.hint": "потяните, чтобы повернуть",
     "stage.legend.defs": "определения инструментов",
     "stage.legend.gates": "гейта",
     "stage.legend.blocked": "остановлено на гейте",
     "stage.legend.verdict": "записанный вердикт",
-    "gates.figcaption": "Определения инструментов входят слева, четыре гейта работают внутри процесса хоста, справа выходит записанный вердикт.",
-    "hero.svg.host": "В ПРОЦЕССЕ ХОСТА"
+    "stage.lbl.host": "В ПРОЦЕССЕ ХОСТА"
   },
   "es": {
     "nav.survey": "El estudio",
@@ -663,11 +1204,7 @@
     "badge.ruleset": "conjunto de reglas",
     "badge.tests": "pruebas",
     "badge.import": "el único import",
-    "hero.svg.tools": "definiciones de herramientas",
-    "hero.svg.origin": "¿declarado?",
-    "hero.svg.pinning": "¿deriva?",
-    "hero.svg.verdict": "veredicto",
-    "hero.svg.foot": "sin E/S de red al examinar · sin modelo · sin oráculo",
+    "stage.lbl.verdict": "veredicto",
     "survey.kicker": "Calibrado contra el ecosistema, no contra fixtures",
     "survey.h2": "Lo apuntamos a 1 108 servidores MCP públicos y publicamos en qué se equivocó",
     "survey.p1": "Horas después del primer lanzamiento alcanzamos todos los servidores MCP públicos que legítimamente pudimos: 2 787 entradas del registro con endpoint de red, de las cuales 1 108 respondieron a un <code>tools/list</code> real y entregaron 17 491 definiciones de herramientas. No se ejecutó código de terceros: cada definición vino de la propia respuesta del servidor.",
@@ -736,13 +1273,13 @@
     "foot.integration": "Guía de integración",
     "foot.survey": "Estudio de campo",
     "foot.legal": "MIT · AICOM. WARDEN informa de lo que comprobó y nada más: es un escáner sobre texto anunciado, no una garantía sobre el comportamiento de un servidor.",
-    "hero.svg.feed": "11 + feed",
+    "stage.nowebgl": "WebGL no está disponible aquí, así que la cadena de puertas no se dibuja. La tabla de abajo nombra las cuatro puertas y qué decide cada una.",
+    "stage.hint": "arrastra para girar",
     "stage.legend.defs": "definiciones de herramientas",
     "stage.legend.gates": "puertas",
     "stage.legend.blocked": "detenido en una puerta",
     "stage.legend.verdict": "veredicto registrado",
-    "gates.figcaption": "Las definiciones entran por la izquierda, las cuatro puertas corren dentro del propio proceso del host, y por la derecha sale un veredicto registrado.",
-    "hero.svg.host": "EN EL PROCESO DEL HOST"
+    "stage.lbl.host": "EN EL PROCESO DEL HOST"
   },
   "fr": {
     "nav.survey": "L'étude",
@@ -761,11 +1298,7 @@
     "badge.ruleset": "jeu de règles",
     "badge.tests": "tests",
     "badge.import": "le seul import",
-    "hero.svg.tools": "définitions des outils",
-    "hero.svg.origin": "déclaré ?",
-    "hero.svg.pinning": "dérive ?",
-    "hero.svg.verdict": "verdict",
-    "hero.svg.foot": "aucune E/S réseau pendant l’examen · aucun modèle · aucun oracle",
+    "stage.lbl.verdict": "verdict",
     "survey.kicker": "Calibré sur l’écosystème, pas sur des fixtures",
     "survey.h2": "Nous l’avons pointé sur 1 108 serveurs MCP publics et publié ce qu’il a eu faux",
     "survey.p1": "Quelques heures après la première version, nous avons atteint tous les serveurs MCP publics que nous pouvions légitimement joindre : 2 787 entrées du registre avec un point d’accès réseau, dont 1 108 ont répondu à un vrai <code>tools/list</code> et livré 17 491 définitions d’outils. Aucun code tiers n’a été exécuté : chaque définition vient de la réponse du serveur lui-même.",
@@ -834,13 +1367,13 @@
     "foot.integration": "Guide d’intégration",
     "foot.survey": "Étude de terrain",
     "foot.legal": "MIT · AICOM. WARDEN rapporte ce qu’il a vérifié et rien de plus : c’est un scanner sur du texte annoncé, pas une garantie sur le comportement d’un serveur.",
-    "hero.svg.feed": "11 + feed",
+    "stage.nowebgl": "WebGL n'est pas disponible ici, la chaîne de portes n'est donc pas dessinée. Le tableau ci-dessous nomme les quatre portes et ce que chacune décide.",
+    "stage.hint": "faites glisser pour tourner",
     "stage.legend.defs": "définitions d'outils",
     "stage.legend.gates": "portes",
     "stage.legend.blocked": "arrêté à une porte",
     "stage.legend.verdict": "verdict consigné",
-    "gates.figcaption": "Les définitions entrent à gauche, les quatre portes s'exécutent dans le processus de l'hôte, et un verdict consigné sort à droite.",
-    "hero.svg.host": "DANS LE PROCESSUS DE L'HÔTE"
+    "stage.lbl.host": "DANS LE PROCESSUS DE L'HÔTE"
   },
   "zh": {
     "nav.survey": "实测",
@@ -859,11 +1392,7 @@
     "badge.ruleset": "规则集",
     "badge.tests": "项测试",
     "badge.import": "唯一的 import",
-    "hero.svg.tools": "工具定义",
-    "hero.svg.origin": "已声明？",
-    "hero.svg.pinning": "漂移？",
-    "hero.svg.verdict": "裁定",
-    "hero.svg.foot": "审查过程中不发起任何网络请求 · 不用模型 · 不用预言机",
+    "stage.lbl.verdict": "裁定",
     "survey.kicker": "对着生态校准，而不是对着测试数据",
     "survey.h2": "我们把它指向 1 108 台公开 MCP 服务器，并公开了它错在哪里",
     "survey.p1": "首个版本发布数小时后，我们联系了所有能合法触达的公开 MCP 服务器：注册表里有网络端点的 2 787 条记录，其中 1 108 台真的响应了 <code>tools/list</code>，交出 17 491 条工具定义。没有执行任何第三方代码——每条定义都来自服务器自己的应答。",
@@ -932,13 +1461,13 @@
     "foot.integration": "集成指南",
     "foot.survey": "现场实测",
     "foot.legal": "MIT · AICOM。WARDEN 只报告它检查过的东西：它是针对已公布文本的扫描器，而不是对服务器行为的保证。",
-    "hero.svg.feed": "11 + feed",
+    "stage.nowebgl": "此处无法使用 WebGL，因此没有绘制门链。下方表格列出全部四道门以及每道门判定什么。",
+    "stage.hint": "拖动即可旋转",
     "stage.legend.defs": "工具定义",
     "stage.legend.gates": "道门",
     "stage.legend.blocked": "在门前被拦下",
     "stage.legend.verdict": "留档的裁定",
-    "gates.figcaption": "工具定义从左侧进入，四道门在宿主自己的进程里运行，右侧输出一份留档的裁定。",
-    "hero.svg.host": "在宿主进程内"
+    "stage.lbl.host": "在宿主进程内"
   }
 };
 

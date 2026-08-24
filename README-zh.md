@@ -5,7 +5,7 @@
   <a href="https://github.com/alexar76/warden/actions/workflows/ci.yml"><img src="docs/badges/ci.svg" alt="CI" /></a>
   <a href="https://warden.modelmarket.dev/"><img src="https://img.shields.io/npm/v/@aimarket/warden?color=cb3837&label=npm" alt="npm 版本" /></a>
   <img src="docs/badges/deps.svg" alt="零运行时依赖" />
-  <img src="docs/badges/tests.svg" alt="146 项测试通过" />
+  <img src="docs/badges/tests.svg" alt="148 项测试通过" />
   <img src="docs/badges/node.svg" alt="Node >= 20" />
   <a href="LICENSE"><img src="docs/badges/license.svg" alt="许可证：MIT" /></a>
 </p>
@@ -161,7 +161,7 @@ GET <你的 feed url>
 ## 开发
 
 ```bash
-npm install && npm run build && npm test   # 146 项测试
+npm install && npm run build && npm test   # 148 项测试
 ```
 
 `test/packaging.test.ts` 正是让标题保持诚实的东西：一旦出现运行时依赖、任何源文件从包外 import、或者入口点不

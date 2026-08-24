@@ -180,7 +180,7 @@ no protection:
 ## Development
 
 ```bash
-npm install && npm run build && npm test   # 146 tests
+npm install && npm run build && npm test   # 148 tests
 ```
 
 `test/packaging.test.ts` is what keeps the headline honest: it fails if a runtime dependency appears,

@@ -100,4 +100,36 @@ describe("landing page", () => {
     expect(n).toBeTruthy();
     expect(html, `landing should say ${n} tests`).toContain(`>${n}<`);
   });
+
+  it("the 3D hero names the same four gates as the gate table, in order", () => {
+    // The hero pins DOM labels onto the geometry so they translate, which also
+    // means they can drift away from the chain the rest of the page teaches. They
+    // are the API's own identifiers, so they are not translated — but they must
+    // still be the same four names in the same order as the diagram below.
+    const stage = html.slice(html.indexOf('id="stage"'), html.indexOf('id="stage"') + 2400);
+    const labels = [...stage.matchAll(/data-anchor="(\d)"[^>]*>(.*?)<\/div>/g)]
+      .map((m) => [m[1], m[2].replace(/<[^>]+>/g, "").trim()]);
+    expect(labels.map((l) => l[0])).toEqual(["0", "1", "2", "3"]);
+    expect(labels.map((l) => l[1])).toEqual([
+      "G1 static-scan", "G2 threat-feed", "G3 origin", "G4 pinning",
+    ]);
+    // The flat SVG diagram that used to repeat these names is gone; the gate
+    // table is now the only other place the page states them, so it is what the
+    // hero has to agree with.
+    const table = html.slice(html.indexOf("gates.t.gate"));
+    for (const gate of ["static-scan", "threat-feed", "origin", "pinning"]) {
+      expect(table, `the gate table should also name ${gate}`).toContain(`>${gate}<`);
+    }
+  });
+
+  it("keeps the hero draggable, and keeps the block when there is no WebGL", () => {
+    // Two decisions that a later edit could quietly undo. The scene is worth
+    // nothing if it cannot be turned, and an earlier version deleted the whole
+    // stage on a missing context — which deleted the legend with it.
+    expect(html, "drag").toContain("pointerdown");
+    expect(html, "touch drag must not eat vertical scroll").toContain("touch-action:pan-y");
+    expect(html, "a lost context must not leave a black hero").toContain("webglcontextlost");
+    expect(html).not.toMatch(/\.stage\.fallback\{display:none\}/);
+    expect(html, "no-WebGL note").toContain('data-i18n="stage.nowebgl"');
+  });
 });
