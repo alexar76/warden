@@ -12,7 +12,9 @@
 <!-- /aicom-readme-badges -->
 
 <p align="center">
-  <img src="docs/assets/hero.svg" alt="WARDEN — MCP security firewall: tool defs pass static-scan, threat-feed, origin, and pinning before a recorded verdict" width="920" />
+  <a href="https://warden.modelmarket.dev/">
+    <img src="docs/screenshots/readme/hero-3d.png" alt="WARDEN — chaîne 3D de portes : tools/list via static-scan, threat-feed, origin et pinning jusqu’à un verdict enregistré" width="100%" />
+  </a>
 </p>
 
 

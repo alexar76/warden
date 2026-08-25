@@ -66,11 +66,12 @@ describe("documentation set", () => {
     expect(missing).toEqual([]);
   });
 
-  it("ships a conceptual hero (no UI screenshots — library has none)", () => {
-    expect(existsSync(join(root, "docs", "assets", "hero.svg"))).toBe(true);
+  it("ships the landing 3D hero in every README", () => {
+    expect(existsSync(join(root, "docs", "screenshots", "readme", "hero-3d.png"))).toBe(true);
     for (const f of readmes) {
       const text = readFileSync(join(root, f), "utf8");
-      expect(text, `${f} missing hero`).toContain("docs/assets/hero.svg");
+      expect(text, `${f} missing hero`).toContain("docs/screenshots/readme/hero-3d.png");
+      expect(text, `${f} hero should link to the live landing`).toContain("https://warden.modelmarket.dev/");
     }
   });
 
