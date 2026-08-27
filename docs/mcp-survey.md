@@ -302,7 +302,7 @@ Recovering that by hand was most of the work of this survey.
 
 ### Re-measured on the same 1 108 servers
 
-| | ruleset v3 (as surveyed) | ruleset v4 |
+| | ruleset v3 (as surveyed) | ruleset v4 (re-run, not published) |
 |---|---|---|
 | servers blocked | 50 | **6** |
 | of those, substantiated | 4 | **4** |
@@ -310,10 +310,31 @@ Recovering that by hand was most of the work of this survey.
 | advisory findings | 3 472 | 3 494 |
 | servers with any finding | 444 | 439 |
 
-Every one of the four real findings still blocks — the regression suite asserts both directions, and
-it is built from this corpus's actual text rather than from fixtures, because nobody sitting down to
-invent test data would write "the private key never leaves your machine" or spell a description with
-a Persian ZERO WIDTH NON-JOINER.
+**Which half of that table you can check.** The v3 column is derivable from the dataset in this
+repo. [`data/mcp-survey-2026-08-24.json`](data/mcp-survey-2026-08-24.json) records the run as
+executed — `@aimarket/warden@0.3.0` from the registry, `ruleset.version: "2"`, 50 blocked, 444 with
+findings, 3 964 findings — plus a `ruleset_v2_vs_v3` block establishing that v3 changed nothing on
+this corpus: `servers_with_new_findings: 0`, `newly_blocked: []`, *"same 444 servers with findings,
+same 50 blocked, same 3 964 findings"*. That is why the column is labelled v3 while the file says v2.
+
+The v4 column is **not** in this repo, and no committed file records it. It was measured here against
+the same collected tool definitions, but that collection is not committed — `scripts/mcp-survey/`
+ships the harness, not its output, so the only v4 artefact is this table. Treat those five numbers as
+our measurement reported in good faith, not as something you can recompute from this tree. The
+`50 → 6` figure quoted on the landing page and in the READMEs inherits exactly that status.
+
+What *is* reproducible, and what the claim actually rests on, is the **direction**.
+[`test/field-survey-regression.test.ts`](../test/field-survey-regression.test.ts) holds the verbatim
+descriptions of the servers behind the 46 false positives and behind the 4 substantiated findings,
+and asserts both ways: under v4 the false positives no longer block, and every one of the four real
+findings still does. It runs under `npm test` with no network and no corpus. It is built from this
+corpus's actual text rather than from fixtures, because nobody sitting down to invent test data would
+write "the private key never leaves your machine" or spell a description with a Persian ZERO WIDTH
+NON-JOINER.
+
+A corpus-wide v4 count would need a fresh harvest, and it would not land on 6 even if the ruleset
+were perfect: 1 215 of the 3 121 registry servers answered `4xx` on the day, and which ones do that
+is a property of the day rather than of the rules.
 
 ### What still fires, and why we left it
 
@@ -352,6 +373,10 @@ changing the version.
   invisible to this method, and a 4/50 precision figure says nothing about recall.
 - **Auth-gated servers are absent.** 1 215 servers refused without credentials. Those are
   disproportionately the commercial ones, so the corpus skews toward open and hobby servers.
+- **The v4 re-measure is not reproducible from this repo.** Only the v2/v3 run is committed as data.
+  The v4 column, and the `50 → 6` headline everywhere it appears, rest on a local re-run whose raw
+  output is not published; the regression suite reproduces the direction, not the counts. See
+  [Which half of that table you can check](#re-measured-on-the-same-1-108-servers).
 
 ## Reproduce it
 
@@ -370,6 +395,11 @@ python3 classify.py                  # exact matched span per blocking finding
 
 `harvest_tools.py` makes two or three requests per server and executes nothing. If you re-run it,
 your reachability numbers will differ from ours — endpoints come and go by the hour.
+
+The pin above is `0.3.0` deliberately: it reproduces the survey as published, ruleset v2. Swap it for
+`@aimarket/warden@0.4.0` and you get ruleset v4 — but on **your** corpus, harvested on **your** day,
+so the result is your own measurement rather than a check of ours. That is the honest state of the v4
+column: we cannot hand you the corpus it was computed on.
 
 ## Baseline
 

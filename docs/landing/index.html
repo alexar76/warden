@@ -193,7 +193,7 @@
       <span class="badge"><b>0</b> <span data-i18n="badge.deps">runtime dependencies</span></span>
       <span class="badge"><b>4</b> <span data-i18n="badge.gates">gates</span></span>
       <span class="badge"><span data-i18n="badge.ruleset">ruleset</span> <b>v4</b></span>
-      <span class="badge"><b>148</b> <span data-i18n="badge.tests">tests</span></span>
+      <span class="badge"><b>149</b> <span data-i18n="badge.tests">tests</span></span>
       <span class="badge"><b>node:crypto</b> <span data-i18n="badge.import">the only import</span></span>
     </div>
     <div class="stage" id="stage">
@@ -225,13 +225,13 @@
     <div class="grid g4">
       <div class="card"><span class="num">1 108</span><small data-i18n="survey.k1">servers answered</small></div>
       <div class="card"><span class="num">17 491</span><small data-i18n="survey.k2">tool definitions</small></div>
-      <div class="card"><span class="num warn">50 → 6</span><small data-i18n="survey.k3">servers blocked, v3 → v4</small></div>
+      <div class="card"><span class="num warn">50 → 6</span><small data-i18n="survey.k3">servers blocked, v3 → v4 (re-run)</small></div>
       <div class="card"><span class="num good">4 → 4</span><small data-i18n="survey.k4">real findings, still caught</small></div>
     </div>
     <p data-i18n="survey.p2">The headline is not about the ecosystem, it is about us. Ruleset v3 blocked 50 of those servers and only <b>4</b> held up on review. The other 46 were blocked for saying the right thing: <i>"Never send a private key"</i>, <i>"the private key never leaves your machine"</i>, a security scanner listing the attacks it detects, a Persian description spelled with the ZERO WIDTH NON-JOINER its language requires.</p>
     <div class="note" data-i18n="survey.note">A scanner's false-positive profile is the only number that decides whether anyone switches it on. One that refuses honest servers is not cautious — it is uninstalled. So the failures are published with the evidence, and the regression suite is built from this corpus's real text rather than from invented fixtures.</div>
     <div class="scroll"><table>
-      <thead><tr><th data-i18n="survey.t.head">Re-measured on the same 1 108 servers</th><th>ruleset v3</th><th>ruleset v4</th></tr></thead>
+      <thead><tr><th data-i18n="survey.t.head">Re-measured on the same 1 108 servers</th><th>ruleset v3</th><th>ruleset v4 *</th></tr></thead>
       <tbody>
         <tr><td data-i18n="survey.t.blocked">servers blocked</td><td class="mono">50</td><td class="mono">6</td></tr>
         <tr><td data-i18n="survey.t.subst">of those, substantiated</td><td class="mono">4</td><td class="mono">4</td></tr>
@@ -239,6 +239,7 @@
         <tr><td data-i18n="survey.t.afind">advisory findings</td><td class="mono">3 472</td><td class="mono">3 494</td></tr>
       </tbody>
     </table></div>
+    <div class="note" data-i18n="survey.prov">* Only the v3 column is published as data: the committed dataset is the run as executed, and it records that v3 changed nothing on this corpus. The v4 column comes from a local re-run whose corpus is not published, so it is our measurement rather than something you can recompute. What is reproducible is the direction — the regression suite asserts, from the corpus's own text and with no network, that the 46 false positives no longer block and the 4 real findings still do.</div>
     <p data-i18n="survey.p3">Ruleset v4 gets there with <b>guards</b> — named context checks that are part of the published rule table, and therefore of its digest. <code>polarity</code> alone accounted for 390 of those 492 blocking findings: a credential noun inside a refusal is a promise, not a request. <code>mention</code> knows that a phrase in quotes, in backticks or as a bare JSON <code>enum</code> value is cited rather than said.</p>
     <div class="cta"><a class="btn" href="https://github.com/alexar76/warden/blob/main/docs/mcp-survey.md" data-i18n="survey.btn">Read the full survey</a></div>
   </div>
@@ -1116,7 +1117,8 @@
     "survey.p1": "Через считанные часы после первого релиза мы дотянулись до каждого публичного MCP-сервера, до которого имели право: 2 787 записей реестра с сетевым эндпоинтом, из них 1 108 ответили на настоящий <code>tools/list</code> и отдали 17 491 определение инструмента. Никакой сторонний код не исполнялся — каждое определение пришло из ответа самого сервера.",
     "survey.k1": "серверов ответили",
     "survey.k2": "определений инструментов",
-    "survey.k3": "серверов заблокировано, v3 → v4",
+    "survey.k3": "серверов заблокировано, v3 → v4 (перезамер)",
+    "survey.prov": "* Данными опубликована только колонка v3: закоммиченный датасет — это прогон, как он был выполнен, и в нём же зафиксировано, что v3 на этом корпусе ничего не изменил. Колонка v4 получена локальным перезамером, корпус которого не опубликован, поэтому это наше измерение, а не то, что можно пересчитать самостоятельно. Воспроизводимо направление: регресс-набор на собственном тексте корпуса и без сети проверяет, что 46 ложных срабатываний больше не блокируют, а 4 настоящих находки блокируют по-прежнему.",
     "survey.k4": "реальных находок, по-прежнему ловятся",
     "survey.p2": "Главное здесь не про экосистему, а про нас. Набор правил v3 заблокировал 50 серверов, и только <b>4</b> выдержали проверку. Остальные 46 были заблокированы за то, что говорили правильные вещи: <i>«Никогда не отправляйте приватный ключ»</i>, <i>«приватный ключ никогда не покидает вашу машину»</i>, сканер безопасности, перечисляющий атаки, которые он детектит, персидское описание, написанное с ZERO WIDTH NON-JOINER, который требует этот язык.",
     "survey.note": "Профиль ложных срабатываний — единственное число, которое решает, включит ли сканер хоть кто-нибудь. Тот, который отвергает честные серверы, не осторожный — он удалённый. Поэтому ошибки опубликованы вместе с доказательствами, а регресс-набор собран из настоящего текста этого корпуса, а не из выдуманных фикстур.",
@@ -1210,7 +1212,8 @@
     "survey.p1": "Horas después del primer lanzamiento alcanzamos todos los servidores MCP públicos que legítimamente pudimos: 2 787 entradas del registro con endpoint de red, de las cuales 1 108 respondieron a un <code>tools/list</code> real y entregaron 17 491 definiciones de herramientas. No se ejecutó código de terceros: cada definición vino de la propia respuesta del servidor.",
     "survey.k1": "servidores respondieron",
     "survey.k2": "definiciones de herramientas",
-    "survey.k3": "servidores bloqueados, v3 → v4",
+    "survey.k3": "servidores bloqueados, v3 → v4 (nueva medición)",
+    "survey.prov": "* Solo la columna v3 se publica como datos: el conjunto de datos incluido en el repositorio es la ejecución tal como se hizo, y en él consta que v3 no cambió nada en este corpus. La columna v4 proviene de una nueva medición local cuyo corpus no está publicado, así que es nuestra medición y no algo que puedas recalcular. Lo que sí es reproducible es la dirección: la suite de regresión comprueba, con el texto real del corpus y sin red, que los 46 falsos positivos ya no bloquean y que los 4 hallazgos reales siguen bloqueando.",
     "survey.k4": "hallazgos reales, aún detectados",
     "survey.p2": "El titular no es sobre el ecosistema, es sobre nosotros. El conjunto v3 bloqueó 50 de esos servidores y solo <b>4</b> resistieron la revisión. Los otros 46 fueron bloqueados por decir lo correcto: <i>«Nunca envíes una clave privada»</i>, <i>«la clave privada nunca sale de tu máquina»</i>, un escáner de seguridad enumerando los ataques que detecta, una descripción en persa escrita con el ZERO WIDTH NON-JOINER que su idioma exige.",
     "survey.note": "El perfil de falsos positivos de un escáner es el único número que decide si alguien lo enciende. Uno que rechaza servidores honestos no es prudente: es un escáner desinstalado. Así que los fallos se publican con la evidencia, y la suite de regresión está construida con el texto real de este corpus, no con fixtures inventados.",
@@ -1304,7 +1307,8 @@
     "survey.p1": "Quelques heures après la première version, nous avons atteint tous les serveurs MCP publics que nous pouvions légitimement joindre : 2 787 entrées du registre avec un point d’accès réseau, dont 1 108 ont répondu à un vrai <code>tools/list</code> et livré 17 491 définitions d’outils. Aucun code tiers n’a été exécuté : chaque définition vient de la réponse du serveur lui-même.",
     "survey.k1": "serveurs ont répondu",
     "survey.k2": "définitions d’outils",
-    "survey.k3": "serveurs bloqués, v3 → v4",
+    "survey.k3": "serveurs bloqués, v3 → v4 (nouvelle mesure)",
+    "survey.prov": "* Seule la colonne v3 est publiée sous forme de données : le jeu de données versionné correspond à la campagne telle qu’elle a été exécutée, et il consigne que v3 n’a rien changé sur ce corpus. La colonne v4 provient d’une nouvelle mesure locale dont le corpus n’est pas publié : c’est donc notre mesure, et non quelque chose que vous pouvez recalculer. Ce qui est reproductible, c’est le sens : la suite de régression vérifie, sur le texte réel du corpus et sans réseau, que les 46 faux positifs ne bloquent plus et que les 4 vraies détections bloquent toujours.",
     "survey.k4": "constats réels, toujours attrapés",
     "survey.p2": "Le titre ne parle pas de l’écosystème, il parle de nous. Le jeu v3 a bloqué 50 de ces serveurs et seuls <b>4</b> ont tenu à la relecture. Les 46 autres ont été bloqués pour avoir dit la bonne chose : <i>« N’envoyez jamais une clé privée »</i>, <i>« la clé privée ne quitte jamais votre machine »</i>, un scanner de sécurité énumérant les attaques qu’il détecte, une description en persan écrite avec le ZERO WIDTH NON-JOINER que sa langue exige.",
     "survey.note": "Le profil de faux positifs est le seul chiffre qui décide si quelqu’un active un scanner. Celui qui refuse des serveurs honnêtes n’est pas prudent : il est désinstallé. Les échecs sont donc publiés avec les preuves, et la suite de régression est bâtie sur le texte réel de ce corpus plutôt que sur des fixtures inventées.",
@@ -1398,7 +1402,8 @@
     "survey.p1": "首个版本发布数小时后，我们联系了所有能合法触达的公开 MCP 服务器：注册表里有网络端点的 2 787 条记录，其中 1 108 台真的响应了 <code>tools/list</code>，交出 17 491 条工具定义。没有执行任何第三方代码——每条定义都来自服务器自己的应答。",
     "survey.k1": "台服务器响应",
     "survey.k2": "条工具定义",
-    "survey.k3": "台被阻止，v3 → v4",
+    "survey.k3": "台被阻止，v3 → v4（重新测量）",
+    "survey.prov": "* 只有 v3 这一列是以数据形式公开的：仓库中提交的数据集就是当时实际执行的那次扫描，其中也记录了 v3 在这份语料上没有带来任何变化。v4 一列来自一次本地重新测量，其语料并未公开，所以它是我们的测量结果，而不是你可以自行复算的东西。可复现的是方向：回归测试用这份语料的真实文本、且无需联网，验证 46 个误报不再阻止、4 个真实发现依然阻止。",
     "survey.k4": "个真实发现，依然被抓住",
     "survey.p2": "重点不在生态，而在我们自己。规则集 v3 阻止了其中 50 台，而只有 <b>4</b> 台经复核站得住脚。另外 46 台被阻止，恰恰因为它们说了对的话：<i>「永远不要发送私钥」</i>、<i>「私钥永不离开你的机器」</i>、一个安全扫描器在列举自己能检测的攻击、一段波斯语描述里带着该语言必需的 ZERO WIDTH NON-JOINER。",
     "survey.note": "扫描器的误报画像，是决定有没有人愿意开启它的唯一数字。会拒绝诚实服务器的扫描器不是谨慎，而是会被卸载。所以我们连证据一起公开这些失败，并且回归测试用的是这份语料的真实文本，而不是编造的测试数据。",

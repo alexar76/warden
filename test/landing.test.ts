@@ -92,6 +92,31 @@ describe("landing page", () => {
     expect(html).toContain("4 → 4");
   });
 
+  it("does not present the v4 re-measure as published data", () => {
+    // The committed dataset is the run as executed: @aimarket/warden@0.3.0, ruleset v2,
+    // plus a ruleset_v2_vs_v3 block showing v3 changed nothing on this corpus. There is
+    // no v4 row anywhere in it. So `50 → 6` is a real measurement we cannot hand anyone
+    // the corpus for, and both the page and the survey have to say so — otherwise the
+    // most quotable number on the landing is the one number a reader cannot check.
+    const data = JSON.parse(
+      readFileSync(join(root, "docs", "data", "mcp-survey-2026-08-24.json"), "utf8"),
+    ) as { survey: { ruleset: { version: string } }; ruleset_v2_vs_v3?: unknown };
+    expect(data.survey.ruleset.version, "dataset is still the pre-v4 run").toBe("2");
+    expect(data.ruleset_v2_vs_v3, "v3-equivalence block is what licenses the v3 label").toBeTruthy();
+
+    // The page marks the column and carries the provenance note in all five languages.
+    expect(html, "v4 column is flagged").toContain("ruleset v4 *");
+    expect(html, "provenance note present").toContain('data-i18n="survey.prov"');
+    expect(html, "card label says re-run").toContain("v3 → v4 (re-run)");
+
+    // The survey itself must not leave the v4 column unqualified.
+    const survey = readFileSync(SURVEY, "utf8");
+    expect(survey, "v4 column header qualified").toContain("ruleset v4 (re-run, not published)");
+    expect(survey, "survey states what is not reproducible").toContain(
+      "The v4 column is **not** in this repo",
+    );
+  });
+
   it("quotes the test count the runner reports", () => {
     // Same rule the READMEs follow: the badge is generated from a real run, so the
     // page may not invent a number of its own.

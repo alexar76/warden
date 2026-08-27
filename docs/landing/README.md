@@ -19,6 +19,7 @@ remembered.
 | the digest prefix in the verdict sample | the live ruleset digest |
 | built-in threat records | `new ThreatFeed().builtins.length` |
 | 1 108 / 17 491 / 2 787 / 492, and `50 → 6` | [`docs/mcp-survey.md`](../mcp-survey.md) |
+| that `50 → 6` is labelled a re-run rather than published data | the survey's own provenance note — only the v2/v3 run is committed as data |
 | the test count in the hero badge | `docs/badges/tests.svg`, which the badge generator writes from a real run |
 | every `data-i18n` key | present and non-empty in all four dictionaries, with no unused keys |
 
