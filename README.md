@@ -9,13 +9,13 @@
 
 <!-- aicom-readme-badges -->
 <p align="center">
-  <a href="https://github.com/alexar76/warden/actions/workflows/ci.yml"><img src="https://raw.githubusercontent.com/alexar76/warden/main/docs/badges/ci.svg" alt="CI" /></a>
-  <a href="https://warden.modelmarket.dev/"><img src="https://raw.githubusercontent.com/alexar76/warden/main/docs/badges/deps.svg" alt="0 runtime deps" /></a>
+  <a href="https://github.com/alexar76/warden/actions/workflows/ci.yml"><img src="https://raw.githubusercontent.com/alexar76/warden/refs/heads/main/docs/badges/ci.svg" alt="CI" /></a>
+  <a href="https://warden.modelmarket.dev/"><img src="https://raw.githubusercontent.com/alexar76/warden/refs/heads/main/docs/badges/deps.svg" alt="0 runtime deps" /></a>
   <a href="https://warden.modelmarket.dev/"><img src="https://img.shields.io/npm/v/@aimarket/warden.svg" alt="npm @aimarket/warden" /></a>
-  <img src="https://raw.githubusercontent.com/alexar76/warden/main/docs/badges/tests.svg" alt="96 tests passing" />
-  <img src="https://raw.githubusercontent.com/alexar76/warden/main/docs/badges/node.svg" alt="node >=20" />
-  <img src="https://raw.githubusercontent.com/alexar76/warden/main/docs/badges/warden.svg" alt="WARDEN MCP firewall" />
-  <a href="https://github.com/alexar76/warden/blob/main/LICENSE"><img src="https://raw.githubusercontent.com/alexar76/warden/main/docs/badges/license.svg" alt="License: MIT" /></a>
+  <img src="https://raw.githubusercontent.com/alexar76/warden/refs/heads/main/docs/badges/tests.svg" alt="96 tests passing" />
+  <img src="https://raw.githubusercontent.com/alexar76/warden/refs/heads/main/docs/badges/node.svg" alt="node >=20" />
+  <img src="https://raw.githubusercontent.com/alexar76/warden/refs/heads/main/docs/badges/warden.svg" alt="WARDEN MCP firewall" />
+  <a href="https://github.com/alexar76/warden/blob/main/LICENSE"><img src="https://raw.githubusercontent.com/alexar76/warden/refs/heads/main/docs/badges/license.svg" alt="License: MIT" /></a>
 </p>
 <!-- /aicom-readme-badges -->
 
