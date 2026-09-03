@@ -5,9 +5,10 @@
   <a href="https://github.com/alexar76/warden/actions/workflows/ci.yml"><img src="docs/badges/ci.svg" alt="CI" /></a>
   <a href="https://warden.modelmarket.dev/"><img src="https://img.shields.io/npm/v/@aimarket/warden?color=cb3837&label=npm" alt="npm version" /></a>
   <img src="docs/badges/deps.svg" alt="Zero runtime dependencies" />
-  <img src="docs/badges/tests.svg" alt="149 tests passing" />
+  <img src="docs/badges/tests.svg" alt="165 tests passing" />
   <img src="docs/badges/node.svg" alt="Node >= 20" />
   <a href="LICENSE"><img src="docs/badges/license.svg" alt="License: MIT" /></a>
+  <a href="https://glama.ai/mcp/servers/alexar76/warden"><img src="https://glama.ai/mcp/servers/alexar76/warden/badges/score.svg" alt="Glama score" /></a>
 </p>
 <!-- /aicom-readme-badges -->
 
@@ -33,9 +34,33 @@ WARDEN проверяет сервер **до того, как его инстр
 npm install @aimarket/warden
 ```
 
-**Ноль рантайм-зависимостей.** Единственный импорт во всём пакете — `node:crypto`. Это файрвол из
+**Ноль npm-зависимостей в рантайме.** В библиотеке единственный импорт — `node:crypto`. stdio MCP-вход
+добавляет другие `node:` builtins (`fs`, `path`, `process`) и по-прежнему не тянет пакеты. Это файрвол из
 [ARGUS](https://github.com/alexar76/argus), вынесенный отдельно, чтобы его можно было поставить
 перед своим MCP-хостом, не переезжая на агента.
+
+## MCP-сервер (stdio)
+
+Продукт — библиотека. Те же гейты отдаются и как **stdio MCP-сервер**, чтобы их можно было вызвать из
+[Glama](https://glama.ai/mcp/servers/alexar76/warden), Claude Desktop и Cursor. Процесс **не**
+запускает, не проксирует и не изолирует чужой MCP-сервер: вы передаёте дамп `tools/list`, получаете
+вердикт. Ключи не нужны.
+
+```bash
+npx -y @aimarket/warden
+npm run build && node dist/mcp-server.js
+```
+
+| Инструмент | Когда вызывать |
+|---|---|
+| `vet_mcp_server` | Полная цепочка гейтов |
+| `static_scan_tools` | Только static-scan |
+| `classify_sensitive_tools` | Glob-разбиение оператора |
+| `check_egress_url` | Allowlist хостов (пустой список — отказ всем) |
+| `canonicalize_json` | Байты RFC 8785 |
+| `list_scan_rules` | Опубликованная таблица правил |
+
+Docker / форма Glama: [`docs/GLAMA.md`](docs/GLAMA.md).
 
 ## Быстрый старт
 
@@ -160,6 +185,9 @@ GET <ваш feed url>
 | [Подписанный threat feed](docs/threat-feed.ru.md) | Контракт на проводе, три проверки и как публиковать feed, который WARDEN примет |
 | [Руководство по интеграции](docs/integration.ru.md) | Как встроить WARDEN в свой MCP-хост, выбор политики и что записывать |
 | [Полевой обзор: 1 108 публичных MCP-серверов](docs/mcp-survey.ru.md) | Что WARDEN решил на настоящих чужих определениях инструментов — 50 серверов заблокировано, 4 подтверждено, и шесть способов, которыми остальные оказались ошибкой |
+| [Glama / Docker](docs/GLAMA.md) | stdio MCP, health check, Build steps / CMD |
+| [Security](SECURITY.md) | Как сообщать об обходе файрвола |
+| [Contributing](CONTRIBUTING.md) | Правило нулевых зависимостей, PR на таблицу правил |
 
 ## Чем это не является
 
@@ -174,11 +202,13 @@ GET <ваш feed url>
   снова заявит о недоступности.
 - **Не замена чтению определений инструментов.** 11 встроенных записей об угрозах — это минимум, а не
   каталог.
+- **Не прокси.** stdio MCP-вход смотрит на определения, которые вы ему передали. Он не
+  подключается к проверяемому серверу, не качает его и не исполняет.
 
 ## Разработка
 
 ```bash
-npm install && npm run build && npm test   # 149 тестов
+npm install && npm run build && npm test   # 165 тестов
 ```
 
 `test/packaging.test.ts` — то, что удерживает заголовок честным: он падает, если появляется

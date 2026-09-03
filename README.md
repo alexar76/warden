@@ -40,9 +40,45 @@ exact rule table that was in force.
 npm install @aimarket/warden
 ```
 
-**Zero runtime dependencies.** The only import in the whole package is `node:crypto`. It is the
+**Zero npm runtime dependencies.** The library's only import is `node:crypto`. The stdio MCP entry
+adds other `node:` builtins (`fs`, `path`, `process`) and still pulls in no packages. It is the
 firewall out of [ARGUS](https://github.com/alexar76/argus), extracted so you can put it in front of
 your own MCP host without adopting an agent.
+
+## MCP server (stdio)
+
+The library is the product. The same gates are also a **stdio MCP server** so
+[Glama](https://glama.ai/mcp/servers/alexar76/warden), Claude Desktop, and Cursor can call them. The
+process never starts, proxies, or sandboxes another MCP server — you pass a `tools/list` dump in,
+you get a verdict out. No API keys.
+
+```bash
+npx -y @aimarket/warden            # bin: warden-mcp
+# from this repo:
+npm run build && node dist/mcp-server.js
+```
+
+| Tool | Use when |
+|---|---|
+| `vet_mcp_server` | Full gate chain on a server identity + advertised tools |
+| `static_scan_tools` | Injection / exfil scan only (no origin / pinning / threat feed) |
+| `classify_sensitive_tools` | Operator glob split — not an injection scan |
+| `check_egress_url` | Hostname allowlist (empty list denies every host) |
+| `canonicalize_json` | RFC 8785 bytes for feeds and pins |
+| `list_scan_rules` | Published rule table + digest |
+
+```json
+{
+  "mcpServers": {
+    "warden": {
+      "command": "npx",
+      "args": ["-y", "@aimarket/warden"]
+    }
+  }
+}
+```
+
+Docker / Glama admin form: [`docs/GLAMA.md`](docs/GLAMA.md).
 
 ## Quick start
 
@@ -165,6 +201,9 @@ no protection:
 | [The signed threat feed](docs/threat-feed.md) | The wire contract, the three checks, and how to publish a feed WARDEN will accept |
 | [Integration guide](docs/integration.md) | Wiring WARDEN into your own MCP host, policy choices, and what to record |
 | [Field survey: 1 108 public MCP servers](docs/mcp-survey.md) | What WARDEN decided on real third-party tool definitions — 50 servers blocked, 4 substantiated, and the six ways the rest were wrong |
+| [Glama / Docker](docs/GLAMA.md) | stdio MCP server, health check, admin Build steps / CMD |
+| [Security](SECURITY.md) | How to report a firewall bypass |
+| [Contributing](CONTRIBUTING.md) | Zero-dep rule, ruleset PRs |
 
 ## What this is not
 
@@ -178,16 +217,19 @@ no protection:
   again.
 - **Not a substitute for reading the tool defs.** 11 built-in threat records is a floor, not a
   catalog.
+- **Not a proxy.** The stdio MCP entry inspects advertised definitions you pass it. It does not
+  connect to, fetch, or execute the server under scan.
 
 ## Development
 
 ```bash
-npm install && npm run build && npm test   # 149 tests
+npm install && npm run build && npm test   # 165 tests
 ```
 
-`test/packaging.test.ts` is what keeps the headline honest: it fails if a runtime dependency appears,
-if any source file imports outside the package, or if the entry point stops exporting the
-enforcement surface.
+`test/packaging.test.ts` is what keeps the headline honest: it fails if an npm runtime dependency
+appears, if any source file imports outside the package (except `node:` builtins), or if the entry
+point stops exporting the enforcement surface. `test/mcp-server.test.ts` is the Glama health
+check: `initialize` + `tools/list` + a `tools/call`.
 
 Used by [ARGUS](https://github.com/alexar76/argus) (the reference host), [MOMUS](https://github.com/alexar76/momus)
 (the publisher side), and the AICOM MCP-security course.

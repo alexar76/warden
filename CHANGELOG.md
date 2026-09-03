@@ -2,6 +2,14 @@
 
 All notable changes to `@aimarket/warden`.
 
+## 0.5.0 — 2026-09-03
+
+stdio MCP server for Glama / Claude Desktop / Cursor (`warden-mcp` / `node dist/mcp-server.js`).
+Six tools with TDQS-oriented definitions (title, when-to-use / when-not naming siblings, MCP
+annotations, per-parameter descriptions, `outputSchema`). Dockerfile + `glama.json`. No secrets,
+no npm runtime dependencies. The process inspects a `tools/list` dump; it does not launch the
+server under scan.
+
 ## 0.4.0 — 2026-08-24
 
 Calibrated against the ecosystem, not against fixtures. WARDEN was pointed at every public MCP

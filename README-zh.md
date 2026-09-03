@@ -5,9 +5,10 @@
   <a href="https://github.com/alexar76/warden/actions/workflows/ci.yml"><img src="docs/badges/ci.svg" alt="CI" /></a>
   <a href="https://warden.modelmarket.dev/"><img src="https://img.shields.io/npm/v/@aimarket/warden?color=cb3837&label=npm" alt="npm 版本" /></a>
   <img src="docs/badges/deps.svg" alt="零运行时依赖" />
-  <img src="docs/badges/tests.svg" alt="149 项测试通过" />
+  <img src="docs/badges/tests.svg" alt="165 项测试通过" />
   <img src="docs/badges/node.svg" alt="Node >= 20" />
   <a href="LICENSE"><img src="docs/badges/license.svg" alt="许可证：MIT" /></a>
+  <a href="https://glama.ai/mcp/servers/alexar76/warden"><img src="https://glama.ai/mcp/servers/alexar76/warden/badges/score.svg" alt="Glama score" /></a>
 </p>
 <!-- /aicom-readme-badges -->
 
@@ -30,8 +31,31 @@ WARDEN 在**该服务器的任何工具到达模型之前**审查它，并返回
 npm install @aimarket/warden
 ```
 
-**零运行时依赖。** 整个包里唯一的 import 是 `node:crypto`。它就是 [ARGUS](https://github.com/alexar76/argus)
+**零 npm 运行时依赖。** 库本身唯一的 import 是 `node:crypto`。stdio MCP 入口会再用到其他 `node:`
+内建模块（`fs`、`path`、`process`），仍然不拉任何包。它就是 [ARGUS](https://github.com/alexar76/argus)
 里的那个防火墙，被单独抽出来，好让你把它放在自己的 MCP 宿主前面，而不必换用一个智能体。
+
+## MCP 服务器（stdio）
+
+产品是库。同一组门控也做成 **stdio MCP 服务器**，供 [Glama](https://glama.ai/mcp/servers/alexar76/warden)、
+Claude Desktop 和 Cursor 调用。进程**不会**启动、代理或沙箱化另一个 MCP 服务器：你传入 `tools/list`
+转储，得到一份裁决。不需要密钥。
+
+```bash
+npx -y @aimarket/warden
+npm run build && node dist/mcp-server.js
+```
+
+| 工具 | 何时使用 |
+|---|---|
+| `vet_mcp_server` | 完整门控链 |
+| `static_scan_tools` | 仅静态扫描 |
+| `classify_sensitive_tools` | 运营方 glob 分类 |
+| `check_egress_url` | 主机 allowlist（空列表拒绝全部） |
+| `canonicalize_json` | RFC 8785 字节 |
+| `list_scan_rules` | 已发布的规则表 |
+
+Docker / Glama 表单：[`docs/GLAMA.md`](docs/GLAMA.md)。
 
 ## 快速开始
 
@@ -148,6 +172,9 @@ GET <你的 feed url>
 | [已签名的威胁情报 feed](docs/threat-feed.zh.md) | 线上契约、三项检查，以及如何发布一个 WARDEN 会接受的 feed |
 | [集成指南](docs/integration.zh.md) | 如何把 WARDEN 接入自己的 MCP 宿主、策略取舍，以及应当留档什么 |
 | [实地普查：1 108 个公开 MCP 服务器](docs/mcp-survey.zh.md) | WARDEN 在真实的第三方工具定义上判了什么——拦截 50 个服务器，4 项成立，其余判错的六种方式 |
+| [Glama / Docker](docs/GLAMA.md) | stdio MCP、健康检查、Build steps / CMD |
+| [Security](SECURITY.md) | 如何报告防火墙绕过 |
+| [Contributing](CONTRIBUTING.md) | 零依赖规则、规则表 PR |
 
 ## 它不是什么
 
@@ -159,11 +186,12 @@ GET <你的 feed url>
   没发出的情况下报告预言机不可达。该门控已被移除，并且只要有任何门控再次声称不可达，
   `test/no-phantom-gate.test.ts` 就会失败。
 - **不能替代你亲自读工具定义。** 11 条内置威胁记录是底线，不是目录。
+- **不是代理。** stdio MCP 入口检查的是你传入的定义。它不会连接、下载或执行被扫描的服务器。
 
 ## 开发
 
 ```bash
-npm install && npm run build && npm test   # 149 项测试
+npm install && npm run build && npm test   # 165 项测试
 ```
 
 `test/packaging.test.ts` 正是让标题保持诚实的东西：一旦出现运行时依赖、任何源文件从包外 import、或者入口点不

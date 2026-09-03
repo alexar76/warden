@@ -21,15 +21,14 @@ describe("packaging — the standalone claim", () => {
     expect(pkg.peerDependencies ?? {}).toEqual({});
   });
 
-  it("imports nothing outside the package except the node: builtins it declares", () => {
-    const allowed = new Set(["node:crypto"]);
+  it("imports nothing outside the package except node: builtins", () => {
     const offenders: string[] = [];
     for (const file of readdirSync(join(root, "src")).filter((f) => f.endsWith(".ts"))) {
       const src = readFileSync(join(root, "src", file), "utf8");
       for (const m of src.matchAll(/from\s+"([^"]+)"/g)) {
         const spec = m[1]!;
         if (spec.startsWith("./")) continue;
-        if (allowed.has(spec)) continue;
+        if (spec.startsWith("node:")) continue;
         offenders.push(`${file} → ${spec}`);
       }
     }
@@ -44,6 +43,7 @@ describe("packaging — the standalone claim", () => {
     // The canonicalizer is a documented subpath: other implementations verify
     // our RFC 8785 bytes against it without pulling the gate chain.
     expect(pkg.exports["./jcs"].import).toBe("./dist/jcs.js");
+    expect(pkg.bin["warden-mcp"]).toBe("./dist/mcp-server.js");
   });
 
   it("exports the full enforcement surface from the entry point", () => {

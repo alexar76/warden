@@ -1,0 +1,9 @@
+{
+  "$schema": "https://glama.ai/mcp/schemas/server.json",
+  "maintainers": ["alexar76"],
+  "name": "warden",
+  "description": "MCP security firewall (stdio): vet advertised tool definitions through static-scan → threat-feed → origin → pinning before they reach the model. Also static_scan_tools, classify_sensitive_tools, check_egress_url, canonicalize_json (RFC 8785), list_scan_rules. Zero npm runtime dependencies. No secrets required.",
+  "repository": "https://github.com/alexar76/warden",
+  "dockerfile": "Dockerfile",
+  "command": ["node", "dist/mcp-server.js"]
+}

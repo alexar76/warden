@@ -5,9 +5,10 @@
   <a href="https://github.com/alexar76/warden/actions/workflows/ci.yml"><img src="docs/badges/ci.svg" alt="CI" /></a>
   <a href="https://warden.modelmarket.dev/"><img src="https://img.shields.io/npm/v/@aimarket/warden?color=cb3837&label=npm" alt="npm version" /></a>
   <img src="docs/badges/deps.svg" alt="Cero dependencias de ejecución" />
-  <img src="docs/badges/tests.svg" alt="149 pruebas en verde" />
+  <img src="docs/badges/tests.svg" alt="165 pruebas en verde" />
   <img src="docs/badges/node.svg" alt="Node >= 20" />
   <a href="LICENSE"><img src="docs/badges/license.svg" alt="Licencia: MIT" /></a>
+  <a href="https://glama.ai/mcp/servers/alexar76/warden"><img src="https://glama.ai/mcp/servers/alexar76/warden/badges/score.svg" alt="Glama score" /></a>
 </p>
 <!-- /aicom-readme-badges -->
 
@@ -33,9 +34,33 @@ produjeron, una partición por herramienta y la tabla de reglas exacta que estab
 npm install @aimarket/warden
 ```
 
-**Cero dependencias de ejecución.** El único import de todo el paquete es `node:crypto`. Es el
+**Cero dependencias npm de ejecución.** El único import de la biblioteca es `node:crypto`. La entrada
+MCP stdio añade otros builtins `node:` (`fs`, `path`, `process`) y sigue sin traer paquetes. Es el
 cortafuegos de [ARGUS](https://github.com/alexar76/argus), extraído para que puedas ponerlo delante
 de tu propio host MCP sin adoptar un agente.
+
+## Servidor MCP (stdio)
+
+El producto es la biblioteca. Las mismas puertas se exponen como **servidor MCP stdio** para
+[Glama](https://glama.ai/mcp/servers/alexar76/warden), Claude Desktop y Cursor. El proceso **no**
+arranca, no hace de proxy ni aísla otro servidor MCP: pasas un dump de `tools/list` y recibes un
+veredicto. Sin claves.
+
+```bash
+npx -y @aimarket/warden
+npm run build && node dist/mcp-server.js
+```
+
+| Herramienta | Cuándo usarla |
+|---|---|
+| `vet_mcp_server` | Cadena completa de puertas |
+| `static_scan_tools` | Solo el escaneo estático |
+| `classify_sensitive_tools` | Partición por globs del operador |
+| `check_egress_url` | Allowlist de hosts (lista vacía = denegar todos) |
+| `canonicalize_json` | Bytes RFC 8785 |
+| `list_scan_rules` | Tabla de reglas publicada |
+
+Docker / formulario Glama: [`docs/GLAMA.md`](docs/GLAMA.md).
 
 ## Inicio rápido
 
@@ -161,6 +186,9 @@ degradar a ninguna protección:
 | [El threat feed firmado](docs/threat-feed.es.md) | El contrato en el cable, las tres comprobaciones y cómo publicar un feed que WARDEN acepte |
 | [Guía de integración](docs/integration.es.md) | Cómo conectar WARDEN a tu propio host MCP, elecciones de política y qué registrar |
 | [Estudio de campo: 1 108 servidores MCP públicos](docs/mcp-survey.es.md) | Qué decidió WARDEN sobre definiciones de herramienta reales de terceros — 50 servidores bloqueados, 4 sustentados, y las seis formas en que el resto se equivocó |
+| [Glama / Docker](docs/GLAMA.md) | MCP stdio, health check, Build steps / CMD |
+| [Security](SECURITY.md) | Cómo informar de un bypass del cortafuegos |
+| [Contributing](CONTRIBUTING.md) | Regla de cero dependencias, PRs de la tabla de reglas |
 
 ## Lo que esto no es
 
@@ -175,11 +203,13 @@ degradar a ninguna protección:
   `test/no-phantom-gate.test.ts` falla si alguna puerta vuelve a declarar inalcanzabilidad.
 - **No sustituye a leer las definiciones de herramientas.** 11 registros integrados de amenazas son
   un suelo, no un catálogo.
+- **No es un proxy.** La entrada MCP stdio inspecciona las definiciones que le pasas. No se conecta
+  al servidor bajo examen, no lo descarga ni lo ejecuta.
 
 ## Desarrollo
 
 ```bash
-npm install && npm run build && npm test   # 149 pruebas
+npm install && npm run build && npm test   # 165 pruebas
 ```
 
 `test/packaging.test.ts` es lo que mantiene honesto el titular: falla si aparece una dependencia de
