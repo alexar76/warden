@@ -5,7 +5,9 @@
 > and re-synced here, so your contribution becomes canonical.
 > 💬 **[Issues](https://github.com/alexar76/warden/issues)** · **[Pull requests](https://github.com/alexar76/warden/pulls)** both welcome.
 
-# WARDEN — MCP security firewall
+# WARDEN — MCP server
+
+<!-- mcp-name: io.github.alexar76/warden -->
 
 <!-- aicom-readme-badges -->
 <p align="center">
@@ -28,6 +30,18 @@
 
 > 🌐 **English** · [Русский](README-ru.md) · [Español](README-es.md) · [Français](README-fr.md) · [中文](README-zh.md) · [Glossary](https://github.com/alexar76/aicom/blob/main/docs/localization-glossary.md)
 
+**One MCP server. Security firewall for advertised tool definitions. Library included.**
+
+Transport: **stdio** (`npx -y @aimarket/warden` / `node dist/mcp-server.js`). Compatible hosts:
+Claude Desktop, Cursor, Glama, and any MCP client that speaks stdio. No API keys.
+
+| Item | Location |
+|------|----------|
+| MCP entrypoint (stdio) | `warden-mcp` → [`src/mcp-server.ts`](src/mcp-server.ts) |
+| Tools | `vet_mcp_server`, `static_scan_tools`, `classify_sensitive_tools`, `check_egress_url`, `canonicalize_json`, `list_scan_rules` |
+| Library | `import { Warden } from "@aimarket/warden"` |
+| Glama / Docker (stdio) | [`Dockerfile`](Dockerfile), [`glama.json`](glama.json) |
+
 An MCP server tells your agent what its tools do. The agent believes it — that sentence is the
 attack surface. A tool description is prompt text delivered by a third party straight into your
 model's context, and a schema field named `api_key` is a request for your secrets phrased as an API.
@@ -36,21 +50,12 @@ WARDEN vets a server **before any of its tools reach the model**, and returns a 
 record: allow/block, a 0..1 score, the findings that produced it, a per-tool partition, and the
 exact rule table that was in force.
 
-```bash
-npm install @aimarket/warden
-```
+**Zero npm runtime dependencies.** The library's only import is `node:crypto`. The stdio MCP
+server adds other `node:` builtins (`fs`, `path`, `process`) and still pulls in no packages. It is
+the firewall out of [ARGUS](https://github.com/alexar76/argus), extracted so you can put it in front
+of your own MCP host without adopting an agent.
 
-**Zero npm runtime dependencies.** The library's only import is `node:crypto`. The stdio MCP entry
-adds other `node:` builtins (`fs`, `path`, `process`) and still pulls in no packages. It is the
-firewall out of [ARGUS](https://github.com/alexar76/argus), extracted so you can put it in front of
-your own MCP host without adopting an agent.
-
-## MCP server (stdio)
-
-The library is the product. The same gates are also a **stdio MCP server** so
-[Glama](https://glama.ai/mcp/servers/alexar76/warden), Claude Desktop, and Cursor can call them. The
-process never starts, proxies, or sandboxes another MCP server — you pass a `tools/list` dump in,
-you get a verdict out. No API keys.
+## Run as MCP server (stdio)
 
 ```bash
 npx -y @aimarket/warden            # bin: warden-mcp
@@ -58,14 +63,7 @@ npx -y @aimarket/warden            # bin: warden-mcp
 npm run build && node dist/mcp-server.js
 ```
 
-| Tool | Use when |
-|---|---|
-| `vet_mcp_server` | Full gate chain on a server identity + advertised tools |
-| `static_scan_tools` | Injection / exfil scan only (no origin / pinning / threat feed) |
-| `classify_sensitive_tools` | Operator glob split — not an injection scan |
-| `check_egress_url` | Hostname allowlist (empty list denies every host) |
-| `canonicalize_json` | RFC 8785 bytes for feeds and pins |
-| `list_scan_rules` | Published rule table + digest |
+Claude Desktop / Cursor (`mcpServers` entry):
 
 ```json
 {
@@ -78,9 +76,34 @@ npm run build && node dist/mcp-server.js
 }
 ```
 
-Docker / Glama admin form: [`docs/GLAMA.md`](docs/GLAMA.md).
+The process never starts, proxies, or sandboxes another MCP server — you pass a `tools/list` dump
+in, you get a verdict out.
 
-## Quick start
+| Tool | When to use |
+|---|---|
+| `vet_mcp_server` | Full gate chain on a server identity + advertised tools |
+| `static_scan_tools` | Injection / exfil scan only (no origin / pinning / threat feed) |
+| `classify_sensitive_tools` | Operator glob split — not an injection scan |
+| `check_egress_url` | Hostname allowlist (empty list denies every host) |
+| `canonicalize_json` | RFC 8785 bytes for feeds and pins |
+| `list_scan_rules` | Published rule table + digest |
+
+Glama TDQS: MCP `annotations` (readOnly / destructive / idempotent / openWorld), when-to-use /
+when-not naming siblings, every `inputSchema` property described, `outputSchema` on every tool.
+
+### Publish on Glama
+
+Listing: **[glama.ai/mcp/servers/alexar76/warden](https://glama.ai/mcp/servers/alexar76/warden)**
+
+Same pattern as **[ARGUS](https://github.com/alexar76/argus)** and
+**[aimarket-mcp](https://github.com/alexar76/aimarket-mcp)**: repo-root [`glama.json`](glama.json) +
+[`Dockerfile`](Dockerfile) + `node dist/mcp-server.js`. Admin form values: [`docs/GLAMA.md`](docs/GLAMA.md).
+
+## Library (embed in your host)
+
+```bash
+npm install @aimarket/warden
+```
 
 ```ts
 import { Warden, ThreatFeed, silentLogger } from "@aimarket/warden";
@@ -223,7 +246,7 @@ no protection:
 ## Development
 
 ```bash
-npm install && npm run build && npm test   # 165 tests
+npm install && npm run build && npm test   # 166 tests
 ```
 
 `test/packaging.test.ts` is what keeps the headline honest: it fails if an npm runtime dependency

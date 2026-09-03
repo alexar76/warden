@@ -1,14 +1,16 @@
-# WARDEN — MCP 安全防火墙
+# WARDEN — MCP 服务器
+
+<!-- mcp-name: io.github.alexar76/warden -->
 
 <!-- aicom-readme-badges -->
 <p align="center">
   <a href="https://github.com/alexar76/warden/actions/workflows/ci.yml"><img src="docs/badges/ci.svg" alt="CI" /></a>
+  <a href="https://glama.ai/mcp/servers/alexar76/warden"><img src="https://glama.ai/mcp/servers/alexar76/warden/badges/score.svg" alt="warden MCP server" /></a>
   <a href="https://warden.modelmarket.dev/"><img src="https://img.shields.io/npm/v/@aimarket/warden?color=cb3837&label=npm" alt="npm 版本" /></a>
   <img src="docs/badges/deps.svg" alt="零运行时依赖" />
-  <img src="docs/badges/tests.svg" alt="165 项测试通过" />
+  <img src="docs/badges/tests.svg" alt="166 项测试通过" />
   <img src="docs/badges/node.svg" alt="Node >= 20" />
   <a href="LICENSE"><img src="docs/badges/license.svg" alt="许可证：MIT" /></a>
-  <a href="https://glama.ai/mcp/servers/alexar76/warden"><img src="https://glama.ai/mcp/servers/alexar76/warden/badges/score.svg" alt="Glama score" /></a>
 </p>
 <!-- /aicom-readme-badges -->
 
@@ -21,30 +23,49 @@
 
 > 🌐 [English](README.md) · [Русский](README-ru.md) · [Español](README-es.md) · [Français](README-fr.md) · **中文** · [术语表](https://github.com/alexar76/aicom/blob/main/docs/localization-glossary.md)
 
+**一个 MCP 服务器。针对已广告工具定义的安全防火墙。附带库。**
+
+传输：**stdio**（`npx -y @aimarket/warden` / `node dist/mcp-server.js`）。兼容主机：Claude Desktop、
+Cursor、Glama，以及任何支持 stdio 的 MCP 客户端。不需要密钥。
+
+| | |
+|------|----------|
+| MCP 入口（stdio） | `warden-mcp` → [`src/mcp-server.ts`](src/mcp-server.ts) |
+| 工具 | `vet_mcp_server`、`static_scan_tools`、`classify_sensitive_tools`、`check_egress_url`、`canonicalize_json`、`list_scan_rules` |
+| 库 | `import { Warden } from "@aimarket/warden"` |
+| Glama / Docker（stdio） | [`Dockerfile`](Dockerfile)、[`glama.json`](glama.json) |
+
 MCP 服务器自己告诉你的智能体，它的工具是做什么的。智能体就信了——而这句话正是攻击面。工具描述就是第三方直接
 投递进模型上下文的提示词文本；而一个名叫 `api_key` 的 schema 字段，就是以 API 形式写出来的索要密钥的请求。
 
 WARDEN 在**该服务器的任何工具到达模型之前**审查它，并返回一份可以留档的裁定：允许/阻止、0..1 的评分、导致该
 评分的各项发现、按工具的划分，以及当时生效的确切规则表。
 
-```bash
-npm install @aimarket/warden
-```
-
-**零 npm 运行时依赖。** 库本身唯一的 import 是 `node:crypto`。stdio MCP 入口会再用到其他 `node:`
+**零 npm 运行时依赖。** 库本身唯一的 import 是 `node:crypto`。stdio MCP 服务器会再用到其他 `node:`
 内建模块（`fs`、`path`、`process`），仍然不拉任何包。它就是 [ARGUS](https://github.com/alexar76/argus)
 里的那个防火墙，被单独抽出来，好让你把它放在自己的 MCP 宿主前面，而不必换用一个智能体。
 
-## MCP 服务器（stdio）
-
-产品是库。同一组门控也做成 **stdio MCP 服务器**，供 [Glama](https://glama.ai/mcp/servers/alexar76/warden)、
-Claude Desktop 和 Cursor 调用。进程**不会**启动、代理或沙箱化另一个 MCP 服务器：你传入 `tools/list`
-转储，得到一份裁决。不需要密钥。
+## 作为 MCP 服务器运行（stdio）
 
 ```bash
 npx -y @aimarket/warden
 npm run build && node dist/mcp-server.js
 ```
+
+Claude Desktop / Cursor（`mcpServers`）：
+
+```json
+{
+  "mcpServers": {
+    "warden": {
+      "command": "npx",
+      "args": ["-y", "@aimarket/warden"]
+    }
+  }
+}
+```
+
+进程**不会**启动、代理或沙箱化另一个 MCP 服务器：你传入 `tools/list` 转储，得到一份裁决。
 
 | 工具 | 何时使用 |
 |---|---|
@@ -55,9 +76,19 @@ npm run build && node dist/mcp-server.js
 | `canonicalize_json` | RFC 8785 字节 |
 | `list_scan_rules` | 已发布的规则表 |
 
-Docker / Glama 表单：[`docs/GLAMA.md`](docs/GLAMA.md)。
+### 发布到 Glama
 
-## 快速开始
+列表页：**[glama.ai/mcp/servers/alexar76/warden](https://glama.ai/mcp/servers/alexar76/warden)**
+
+与 [ARGUS](https://github.com/alexar76/argus)、[aimarket-mcp](https://github.com/alexar76/aimarket-mcp)
+相同：[`glama.json`](glama.json) + [`Dockerfile`](Dockerfile) + `node dist/mcp-server.js`。
+表单：[`docs/GLAMA.md`](docs/GLAMA.md)。
+
+## 库（嵌入你的宿主）
+
+```bash
+npm install @aimarket/warden
+```
 
 ```ts
 import { Warden, ThreatFeed, silentLogger } from "@aimarket/warden";
@@ -191,7 +222,7 @@ GET <你的 feed url>
 ## 开发
 
 ```bash
-npm install && npm run build && npm test   # 165 项测试
+npm install && npm run build && npm test   # 166 项测试
 ```
 
 `test/packaging.test.ts` 正是让标题保持诚实的东西：一旦出现运行时依赖、任何源文件从包外 import、或者入口点不

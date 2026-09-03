@@ -1,14 +1,16 @@
-# WARDEN — pare-feu de sécurité MCP
+# WARDEN — serveur MCP
+
+<!-- mcp-name: io.github.alexar76/warden -->
 
 <!-- aicom-readme-badges -->
 <p align="center">
   <a href="https://github.com/alexar76/warden/actions/workflows/ci.yml"><img src="docs/badges/ci.svg" alt="CI" /></a>
+  <a href="https://glama.ai/mcp/servers/alexar76/warden"><img src="https://glama.ai/mcp/servers/alexar76/warden/badges/score.svg" alt="warden MCP server" /></a>
   <a href="https://warden.modelmarket.dev/"><img src="https://img.shields.io/npm/v/@aimarket/warden?color=cb3837&label=npm" alt="version npm" /></a>
   <img src="docs/badges/deps.svg" alt="Zéro dépendance d'exécution" />
-  <img src="docs/badges/tests.svg" alt="165 tests au vert" />
+  <img src="docs/badges/tests.svg" alt="166 tests au vert" />
   <img src="docs/badges/node.svg" alt="Node >= 20" />
   <a href="LICENSE"><img src="docs/badges/license.svg" alt="Licence : MIT" /></a>
-  <a href="https://glama.ai/mcp/servers/alexar76/warden"><img src="https://glama.ai/mcp/servers/alexar76/warden/badges/score.svg" alt="Glama score" /></a>
 </p>
 <!-- /aicom-readme-badges -->
 
@@ -21,6 +23,18 @@
 
 > 🌐 [English](README.md) · [Русский](README-ru.md) · [Español](README-es.md) · **Français** · [中文](README-zh.md) · [Glossaire](https://github.com/alexar76/aicom/blob/main/docs/localization-glossary.md)
 
+**Un serveur MCP. Pare-feu des définitions d'outils annoncées. Bibliothèque incluse.**
+
+Transport : **stdio** (`npx -y @aimarket/warden` / `node dist/mcp-server.js`). Hôtes compatibles :
+Claude Desktop, Cursor, Glama et tout client MCP en stdio. Aucune clé.
+
+| | |
+|------|----------|
+| Entrée MCP (stdio) | `warden-mcp` → [`src/mcp-server.ts`](src/mcp-server.ts) |
+| Outils | `vet_mcp_server`, `static_scan_tools`, `classify_sensitive_tools`, `check_egress_url`, `canonicalize_json`, `list_scan_rules` |
+| Bibliothèque | `import { Warden } from "@aimarket/warden"` |
+| Glama / Docker (stdio) | [`Dockerfile`](Dockerfile), [`glama.json`](glama.json) |
+
 Un serveur MCP indique lui-même à votre agent ce que font ses outils. L'agent le croit — et cette
 phrase est la surface d'attaque. La description d'un outil est du texte de prompt qu'un tiers livre
 directement dans le contexte de votre modèle, et un champ de schéma nommé `api_key` est une demande
@@ -30,26 +44,33 @@ WARDEN examine un serveur **avant qu'aucun de ses outils n'atteigne le modèle**
 que vous pouvez consigner : autoriser/bloquer, un score 0..1, les constats qui l'ont produit, une
 partition par outil et la table de règles exacte qui était en vigueur.
 
-```bash
-npm install @aimarket/warden
-```
+**Zéro dépendance npm d'exécution.** Le seul import de la bibliothèque est `node:crypto`. Le serveur
+MCP stdio ajoute d'autres builtins `node:` (`fs`, `path`, `process`) et ne tire toujours aucun paquet.
+C'est le pare-feu d'[ARGUS](https://github.com/alexar76/argus), extrait pour que vous puissiez le
+placer devant votre propre hôte MCP sans adopter d'agent.
 
-**Zéro dépendance npm d'exécution.** Le seul import de la bibliothèque est `node:crypto`. L'entrée
-MCP stdio ajoute d'autres builtins `node:` (`fs`, `path`, `process`) et ne tire toujours aucun
-paquet. C'est le pare-feu d'[ARGUS](https://github.com/alexar76/argus), extrait pour que vous puissiez
-le placer devant votre propre hôte MCP sans adopter d'agent.
-
-## Serveur MCP (stdio)
-
-Le produit est la bibliothèque. Les mêmes portes sont aussi un **serveur MCP stdio** pour
-[Glama](https://glama.ai/mcp/servers/alexar76/warden), Claude Desktop et Cursor. Le processus ne
-démarre, ne proxifie ni n'isole un autre serveur MCP : vous passez un dump `tools/list`, vous
-récupérez un verdict. Aucune clé.
+## Lancer comme serveur MCP (stdio)
 
 ```bash
 npx -y @aimarket/warden
 npm run build && node dist/mcp-server.js
 ```
+
+Claude Desktop / Cursor (`mcpServers`) :
+
+```json
+{
+  "mcpServers": {
+    "warden": {
+      "command": "npx",
+      "args": ["-y", "@aimarket/warden"]
+    }
+  }
+}
+```
+
+Le processus ne démarre, ne proxifie ni n'isole un autre serveur MCP : vous passez un dump
+`tools/list`, vous récupérez un verdict.
 
 | Outil | Quand l'appeler |
 |---|---|
@@ -60,9 +81,19 @@ npm run build && node dist/mcp-server.js
 | `canonicalize_json` | Octets RFC 8785 |
 | `list_scan_rules` | Table de règles publiée |
 
-Docker / formulaire Glama : [`docs/GLAMA.md`](docs/GLAMA.md).
+### Publier sur Glama
 
-## Démarrage rapide
+Listing : **[glama.ai/mcp/servers/alexar76/warden](https://glama.ai/mcp/servers/alexar76/warden)**
+
+Même modèle que [ARGUS](https://github.com/alexar76/argus) et
+[aimarket-mcp](https://github.com/alexar76/aimarket-mcp) : [`glama.json`](glama.json) +
+[`Dockerfile`](Dockerfile) + `node dist/mcp-server.js`. Formulaire : [`docs/GLAMA.md`](docs/GLAMA.md).
+
+## Bibliothèque (embarquer dans votre hôte)
+
+```bash
+npm install @aimarket/warden
+```
 
 ```ts
 import { Warden, ThreatFeed, silentLogger } from "@aimarket/warden";
@@ -209,7 +240,7 @@ une absence de protection :
 ## Développement
 
 ```bash
-npm install && npm run build && npm test   # 165 tests
+npm install && npm run build && npm test   # 166 tests
 ```
 
 `test/packaging.test.ts` est ce qui tient l'accroche honnête : il échoue si une dépendance d'exécution

@@ -66,6 +66,13 @@ describe("documentation set", () => {
     expect(missing).toEqual([]);
   });
 
+  it("names itself an MCP server in the H1, like ARGUS / aimarket-mcp", () => {
+    for (const f of readmes) {
+      const title = readFileSync(join(root, f), "utf8").split("\n")[0] ?? "";
+      expect(title, `${f} H1 must say MCP`).toMatch(/MCP/i);
+    }
+  });
+
   it("ships the landing 3D hero in every README", () => {
     expect(existsSync(join(root, "docs", "screenshots", "readme", "hero-3d.png"))).toBe(true);
     for (const f of readmes) {
