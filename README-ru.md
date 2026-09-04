@@ -34,6 +34,8 @@ Claude Desktop, Cursor, Glama и любой MCP-клиент со stdio. Клю�
 | Инструменты | `vet_mcp_server`, `static_scan_tools`, `classify_sensitive_tools`, `check_egress_url`, `canonicalize_json`, `list_scan_rules` |
 | Библиотека | `import { Warden } from "@aimarket/warden"` |
 | Glama / Docker (stdio) | [`Dockerfile`](Dockerfile), [`glama.json`](glama.json) |
+| Official MCP Registry | [`server.json`](server.json) → `io.github.alexar76/warden` |
+| Smithery | [`smithery.yaml`](smithery.yaml) |
 
 MCP-сервер сам сообщает вашему агенту, что делают его инструменты. Агент этому верит — и вот эта
 фраза и есть поверхность атаки. Описание инструмента — это текст промпта, который третья сторона

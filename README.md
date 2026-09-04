@@ -41,6 +41,8 @@ Claude Desktop, Cursor, Glama, and any MCP client that speaks stdio. No API keys
 | Tools | `vet_mcp_server`, `static_scan_tools`, `classify_sensitive_tools`, `check_egress_url`, `canonicalize_json`, `list_scan_rules` |
 | Library | `import { Warden } from "@aimarket/warden"` |
 | Glama / Docker (stdio) | [`Dockerfile`](Dockerfile), [`glama.json`](glama.json) |
+| Official MCP Registry | [`server.json`](server.json) → `io.github.alexar76/warden` |
+| Smithery | [`smithery.yaml`](smithery.yaml) |
 
 An MCP server tells your agent what its tools do. The agent believes it — that sentence is the
 attack surface. A tool description is prompt text delivered by a third party straight into your
@@ -225,6 +227,7 @@ no protection:
 | [Integration guide](docs/integration.md) | Wiring WARDEN into your own MCP host, policy choices, and what to record |
 | [Field survey: 1 108 public MCP servers](docs/mcp-survey.md) | What WARDEN decided on real third-party tool definitions — 50 servers blocked, 4 substantiated, and the six ways the rest were wrong |
 | [Glama / Docker](docs/GLAMA.md) | stdio MCP server, health check, admin Build steps / CMD |
+| [MCP registries](docs/REGISTRIES.md) | Official Registry, Smithery, mcp.so / Pulse |
 | [Security](SECURITY.md) | How to report a firewall bypass |
 | [Contributing](CONTRIBUTING.md) | Zero-dep rule, ruleset PRs |
 

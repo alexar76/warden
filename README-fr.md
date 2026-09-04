@@ -34,6 +34,8 @@ Claude Desktop, Cursor, Glama et tout client MCP en stdio. Aucune clé.
 | Outils | `vet_mcp_server`, `static_scan_tools`, `classify_sensitive_tools`, `check_egress_url`, `canonicalize_json`, `list_scan_rules` |
 | Bibliothèque | `import { Warden } from "@aimarket/warden"` |
 | Glama / Docker (stdio) | [`Dockerfile`](Dockerfile), [`glama.json`](glama.json) |
+| Official MCP Registry | [`server.json`](server.json) → `io.github.alexar76/warden` |
+| Smithery | [`smithery.yaml`](smithery.yaml) |
 
 Un serveur MCP indique lui-même à votre agent ce que font ses outils. L'agent le croit — et cette
 phrase est la surface d'attaque. La description d'un outil est du texte de prompt qu'un tiers livre

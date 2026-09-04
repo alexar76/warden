@@ -1,0 +1,11 @@
+# Smithery.ai — https://smithery.ai/docs/build/project-config
+# Connect the GitHub repo alexar76/warden in the Smithery UI after this file is on main.
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    description: No secrets required — WARDEN only vets tool definitions you pass in.
+    properties: {}
+  commandFunction: |-
+    (config) => ({ command: 'npx', args: ['-y', '@aimarket/warden'] })
+  exampleConfig: {}

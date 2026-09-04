@@ -6,6 +6,7 @@
   "license": "MIT",
   "author": "AICOM (alexar76)",
   "homepage": "https://warden.modelmarket.dev/",
+  "mcpName": "io.github.alexar76/warden",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/alexar76/warden.git"

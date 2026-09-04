@@ -34,6 +34,8 @@ Cursor、Glama，以及任何支持 stdio 的 MCP 客户端。不需要密钥。
 | 工具 | `vet_mcp_server`、`static_scan_tools`、`classify_sensitive_tools`、`check_egress_url`、`canonicalize_json`、`list_scan_rules` |
 | 库 | `import { Warden } from "@aimarket/warden"` |
 | Glama / Docker（stdio） | [`Dockerfile`](Dockerfile)、[`glama.json`](glama.json) |
+| Official MCP Registry | [`server.json`](server.json) → `io.github.alexar76/warden` |
+| Smithery | [`smithery.yaml`](smithery.yaml) |
 
 MCP 服务器自己告诉你的智能体，它的工具是做什么的。智能体就信了——而这句话正是攻击面。工具描述就是第三方直接
 投递进模型上下文的提示词文本；而一个名叫 `api_key` 的 schema 字段，就是以 API 形式写出来的索要密钥的请求。
