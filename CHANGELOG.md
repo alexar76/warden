@@ -2,6 +2,13 @@
 
 All notable changes to `@aimarket/warden`.
 
+## 0.5.1 — 2026-09-05
+
+stdio wire fix for Glama: replies are newline-delimited JSON (MCP stdio / mcp-proxy).
+Content-Length framing on stdout made Glama's health check time out (`ignoring non-JSON
+output [ 'Content-Length: …' ]`). Input still accepts Content-Length and mirrors it on
+the reply for legacy probes.
+
 ## 0.5.0 — 2026-09-03
 
 stdio MCP server for Glama / Claude Desktop / Cursor (`warden-mcp` / `node dist/mcp-server.js`).

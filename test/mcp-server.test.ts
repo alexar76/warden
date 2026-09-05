@@ -176,13 +176,52 @@ describe("Content-Length framing", () => {
 });
 
 describe("stdio process health (what Glama runs)", () => {
-  it("built mcp-server.js answers initialize over Content-Length", async () => {
+  it("built mcp-server.js answers initialize over NDJSON (mcp-proxy)", async () => {
     const { existsSync } = await import("node:fs");
     const bin = join(root, "dist", "mcp-server.js");
     if (!existsSync(bin)) {
       console.warn("skipping stdio spawn — dist/mcp-server.js missing (run npm run build)");
       return;
     }
+    const child = spawn(process.execPath, [bin], { stdio: ["pipe", "pipe", "pipe"] });
+    const chunks: Buffer[] = [];
+    const got = await new Promise<string>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        child.kill("SIGKILL");
+        reject(new Error(`no initialize reply: ${Buffer.concat(chunks).toString()}`));
+      }, 4000);
+      child.stdout.on("data", (c: Buffer) => {
+        chunks.push(c);
+        const text = Buffer.concat(chunks).toString("utf8");
+        // Must be NDJSON — Content-Length headers break Glama's mcp-proxy.
+        expect(text).not.toMatch(/Content-Length/i);
+        const line = text.split("\n").find((l) => l.trim().startsWith("{"));
+        if (line) {
+          clearTimeout(timer);
+          resolve(line.trim());
+        }
+      });
+      child.on("error", (err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
+      const body = JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: { protocolVersion: PROTOCOL, capabilities: {}, clientInfo: { name: "probe", version: "0" } },
+      });
+      child.stdin.write(`${body}\n`);
+    });
+    child.kill("SIGTERM");
+    const msg = JSON.parse(got) as { result?: { serverInfo?: { name?: string } } };
+    expect(msg.result?.serverInfo?.name).toBe("warden");
+  }, 10_000);
+
+  it("still answers Content-Length probes with Content-Length replies", async () => {
+    const { existsSync } = await import("node:fs");
+    const bin = join(root, "dist", "mcp-server.js");
+    if (!existsSync(bin)) return;
     const child = spawn(process.execPath, [bin], { stdio: ["pipe", "pipe", "pipe"] });
     const chunks: Buffer[] = [];
     const got = await new Promise<string>((resolve, reject) => {

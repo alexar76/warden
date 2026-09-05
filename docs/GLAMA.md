@@ -15,7 +15,7 @@ The health check is: container starts, answers JSON-RPC `initialize` + `tools/li
 | Field | Value |
 |-------|-------|
 | **Build steps** | `["npm ci", "npm run build"]` |
-| **CMD arguments** | `["node", "dist/mcp-server.js"]` |
+| **CMD arguments** | `["node", "dist/mcp-server.js"]` — do **not** put `mcp-proxy` here; Glama wraps it |
 | **Pinned commit SHA** | empty — use **`main`** (squashed satellite mirror deletes old SHAs) |
 | **Environment variables** | none — WARDEN MCP needs no keys |
 
@@ -36,13 +36,12 @@ After the first successful build, open the **score** tab, claim the server, and 
 
 ```bash
 docker build -t warden-mcp .
-# initialize + tools/list (Content-Length)
+# initialize + tools/list (NDJSON — what Glama's mcp-proxy speaks)
 python3 - <<'PY' | docker run --rm -i warden-mcp
 import json, sys
 def send(obj):
-    body = json.dumps(obj).encode()
-    sys.stdout.buffer.write(f"Content-Length: {len(body)}\r\n\r\n".encode() + body)
-    sys.stdout.buffer.flush()
+    sys.stdout.write(json.dumps(obj) + "\n")
+    sys.stdout.flush()
 send({"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"probe","version":"0"}}})
 send({"jsonrpc":"2.0","method":"notifications/initialized"})
 send({"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}})

@@ -1,6 +1,6 @@
 {
   "name": "@aimarket/warden",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "WARDEN — MCP security firewall. Library + stdio MCP server: vets tool definitions (static-scan → threat-feed → origin → pinning) before they reach the model. Zero npm runtime dependencies.",
   "type": "module",
   "license": "MIT",
