@@ -95,7 +95,9 @@ when-not naming siblings, every `inputSchema` property described, `outputSchema`
 
 ### Publish on Glama
 
-Listing: **[glama.ai/mcp/servers/alexar76/warden](https://glama.ai/mcp/servers/alexar76/warden)**
+Listing: **[glama.ai/mcp/servers/alexar76/warden](https://glama.ai/mcp/servers/alexar76/warden)** ·
+quality score: **[glama.ai/mcp/servers/alexar76/warden/score](https://glama.ai/mcp/servers/alexar76/warden/score)**
+
 
 Same pattern as **[ARGUS](https://github.com/alexar76/argus)** and
 **[aimarket-mcp](https://github.com/alexar76/aimarket-mcp)**: repo-root [`glama.json`](glama.json) +

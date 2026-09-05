@@ -80,7 +80,10 @@ Claude Desktop / Cursor（`mcpServers`）：
 
 ### 发布到 Glama
 
-列表页：**[glama.ai/mcp/servers/alexar76/warden](https://glama.ai/mcp/servers/alexar76/warden)**
+列表页：**[glama.ai/mcp/servers/alexar76/warden](https://glama.ai/mcp/servers/alexar76/warden)** ·
+quality score：**[glama.ai/mcp/servers/alexar76/warden/score](https://glama.ai/mcp/servers/alexar76/warden/score)**
+
+[![alexar76/warden MCP server](https://glama.ai/mcp/servers/alexar76/warden/badges/score.svg)](https://glama.ai/mcp/servers/alexar76/warden)
 
 与 [ARGUS](https://github.com/alexar76/argus)、[aimarket-mcp](https://github.com/alexar76/aimarket-mcp)
 相同：[`glama.json`](glama.json) + [`Dockerfile`](Dockerfile) + `node dist/mcp-server.js`。

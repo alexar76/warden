@@ -85,7 +85,10 @@ Le processus ne démarre, ne proxifie ni n'isole un autre serveur MCP : vous pas
 
 ### Publier sur Glama
 
-Listing : **[glama.ai/mcp/servers/alexar76/warden](https://glama.ai/mcp/servers/alexar76/warden)**
+Listing : **[glama.ai/mcp/servers/alexar76/warden](https://glama.ai/mcp/servers/alexar76/warden)** ·
+quality score : **[glama.ai/mcp/servers/alexar76/warden/score](https://glama.ai/mcp/servers/alexar76/warden/score)**
+
+[![alexar76/warden MCP server](https://glama.ai/mcp/servers/alexar76/warden/badges/score.svg)](https://glama.ai/mcp/servers/alexar76/warden)
 
 Même modèle que [ARGUS](https://github.com/alexar76/argus) et
 [aimarket-mcp](https://github.com/alexar76/aimarket-mcp) : [`glama.json`](glama.json) +
