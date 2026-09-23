@@ -8,7 +8,7 @@
   <a href="https://glama.ai/mcp/servers/alexar76/warden"><img src="https://glama.ai/mcp/servers/alexar76/warden/badges/score.svg" alt="warden MCP server" /></a>
   <a href="https://warden.modelmarket.dev/"><img src="https://img.shields.io/npm/v/@aimarket/warden?color=cb3837&label=npm" alt="npm version" /></a>
   <img src="docs/badges/deps.svg" alt="Cero dependencias de ejecución" />
-  <img src="docs/badges/tests.svg" alt="166 pruebas en verde" />
+  <img src="docs/badges/tests.svg" alt="189 pruebas en verde" />
   <img src="docs/badges/node.svg" alt="Node >= 20" />
   <a href="LICENSE"><img src="docs/badges/license.svg" alt="Licencia: MIT" /></a>
 </p>
@@ -136,7 +136,7 @@ descarga del threat feed que tú pediste al pasar una URL a `load()`.
 
 ```mermaid
 flowchart LR
-  T["definiciones<br/>de herramientas"] --> S["static scan<br/>25 reglas"]
+  T["definiciones<br/>de herramientas"] --> S["static scan<br/>26 reglas"]
   S --> F["threat feed<br/>11 integradas + firmado"]
   F --> O["origin<br/>declarado vs catálogo"]
   O --> P["pinning<br/>deriva vs aprobación"]
@@ -145,7 +145,7 @@ flowchart LR
 
 | Puerta | Qué decide | Red | ¿Fatal? |
 |---|---|---|---|
-| **static-scan** | Inyección, exfiltración, peticiones de credenciales y señales de Unicode oculto/base64 en el `name`, la `description` y el `inputSchema` de la herramienta — 25 reglas, v4, de las cuales 15 pueden bloquear y 10 son solo de aviso, 17 cubren también el nombre y 12 llevan un guard de contexto | ninguna | no |
+| **static-scan** | Inyección, exfiltración, peticiones de credenciales y señales de Unicode oculto/base64 en el `name`, la `description` y el `inputSchema` de la herramienta — 26 reglas, v5, de las cuales 15 pueden bloquear y 11 son solo de aviso, 17 cubren también el nombre y 15 llevan un guard de contexto. v5 normaliza antes el texto (ancho completo, caracteres invisibles, etiquetas Unicode, letras sosias), así que la ofuscación no elude ninguna regla en ningún idioma | ninguna | no |
 | **threat-feed** | Identidad de servidor o herramienta conocida como maliciosa: 11 registros integrados más un feed firmado opcional | solo la descarga del feed | sí, para un `critical` con alcance de servidor |
 | **origin** | Si el operador declaró este servidor o llegó desde un catálogo remoto | ninguna | sí, con `allowUnknownServers: false` |
 | **pinning** | Si las definiciones de herramientas siguen coincidiendo con lo que el usuario aprobó | ninguna | sí, con `pinToolDefs: true` |
@@ -167,7 +167,7 @@ endureciera el umbral.
   findings: [{ gate, severity, code: "THREAT_TOOL_MATCH", message, tool, advisory? }],
   allowedTools: ["add"],
   blockedTools: ["sweeper"],
-  rulesets: { staticScan: { version: "4", digest: "sha256-klRyTiD3…" } }
+  rulesets: { staticScan: { version: "5", digest: "sha256-HUKSzM6c…" } }
 }
 ```
 
@@ -245,7 +245,7 @@ degradar a ninguna protección:
 ## Desarrollo
 
 ```bash
-npm install && npm run build && npm test   # 166 pruebas
+npm install && npm run build && npm test   # 189 pruebas
 ```
 
 `test/packaging.test.ts` es lo que mantiene honesto el titular: falla si aparece una dependencia de

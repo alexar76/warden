@@ -8,7 +8,7 @@
   <a href="https://glama.ai/mcp/servers/alexar76/warden"><img src="https://glama.ai/mcp/servers/alexar76/warden/badges/score.svg" alt="warden MCP server" /></a>
   <a href="https://warden.modelmarket.dev/"><img src="https://img.shields.io/npm/v/@aimarket/warden?color=cb3837&label=npm" alt="npm 版本" /></a>
   <img src="docs/badges/deps.svg" alt="零运行时依赖" />
-  <img src="docs/badges/tests.svg" alt="166 项测试通过" />
+  <img src="docs/badges/tests.svg" alt="189 项测试通过" />
   <img src="docs/badges/node.svg" alt="Node >= 20" />
   <a href="LICENSE"><img src="docs/badges/license.svg" alt="许可证：MIT" /></a>
 </p>
@@ -131,7 +131,7 @@ await warden.approve(server, tools); // 把用户认可的内容固定（pin）�
 
 ```mermaid
 flowchart LR
-  T["服务器给出的<br/>工具定义"] --> S["static scan<br/>25 条规则"]
+  T["服务器给出的<br/>工具定义"] --> S["static scan<br/>26 条规则"]
   S --> F["threat feed<br/>11 条内置 + 已签名"]
   F --> O["origin<br/>已声明 vs 来自目录"]
   O --> P["pinning<br/>漂移 vs 已批准"]
@@ -140,7 +140,7 @@ flowchart LR
 
 | 门控 | 判定什么 | 网络 | 是否 fatal |
 |---|---|---|---|
-| **static-scan** | 工具 `name`、`description` 与 `inputSchema` 中的注入、外泄、索要凭据，以及隐藏 Unicode/base64 迹象——25 条规则（v4），其中 15 条可阻止、10 条仅提示，17 条同时覆盖名称，12 条带有上下文 guard | 无 | 否 |
+| **static-scan** | 工具 `name`、`description` 与 `inputSchema` 中的注入、外泄、索要凭据，以及隐藏 Unicode/base64 迹象——26 条规则（v5），其中 15 条可阻止、11 条仅提示，17 条同时覆盖名称，15 条带有上下文 guard。v5 先对文本做归一化（全角、不可见字符、Unicode 标签、形近字母），因此无论何种语言，混淆都绕不过规则 | 无 | 否 |
 | **threat-feed** | 已知恶意的服务器身份或工具：11 条内置记录，外加可选的已签名 feed | 仅 feed 下载 | 是，服务器范围的 `critical` |
 | **origin** | 该服务器是运营者声明的，还是来自远端目录 | 无 | 是，当 `allowUnknownServers: false` |
 | **pinning** | 工具定义是否仍与用户批准过的一致 | 无 | 是，当 `pinToolDefs: true` |
@@ -160,7 +160,7 @@ flowchart LR
   findings: [{ gate, severity, code: "THREAT_TOOL_MATCH", message, tool, advisory? }],
   allowedTools: ["add"],
   blockedTools: ["sweeper"],
-  rulesets: { staticScan: { version: "4", digest: "sha256-klRyTiD3…" } }
+  rulesets: { staticScan: { version: "5", digest: "sha256-HUKSzM6c…" } }
 }
 ```
 
@@ -227,7 +227,7 @@ GET <你的 feed url>
 ## 开发
 
 ```bash
-npm install && npm run build && npm test   # 166 项测试
+npm install && npm run build && npm test   # 189 项测试
 ```
 
 `test/packaging.test.ts` 正是让标题保持诚实的东西：一旦出现运行时依赖、任何源文件从包外 import、或者入口点不

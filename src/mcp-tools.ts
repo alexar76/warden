@@ -107,7 +107,7 @@ const RULESET_REF_SCHEMA = {
   additionalProperties: false,
   required: ["version", "digest"],
   properties: {
-    version: { type: "string", description: "Monotonic static-scan ruleset version (currently \"4\")." },
+    version: { type: "string", description: "Monotonic static-scan ruleset version (currently \"5\")." },
     digest: {
       type: "string",
       description: "sha256-<base64> over the RFC 8785 canonical form of the published rule table. A recorded scan is not reproducible without this.",
@@ -256,7 +256,7 @@ export const MCP_TOOLS: McpToolDef[] = [
     name: "static_scan_tools",
     title: "Static-scan MCP tool definitions for injection and exfil",
     description:
-      "Run only the static-scan gate (ruleset v4, 25 signatures with context guards) over advertised tool names, descriptions, and input schemas. Returns findings, a 0..1 gate score, and the published ruleset digest.\n\n" +
+      "Run only the static-scan gate (ruleset v5, 26 signatures with context guards, text folded first) over advertised tool names, descriptions, and input schemas. Returns findings, a 0..1 gate score, and the published ruleset digest.\n\n" +
       "When to use: you have a tools/list dump and want injection / credential / hidden-Unicode hits without origin, pinning, or the threat feed. Cheaper and narrower than vet_mcp_server.\n\n" +
       "When NOT to use: you need the full host decision (vet_mcp_server); you want operator glob classification (classify_sensitive_tools); you want the published rule table itself (list_scan_rules).\n\n" +
       "Behaviour: local regex+guard evaluation, no network, no mutation. Advisory-tier hits are reported with advisory=true and do not reduce the score. Does not launch servers or send tool output to a model.\n\n" +
@@ -437,9 +437,9 @@ export const MCP_TOOLS: McpToolDef[] = [
     title: "List the published WARDEN static-scan rule table",
     description:
       "Return the in-force static-scan ruleset: version, digest, and every rule's code, severity, tier (block vs advise), surfaces (name / description / inputSchema), optional regex source, and named guards. A recorded verdict is only reproducible together with this identity.\n\n" +
-      "When to use: explain a finding code, confirm you are on ruleset v4, or re-run a scan with the same table. include_source=true adds the regex source and flags for an independent re-implementation.\n\n" +
+      "When to use: explain a finding code, confirm you are on ruleset v5, or re-run a scan with the same table. include_source=true adds the regex source and flags for an independent re-implementation.\n\n" +
       "When NOT to use: evaluating a live tools/list (static_scan_tools or vet_mcp_server — those apply the table). This tool does not scan anything.\n\n" +
-      "Behaviour: local snapshot of the compiled rule table, no network, no mutation. Digest is sha256 over the RFC 8785 form of {version, rules}.\n\n" +
+      "Behaviour: local snapshot of the compiled rule table, no network, no mutation. Digest is sha256 over the RFC 8785 form of {version, fold, rules} (each rule carries its `raw` flag).\n\n" +
       "Returns the ruleset object. Example: list_scan_rules({ include_source: false }).",
     annotations: {
       title: "List the published WARDEN static-scan rule table",
@@ -463,16 +463,17 @@ export const MCP_TOOLS: McpToolDef[] = [
     outputSchema: {
       type: "object",
       additionalProperties: false,
-      required: ["version", "digest", "rules"],
+      required: ["version", "fold", "digest", "rules"],
       properties: {
         version: { type: "string", description: "Monotonic ruleset version." },
-        digest: { type: "string", description: "sha256-<base64> of the canonical rule table." },
+        fold: { type: "string", description: "Identity of the text normalisation applied before a non-raw rule is matched." },
+        digest: { type: "string", description: "sha256-<base64> of the canonical rule table (preimage {version, fold, rules})." },
         rules: {
           type: "array",
           items: {
             type: "object",
             additionalProperties: false,
-            required: ["code", "severity", "tier", "surfaces", "guards"],
+            required: ["code", "severity", "tier", "surfaces", "guards", "raw"],
             properties: {
               code: { type: "string", description: "Finding code this rule emits." },
               severity: { type: "string", enum: SEVERITIES, description: "Attention rank when the rule fires." },
@@ -483,6 +484,7 @@ export const MCP_TOOLS: McpToolDef[] = [
                 description: "Which tool-def fields the rule is run against.",
               },
               guards: { type: "array", items: { type: "string" }, description: "Named context guards that can drop a regex match (polarity, mention, …)." },
+              raw: { type: "boolean", description: "true: matches the raw text; false: matches the folded text (see fold)." },
               source: { type: "string", description: "Regex source; only when include_source is true." },
               flags: { type: "string", description: "Regex flags; only when include_source is true." },
             },
@@ -697,6 +699,9 @@ function listRules(args: Record<string, unknown>): Record<string, unknown> {
       tier: r.tier,
       surfaces: r.surfaces,
       guards: r.guards,
+      // `raw` is in the digest preimage: a rule matches the raw text (true) or the
+      // folded text (false). Without it a third party cannot recompute the digest.
+      raw: r.raw,
     };
     if (includeSource) {
       row.source = r.source;
@@ -704,7 +709,9 @@ function listRules(args: Record<string, unknown>): Record<string, unknown> {
     }
     return row;
   });
-  return { version: ruleset.version, digest: ruleset.digest, rules };
+  // `fold` is the other preimage field: the identity of the text normalisation
+  // applied before a non-raw rule is matched. Preimage is {version, fold, rules}.
+  return { version: ruleset.version, fold: ruleset.fold, digest: ruleset.digest, rules };
 }
 
 export function payloadTooLarge(args: unknown): boolean {

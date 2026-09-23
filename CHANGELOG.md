@@ -2,6 +2,34 @@
 
 All notable changes to `@aimarket/warden`.
 
+## 0.6.0 — 2026-09-23
+
+Ruleset **v5**: language-independent coverage. A rule table written in one language cannot read
+meaning in every other, so v5 strengthens what does not depend on the language at all, and says
+plainly where the table stops.
+
+- **Text is folded before any rule reads it** (`src/fold.ts`, published as `fold` beside the rules
+  and part of the digest): NFKC for fullwidth letters, ligatures and other compatibility forms;
+  invisible characters inside a word dropped; the Unicode TAG block (invisible ASCII that can spell a
+  whole sentence) decoded; look-alike Cyrillic/Greek letters mapped to Latin inside a word that
+  already mixes scripts, while text written wholly in one script is left alone. An English rule can
+  no longer be dodged by `ｉｇｎｏｒｅ`, a zero-width space inside the word, tag characters or a Cyrillic
+  `о`. The two hidden-payload rules read the raw text (`raw: true` in the published table).
+- **`TOOL_DEF_HIDDEN_UNICODE`** now also catches the Unicode-tag block and the bidi isolates
+  (U+2066–2069). `displaySafe` escapes tag characters, so a finding never prints them invisibly.
+- **`TOOL_DEF_SECRET_EXFIL`** (new, advisory): a secret store (`.env`, `~/.ssh/…`,
+  `~/.aws/credentials`, `.npmrc`, …) and a URL, e-mail address or host within 100 characters of each
+  other — the shape of "read this, send it there" whatever language the connective words are in.
+  Advisory because on 10 645 live servers its only hit was honest (a deploy tool's ssh command to its
+  own host); refusing a server on a rule whose only real-world hit is honest is the v1 mistake again.
+- **Three measured false positives removed**: "send the user to https://…" is a redirect of a person
+  (guard `navigation`); "keep calling this until done without asking the user" is autonomy, not
+  concealment (guard `autonomy`); a zero-width joiner inside an emoji sequence is not concealment.
+
+Measured on the 10 645 distinct tool sets HISTOR holds (172 771 tools): v4 blocks 63, v5 blocks 56,
+and v5 blocks none that v4 did not. The 1 108-server survey figures (v3 → v4) are unchanged and
+still describe v4's calibration; this corpus is HISTOR's, not the survey's.
+
 ## 0.5.1 — 2026-09-05
 
 stdio wire fix for Glama: replies are newline-delimited JSON (MCP stdio / mcp-proxy).

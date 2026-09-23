@@ -8,7 +8,7 @@
   <a href="https://glama.ai/mcp/servers/alexar76/warden"><img src="https://glama.ai/mcp/servers/alexar76/warden/badges/score.svg" alt="warden MCP server" /></a>
   <a href="https://warden.modelmarket.dev/"><img src="https://img.shields.io/npm/v/@aimarket/warden?color=cb3837&label=npm" alt="npm version" /></a>
   <img src="docs/badges/deps.svg" alt="Zero runtime dependencies" />
-  <img src="docs/badges/tests.svg" alt="166 tests passing" />
+  <img src="docs/badges/tests.svg" alt="189 tests passing" />
   <img src="docs/badges/node.svg" alt="Node >= 20" />
   <a href="LICENSE"><img src="docs/badges/license.svg" alt="License: MIT" /></a>
 </p>
@@ -136,7 +136,7 @@ await warden.approve(server, tools); // зафиксировать (pin) то, �
 
 ```mermaid
 flowchart LR
-  T["определения<br/>инструментов"] --> S["static scan<br/>25 правил"]
+  T["определения<br/>инструментов"] --> S["static scan<br/>26 правил"]
   S --> F["threat feed<br/>11 встроенных + подписанный"]
   F --> O["origin<br/>объявлен или из каталога"]
   O --> P["pinning<br/>дрейф против подтверждения"]
@@ -145,7 +145,7 @@ flowchart LR
 
 | Гейт | Что решает | Сеть | Fatal? |
 |---|---|---|---|
-| **static-scan** | Инъекции, эксфильтрация, запросы учётных данных, скрытый Unicode и base64-признаки в `name`, `description` и `inputSchema` инструмента — 25 правил, версия 4, из них 15 могут блокировать и 10 только сообщают, 17 покрывают и имя, а у 12 есть контекстный guard | нет | нет |
+| **static-scan** | Инъекции, эксфильтрация, запросы учётных данных, скрытый Unicode и base64-признаки в `name`, `description` и `inputSchema` инструмента — 26 правил, версия 5, из них 15 могут блокировать и 11 только сообщают, 17 покрывают и имя, а у 15 есть контекстный guard. v5 сначала приводит текст к обычному виду (широкие буквы, невидимые символы, Unicode-теги, буквы-двойники), поэтому обфускация не обходит правило ни на каком языке | нет | нет |
 | **threat-feed** | Известный плохой сервер или инструмент: 11 встроенных записей плюс опциональный подписанный feed | только загрузка feed | да, для `critical` на уровне сервера |
 | **origin** | Объявил ли оператор этот сервер, или он пришёл из удалённого каталога | нет | да, при `allowUnknownServers: false` |
 | **pinning** | Совпадают ли определения инструментов с тем, что подтвердил пользователь | нет | да, при `pinToolDefs: true` |
@@ -166,7 +166,7 @@ severity снова делало находку блокирующей для в
   findings: [{ gate, severity, code: "THREAT_TOOL_MATCH", message, tool, advisory? }],
   allowedTools: ["add"],
   blockedTools: ["sweeper"],
-  rulesets: { staticScan: { version: "4", digest: "sha256-klRyTiD3…" } }
+  rulesets: { staticScan: { version: "5", digest: "sha256-HUKSzM6c…" } }
 }
 ```
 
@@ -244,7 +244,7 @@ GET <ваш feed url>
 ## Разработка
 
 ```bash
-npm install && npm run build && npm test   # 166 тестов
+npm install && npm run build && npm test   # 189 тестов
 ```
 
 `test/packaging.test.ts` — то, что удерживает заголовок честным: он падает, если появляется

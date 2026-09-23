@@ -47,14 +47,36 @@ the threshold.
 
 ## static-scan
 
-Local regex scan over each tool's `name`, its `description` and its `inputSchema`. 25 rules in
-ruleset **v4**: 15 `block`, 10 `advise`, and 12 of them carry a context **guard** — a named
+Local regex scan over each tool's `name`, its `description` and its `inputSchema`. 26 rules in
+ruleset **v5**: 15 `block`, 11 `advise`, and 15 of them carry a context **guard** — a named
 check that decides whether a match is really the thing the rule is looking for. See
-[the field survey](mcp-survey.md) for the 1 108-server run that produced them.
+[the field survey](mcp-survey.md) for the 1 108-server run that calibrated v4.
 
-Every rule declares which of those three **surfaces** it runs on, and 17 of the 25 include the name.
-The three that do not are the noun-keyed ones (`TOOL_DEF_SECRET_REQUEST`,
-`TOOL_DEF_CREDENTIAL_PARAM`, `TOOL_DEF_ENV_REFERENCE`): a name is an identifier, `api_key` and
+**v5: the text is folded before any rule reads it.** NFKC maps fullwidth letters, ligatures and
+other compatibility forms to plain ones; invisible characters inside a word are dropped; the Unicode
+TAG block (invisible copies of ASCII that can carry a whole sentence) is decoded to the ASCII it
+hides; and inside a word that mixes Latin with Cyrillic or Greek, look-alike letters are mapped to
+Latin — a word written wholly in one script is left alone. A rule written in English therefore cannot
+be dodged by `ｉｇｎｏｒｅ`, a zero-width space inside the word, tag characters, or a Cyrillic `о`, in any
+language the surrounding text is written in. The fold is published as `fold` beside the rules and is
+part of the digest. The two hidden-payload rules read the **raw** text (`raw: true`), because they
+look for exactly what the fold removes.
+
+What a regex table cannot do is read meaning: a phrasing in a language the rules were not written in
+is outside it. v5 adds what does not depend on the language — the fold above, the
+`TOOL_DEF_SECRET_EXFIL` pair (a secret store and an external address within 100 characters of each
+other, advisory because its only hit on 10 645 live servers was honest), the Unicode-tag block and
+bidi isolates in `TOOL_DEF_HIDDEN_UNICODE` — and HISTOR reports any outside address that newly
+appears in a server's definitions. Meaning-based detection belongs to a classifier, not to this table.
+
+v5 also removes three measured false positives: "send the user to https://…" (a redirect of a
+person, guard `navigation`), "keep calling … without asking the user" (autonomy, guard `autonomy`),
+and a zero-width joiner inside an emoji sequence. On the 10 645-server corpus v5 blocks 56 servers
+where v4 blocked 63, and blocks none that v4 did not.
+
+Every rule declares which of those three **surfaces** it runs on, and 17 of the 26 include the name.
+The four that do not are the noun-keyed ones (`TOOL_DEF_SECRET_REQUEST`,
+`TOOL_DEF_CREDENTIAL_PARAM`, `TOOL_DEF_ENV_REFERENCE`, `TOOL_DEF_SECRET_EXFIL`): a name is an identifier, `api_key` and
 `private_key` are ordinary parts of one, and refusing `sign_with_private_key` would be the ruleset
 v1 calibration error committed on a new surface. Phrase-keyed rules need whitespace and so cannot
 match `snake_case` at all, and the two hidden-payload rules are about characters that are never
@@ -75,15 +97,16 @@ Gate score is `1 − penalty(worst blocking severity)`; advisory hits never affe
 | `TOOL_DEF_SECRET_REQUEST` | critical | block | — | `private_key`, `seed_phrase`/`mnemonic`, `~/.ssh` paths |
 | `TOOL_DEF_SECRET_HARVEST` | critical | block | ✅ | a tool whose stated job is to read/dump/reveal secrets |
 | `TOOL_DEF_EXFIL` | critical / high | block | ✅ | "post to https://…", "forward it to…", "exfiltrate", upload-to-host phrasing |
-| `TOOL_DEF_HIDDEN_UNICODE` | high | block | ✅ | zero-width and bidi control characters — text the reviewer cannot see |
+| `TOOL_DEF_HIDDEN_UNICODE` | high | block | ✅ | zero-width, bidi control and isolate characters, and the Unicode-tag block — text the reviewer cannot see |
 | `TOOL_DEF_BASE64_BLOB` | high | block | ✅ | a 120+ character base64 run in a name, description or schema |
 | `TOOL_DEF_DATA_URL` | high | block | ✅ | `data:…;base64,` and `javascript:` URLs |
 | `TOOL_DEF_CREDENTIAL_PARAM` | medium / low | advise | — | schema or description asking for `api_key`, `password`, `secret`, bearer tokens |
 | `TOOL_DEF_ENV_REFERENCE` | medium | advise | — | `.env`, "environment variables" |
+| `TOOL_DEF_SECRET_EXFIL` | medium | advise | — | a secret store (`.env`, `~/.ssh/…`, `~/.aws/credentials`) and a URL, e-mail or host within 100 characters — the language-independent shape of "read this, send it there" |
 | `TOOL_DEF_IMPERATIVE` | low / info | advise | ✅ | "you must", "instead of" — prompt-shaped phrasing, not proof of anything |
 
-`staticScanRuleset()` returns every rule with its **regex source, flags and surfaces**, so a third party can
-re-run the exact rule, plus `{ version, digest }` where the digest is sha256 over the RFC 8785
+`staticScanRuleset()` returns every rule with its **regex source, flags, surfaces, guards and `raw` flag**, and
+the `fold` identity, so a third party can re-run the exact rule, plus `{ version, digest }` where the digest is sha256 over the RFC 8785
 canonical form of the sorted rule list. Sorting is by code-unit comparison, never `localeCompare`: a
 locale-dependent collation would make the same table digest differently on a differently-configured
 host, which is exactly the divergence the digest exists to detect.

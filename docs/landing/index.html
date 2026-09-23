@@ -193,7 +193,7 @@
       <span class="badge"><b>0</b> <span data-i18n="badge.deps">runtime dependencies</span></span>
       <span class="badge"><b>4</b> <span data-i18n="badge.gates">gates</span></span>
       <span class="badge"><span data-i18n="badge.ruleset">ruleset</span> <b>v4</b></span>
-      <span class="badge"><b>166</b> <span data-i18n="badge.tests">tests</span></span>
+      <span class="badge"><b>189</b> <span data-i18n="badge.tests">tests</span></span>
       <span class="badge"><b>node:crypto</b> <span data-i18n="badge.import">the only import</span></span>
     </div>
     <div class="stage" id="stage">
@@ -253,7 +253,7 @@
     <div class="scroll"><table>
       <thead><tr><th data-i18n="gates.t.gate">Gate</th><th data-i18n="gates.t.decides">What it decides</th><th data-i18n="gates.t.net">Network</th></tr></thead>
       <tbody>
-        <tr><td class="mono">static-scan</td><td data-i18n="gates.t.g1">Injection, exfiltration, credential requests and hidden-Unicode or base64 payloads in the tool <b>name</b>, its description and its input schema. 25 rules in ruleset v4 — 15 can block, 10 are advisory-only, and 17 also cover the name.</td><td data-i18n="gates.t.none">none</td></tr>
+        <tr><td class="mono">static-scan</td><td data-i18n="gates.t.g1">Injection, exfiltration, credential requests and hidden-Unicode or base64 payloads in the tool <b>name</b>, its description and its input schema. 26 rules in ruleset v5 — 15 can block, 11 are advisory-only, and 17 also cover the name. v5 folds the text first (compatibility forms, invisible characters, Unicode tags, look-alike letters) so a rule cannot be dodged by obfuscation, whatever the language.</td><td data-i18n="gates.t.none">none</td></tr>
         <tr><td class="mono">threat-feed</td><td data-i18n="gates.t.g2">A known-bad server identity or tool, from 11 built-in records plus an optional signed feed. Fatal for a server-scoped <code>critical</code>.</td><td data-i18n="gates.t.feedonly">the feed fetch only</td></tr>
         <tr><td class="mono">origin</td><td data-i18n="gates.t.g3">Whether the operator declared this server or it arrived from a remote catalog. Fail-closed under <code>allowUnknownServers: false</code>.</td><td data-i18n="gates.t.none2">none</td></tr>
         <tr><td class="mono">pinning</td><td data-i18n="gates.t.g4">Whether the tool definitions — and the server's launch identity — still match what the user approved. A catalog can repoint an approved id at a different command; that is drift too.</td><td data-i18n="gates.t.none3">none</td></tr>
@@ -275,7 +275,7 @@
   <span class="k">findings</span>: [{ gate, severity, code: <span class="s">"THREAT_TOOL_MATCH"</span>, message, tool, advisory? }],
   <span class="k">allowedTools</span>: [<span class="s">"add"</span>],
   <span class="k">blockedTools</span>: [<span class="s">"sweeper"</span>],
-  <span class="k">rulesets</span>: { staticScan: { version: <span class="s">"4"</span>, digest: <span class="s">"sha256-klRyTiD3…"</span> } }
+  <span class="k">rulesets</span>: { staticScan: { version: <span class="s">"5"</span>, digest: <span class="s">"sha256-HUKSzM6c…"</span> } }
 }</pre>
     <p data-i18n="verdict.p1"><code>rulesets</code> is not decoration. The same server scores differently under a later rule table, and without the version <i>and</i> a digest over the rules there is no way to tell that apart from the server having changed. A stored scan without them is not reproducible — and because guards are part of the table, the same regex with and without <code>polarity</code> is a different ruleset.</p>
     <div class="grid g3">
@@ -368,8 +368,8 @@
    are OPAQUE and depth-buffered, so the occlusion order actually inverts as you
    orbit, which is the one 3D cue that cannot be faked in two dimensions.
 
-   Each gate wears its own number. Gate 1 carries 25 fine ticks — the 25 rules in
-   ruleset v4. Gate 2 carries exactly 11, the built-in threat-feed floor, plus the
+   Each gate wears its own number. Gate 1 carries 26 fine ticks — the 26 rules in
+   ruleset v5. Gate 2 carries exactly 11, the built-in threat-feed floor, plus the
    one dashed line in the whole scene that leaves the cage, because the optional
    feed is the only fetch WARDEN ever performs. Gate 3 carries two marks that snap
    into alignment when something passes: declared identity against what launched.
@@ -1135,7 +1135,7 @@
     "gates.t.gate": "Гейт",
     "gates.t.decides": "Что решает",
     "gates.t.net": "Сеть",
-    "gates.t.g1": "Инъекции, эксфильтрация, запросы учётных данных и скрытые Unicode- или base64-нагрузки в <b>имени</b> инструмента, его описании и схеме ввода. 25 правил в наборе v4 — 15 могут блокировать, 10 только уведомляют, и 17 покрывают также имя.",
+    "gates.t.g1": "Инъекции, эксфильтрация, запросы учётных данных и скрытые Unicode- или base64-нагрузки в <b>имени</b> инструмента, его описании и схеме ввода. 26 правил в наборе v5 — 15 могут блокировать, 11 только уведомляют, и 17 покрывают также имя. v5 сначала приводит текст к обычному виду (широкие формы, невидимые символы, Unicode-теги, буквы-двойники), поэтому правило нельзя обойти обфускацией на любом языке.",
     "gates.t.none": "нет",
     "gates.t.g2": "Известный плохой сервер или инструмент: 11 встроенных записей плюс опциональный подписанный feed. Фатален для <code>critical</code> на уровне сервера.",
     "gates.t.feedonly": "только загрузка feed",
@@ -1230,7 +1230,7 @@
     "gates.t.gate": "Puerta",
     "gates.t.decides": "Qué decide",
     "gates.t.net": "Red",
-    "gates.t.g1": "Inyección, exfiltración, peticiones de credenciales y cargas ocultas en Unicode o base64 en el <b>nombre</b> de la herramienta, su descripción y su esquema de entrada. 25 reglas en el conjunto v4: 15 pueden bloquear, 10 son solo de aviso y 17 cubren también el nombre.",
+    "gates.t.g1": "Inyección, exfiltración, peticiones de credenciales y cargas ocultas en Unicode o base64 en el <b>nombre</b> de la herramienta, su descripción y su esquema de entrada. 26 reglas en el conjunto v5: 15 pueden bloquear, 11 son solo de aviso y 17 cubren también el nombre. v5 normaliza antes el texto (formas de compatibilidad, caracteres invisibles, etiquetas Unicode, letras sosias) para que ninguna regla pueda eludirse con ofuscación, sea cual sea el idioma.",
     "gates.t.none": "ninguna",
     "gates.t.g2": "Identidad de servidor o herramienta conocida como maliciosa: 11 registros integrados más un feed firmado opcional. Fatal para un <code>critical</code> con alcance de servidor.",
     "gates.t.feedonly": "solo la descarga del feed",
@@ -1325,7 +1325,7 @@
     "gates.t.gate": "Porte",
     "gates.t.decides": "Ce qu’elle décide",
     "gates.t.net": "Réseau",
-    "gates.t.g1": "Injection, exfiltration, demandes d’identifiants et charges cachées en Unicode ou base64 dans le <b>nom</b> de l’outil, sa description et son schéma d’entrée. 25 règles dans le jeu v4 : 15 peuvent bloquer, 10 sont purement indicatives, et 17 couvrent aussi le nom.",
+    "gates.t.g1": "Injection, exfiltration, demandes d’identifiants et charges cachées en Unicode ou base64 dans le <b>nom</b> de l’outil, sa description et son schéma d’entrée. 26 règles dans le jeu v5 : 15 peuvent bloquer, 11 sont purement indicatives, et 17 couvrent aussi le nom. v5 normalise d’abord le texte (formes de compatibilité, caractères invisibles, balises Unicode, lettres sosies) pour qu’aucune règle ne puisse être contournée par obfuscation, quelle que soit la langue.",
     "gates.t.none": "aucun",
     "gates.t.g2": "Identité de serveur ou outil connu comme malveillant : 11 enregistrements intégrés plus un feed signé optionnel. Fatal pour un <code>critical</code> de portée serveur.",
     "gates.t.feedonly": "seulement le téléchargement du feed",
@@ -1420,7 +1420,7 @@
     "gates.t.gate": "门控",
     "gates.t.decides": "判定什么",
     "gates.t.net": "网络",
-    "gates.t.g1": "工具<b>名称</b>、描述与输入 schema 中的注入、外泄、索要凭据，以及隐藏 Unicode 或 base64 载荷。规则集 v4 共 25 条：15 条可阻止，10 条仅提示，另有 17 条同时覆盖名称。",
+    "gates.t.g1": "工具<b>名称</b>、描述与输入 schema 中的注入、外泄、索要凭据，以及隐藏 Unicode 或 base64 载荷。规则集 v5 共 26 条：15 条可阻止，11 条仅提示，另有 17 条同时覆盖名称。v5 先对文本做归一化（兼容形式、不可见字符、Unicode 标签、形近字母），因此无论何种语言都无法用混淆绕过规则。",
     "gates.t.none": "无",
     "gates.t.g2": "已知恶意的服务器身份或工具：11 条内置记录，外加可选的已签名 feed。服务器范围的 <code>critical</code> 为致命。",
     "gates.t.feedonly": "仅 feed 下载",

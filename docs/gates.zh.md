@@ -42,11 +42,17 @@ const SEVERITY_RANK = { info: 0, low: 1, medium: 2, high: 3, critical: 4 };
 
 ## static-scan
 
-对每个工具的 `name`、`description` 与 `inputSchema` 做本地正则扫描。规则集 **v4** 共 25 条规则（其中 12 条带有上下文 **guard**——一项具名检查，用于判断某次命中是否真是该规则要找的东西；参见[实地普查](mcp-survey.zh.md)，即产出这些 guard 的 1 108 台服务器实测）：
-18 条 `block`，7 条 `advise`。
+对每个工具的 `name`、`description` 与 `inputSchema` 做本地正则扫描。规则集 **v5** 共 26 条规则（其中 15 条带有上下文 **guard**——一项具名检查，用于判断某次命中是否真是该规则要找的东西；参见[实地普查](mcp-survey.zh.md)，即校准 v4 的 1 108 台服务器实测）：
+15 条 `block`，11 条 `advise`。
 
-每条规则都声明自己在这三个**面**中的哪些上运行，25 条里有 17 条包含名称。不包含名称的那三条是以**名词**为
-锚的规则（`TOOL_DEF_SECRET_REQUEST`、`TOOL_DEF_CREDENTIAL_PARAM`、`TOOL_DEF_ENV_REFERENCE`）：名称是标识
+**v5：任何规则读取文本之前，先对文本做归一化。** NFKC 把全角字母、连字和其他兼容形式变成普通字母；单词内部的不可见字符被删除；Unicode 标签区块（ASCII 的不可见副本，能藏下一整句话）被解码；在拉丁字母与西里尔或希腊字母混写的单词里，形近字母被换成拉丁字母，而整词只用一种文字写成的单词保持不变。于是，无论周围文本是什么语言，英文规则都不能再被全角字母、词内零宽空格、标签字符或西里尔字母 `о` 绕过。归一化以 `fold` 的形式与规则一起发布，并计入 digest。两条隐藏载荷规则读取**原始**文本（`raw: true`）。
+
+正则表格读不懂含义：用规则没有覆盖的语言写成的说法不在它的范围内。v5 增加了与语言无关的部分：归一化；`TOOL_DEF_SECRET_EXFIL` 组合（机密存放位置与外部地址相距不超过 100 个字符；仅提示，因为它在 10 645 台真实服务器上唯一的命中是正当用途）；`TOOL_DEF_HIDDEN_UNICODE` 纳入标签区块和双向隔离符；HISTOR 会标出服务器定义中新出现的任何外部地址。按含义识别属于分类器的工作，而不是这张表的工作。
+
+v5 还消除了三类实测误报：“send the user to https://…”（引导用户跳转，guard `navigation`）、“keep calling … without asking the user”（自主运行，guard `autonomy`），以及表情符号序列中的零宽连接符。在 10 645 台服务器的语料上，v4 阻止 63 台，v5 阻止 56 台，且没有新增任何 v4 未阻止的服务器。
+
+每条规则都声明自己在这三个**面**中的哪些上运行，26 条里有 17 条包含名称。不包含名称的那四条是以**名词**为
+锚的规则（`TOOL_DEF_SECRET_REQUEST`、`TOOL_DEF_CREDENTIAL_PARAM`、`TOOL_DEF_ENV_REFERENCE`、`TOOL_DEF_SECRET_EXFIL`）：名称是标识
 符，`api_key` 和 `private_key` 是标识符里再普通不过的组成部分，而拒绝 `sign_with_private_key` 等于把 v1 的
 校准错误换个面重犯一次。以**短语**为锚的规则需要空白字符，因此根本无法匹配 `snake_case`；而两条隐藏载荷规则
 针对的字符在名称里从来都不合法——这些都在所有面上运行。

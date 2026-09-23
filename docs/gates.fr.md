@@ -51,13 +51,34 @@ durcissait le seuil.
 ## static-scan
 
 Analyse locale par expressions régulières du `name`, de la `description` et de l'`inputSchema` de
-chaque outil. 25 règles dans le jeu **v4** : 15 `block`, 10 `advise`, et 12 d'entre elles portent un **guard** de
+chaque outil. 26 règles dans le jeu **v5** : 15 `block`, 11 `advise`, et 15 d'entre elles portent un **guard** de
 contexte — une vérification nommée qui décide si une correspondance est vraiment ce que la règle
-cherche. Voir [l'étude de terrain](mcp-survey.fr.md), le passage sur 1 108 serveurs qui les a produites.
+cherche. Voir [l'étude de terrain](mcp-survey.fr.md), le passage sur 1 108 serveurs qui a calibré v4.
 
-Chaque règle déclare sur laquelle de ces trois **surfaces** elle s'exécute, et 17 des 25 incluent le
-nom. Les trois qui ne l'incluent pas sont celles qui reposent sur un NOM COMMUN
-(`TOOL_DEF_SECRET_REQUEST`, `TOOL_DEF_CREDENTIAL_PARAM`, `TOOL_DEF_ENV_REFERENCE`) : un nom d'outil
+**v5 : le texte est normalisé avant qu'aucune règle ne le lise.** NFKC ramène les lettres pleine chasse,
+les ligatures et autres formes de compatibilité à des lettres ordinaires ; les caractères invisibles à
+l'intérieur d'un mot sont retirés ; le bloc des balises Unicode (copies invisibles de l'ASCII, capables de
+porter une phrase entière) est décodé ; et dans un mot qui mêle le latin au cyrillique ou au grec, les
+lettres sosies deviennent latines — un mot écrit entièrement dans un seul alphabet n'est pas touché. Une
+règle écrite en anglais ne se contourne donc plus par la pleine chasse, une espace sans chasse, des balises
+ou un `о` cyrillique, quelle que soit la langue du texte. La normalisation est publiée comme `fold` et entre
+dans l'empreinte. Les deux règles de charges cachées lisent le texte **brut** (`raw: true`).
+
+Une table d'expressions régulières ne lit pas le sens : une formulation dans une langue pour laquelle les
+règles ne sont pas écrites lui échappe. v5 ajoute ce qui ne dépend pas de la langue : la normalisation, la
+paire `TOOL_DEF_SECRET_EXFIL` (un magasin de secrets et une adresse externe à moins de 100 caractères ;
+purement indicative, sa seule correspondance sur 10 645 serveurs réels étant honnête), le bloc des balises
+et les isolats bidi dans `TOOL_DEF_HIDDEN_UNICODE` ; et HISTOR signale toute adresse externe qui apparaît
+pour la première fois. Détecter le sens relève d'un classifieur, pas de cette table.
+
+v5 supprime aussi trois faux positifs mesurés : « send the user to https://… » (redirection d'une personne,
+guard `navigation`), « keep calling … without asking the user » (autonomie, guard `autonomy`) et le liant sans
+chasse à l'intérieur d'un emoji. Sur le corpus de 10 645 serveurs, v5 bloque 56 serveurs là où v4 en bloquait
+63, et aucun que v4 ne bloquait pas.
+
+Chaque règle déclare sur laquelle de ces trois **surfaces** elle s'exécute, et 17 des 26 incluent le
+nom. Les quatre qui ne l'incluent pas sont celles qui reposent sur un NOM COMMUN
+(`TOOL_DEF_SECRET_REQUEST`, `TOOL_DEF_CREDENTIAL_PARAM`, `TOOL_DEF_ENV_REFERENCE`, `TOOL_DEF_SECRET_EXFIL`) : un nom d'outil
 est un identifiant, `api_key` et `private_key` en sont des morceaux ordinaires, et refuser
 `sign_with_private_key` reviendrait à commettre l'erreur de calibrage de v1 sur une nouvelle
 surface. Les règles reposant sur une PHRASE exigent des espaces et ne peuvent donc pas correspondre

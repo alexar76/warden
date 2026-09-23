@@ -46,14 +46,35 @@ defecto; expresarlo bajando su severidad la volvía bloqueante para quien endure
 
 ## static-scan
 
-Escaneo local con regex sobre el `name`, la `description` y el `inputSchema` de cada herramienta. 25
-reglas en el conjunto **v4**: 15 `block`, 10 `advise`, y 12 de ellas llevan un **guard** de contexto:
+Escaneo local con regex sobre el `name`, la `description` y el `inputSchema` de cada herramienta. 26
+reglas en el conjunto **v5**: 15 `block`, 11 `advise`, y 15 de ellas llevan un **guard** de contexto:
 una comprobación con nombre que decide si una coincidencia es de verdad lo que la regla busca. Véase
-[el estudio de campo](mcp-survey.es.md), la ejecución sobre 1 108 servidores que las produjo.
+[el estudio de campo](mcp-survey.es.md), la ejecución sobre 1 108 servidores con la que se calibró v4.
 
-Cada regla declara sobre cuál de esas tres **superficies** se ejecuta, y 17 de las 25 incluyen el
-nombre. Las tres que no lo hacen son las que se apoyan en un SUSTANTIVO
-(`TOOL_DEF_SECRET_REQUEST`, `TOOL_DEF_CREDENTIAL_PARAM`, `TOOL_DEF_ENV_REFERENCE`): un nombre es un
+**v5: el texto se normaliza antes de que lo lea ninguna regla.** NFKC convierte letras de ancho completo,
+ligaduras y otras formas de compatibilidad en letras normales; los caracteres invisibles dentro de una
+palabra se eliminan; el bloque de etiquetas Unicode (copias invisibles de ASCII capaces de llevar una frase
+entera) se decodifica; y dentro de una palabra que mezcla latino con cirílico o griego, las letras sosias
+pasan a latinas, mientras que una palabra escrita entera en un solo alfabeto no se toca. Una regla escrita
+en inglés ya no se elude con letras de ancho completo, un espacio de ancho cero, etiquetas o una `о`
+cirílica, sea cual sea el idioma del texto. La normalización se publica como `fold` y forma parte del
+digest. Las dos reglas de cargas ocultas leen el texto **en bruto** (`raw: true`).
+
+Una tabla de regex no lee significado: una frase en un idioma para el que las reglas no están escritas queda
+fuera. v5 añade lo que no depende del idioma: la normalización, el par `TOOL_DEF_SECRET_EXFIL` (un almacén de
+secretos y una dirección externa a menos de 100 caracteres; solo de aviso, porque su única coincidencia en
+10 645 servidores reales era honesta), el bloque de etiquetas y los aislantes bidi en `TOOL_DEF_HIDDEN_UNICODE`;
+y HISTOR señala toda dirección externa que aparece por primera vez. Detectar por significado corresponde a un
+clasificador, no a esta tabla.
+
+v5 también elimina tres falsos positivos medidos: «send the user to https://…» (redirigir a una persona, guard
+`navigation`), «keep calling … without asking the user» (autonomía, guard `autonomy`) y el unificador de ancho
+cero dentro de un emoji. Sobre el corpus de 10 645 servidores v5 bloquea 56 donde v4 bloqueaba 63, y ninguno
+que v4 no bloqueara.
+
+Cada regla declara sobre cuál de esas tres **superficies** se ejecuta, y 17 de las 26 incluyen el
+nombre. Las cuatro que no lo hacen son las que se apoyan en un SUSTANTIVO
+(`TOOL_DEF_SECRET_REQUEST`, `TOOL_DEF_CREDENTIAL_PARAM`, `TOOL_DEF_ENV_REFERENCE`, `TOOL_DEF_SECRET_EXFIL`): un nombre es un
 identificador, `api_key` y `private_key` son partes ordinarias de uno, y rechazar
 `sign_with_private_key` sería cometer el error de calibración de v1 en una superficie nueva. Las
 reglas que se apoyan en una FRASE necesitan espacios y no pueden coincidir con `snake_case` en

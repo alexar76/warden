@@ -8,7 +8,7 @@
   <a href="https://glama.ai/mcp/servers/alexar76/warden"><img src="https://glama.ai/mcp/servers/alexar76/warden/badges/score.svg" alt="warden MCP server" /></a>
   <a href="https://warden.modelmarket.dev/"><img src="https://img.shields.io/npm/v/@aimarket/warden?color=cb3837&label=npm" alt="version npm" /></a>
   <img src="docs/badges/deps.svg" alt="Zéro dépendance d'exécution" />
-  <img src="docs/badges/tests.svg" alt="166 tests au vert" />
+  <img src="docs/badges/tests.svg" alt="189 tests au vert" />
   <img src="docs/badges/node.svg" alt="Node >= 20" />
   <a href="LICENSE"><img src="docs/badges/license.svg" alt="Licence : MIT" /></a>
 </p>
@@ -136,7 +136,7 @@ téléchargement du threat feed que vous avez demandé en passant une URL à `lo
 
 ```mermaid
 flowchart LR
-  T["définitions<br/>des outils"] --> S["static scan<br/>25 règles"]
+  T["définitions<br/>des outils"] --> S["static scan<br/>26 règles"]
   S --> F["threat feed<br/>11 intégrées + signé"]
   F --> O["origin<br/>déclaré vs catalogue"]
   O --> P["pinning<br/>dérive vs approbation"]
@@ -145,7 +145,7 @@ flowchart LR
 
 | Porte | Ce qu'elle décide | Réseau | Fatale ? |
 |---|---|---|---|
-| **static-scan** | Injection, exfiltration, demandes d'identifiants et indices d'Unicode masqué/base64 dans le `name`, la `description` et l'`inputSchema` de l'outil — 25 règles, v4, dont 15 peuvent bloquer et 10 sont purement indicatives, 17 couvrent aussi le nom et 12 portent un guard de contexte | aucun | non |
+| **static-scan** | Injection, exfiltration, demandes d'identifiants et indices d'Unicode masqué/base64 dans le `name`, la `description` et l'`inputSchema` de l'outil — 26 règles, v5, dont 15 peuvent bloquer et 11 sont purement indicatives, 17 couvrent aussi le nom et 15 portent un guard de contexte. v5 normalise d'abord le texte (pleine chasse, caractères invisibles, balises Unicode, lettres sosies) : l'obfuscation ne contourne aucune règle, quelle que soit la langue | aucun | non |
 | **threat-feed** | Identité de serveur ou outil connu comme malveillant : 11 enregistrements intégrés plus un feed signé optionnel | seulement le téléchargement du feed | oui, pour un `critical` de portée serveur |
 | **origin** | Si l'opérateur a déclaré ce serveur ou s'il provient d'un catalogue distant | aucun | oui, avec `allowUnknownServers: false` |
 | **pinning** | Si les définitions d'outils correspondent encore à ce que l'utilisateur a approuvé | aucun | oui, avec `pinToolDefs: true` |
@@ -167,7 +167,7 @@ bloquante pour quiconque durcissait le seuil.
   findings: [{ gate, severity, code: "THREAT_TOOL_MATCH", message, tool, advisory? }],
   allowedTools: ["add"],
   blockedTools: ["sweeper"],
-  rulesets: { staticScan: { version: "4", digest: "sha256-klRyTiD3…" } }
+  rulesets: { staticScan: { version: "5", digest: "sha256-HUKSzM6c…" } }
 }
 ```
 
@@ -245,7 +245,7 @@ une absence de protection :
 ## Développement
 
 ```bash
-npm install && npm run build && npm test   # 166 tests
+npm install && npm run build && npm test   # 189 tests
 ```
 
 `test/packaging.test.ts` est ce qui tient l'accroche honnête : il échoue si une dépendance d'exécution

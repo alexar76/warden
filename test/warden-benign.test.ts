@@ -252,17 +252,22 @@ describe("exfil detection is anchored on an external destination", () => {
 describe("ruleset is versioned and digestible", () => {
   it("exposes a stable digest over the rule table", () => {
     const rs = staticScanRuleset();
-    expect(rs.version).toBe("4");
+    expect(rs.version).toBe("5");
     // If this fails you changed a rule: bump STATIC_SCAN_RULESET_VERSION and
     // update the value here. A scan result is only comparable within one digest.
-    expect(rs.digest).toBe("sha256-klRyTiD3njdBs7sOjcDCfmAHaKsfQi75/wlQjjWWkXI=");
-    expect(rs.rules.length).toBe(25);
-    // v4 moved four rules from block to advise after the field survey.
+    expect(rs.digest).toBe("sha256-HUKSzM6cREP8FH7ektqNi9gNIPoVmxKdfLXFF1IIl4s=");
+    // The fold is part of the ruleset identity: the same regexes over folded and
+    // unfolded text are different scans, so the digest covers it too.
+    expect(rs.fold).toBe("nfkc+tags-decoded+invisible-stripped+mixed-script-confusables/1");
+    expect(rs.rules.every((r) => typeof r.raw === "boolean")).toBe(true);
+    expect(rs.rules.length).toBe(26);
+    // v5 added TOOL_DEF_SECRET_EXFIL as an advisory pair rule.
     expect(rs.rules.filter((r) => r.tier === "block").length).toBe(15);
-    expect(rs.rules.filter((r) => r.tier === "advise").length).toBe(10);
+    expect(rs.rules.filter((r) => r.tier === "advise").length).toBe(11);
     // A rule's guards are part of the table, so the digest changes when a guard
-    // is added even if every regex stays byte-identical.
-    expect(rs.rules.filter((r) => r.guards.length > 0).length).toBe(12);
+    // is added even if every regex stays byte-identical. v5 added the navigation
+    // and autonomy guards and the secret-exfil pair guard.
+    expect(rs.rules.filter((r) => r.guards.length > 0).length).toBe(15);
     // v3: every rule declares its surfaces, and the tool name is scanned by the
     // phrase and hidden-payload rules but by none of the noun-keyed ones.
     expect(rs.rules.every((r) => r.surfaces.includes("description") && r.surfaces.includes("inputSchema"))).toBe(true);
@@ -273,6 +278,7 @@ describe("ruleset is versioned and digestible", () => {
     expect([...nounCodes].sort()).toEqual([
       "TOOL_DEF_CREDENTIAL_PARAM",
       "TOOL_DEF_ENV_REFERENCE",
+      "TOOL_DEF_SECRET_EXFIL",
       "TOOL_DEF_SECRET_REQUEST",
     ]);
   });

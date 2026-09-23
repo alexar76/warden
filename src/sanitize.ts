@@ -26,13 +26,16 @@
  * tool list and a sanitized key would match nothing.
  */
 
-/** Zero-width and bidi controls: invisible, therefore always escaped. */
-const INVISIBLE = "\\u200B-\\u200F\\u202A-\\u202E\\u2060\\u2066-\\u2069\\uFEFF";
+/**
+ * Zero-width and bidi controls, and the Unicode TAG block (U+E0000–E007F, which
+ * can carry a whole invisible sentence): invisible, therefore always escaped.
+ */
+const INVISIBLE = "\\u200B-\\u200F\\u202A-\\u202E\\u2060\\u2066-\\u2069\\uFEFF\\u{E0000}-\\u{E007F}";
 
 /** C0 controls, DEL, and C1 - the terminal-control range. */
 const CONTROL = "\\u0000-\\u001F\\u007F-\\u009F";
 
-const UNSAFE = new RegExp(`[${CONTROL}${INVISIBLE}]`, "g");
+const UNSAFE = new RegExp(`[${CONTROL}${INVISIBLE}]`, "gu");
 
 /** Default cap for an interpolated fragment: long enough to be useful in a log line. */
 export const DEFAULT_DISPLAY_MAX = 200;

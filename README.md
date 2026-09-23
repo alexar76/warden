@@ -145,7 +145,7 @@ asked for by passing a URL to `load()`.
 
 ```mermaid
 flowchart LR
-  T["tool defs<br/>from the server"] --> S["static scan<br/>25 rules"]
+  T["tool defs<br/>from the server"] --> S["static scan<br/>26 rules"]
   S --> F["threat feed<br/>11 built-ins + signed"]
   F --> O["origin<br/>declared vs catalog"]
   O --> P["pinning<br/>drift vs approval"]
@@ -154,7 +154,7 @@ flowchart LR
 
 | Gate | What it decides | Network | Fatal? |
 |---|---|---|---|
-| **static-scan** | Injection, exfiltration, credential requests and hidden-Unicode/base64 tells in the tool `name`, its `description` and its `inputSchema` — 25 rules, v4, of which 15 can block and 10 are advisory-only, 17 also cover the name, and 12 carry a context guard | none | no |
+| **static-scan** | Injection, exfiltration, credential requests and hidden-Unicode/base64 tells in the tool `name`, its `description` and its `inputSchema` — 26 rules, v5, of which 15 can block and 11 are advisory-only, 17 also cover the name, and 15 carry a context guard. v5 folds the text first (fullwidth, invisible characters, Unicode tags, look-alike letters) so obfuscation cannot dodge a rule in any language | none | no |
 | **threat-feed** | Known-bad server identity or tool, from 11 built-in records plus an optional signed feed | only the feed fetch | yes, for a server-scoped `critical` |
 | **origin** | Whether the operator declared this server or it arrived from a remote catalog | none | yes, under `allowUnknownServers: false` |
 | **pinning** | Whether the tool defs still match what the user approved | none | yes, under `pinToolDefs: true` |
@@ -175,7 +175,7 @@ second as a low severity made it blocking again for anyone who tightened the thr
   findings: [{ gate, severity, code: "THREAT_TOOL_MATCH", message, tool, advisory? }],
   allowedTools: ["add"],
   blockedTools: ["sweeper"],
-  rulesets: { staticScan: { version: "4", digest: "sha256-klRyTiD3…" } }
+  rulesets: { staticScan: { version: "5", digest: "sha256-HUKSzM6c…" } }
 }
 ```
 
@@ -251,7 +251,7 @@ no protection:
 ## Development
 
 ```bash
-npm install && npm run build && npm test   # 166 tests
+npm install && npm run build && npm test   # 189 tests
 ```
 
 `test/packaging.test.ts` is what keeps the headline honest: it fails if an npm runtime dependency
