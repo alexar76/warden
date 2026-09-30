@@ -1,3 +1,5 @@
+import { FilePinStore, pinRevision } from "./pin-store.js";
+import { canonicalToolsHash, serverIdentityHash } from "./pinning.js";
 /**
  * MCP tool surface for the WARDEN stdio server.
  *
@@ -6,9 +8,8 @@
  * behaviour, every input property described, and an output schema so the
  * description does not have to narrate the return shape.
  *
- * All six tools are local, deterministic, and perform no network I/O. The
- * stdio process uses the built-in threat-feed floor and an empty pin store —
- * it is a scanner, not a long-lived host.
+ * Tools perform no network I/O. Approvals live in the local state directory;
+ * mutation requires an explicit operator opt-in at process startup.
  */
 
 import {
@@ -61,9 +62,12 @@ export interface McpToolDef {
 
 const TOOL_DEF_ITEM = {
   type: "object",
-  additionalProperties: false,
-  required: ["name", "description", "inputSchema"],
+  additionalProperties: true,
+  required: ["name", "description", "inputSchema", "title", "outputSchema", "annotations", "metadata"],
   properties: {
+    title: { type: "string", description: "Unmodified advertised tool title; scanned and pinned." },
+    outputSchema: { type: "object", description: "Unmodified output schema, including nested descriptions; scanned and pinned." },
+    annotations: { type: "object", description: "Advertised hints; untrusted metadata, never authorization." },
     name: {
       type: "string",
       minLength: 1,
@@ -123,7 +127,7 @@ export const MCP_TOOLS: McpToolDef[] = [
       "Run WARDEN's ordered gate chain (static-scan → threat-feed → origin → pinning) over a server identity plus its advertised tools/list payload and return a recordable verdict (allow/block, 0..1 product score, findings, allowedTools/blockedTools, ruleset digest).\n\n" +
       "When to use: you have a complete server record and want the same decision a host should make before any of those tool definitions reach the model. Prefer this over calling the four gates yourself.\n\n" +
       "When NOT to use: inspecting descriptions only (call static_scan_tools — no origin/pinning); splitting tools by operator glob (classify_sensitive_tools); checking one outbound URL (check_egress_url); producing RFC 8785 bytes (canonicalize_json).\n\n" +
-      "Behaviour: local, deterministic, no network. This stdio process uses the built-in 11-record threat floor (it does not fetch a signed feed) and an empty in-memory pin store, so every server is first-contact: TOOL_DEF_UNPINNED is advisory and does not block. Origin defaults to allowUnknownServers=true so catalog-discovered servers are not fail-closed. Override policy when you need the host's real knobs. Does not connect to, start, or approve the target server.\n\n" +
+      "Behaviour: local, deterministic, no network. This stdio process uses the built-in 11-record threat floor (it does not fetch a signed feed) and a durable local pin store. First contact is TOOL_DEF_UNPINNED/advisory until explicitly approved. Origin defaults to allowUnknownServers=true so catalog-discovered servers are not fail-closed. Override policy when you need the host's real knobs. Does not connect to, start, or approve the target server.\n\n" +
       "Returns structured JSON matching outputSchema. Example: vet_mcp_server({ server: { id: \"demo@0\", name: \"demo\", transport: \"stdio\", command: \"npx\" }, tools: [{ name: \"add\", description: \"Add two integers.\", inputSchema: { type: \"object\" } }] }).",
     annotations: {
       title: "Vet an MCP server through the full WARDEN gate chain",
@@ -220,7 +224,7 @@ export const MCP_TOOLS: McpToolDef[] = [
             pinToolDefs: {
               type: "boolean",
               description:
-                "When true, tool-def drift after a stored pin is fatal. This process has an empty pin store, so first contact stays UNPINNED/advisory. Default true.",
+                "When true, tool-def drift after a stored pin is fatal. Pins persist across calls and restarts; first contact stays UNPINNED/advisory. Default true.",
             },
           },
         },
@@ -240,7 +244,7 @@ export const MCP_TOOLS: McpToolDef[] = [
         },
         decidedBy: { type: "string", description: "Gate that produced the blocking decision, present only when allow is false." },
         findings: { type: "array", items: FINDING_SCHEMA, description: "Accumulated findings across all gates, including advisory." },
-        allowedTools: { type: "array", items: { type: "string" }, description: "Tool names the host may expose to the model." },
+        allowedTools: { type: "array", items: { type: "string" }, description: "Tool names individually permitted; the host MUST also require allow=true before exposure." },
         blockedTools: { type: "array", items: { type: "string" }, description: "Tool names quarantined; the rest of the server may still be usable." },
         rulesets: {
           type: "object",
@@ -256,7 +260,7 @@ export const MCP_TOOLS: McpToolDef[] = [
     name: "static_scan_tools",
     title: "Static-scan MCP tool definitions for injection and exfil",
     description:
-      "Run only the static-scan gate (ruleset v5, 26 signatures with context guards, text folded first) over advertised tool names, descriptions, and input schemas. Returns findings, a 0..1 gate score, and the published ruleset digest.\n\n" +
+      "Run only the static-scan gate (ruleset v6, 26 signatures with context guards, text folded first) over advertised tool names, descriptions, and input schemas. Returns findings, a 0..1 gate score, and the published ruleset digest.\n\n" +
       "When to use: you have a tools/list dump and want injection / credential / hidden-Unicode hits without origin, pinning, or the threat feed. Cheaper and narrower than vet_mcp_server.\n\n" +
       "When NOT to use: you need the full host decision (vet_mcp_server); you want operator glob classification (classify_sensitive_tools); you want the published rule table itself (list_scan_rules).\n\n" +
       "Behaviour: local regex+guard evaluation, no network, no mutation. Advisory-tier hits are reported with advisory=true and do not reduce the score. Does not launch servers or send tool output to a model.\n\n" +
@@ -437,7 +441,7 @@ export const MCP_TOOLS: McpToolDef[] = [
     title: "List the published WARDEN static-scan rule table",
     description:
       "Return the in-force static-scan ruleset: version, digest, and every rule's code, severity, tier (block vs advise), surfaces (name / description / inputSchema), optional regex source, and named guards. A recorded verdict is only reproducible together with this identity.\n\n" +
-      "When to use: explain a finding code, confirm you are on ruleset v5, or re-run a scan with the same table. include_source=true adds the regex source and flags for an independent re-implementation.\n\n" +
+      "When to use: explain a finding code, confirm you are on ruleset v6, or re-run a scan with the same table. include_source=true adds the regex source and flags for an independent re-implementation.\n\n" +
       "When NOT to use: evaluating a live tools/list (static_scan_tools or vet_mcp_server — those apply the table). This tool does not scan anything.\n\n" +
       "Behaviour: local snapshot of the compiled rule table, no network, no mutation. Digest is sha256 over the RFC 8785 form of {version, fold, rules} (each rule carries its `raw` flag).\n\n" +
       "Returns the ruleset object. Example: list_scan_rules({ include_source: false }).",
@@ -480,7 +484,7 @@ export const MCP_TOOLS: McpToolDef[] = [
               tier: { type: "string", enum: ["block", "advise"], description: "block can refuse a connection; advise is report-only." },
               surfaces: {
                 type: "array",
-                items: { type: "string", enum: ["name", "description", "inputSchema"] },
+                items: { type: "string", enum: ["name", "description", "inputSchema", "title", "outputSchema", "annotations", "metadata"] },
                 description: "Which tool-def fields the rule is run against.",
               },
               guards: { type: "array", items: { type: "string" }, description: "Named context guards that can drop a regex match (polarity, mention, …)." },
@@ -495,6 +499,31 @@ export const MCP_TOOLS: McpToolDef[] = [
   },
 ];
 
+// Pin mutations are a capability delegated by the operator, never by request arguments.
+const PIN_MUTATIONS_ENABLED = process.env.WARDEN_ALLOW_PIN_CHANGES === "1";
+const vetProps = MCP_TOOLS[0]!.inputSchema.properties as Record<string, unknown>;
+for (const action of ["status", "approve", "revoke"] as const) {
+  const title = `${action === "status" ? "Inspect" : action === "approve" ? "Approve" : "Revoke"} the durable MCP server approval snapshot`;
+  MCP_TOOLS.push({
+    name: `${action}_mcp_server`, title,
+    description: `When to use: ${action} a local server approval after operator review. status_mcp_server returns the current hashes and previous snapshot for comparison. ` +
+      `When NOT to use: ordinary scanning; use vet_mcp_server. Approve/revoke require WARDEN_ALLOW_PIN_CHANGES=1 set by the operator before process startup. ` +
+      `Approval requires the exact reviewed tool and identity hashes plus previous_pin_revision (null for first approval); it never starts the target server.`,
+    annotations: { title, readOnlyHint: action === "status", destructiveHint: action !== "status", idempotentHint: true, openWorldHint: false },
+    inputSchema: { type: "object", additionalProperties: false,
+      required: action === "approve" ? ["server", "tools", "reviewed_tools_hash", "reviewed_identity_hash", "previous_pin_revision"] :
+        action === "revoke" ? ["server", "previous_pin_revision"] : ["server", "tools"],
+      properties: { server: vetProps.server, ...(action !== "revoke" ? { tools: vetProps.tools } : {}),
+        ...(action !== "status" ? { previous_pin_revision: { type: ["string", "null"], description: "Previously reviewed previousRevision, or null if unpinned." } } : {}),
+        ...(action === "approve" ? {
+          reviewed_tools_hash: { type: "string", description: "currentToolsHash returned by status_mcp_server for this exact payload." },
+          reviewed_identity_hash: { type: "string", description: "currentIdentityHash returned by status_mcp_server for this exact launch identity." },
+        } : {}),
+      } },
+    outputSchema: { type: "object", description: "Approval state, current hashes and previous snapshot; or approved/revoked confirmation." },
+  });
+}
+
 export const MCP_INSTRUCTIONS =
   "WARDEN — MCP security firewall over stdio. Library first; these tools expose the same gates a host would call before any third-party tools/list reaches the model.\n\n" +
   "Tools:\n" +
@@ -503,7 +532,8 @@ export const MCP_INSTRUCTIONS =
   "• classify_sensitive_tools — operator glob split (not an injection scan)\n" +
   "• check_egress_url — hostname allowlist, fail-closed on empty list\n" +
   "• canonicalize_json — RFC 8785 bytes for feeds and pins\n" +
-  "• list_scan_rules — published rule table + digest\n\n" +
+  "• list_scan_rules — published rule table + digest\n" +
+  "• status_mcp_server / approve_mcp_server / revoke_mcp_server — durable approvals; mutations require operator opt-in\n\n" +
   "No network, no secrets required. Do not pass live credentials inside tool descriptions you are scanning — they will be echoed in findings. This process does not start other MCP servers.";
 
 let feedReady: Promise<ThreatFeed> | undefined;
@@ -539,7 +569,14 @@ function asTools(raw: unknown): ToolDef[] {
     if (!rec.inputSchema || typeof rec.inputSchema !== "object" || Array.isArray(rec.inputSchema)) {
       throw new McpToolError(`tools[${i}].inputSchema must be a JSON object`);
     }
+    if (rec.title !== undefined && typeof rec.title !== "string") throw new McpToolError(`tools[${i}].title must be a string`);
+    for (const key of ["outputSchema", "annotations"]) {
+      if (rec[key] !== undefined && (!rec[key] || typeof rec[key] !== "object" || Array.isArray(rec[key]))) {
+        throw new McpToolError(`tools[${i}].${key} must be an object`);
+      }
+    }
     return {
+      ...rec,
       name,
       description,
       inputSchema: rec.inputSchema as ToolDef["inputSchema"],
@@ -599,6 +636,10 @@ export interface ToolCallResult {
 
 export async function callMcpTool(name: string, args: Record<string, unknown>): Promise<ToolCallResult> {
   switch (name) {
+    case "status_mcp_server":
+    case "approve_mcp_server":
+    case "revoke_mcp_server":
+      return { structured: await managePin(name, args) };
     case "vet_mcp_server":
       return { structured: { ...(await vetMcpServer(args)) } };
     case "static_scan_tools":
@@ -621,16 +662,49 @@ async function vetMcpServer(args: Record<string, unknown>): Promise<WardenVerdic
   const server = asServer(args.server);
   const policy = asPolicy(args.policy);
   const threatFeed = await builtinFeed();
-  const pins = new Map();
+  const store = new FilePinStore();
   const warden = Warden.create({
     policy,
     threatFeed,
-    store: {
-      getPin: async (id) => pins.get(id),
-      putPin: async (p) => void pins.set(p.serverId, p),
-    },
+    store,
   });
   return warden.vet(server, tools);
+}
+
+async function managePin(name: string, args: Record<string, unknown>): Promise<object> {
+  const server = asServer(args.server);
+  const store = new FilePinStore();
+  const previous = await store.getPin(server.id);
+  if (name !== "status_mcp_server" && !PIN_MUTATIONS_ENABLED) {
+    throw new McpToolError("Pin mutations disabled: operator must set WARDEN_ALLOW_PIN_CHANGES=1 before startup");
+  }
+  if (name !== "status_mcp_server" && args.previous_pin_revision !== null && typeof args.previous_pin_revision !== "string") {
+    throw new McpToolError("previous_pin_revision must be a reviewed hash or null");
+  }
+  if (name === "revoke_mcp_server") {
+    await store.replace(server.id, args.previous_pin_revision as string | null);
+    return { revoked: true, serverId: server.id };
+  }
+  const tools = asTools(args.tools);
+  const toolsHash = canonicalToolsHash(tools);
+  const identityHash = serverIdentityHash(server);
+  if (name === "status_mcp_server") {
+    return { serverId: server.id, previous: previous ?? null, previousRevision: pinRevision(previous), currentToolsHash: toolsHash, currentIdentityHash: identityHash,
+      changed: !!previous && (previous.toolsHash !== toolsHash || previous.identityHash !== identityHash),
+      currentTools: tools, mutationsEnabled: PIN_MUTATIONS_ENABLED };
+  }
+  if (args.reviewed_tools_hash !== toolsHash || args.reviewed_identity_hash !== identityHash) {
+    throw new McpToolError("Payload differs from reviewed tool/identity hashes");
+  }
+  // Re-approval may replace a drifted pin, but cannot bypass the other gates.
+  const warden = Warden.create({ policy: DEFAULT_MCP_POLICY, threatFeed: await builtinFeed(),
+    store: { getPin: async () => undefined, putPin: async () => {} } });
+  const verdict = await warden.vet(server, tools);
+  if (!verdict.allow) throw new McpToolError("Server failed security checks; approval refused");
+  const pin = { serverId: server.id, toolsHash, toolsHashVersion: 2, identityHash, tools,
+    toolNames: tools.map(t => t.name).sort(), approvedAt: new Date().toISOString() };
+  await store.replace(server.id, args.previous_pin_revision as string | null, pin);
+  return { approved: true, pin };
 }
 
 async function staticScan(args: Record<string, unknown>): Promise<{

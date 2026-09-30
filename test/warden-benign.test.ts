@@ -252,10 +252,10 @@ describe("exfil detection is anchored on an external destination", () => {
 describe("ruleset is versioned and digestible", () => {
   it("exposes a stable digest over the rule table", () => {
     const rs = staticScanRuleset();
-    expect(rs.version).toBe("5");
+    expect(rs.version).toBe("6");
     // If this fails you changed a rule: bump STATIC_SCAN_RULESET_VERSION and
     // update the value here. A scan result is only comparable within one digest.
-    expect(rs.digest).toBe("sha256-HUKSzM6cREP8FH7ektqNi9gNIPoVmxKdfLXFF1IIl4s=");
+    expect(rs.digest).toBe("sha256-dop0ekChIvyzXlNo2/ZdDckIRgBCZaw0ywvakh2VQsA=");
     // The fold is part of the ruleset identity: the same regexes over folded and
     // unfolded text are different scans, so the digest covers it too.
     expect(rs.fold).toBe("nfkc+tags-decoded+invisible-stripped+mixed-script-confusables/1");

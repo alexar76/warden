@@ -12,7 +12,7 @@ const CLEAN_TOOLS = [
 ];
 
 describe("MCP tool definitions (TDQS surface)", () => {
-  it("ships six coherent tools with titles, annotations, and output schemas", () => {
+  it("ships nine coherent tools with titles, annotations, and output schemas", () => {
     const names = MCP_TOOLS.map((t) => t.name);
     expect(names).toEqual([
       "vet_mcp_server",
@@ -21,6 +21,9 @@ describe("MCP tool definitions (TDQS surface)", () => {
       "check_egress_url",
       "canonicalize_json",
       "list_scan_rules",
+      "status_mcp_server",
+      "approve_mcp_server",
+      "revoke_mcp_server",
     ]);
     for (const t of MCP_TOOLS) {
       expect(t.title.length, t.name).toBeGreaterThan(t.name.length);
@@ -28,8 +31,9 @@ describe("MCP tool definitions (TDQS surface)", () => {
       expect(t.description.length, t.name).toBeGreaterThan(80);
       expect(t.description, t.name).toMatch(/When to use/i);
       expect(t.description, t.name).toMatch(/When NOT to use/i);
-      expect(t.annotations.readOnlyHint).toBe(true);
-      expect(t.annotations.destructiveHint).toBe(false);
+      const mutation = /^(approve|revoke)_/.test(t.name);
+      expect(t.annotations.readOnlyHint).toBe(!mutation);
+      expect(t.annotations.destructiveHint).toBe(mutation);
       expect(t.annotations.idempotentHint).toBe(true);
       expect(t.annotations.openWorldHint).toBe(false);
       expect(t.inputSchema).toMatchObject({ type: "object" });

@@ -8,7 +8,7 @@
   <a href="https://glama.ai/mcp/servers/alexar76/warden"><img src="https://glama.ai/mcp/servers/alexar76/warden/badges/score.svg" alt="warden MCP server" /></a>
   <a href="https://warden.modelmarket.dev/"><img src="https://img.shields.io/npm/v/@aimarket/warden?color=cb3837&label=npm" alt="npm version" /></a>
   <img src="docs/badges/deps.svg" alt="Zero runtime dependencies" />
-  <img src="docs/badges/tests.svg" alt="189 tests passing" />
+  <img src="docs/badges/tests.svg" alt="200 tests passing" />
   <img src="docs/badges/node.svg" alt="Node >= 20" />
   <a href="LICENSE"><img src="docs/badges/license.svg" alt="License: MIT" /></a>
 </p>
@@ -22,6 +22,8 @@
 
 
 > 🌐 [English](README.md) · **Русский** · [Español](README-es.md) · [Français](README-fr.md) · [中文](README-zh.md) · [Глоссарий](https://github.com/alexar76/aicom/blob/main/docs/localization-glossary.md)
+
+> [Изменения безопасности 0.7.0 и миграция](docs/security-hardening.ru.md): `vetLaunch`, durable pins, anti-rollback, ruleset v6, runtime revalidation.
 
 **Один MCP-сервер. Файрвол для объявленных определений инструментов. Библиотека в комплекте.**
 
@@ -82,6 +84,9 @@ Claude Desktop / Cursor (`mcpServers`):
 | `check_egress_url` | Allowlist хостов (пустой список — отказ всем) |
 | `canonicalize_json` | Байты RFC 8785 |
 | `list_scan_rules` | Опубликованная таблица правил |
+| `status_mcp_server` | Сравнить сохранённое одобрение и текущие хеши |
+| `approve_mcp_server` | Одобрить рассмотренный снимок (разрешение оператора) |
+| `revoke_mcp_server` | Отозвать рассмотренное одобрение (разрешение оператора) |
 
 ### Публикация на Glama
 
@@ -145,7 +150,7 @@ flowchart LR
 
 | Гейт | Что решает | Сеть | Fatal? |
 |---|---|---|---|
-| **static-scan** | Инъекции, эксфильтрация, запросы учётных данных, скрытый Unicode и base64-признаки в `name`, `description` и `inputSchema` инструмента — 26 правил, версия 5, из них 15 могут блокировать и 11 только сообщают, 17 покрывают и имя, а у 15 есть контекстный guard. v5 сначала приводит текст к обычному виду (широкие буквы, невидимые символы, Unicode-теги, буквы-двойники), поэтому обфускация не обходит правило ни на каком языке | нет | нет |
+| **static-scan** | Инъекции, эксфильтрация, запросы учётных данных, скрытый Unicode и base64-признаки в `name`, `description` и `inputSchema` инструмента — 26 правил, версия 6, из них 15 могут блокировать и 11 только сообщают, 17 покрывают и имя, а у 15 есть контекстный guard. v5 сначала приводит текст к обычному виду (широкие буквы, невидимые символы, Unicode-теги, буквы-двойники), поэтому обфускация не обходит правило ни на каком языке | нет | нет |
 | **threat-feed** | Известный плохой сервер или инструмент: 11 встроенных записей плюс опциональный подписанный feed | только загрузка feed | да, для `critical` на уровне сервера |
 | **origin** | Объявил ли оператор этот сервер, или он пришёл из удалённого каталога | нет | да, при `allowUnknownServers: false` |
 | **pinning** | Совпадают ли определения инструментов с тем, что подтвердил пользователь | нет | да, при `pinToolDefs: true` |
@@ -166,7 +171,7 @@ severity снова делало находку блокирующей для в
   findings: [{ gate, severity, code: "THREAT_TOOL_MATCH", message, tool, advisory? }],
   allowedTools: ["add"],
   blockedTools: ["sweeper"],
-  rulesets: { staticScan: { version: "5", digest: "sha256-HUKSzM6c…" } }
+  rulesets: { staticScan: { version: "6", digest: "sha256-dop0ekCh…" } }
 }
 ```
 
@@ -244,7 +249,7 @@ GET <ваш feed url>
 ## Разработка
 
 ```bash
-npm install && npm run build && npm test   # 189 тестов
+npm install && npm run build && npm test   # 200 тестов
 ```
 
 `test/packaging.test.ts` — то, что удерживает заголовок честным: он падает, если появляется

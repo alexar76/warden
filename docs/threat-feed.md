@@ -2,6 +2,8 @@
 
 > 🌐 **English** · [Русский](threat-feed.ru.md) · [Español](threat-feed.es.md) · [Français](threat-feed.fr.md) · [中文](threat-feed.zh.md)
 
+> [0.7.0 security changes and migration](security-hardening.md).
+
 WARDEN ships 11 built-in threat records. They are a floor, not a catalog — the point of the feed is
 that someone who actually hunts hostile MCP servers can push what they find to every install, without
 becoming able to *unblock* anything.

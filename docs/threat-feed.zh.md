@@ -2,6 +2,8 @@
 
 > 🌐 [English](threat-feed.md) · [Русский](threat-feed.ru.md) · [Español](threat-feed.es.md) · [Français](threat-feed.fr.md) · **中文**
 
+> [0.7.0 安全更新与迁移](security-hardening.zh.md).
+
 WARDEN 自带 11 条内置威胁记录。它们是底线，不是目录：feed 的意义在于，真正在猎捕恶意 MCP 服务器的人可以把发现
 推送到每一个安装点，同时又不会因此获得*解除*任何拦截的能力。
 

@@ -2,6 +2,8 @@
 
 > 🌐 [English](threat-feed.md) · [Русский](threat-feed.ru.md) · **Español** · [Français](threat-feed.fr.md) · [中文](threat-feed.zh.md)
 
+> [Seguridad y migración de 0.7.0](security-hardening.es.md).
+
 WARDEN trae 11 registros de amenazas integrados. Son un suelo, no un catálogo: el sentido del feed es
 que alguien que realmente caza servidores MCP hostiles pueda empujar lo que encuentra a cada
 instalación, sin quedar en posición de *desbloquear* nada.

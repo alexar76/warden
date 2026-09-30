@@ -1,4 +1,6 @@
-import { verify, createPublicKey } from "node:crypto";
+import { join } from "node:path";
+import { defaultStateDir, readState, writeState, withStateLock } from "./state.js";
+import { verify, createPublicKey, createHash } from "node:crypto";
 import { countWildcards, MAX_GLOB_WILDCARDS, threatMatch } from "./glob.js";
 import { canonicalize, parseJsonStrict, CanonicalizationError } from "./jcs.js";
 import { displaySafe } from "./sanitize.js";
@@ -194,6 +196,8 @@ const BUILTIN: ThreatRecord[] = [
 export interface ThreatFeedOptions {
   /** Ed25519 public key (hex-encoded SPKI DER) of the feed publisher. */
   feedPublicKey?: string;
+  /** Durable anti-rollback state; defaults to WARDEN_STATE_DIR or the user state directory. */
+  stateDir?: string;
   /**
    * Maximum age of a signed feed's `timestamp`. Defaults to
    * {@link DEFAULT_FEED_MAX_AGE_MS}; a non-finite or non-positive value falls back
@@ -217,22 +221,42 @@ interface CompiledRecord {
   glob: boolean;
 }
 
+interface FeedSnapshot { timestamp: number; digest: string; records: ThreatRecord[]; }
+
+async function readFeedSnapshot(path: string): Promise<FeedSnapshot | undefined> {
+  const previous = await readState<FeedSnapshot>(path);
+  if (previous !== undefined && (!previous || typeof previous !== "object" || !Number.isSafeInteger(previous.timestamp) || typeof previous.digest !== "string" ||
+      !Array.isArray(previous.records) || previous.records.length > MAX_FEED_RECORDS ||
+      previous.digest !== createHash("sha256").update(canonicalize({ records: previous.records, timestamp: previous.timestamp })).digest("hex"))) {
+    throw new Error("invalid persisted feed state; refusing to reset rollback protection");
+  }
+  return previous;
+}
+
 export class ThreatFeed {
   private records: ThreatRecord[] = [...BUILTIN];
   private compiled: CompiledRecord[] = compile([...BUILTIN]);
   private feedPublicKey?: string;
+  private readonly stateDir: string;
+  private accepted?: FeedSnapshot;
   private readonly maxAgeMs: number;
   private readonly now: () => number;
   private readonly log?: WardenLogger;
 
   constructor(opts?: ThreatFeedOptions) {
     this.feedPublicKey = opts?.feedPublicKey;
+    this.stateDir = opts?.stateDir ?? defaultStateDir();
     this.maxAgeMs =
       opts?.maxAgeMs != null && Number.isFinite(opts.maxAgeMs) && opts.maxAgeMs > 0
         ? opts.maxAgeMs
         : DEFAULT_FEED_MAX_AGE_MS;
     this.now = opts?.now ?? (() => Date.now());
     this.log = opts?.log;
+  }
+
+  get status(): { timestamp?: number; digest?: string; stale: boolean } {
+    return { timestamp: this.accepted?.timestamp, digest: this.accepted?.digest,
+      stale: !this.accepted || this.now() - this.accepted.timestamp > this.maxAgeMs };
   }
 
   /** The built-in floor, always present regardless of remote load state. */
@@ -275,18 +299,28 @@ export class ThreatFeed {
       this.log?.warn("threat feed URL configured but no feedPublicKey set — remote feed REFUSED (unsigned feeds not allowed)");
       return;
     }
+    const keyId = createHash("sha256").update(this.feedPublicKey.toLowerCase()).digest("hex");
+    const statePath = join(this.stateDir, "feeds", `${keyId}.json`);
+    const ctrl = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | undefined;
     try {
+      const previous = await readFeedSnapshot(statePath);
+      if (previous) {
+        this.accepted = previous;
+        this.setRecords([...BUILTIN, ...previous.records.filter(isThreatRecord)]);
+      }
       // AbortController with a 10 s timeout — a hanging feed must not block startup.
-      const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 10_000);
-      const res = await fetch(feedUrl, { signal: ctrl.signal }).finally(() => clearTimeout(timer));
+      timer = setTimeout(() => ctrl.abort(), 10_000);
+      const res = await fetch(feedUrl, { signal: ctrl.signal });
       if (!res.ok) {
+        await res.body?.cancel();
         this.log?.warn(`threat feed fetch returned ${res.status} — keeping built-in floor`);
         return;
       }
       // Reject oversized responses before reading them (OOM guard).
       const cl = res.headers.get("content-length");
       if (cl && Number(cl) > MAX_FEED_BYTES) {
+        await res.body?.cancel();
         this.log?.warn(`threat feed: content-length ${cl} exceeds ${MAX_FEED_BYTES} byte limit — rejected`);
         return;
       }
@@ -400,14 +434,28 @@ export class ThreatFeed {
         // a wildcard-heavy pattern or a bad severity is dropped, not applied.
         this.log?.warn(`threat feed: ${dropped} record(s) refused by validation — the rest are in effect`);
       }
-      this.setRecords([...BUILTIN, ...remote]);
+      const candidate: FeedSnapshot = { timestamp, digest: createHash("sha256").update(payload).digest("hex"), records: records as ThreatRecord[] };
+      await withStateLock(statePath, async () => {
+        const latest = await readFeedSnapshot(statePath);
+        if (latest && (timestamp < latest.timestamp || (timestamp === latest.timestamp && candidate.digest !== latest.digest))) {
+          this.accepted = latest;
+          this.setRecords([...BUILTIN, ...latest.records.filter(isThreatRecord)]);
+          throw new Error("signed feed rollback or timestamp equivocation refused");
+        }
+        await writeState(statePath, candidate);
+        this.accepted = candidate;
+        this.setRecords([...BUILTIN, ...remote]);
+      });
       this.log?.info(
         `threat feed loaded: ${this.records.length} records (${BUILTIN.length} builtin + ${remote.length} remote, ` +
           `signature valid, snapshot ${formatDuration(age)} old)`,
       );
     } catch (err) {
       // Degrade gracefully: built-ins remain in effect.
-      this.log?.debug(`threat feed load error: ${(err as Error).message}`);
+      this.log?.warn(`threat feed load error: ${(err as Error).message}`);
+    } finally {
+      clearTimeout(timer);
+      ctrl.abort();
     }
   }
 
@@ -445,7 +493,7 @@ export class ThreatFeed {
     // Built once: the record loop below would otherwise re-stringify every schema.
     const toolHays = tools.map((tool) => ({
       name: tool.name,
-      hay: [tool.name, tool.description ?? "", stringifySchema(tool.inputSchema)].join("\n").toLowerCase(),
+      hay: [tool.name, tool.description ?? "", stringifySchema(tool)].join("\n").toLowerCase(),
     }));
 
     const findings: WardenFinding[] = [];

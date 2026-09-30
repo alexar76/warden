@@ -2,6 +2,8 @@
 
 > 🌐 [English](integration.md) · [Русский](integration.ru.md) · [Español](integration.es.md) · **Français** · [中文](integration.zh.md)
 
+> [Sécurité et migration 0.7.0](security-hardening.fr.md).
+
 WARDEN est une bibliothèque, pas un proxy. Vous l'appelez en un point du cycle de vie de votre hôte MCP :
 après que le serveur a annoncé ce qu'il sait faire, avant que le modèle en soit informé.
 

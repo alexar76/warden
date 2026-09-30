@@ -12,6 +12,11 @@ export type JSONSchema = Record<string, unknown>;
 
 /** An MCP tool as its server advertises it — the primary attack surface. */
 export interface ToolDef {
+  /** Preserve extension fields from tools/list; they are untrusted and pinned too. */
+  [field: string]: unknown;
+  title?: string;
+  outputSchema?: JSONSchema;
+  annotations?: Record<string, unknown>;
   name: string;
   description: string;
   inputSchema: JSONSchema;
@@ -130,8 +135,12 @@ export interface PinnedServer {
   serverId: string;
   /** sha256 over the canonical tool-def set. */
   toolsHash: string;
+  /** v2 includes all advertised fields; plain three-field definitions retain their digest. */
+  toolsHashVersion?: number;
   approvedAt: string;
   toolNames: string[];
+  /** Definitions retained for operator review; do not supply live credentials. */
+  tools?: ToolDef[];
   /**
    * sha256 over the server's launch identity — transport, command, args, url,
    * name — as it stood when the user approved it.

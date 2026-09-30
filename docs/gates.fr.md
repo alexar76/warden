@@ -2,6 +2,8 @@
 
 > 🌐 [English](gates.md) · [Русский](gates.ru.md) · [Español](gates.es.md) · **Français** · [中文](gates.zh.md)
 
+> [Sécurité et migration 0.7.0](security-hardening.fr.md).
+
 `Warden.vet(server, tools)` exécute une chaîne ordonnée et renvoie un seul verdict. Cette page est
 toute la procédure de décision : ce que regarde chaque porte, ce qu'elle peut bloquer, et comment le
 nombre final se construit.
@@ -51,7 +53,7 @@ durcissait le seuil.
 ## static-scan
 
 Analyse locale par expressions régulières du `name`, de la `description` et de l'`inputSchema` de
-chaque outil. 26 règles dans le jeu **v5** : 15 `block`, 11 `advise`, et 15 d'entre elles portent un **guard** de
+chaque outil. 26 règles dans le jeu **v6** : 15 `block`, 11 `advise`, et 15 d'entre elles portent un **guard** de
 contexte — une vérification nommée qui décide si une correspondance est vraiment ce que la règle
 cherche. Voir [l'étude de terrain](mcp-survey.fr.md), le passage sur 1 108 serveurs qui a calibré v4.
 

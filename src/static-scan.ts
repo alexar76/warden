@@ -53,13 +53,13 @@ type Tier = "block" | "advise";
  * characters and a base64 blob could sit in the one field that reaches the model
  * first and WARDEN reported nothing.
  */
-type Surface = "name" | "description" | "inputSchema";
+type Surface = "name" | "description" | "inputSchema" | "title" | "outputSchema" | "annotations" | "metadata";
 
 /** Prose surfaces: the default, and everything a noun-keyed rule may look at. */
-const PROSE: Surface[] = ["description", "inputSchema"];
+const PROSE: Surface[] = ["description", "inputSchema", "title", "outputSchema", "annotations", "metadata"];
 
 /** Prose plus the identifier - for phrase and hidden-payload rules. */
-const ALL_SURFACES: Surface[] = ["name", "description", "inputSchema"];
+const ALL_SURFACES: Surface[] = ["name", ...PROSE];
 
 interface SignaturePattern {
   re: RegExp;
@@ -424,8 +424,11 @@ const GUARDS: Record<GuardName, Guard> = {
   mention(m, text, surface) {
     const start = m.index;
     const end = start + m[0].length;
-    if (isQuoted(text, start, end)) return "match is quoted or in backticks — a citation, not an instruction";
-    if (surface === "inputSchema" && text[start - 1] === '"' && text[end] === '"') {
+    const structured = ["inputSchema", "outputSchema", "annotations", "metadata"].includes(surface);
+    // JSON serialization quotes every string. Those delimiters do not make a
+    // description an innocent citation; preserve the narrow whole-token exemption below.
+    if (!structured && isQuoted(text, start, end)) return "match is quoted or in backticks — a citation, not an instruction";
+    if (["inputSchema", "outputSchema", "annotations", "metadata"].includes(surface) && text[start - 1] === '"' && text[end] === '"') {
       return "match is a complete JSON string token — an enum value or field name";
     }
     return null;
@@ -710,7 +713,9 @@ function hasExternalAddress(text: string): boolean {
  *     autonomy phrasing (`autonomy`), and the zero-width joiner inside an emoji sequence. The
  *     hidden-character rule now also catches the Unicode-tag block and the bidi isolates.
  */
-export const STATIC_SCAN_RULESET_VERSION = "5";
+// v6 extends scanning to title, outputSchema, annotations and extension metadata;
+// JSON string delimiters no longer count as a benign quotation around instructions.
+export const STATIC_SCAN_RULESET_VERSION = "6";
 
 const SEVERITY_RANK: Record<Severity, number> = {
   info: 0,
@@ -821,6 +826,12 @@ export class StaticScanGate implements WardenGate {
         { text: tool.name ?? "", surface: "name", where: "name" },
         { text: tool.description ?? "", surface: "description", where: "description" },
         { text: schemaText, surface: "inputSchema", where: "input schema" },
+        { text: tool.title ?? "", surface: "title", where: "title" },
+        { text: safeStringifySchema(tool.outputSchema ?? {}), surface: "outputSchema", where: "output schema" },
+        { text: safeStringifySchema(tool.annotations ?? {}), surface: "annotations", where: "annotations" },
+        { text: safeStringifySchema(Object.fromEntries(Object.entries(tool).filter(([k]) =>
+          !["name", "description", "inputSchema", "title", "outputSchema", "annotations"].includes(k)))),
+          surface: "metadata", where: "extension metadata" },
       ];
       // The name is quoted back in every message, so it is escaped once here
       // rather than at each call site. `finding.tool` keeps the raw name: it is

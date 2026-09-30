@@ -8,7 +8,7 @@
   <a href="https://glama.ai/mcp/servers/alexar76/warden"><img src="https://glama.ai/mcp/servers/alexar76/warden/badges/score.svg" alt="warden MCP server" /></a>
   <a href="https://warden.modelmarket.dev/"><img src="https://img.shields.io/npm/v/@aimarket/warden?color=cb3837&label=npm" alt="version npm" /></a>
   <img src="docs/badges/deps.svg" alt="Zéro dépendance d'exécution" />
-  <img src="docs/badges/tests.svg" alt="189 tests au vert" />
+  <img src="docs/badges/tests.svg" alt="200 tests au vert" />
   <img src="docs/badges/node.svg" alt="Node >= 20" />
   <a href="LICENSE"><img src="docs/badges/license.svg" alt="Licence : MIT" /></a>
 </p>
@@ -22,6 +22,8 @@
 
 
 > 🌐 [English](README.md) · [Русский](README-ru.md) · [Español](README-es.md) · **Français** · [中文](README-zh.md) · [Glossaire](https://github.com/alexar76/aicom/blob/main/docs/localization-glossary.md)
+
+> [Sécurité et migration 0.7.0](docs/security-hardening.fr.md): `vetLaunch`, durable pins, anti-rollback, ruleset v6, runtime revalidation.
 
 **Un serveur MCP. Pare-feu des définitions d'outils annoncées. Bibliothèque incluse.**
 
@@ -82,6 +84,9 @@ Le processus ne démarre, ne proxifie ni n'isole un autre serveur MCP : vous pas
 | `check_egress_url` | Allowlist d'hôtes (liste vide = tout refuser) |
 | `canonicalize_json` | Octets RFC 8785 |
 | `list_scan_rules` | Table de règles publiée |
+| `status_mcp_server` | Comparer approbation et empreintes actuelles |
+| `approve_mcp_server` | Approuver le snapshot examiné (activation opérateur) |
+| `revoke_mcp_server` | Révoquer une approbation examinée (activation opérateur) |
 
 ### Publier sur Glama
 
@@ -145,7 +150,7 @@ flowchart LR
 
 | Porte | Ce qu'elle décide | Réseau | Fatale ? |
 |---|---|---|---|
-| **static-scan** | Injection, exfiltration, demandes d'identifiants et indices d'Unicode masqué/base64 dans le `name`, la `description` et l'`inputSchema` de l'outil — 26 règles, v5, dont 15 peuvent bloquer et 11 sont purement indicatives, 17 couvrent aussi le nom et 15 portent un guard de contexte. v5 normalise d'abord le texte (pleine chasse, caractères invisibles, balises Unicode, lettres sosies) : l'obfuscation ne contourne aucune règle, quelle que soit la langue | aucun | non |
+| **static-scan** | Injection, exfiltration, demandes d'identifiants et indices d'Unicode masqué/base64 dans le `name`, la `description` et l'`inputSchema` de l'outil — 26 règles, v6, dont 15 peuvent bloquer et 11 sont purement indicatives, 17 couvrent aussi le nom et 15 portent un guard de contexte. v5 normalise d'abord le texte (pleine chasse, caractères invisibles, balises Unicode, lettres sosies) : l'obfuscation ne contourne aucune règle, quelle que soit la langue | aucun | non |
 | **threat-feed** | Identité de serveur ou outil connu comme malveillant : 11 enregistrements intégrés plus un feed signé optionnel | seulement le téléchargement du feed | oui, pour un `critical` de portée serveur |
 | **origin** | Si l'opérateur a déclaré ce serveur ou s'il provient d'un catalogue distant | aucun | oui, avec `allowUnknownServers: false` |
 | **pinning** | Si les définitions d'outils correspondent encore à ce que l'utilisateur a approuvé | aucun | oui, avec `pinToolDefs: true` |
@@ -167,7 +172,7 @@ bloquante pour quiconque durcissait le seuil.
   findings: [{ gate, severity, code: "THREAT_TOOL_MATCH", message, tool, advisory? }],
   allowedTools: ["add"],
   blockedTools: ["sweeper"],
-  rulesets: { staticScan: { version: "5", digest: "sha256-HUKSzM6c…" } }
+  rulesets: { staticScan: { version: "6", digest: "sha256-dop0ekCh…" } }
 }
 ```
 
@@ -245,7 +250,7 @@ une absence de protection :
 ## Développement
 
 ```bash
-npm install && npm run build && npm test   # 189 tests
+npm install && npm run build && npm test   # 200 tests
 ```
 
 `test/packaging.test.ts` est ce qui tient l'accroche honnête : il échoue si une dépendance d'exécution

@@ -2,6 +2,8 @@
 
 > 🌐 **English** · [Русский](gates.ru.md) · [Español](gates.es.md) · [Français](gates.fr.md) · [中文](gates.zh.md)
 
+> [0.7.0 security changes and migration](security-hardening.md).
+
 `Warden.vet(server, tools)` runs an ordered chain and returns one verdict. This page is the whole
 decision procedure: what each gate looks at, what it may block, and how the number at the end is
 built.
@@ -48,7 +50,7 @@ the threshold.
 ## static-scan
 
 Local regex scan over each tool's `name`, its `description` and its `inputSchema`. 26 rules in
-ruleset **v5**: 15 `block`, 11 `advise`, and 15 of them carry a context **guard** — a named
+ruleset **v6**: 15 `block`, 11 `advise`, and 15 of them carry a context **guard** — a named
 check that decides whether a match is really the thing the rule is looking for. See
 [the field survey](mcp-survey.md) for the 1 108-server run that calibrated v4.
 

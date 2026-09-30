@@ -2,6 +2,8 @@
 
 > 🌐 [English](integration.md) · [Русский](integration.ru.md) · [Español](integration.es.md) · [Français](integration.fr.md) · **中文**
 
+> [0.7.0 安全更新与迁移](security-hardening.zh.md).
+
 WARDEN 是一个库，不是代理。你只在自己 MCP 宿主生命周期中的某一个点调用它：在服务器告诉你它能做什么之后，在把这些
 告诉模型之前。
 

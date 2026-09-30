@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 import { callMcpTool, MCP_INSTRUCTIONS, MCP_TOOLS, McpToolError, payloadTooLarge } from "./mcp-tools.js";
 
 export const PROTOCOL = "2025-03-26";
-const FALLBACK_VERSION = "0.5.1";
+const FALLBACK_VERSION = "0.7.0";
 
 export function packageVersion(): string {
   try {
@@ -45,18 +45,26 @@ export function listedTools() {
   }));
 }
 
+export const MAX_FRAME_BYTES = 1_048_576;
+export const MAX_HEADER_BYTES = 8192;
+
 export function consumeLsp(buf: Buffer): { rest: Buffer; bodies: string[] } {
   const bodies: string[] = [];
   while (true) {
     const headerEnd = buf.indexOf("\r\n\r\n");
-    if (headerEnd < 0) return { rest: buf, bodies };
+    if (headerEnd < 0) {
+      if (buf.length > MAX_HEADER_BYTES) throw new Error("MCP header too large");
+      return { rest: buf, bodies };
+    }
+    if (headerEnd > MAX_HEADER_BYTES) throw new Error("MCP header too large");
     const header = buf.subarray(0, headerEnd).toString("ascii");
-    const match = /Content-Length:\s*(\d+)/i.exec(header);
+    const matches = [...header.matchAll(/^Content-Length:\s*(\d+)\s*$/gim)];
+    const match = matches.length === 1 ? matches[0] : undefined;
     if (!match) {
-      buf = buf.subarray(headerEnd + 4);
-      continue;
+      throw new Error("Invalid Content-Length header");
     }
     const len = Number(match[1]);
+    if (!Number.isSafeInteger(len) || len > MAX_FRAME_BYTES) throw new Error("MCP frame too large");
     const start = headerEnd + 4;
     if (buf.length < start + len) return { rest: buf, bodies };
     bodies.push(buf.subarray(start, start + len).toString("utf8"));
@@ -64,10 +72,19 @@ export function consumeLsp(buf: Buffer): { rest: Buffer; bodies: string[] } {
   }
 }
 
-export async function handleRpc(msg: JsonRpcReq): Promise<JsonRpcRes | null> {
-  const method = msg.method ?? "";
+export async function handleRpc(raw: unknown): Promise<JsonRpcRes | null> {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return { jsonrpc: "2.0", id: null, error: { code: -32600, message: "invalid request" } };
+  }
+  const msg = raw as JsonRpcReq;
+  if (msg.jsonrpc !== "2.0" || typeof msg.method !== "string" ||
+      (msg.id !== undefined && msg.id !== null && typeof msg.id !== "string" &&
+       !(typeof msg.id === "number" && Number.isFinite(msg.id)))) {
+    return { jsonrpc: "2.0", id: null, error: { code: -32600, message: "invalid request" } };
+  }
+  const method = msg.method;
   const id = msg.id;
-  if (method.startsWith("notifications/")) return null;
+  if (msg.id === undefined) return null;
 
   const ok = (result: unknown): JsonRpcRes => ({ jsonrpc: "2.0", id: id ?? null, result });
   const fail = (code: number, message: string): JsonRpcRes => ({
@@ -76,6 +93,9 @@ export async function handleRpc(msg: JsonRpcReq): Promise<JsonRpcRes | null> {
     error: { code, message },
   });
 
+  if (msg.params !== undefined && (!msg.params || typeof msg.params !== "object" || Array.isArray(msg.params))) {
+    return fail(-32602, "params must be an object");
+  }
   switch (method) {
     case "initialize":
       return ok({
@@ -97,6 +117,9 @@ export async function handleRpc(msg: JsonRpcReq): Promise<JsonRpcRes | null> {
       const params = (msg.params ?? {}) as { name?: unknown; arguments?: unknown };
       const name = typeof params.name === "string" ? params.name : "";
       if (!name) return fail(-32602, "tools/call requires params.name");
+      if (params.arguments !== undefined && (!params.arguments || typeof params.arguments !== "object" || Array.isArray(params.arguments))) {
+        return fail(-32602, "arguments must be an object");
+      }
       const args =
         params.arguments && typeof params.arguments === "object" && !Array.isArray(params.arguments)
           ? (params.arguments as Record<string, unknown>)

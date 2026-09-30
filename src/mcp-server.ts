@@ -13,7 +13,7 @@
  */
 
 import { stderr, stdin, stdout } from "node:process";
-import { consumeLsp, handleRpc, type JsonRpcReq } from "./mcp-rpc.js";
+import { consumeLsp, handleRpc, MAX_FRAME_BYTES } from "./mcp-rpc.js";
 
 type FrameMode = "unknown" | "lsp" | "ndjson";
 
@@ -32,9 +32,9 @@ function writeMessage(msg: object): void {
 }
 
 async function dispatchBody(body: string): Promise<void> {
-  let parsed: JsonRpcReq;
+  let parsed: unknown;
   try {
-    parsed = JSON.parse(body) as JsonRpcReq;
+    parsed = JSON.parse(body);
   } catch {
     writeMessage({ jsonrpc: "2.0", id: null, error: { code: -32700, message: "parse error" } });
     return;
@@ -43,55 +43,35 @@ async function dispatchBody(body: string): Promise<void> {
   if (res) writeMessage(res);
 }
 
-function skipWs(buf: Buffer): Buffer {
-  let i = 0;
-  while (i < buf.length) {
-    const b = buf[i];
-    if (b !== 0x20 && b !== 0x09 && b !== 0x0a && b !== 0x0d) break;
-    i++;
-  }
-  return buf.subarray(i);
-}
-
 async function main(): Promise<void> {
-  let buf: Buffer = Buffer.from([]);
-  let ndjson = "";
-
+  let buf: Buffer = Buffer.alloc(0);
   for await (const chunk of stdin) {
-    const piece = Buffer.from(chunk as Uint8Array);
+    buf = Buffer.concat([buf, Buffer.from(chunk as Uint8Array)]);
     if (mode === "unknown") {
-      buf = Buffer.concat([buf, piece]);
-      const trimmed = skipWs(buf);
-      if (trimmed.length === 0) continue;
-      if (trimmed[0] === 0x7b) {
-        mode = "ndjson";
-        ndjson = buf.toString("utf8");
-      } else {
-        mode = "lsp";
-        const { rest, bodies } = consumeLsp(buf);
-        buf = Buffer.from(rest);
-        for (const body of bodies) await dispatchBody(body);
+      const prefix = buf.toString("ascii").trimStart();
+      if (!prefix || "content-length:".startsWith(prefix.toLowerCase())) {
+        if (buf.length > 8192) throw new Error("MCP header too large");
+        continue;
       }
-    } else if (mode === "lsp") {
-      buf = Buffer.concat([buf, piece]);
-      const { rest, bodies } = consumeLsp(buf);
-      buf = Buffer.from(rest);
-      for (const body of bodies) await dispatchBody(body);
-    } else {
-      ndjson += piece.toString("utf8");
+      mode = prefix.toLowerCase().startsWith("content-length:") ? "lsp" : "ndjson";
     }
-
-    if (mode === "ndjson") {
-      const lines = ndjson.split("\n");
-      ndjson = lines.pop() ?? "";
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (trimmed) await dispatchBody(trimmed);
+    if (mode === "lsp") {
+      const parsed = consumeLsp(buf);
+      buf = Buffer.from(parsed.rest);
+      for (const body of parsed.bodies) await dispatchBody(body);
+    } else {
+      let newline: number;
+      while ((newline = buf.indexOf(10)) >= 0) {
+        if (newline > MAX_FRAME_BYTES) throw new Error("MCP frame too large");
+        const body = buf.subarray(0, newline).toString("utf8").trim();
+        buf = Buffer.from(buf.subarray(newline + 1));
+        if (body) await dispatchBody(body);
       }
+      if (buf.length > MAX_FRAME_BYTES) throw new Error("MCP frame too large");
     }
   }
-
-  if (mode === "ndjson" && ndjson.trim()) await dispatchBody(ndjson.trim());
+  if (mode === "ndjson" && buf.length) await dispatchBody(buf.toString("utf8"));
+  if (mode === "lsp" && buf.length) throw new Error("Incomplete MCP frame");
 }
 
 main().catch((err) => {

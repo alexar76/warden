@@ -2,6 +2,8 @@
 
 > 🌐 [English](gates.md) · [Русский](gates.ru.md) · [Español](gates.es.md) · [Français](gates.fr.md) · **中文**
 
+> [0.7.0 安全更新与迁移](security-hardening.zh.md).
+
 `Warden.vet(server, tools)` 会按顺序跑完一条门控链，并返回单一裁定。本页就是完整的判定过程：每个门控看什么、
 它可以阻止什么，以及最后那个数字是怎么算出来的。
 
@@ -42,7 +44,7 @@ const SEVERITY_RANK = { info: 0, low: 1, medium: 2, high: 3, critical: 4 };
 
 ## static-scan
 
-对每个工具的 `name`、`description` 与 `inputSchema` 做本地正则扫描。规则集 **v5** 共 26 条规则（其中 15 条带有上下文 **guard**——一项具名检查，用于判断某次命中是否真是该规则要找的东西；参见[实地普查](mcp-survey.zh.md)，即校准 v4 的 1 108 台服务器实测）：
+对每个工具的 `name`、`description` 与 `inputSchema` 做本地正则扫描。规则集 **v6** 共 26 条规则（其中 15 条带有上下文 **guard**——一项具名检查，用于判断某次命中是否真是该规则要找的东西；参见[实地普查](mcp-survey.zh.md)，即校准 v4 的 1 108 台服务器实测）：
 15 条 `block`，11 条 `advise`。
 
 **v5：任何规则读取文本之前，先对文本做归一化。** NFKC 把全角字母、连字和其他兼容形式变成普通字母；单词内部的不可见字符被删除；Unicode 标签区块（ASCII 的不可见副本，能藏下一整句话）被解码；在拉丁字母与西里尔或希腊字母混写的单词里，形近字母被换成拉丁字母，而整词只用一种文字写成的单词保持不变。于是，无论周围文本是什么语言，英文规则都不能再被全角字母、词内零宽空格、标签字符或西里尔字母 `о` 绕过。归一化以 `fold` 的形式与规则一起发布，并计入 digest。两条隐藏载荷规则读取**原始**文本（`raw: true`）。

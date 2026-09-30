@@ -2,6 +2,8 @@
 
 > 🌐 [English](gates.md) · [Русский](gates.ru.md) · **Español** · [Français](gates.fr.md) · [中文](gates.zh.md)
 
+> [Seguridad y migración de 0.7.0](security-hardening.es.md).
+
 `Warden.vet(server, tools)` ejecuta una cadena ordenada y devuelve un solo veredicto. Esta página es
 todo el procedimiento de decisión: qué mira cada puerta, qué puede bloquear y cómo se construye el
 número final.
@@ -47,7 +49,7 @@ defecto; expresarlo bajando su severidad la volvía bloqueante para quien endure
 ## static-scan
 
 Escaneo local con regex sobre el `name`, la `description` y el `inputSchema` de cada herramienta. 26
-reglas en el conjunto **v5**: 15 `block`, 11 `advise`, y 15 de ellas llevan un **guard** de contexto:
+reglas en el conjunto **v6**: 15 `block`, 11 `advise`, y 15 de ellas llevan un **guard** de contexto:
 una comprobación con nombre que decide si una coincidencia es de verdad lo que la regla busca. Véase
 [el estudio de campo](mcp-survey.es.md), la ejecución sobre 1 108 servidores con la que se calibró v4.
 

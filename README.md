@@ -30,6 +30,8 @@
 
 > 🌐 **English** · [Русский](README-ru.md) · [Español](README-es.md) · [Français](README-fr.md) · [中文](README-zh.md) · [Glossary](https://github.com/alexar76/aicom/blob/main/docs/localization-glossary.md)
 
+> [0.7.0 security changes and migration](docs/security-hardening.md): `vetLaunch`, durable pins, anti-rollback, ruleset v6, runtime revalidation.
+
 **One MCP server. Security firewall for advertised tool definitions. Library included.**
 
 Transport: **stdio** (`npx -y @aimarket/warden` / `node dist/mcp-server.js`). Compatible hosts:
@@ -89,6 +91,9 @@ in, you get a verdict out.
 | `check_egress_url` | Hostname allowlist (empty list denies every host) |
 | `canonicalize_json` | RFC 8785 bytes for feeds and pins |
 | `list_scan_rules` | Published rule table + digest |
+| `status_mcp_server` | Review the saved approval and current hashes |
+| `approve_mcp_server` | Approve the reviewed snapshot (operator opt-in) |
+| `revoke_mcp_server` | Revoke a reviewed approval (operator opt-in) |
 
 Glama TDQS: MCP `annotations` (readOnly / destructive / idempotent / openWorld), when-to-use /
 when-not naming siblings, every `inputSchema` property described, `outputSchema` on every tool.
@@ -154,7 +159,7 @@ flowchart LR
 
 | Gate | What it decides | Network | Fatal? |
 |---|---|---|---|
-| **static-scan** | Injection, exfiltration, credential requests and hidden-Unicode/base64 tells in the tool `name`, its `description` and its `inputSchema` — 26 rules, v5, of which 15 can block and 11 are advisory-only, 17 also cover the name, and 15 carry a context guard. v5 folds the text first (fullwidth, invisible characters, Unicode tags, look-alike letters) so obfuscation cannot dodge a rule in any language | none | no |
+| **static-scan** | Injection, exfiltration, credential requests and hidden-Unicode/base64 tells in the tool `name`, its `description` and its `inputSchema` — 26 rules, v6, of which 15 can block and 11 are advisory-only, 17 also cover the name, and 15 carry a context guard. v5 folds the text first (fullwidth, invisible characters, Unicode tags, look-alike letters) so obfuscation cannot dodge a rule in any language | none | no |
 | **threat-feed** | Known-bad server identity or tool, from 11 built-in records plus an optional signed feed | only the feed fetch | yes, for a server-scoped `critical` |
 | **origin** | Whether the operator declared this server or it arrived from a remote catalog | none | yes, under `allowUnknownServers: false` |
 | **pinning** | Whether the tool defs still match what the user approved | none | yes, under `pinToolDefs: true` |
@@ -175,7 +180,7 @@ second as a low severity made it blocking again for anyone who tightened the thr
   findings: [{ gate, severity, code: "THREAT_TOOL_MATCH", message, tool, advisory? }],
   allowedTools: ["add"],
   blockedTools: ["sweeper"],
-  rulesets: { staticScan: { version: "5", digest: "sha256-HUKSzM6c…" } }
+  rulesets: { staticScan: { version: "6", digest: "sha256-dop0ekCh…" } }
 }
 ```
 
@@ -251,7 +256,7 @@ no protection:
 ## Development
 
 ```bash
-npm install && npm run build && npm test   # 189 tests
+npm install && npm run build && npm test   # 200 tests
 ```
 
 `test/packaging.test.ts` is what keeps the headline honest: it fails if an npm runtime dependency

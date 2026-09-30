@@ -1,5 +1,15 @@
 # Changelog
 
+
+## 0.7.0 — 2026-09-30
+
+- Add `vetLaunch` for identity/origin/threat checks before starting a server.
+- Persist signed-feed snapshots per publisher key; reject rollback/equivocation across restarts; retain last-good rules with freshness status. The timeout now covers the response body.
+- Validate JSON-RPC envelopes, preserve split UTF-8, and bound NDJSON/LSP framing.
+- Add atomic `FilePinStore` and MCP status/approve/revoke operations. Mutations require operator opt-in and a reviewed revision; stale concurrent approvals are rejected.
+- Hash all advertised tool fields (format v2); require review when legacy pins lack extended-field coverage. Ruleset v6 scans title/output schema/annotations/extensions and does not confuse JSON delimiters with benign quotation.
+- ARGUS integration checks before launch and every call, handles list-change notifications, and quarantines drift or listing failure. See the five-language [migration guide](docs/security-hardening.md).
+
 All notable changes to `@aimarket/warden`.
 
 ## 0.6.0 — 2026-09-23

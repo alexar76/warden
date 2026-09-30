@@ -8,7 +8,7 @@
   <a href="https://glama.ai/mcp/servers/alexar76/warden"><img src="https://glama.ai/mcp/servers/alexar76/warden/badges/score.svg" alt="warden MCP server" /></a>
   <a href="https://warden.modelmarket.dev/"><img src="https://img.shields.io/npm/v/@aimarket/warden?color=cb3837&label=npm" alt="npm 版本" /></a>
   <img src="docs/badges/deps.svg" alt="零运行时依赖" />
-  <img src="docs/badges/tests.svg" alt="189 项测试通过" />
+  <img src="docs/badges/tests.svg" alt="200 项测试通过" />
   <img src="docs/badges/node.svg" alt="Node >= 20" />
   <a href="LICENSE"><img src="docs/badges/license.svg" alt="许可证：MIT" /></a>
 </p>
@@ -22,6 +22,8 @@
 
 
 > 🌐 [English](README.md) · [Русский](README-ru.md) · [Español](README-es.md) · [Français](README-fr.md) · **中文** · [术语表](https://github.com/alexar76/aicom/blob/main/docs/localization-glossary.md)
+
+> [0.7.0 安全更新与迁移](docs/security-hardening.zh.md): `vetLaunch`, durable pins, anti-rollback, ruleset v6, runtime revalidation.
 
 **一个 MCP 服务器。针对已广告工具定义的安全防火墙。附带库。**
 
@@ -77,6 +79,9 @@ Claude Desktop / Cursor（`mcpServers`）：
 | `check_egress_url` | 主机 allowlist（空列表拒绝全部） |
 | `canonicalize_json` | RFC 8785 字节 |
 | `list_scan_rules` | 已发布的规则表 |
+| `status_mcp_server` | 比较已保存审批与当前哈希 |
+| `approve_mcp_server` | 批准已审阅快照（需操作员开启） |
+| `revoke_mcp_server` | 撤销已审阅审批（需操作员开启） |
 
 ### 发布到 Glama
 
@@ -140,7 +145,7 @@ flowchart LR
 
 | 门控 | 判定什么 | 网络 | 是否 fatal |
 |---|---|---|---|
-| **static-scan** | 工具 `name`、`description` 与 `inputSchema` 中的注入、外泄、索要凭据，以及隐藏 Unicode/base64 迹象——26 条规则（v5），其中 15 条可阻止、11 条仅提示，17 条同时覆盖名称，15 条带有上下文 guard。v5 先对文本做归一化（全角、不可见字符、Unicode 标签、形近字母），因此无论何种语言，混淆都绕不过规则 | 无 | 否 |
+| **static-scan** | 工具 `name`、`description` 与 `inputSchema` 中的注入、外泄、索要凭据，以及隐藏 Unicode/base64 迹象——26 条规则（v6），其中 15 条可阻止、11 条仅提示，17 条同时覆盖名称，15 条带有上下文 guard。v5 先对文本做归一化（全角、不可见字符、Unicode 标签、形近字母），因此无论何种语言，混淆都绕不过规则 | 无 | 否 |
 | **threat-feed** | 已知恶意的服务器身份或工具：11 条内置记录，外加可选的已签名 feed | 仅 feed 下载 | 是，服务器范围的 `critical` |
 | **origin** | 该服务器是运营者声明的，还是来自远端目录 | 无 | 是，当 `allowUnknownServers: false` |
 | **pinning** | 工具定义是否仍与用户批准过的一致 | 无 | 是，当 `pinToolDefs: true` |
@@ -160,7 +165,7 @@ flowchart LR
   findings: [{ gate, severity, code: "THREAT_TOOL_MATCH", message, tool, advisory? }],
   allowedTools: ["add"],
   blockedTools: ["sweeper"],
-  rulesets: { staticScan: { version: "5", digest: "sha256-HUKSzM6c…" } }
+  rulesets: { staticScan: { version: "6", digest: "sha256-dop0ekCh…" } }
 }
 ```
 
@@ -227,7 +232,7 @@ GET <你的 feed url>
 ## 开发
 
 ```bash
-npm install && npm run build && npm test   # 189 项测试
+npm install && npm run build && npm test   # 200 项测试
 ```
 
 `test/packaging.test.ts` 正是让标题保持诚实的东西：一旦出现运行时依赖、任何源文件从包外 import、或者入口点不

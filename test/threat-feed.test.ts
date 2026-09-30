@@ -247,7 +247,8 @@ describe("ThreatFeed.load — freshness", () => {
     stubFetch(signedBody({ privateKey, timestamp: NOW + 10 * 24 * 60 * 60 * 1000 }));
     const far = makeFeed(publicKeyHex);
     await far.feed.load(FEED_URL);
-    expect(hasRemote(far.feed)).toBe(false);
+    expect(hasRemote(far.feed)).toBe(true); // retained last-good snapshot, future update refused
+    expect(far.feed.status.timestamp).toBe(near.feed.status.timestamp);
     expect(far.logText()).toContain("future");
   });
 
@@ -386,4 +387,40 @@ describe("ThreatGate — fatality is scoped to the server, blame is scoped to th
     // Later gates ran: the tool-scoped critical did not short-circuit the chain.
     expect(v.findings.some((f) => f.gate === "pinning")).toBe(true);
   });
+});
+
+describe('durable anti-rollback', () => {
+  it('retains the newer rules on replay, timestamp equivocation, and restart', async () => {
+    const { privateKey, publicKeyHex } = keypair();
+    const opts = { feedPublicKey: publicKeyHex, now: () => NOW };
+    const feed = new ThreatFeed(opts);
+    stubFetch(signedBody({ privateKey, timestamp: NOW - 1000 }));
+    await feed.load(FEED_URL);
+    for (const timestamp of [NOW - 2000, NOW - 1000]) {
+      stubFetch(signedBody({ privateKey, timestamp, records: [] }));
+      await feed.load(FEED_URL);
+      expect(feed.all()).toContainEqual(remoteRecord);
+      const restarted = new ThreatFeed(opts);
+      await restarted.load(FEED_URL);
+      expect(restarted.all()).toContainEqual(remoteRecord);
+      expect(restarted.status.timestamp).toBe(NOW - 1000);
+    }
+    stubFetch(signedBody({ privateKey, timestamp: NOW, records: [] }));
+    await feed.load(FEED_URL);
+    expect(feed.all()).not.toContainEqual(remoteRecord);
+    expect(feed.status.stale).toBe(false);
+  });
+  it('keeps the abort deadline active while reading the body', async () => {
+    const { publicKeyHex } = keypair();
+    let signal: AbortSignal | undefined;
+    vi.stubGlobal('fetch', vi.fn(async (_url, opts) => {
+      signal = opts.signal;
+      return { ok: true, headers: { get: () => null }, text: () => new Promise((_resolve, reject) => {
+        signal!.addEventListener('abort', () => reject(new Error('aborted')), { once: true });
+      }) };
+    }));
+    const task = new ThreatFeed({ feedPublicKey: publicKeyHex }).load(FEED_URL);
+    await task;
+    expect(signal!.aborted).toBe(true);
+  }, 15_000);
 });

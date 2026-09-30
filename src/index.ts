@@ -25,6 +25,7 @@ export {
   STATIC_SCAN_RULESET_VERSION,
 } from "./static-scan.js";
 export { PinningGate, canonicalToolsHash, tryCanonicalToolsHash, serverIdentityHash, UNCANONICAL_TOOLS_HASH } from "./pinning.js";
+export { FilePinStore } from "./pin-store.js";
 export { OriginGate } from "./origin.js";
 export { ThreatFeed, ThreatGate, DEFAULT_FEED_MAX_AGE_MS, FEED_CLOCK_SKEW_MS } from "./threat-feed.js";
 export { EgressGuard, isSensitiveTool, classifyTools } from "./sandbox.js";
@@ -132,6 +133,16 @@ export class Warden {
    * circuiting only on a fatal gate result. A connection is blocked if any gate
    * is fatal or any finding reaches policy.blockAtSeverity.
    */
+  async vetLaunch(server: McpServerRef): Promise<WardenVerdict> {
+    // Tool hashes cannot be checked until tools/list. Do not compare them to [].
+    const gates = this.gates.filter((g) => !(g instanceof StaticScanGate)).map((g) =>
+      g instanceof PinningGate
+        ? { name: g.name, evaluate: g.evaluateLaunch.bind(g) }
+        : g,
+    );
+    return new Warden({ gates, policy: this.policy, log: this.log }).vet(server, []);
+  }
+
   async vet(server: McpServerRef, tools: ToolDef[]): Promise<WardenVerdict> {
     const findings: WardenFinding[] = [];
     const scores: number[] = [];

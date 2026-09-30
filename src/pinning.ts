@@ -27,6 +27,14 @@ export class PinningGate implements WardenGate {
 
   constructor(private readonly store: PinStore) {}
 
+  /** Identity-only check: safe before starting the untrusted process. */
+  async evaluateLaunch(input: WardenGateInput): Promise<WardenGateResult> {
+    const pin = await this.store.getPin(input.server.id);
+    const drift = this.identityDrift(input, pin);
+    return { findings: drift ? [drift] : [], score: drift ? 0 : 1,
+      fatal: !!drift && input.policy.pinToolDefs };
+  }
+
   async evaluate(input: WardenGateInput): Promise<WardenGateResult> {
     const pin = await this.store.getPin(input.server.id);
 
@@ -58,6 +66,10 @@ export class PinningGate implements WardenGate {
     }
 
     const findings: WardenFinding[] = [];
+    if (pin.toolsHashVersion !== 2 && input.tools.some(t => Object.keys(t).some(k => !["name", "description", "inputSchema"].includes(k) && t[k] !== undefined))) {
+      findings.push({ gate: this.name, severity: "high", code: "PIN_FORMAT_UPGRADE_REQUIRED",
+        message: "This legacy approval did not cover extended tool fields; review and approve a v2 snapshot." });
+    }
     if (pin.toolsHash !== hash) {
       findings.push({
         gate: this.name,
@@ -149,16 +161,17 @@ export class PinningGate implements WardenGate {
    * Called by Warden.approve() once a user has accepted the connection.
    *
    * Throws {@link CanonicalizationError} when the set has no canonical form; the
-   * caller (`McpHost.connect`) already reports a pin failure as a degraded
-   * rug-pull defence rather than failing the connection.
+   * host must fail closed when pinning is required; ARGUS closes the connection.
    */
   async pin(server: McpServerRef, tools: ToolDef[]): Promise<void> {
     const pinned: PinnedServer = {
       serverId: server.id,
       toolsHash: canonicalToolsHash(tools),
+      toolsHashVersion: 2,
       approvedAt: new Date().toISOString(),
       toolNames: [...tools.map((t) => t.name)].sort(compareCodeUnits),
       identityHash: serverIdentityHash(server),
+      tools: structuredClone(tools),
     };
     await this.store.putPin(pinned);
   }
@@ -173,7 +186,7 @@ export const UNCANONICAL_TOOLS_HASH = "uncanonical:non-canonical-tool-defs";
 
 /**
  * sha256 over the canonical tool-def set: tools sorted by name, each reduced to
- * the security-relevant fields (name, description, schema), serialised with
+ * all advertised fields (including title, outputSchema, annotations and extensions), serialised with
  * {@link canonicalize} — RFC 8785 (JCS) as profiled in `awr/SPEC.md` §4.
  *
  * This digest is quoted in receipts and re-checked elsewhere (`argus verify`, the
@@ -197,6 +210,7 @@ export function canonicalToolsHash(tools: ToolDef[]): string {
   const canonical = [...tools]
     .sort((a, b) => compareCodeUnits(a.name, b.name))
     .map((t) => ({
+      ...Object.fromEntries(Object.entries(t).filter(([, value]) => value !== undefined)),
       name: t.name,
       description: t.description ?? "",
       inputSchema: t.inputSchema ?? {},

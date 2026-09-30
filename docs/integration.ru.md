@@ -2,6 +2,8 @@
 
 > 🌐 [English](integration.md) · **Русский** · [Español](integration.es.md) · [Français](integration.fr.md) · [中文](integration.zh.md)
 
+> [Изменения безопасности 0.7.0 и миграция](security-hardening.ru.md).
+
 WARDEN — это библиотека, а не прокси. Вы вызываете её в одной точке жизненного цикла своего MCP-хоста:
 после того, как сервер сообщил, что умеет, и до того, как об этом узнала модель.
 
