@@ -53,7 +53,7 @@ durcissait le seuil.
 ## static-scan
 
 Analyse locale par expressions régulières du `name`, de la `description` et de l'`inputSchema` de
-chaque outil. 26 règles dans le jeu **v6** : 15 `block`, 11 `advise`, et 15 d'entre elles portent un **guard** de
+chaque outil. 26 règles dans le jeu **v7** : 15 `block`, 11 `advise`, et 15 d'entre elles portent un **guard** de
 contexte — une vérification nommée qui décide si une correspondance est vraiment ce que la règle
 cherche. Voir [l'étude de terrain](mcp-survey.fr.md), le passage sur 1 108 serveurs qui a calibré v4.
 
@@ -77,6 +77,18 @@ v5 supprime aussi trois faux positifs mesurés : « send the user to https://…
 guard `navigation`), « keep calling … without asking the user » (autonomie, guard `autonomy`) et le liant sans
 chasse à l'intérieur d'un emoji. Sur le corpus de 10 645 serveurs, v5 bloque 56 serveurs là où v4 en bloquait
 63, et aucun que v4 ne bloquait pas.
+
+**v7** supprime trois faux positifs que le jeu v6 produisait encore sur le corpus versionné du
+2026-10-01 ([l'étude de terrain](mcp-survey.fr.md)). « Private key/value memory » désigne un magasin
+clé-valeur, pas une clé privée (guard `keyValue` : un composé avec barre oblique ou trait d'union suivi
+d'un nom de magasin). « Find … without asking the user for ids » est un outil qui résout lui-même un
+identifiant (guard `autonomy`, qui accepte désormais aussi un verbe de recherche quand tout l'objet est
+un identifiant). « The key is read from the MCP connection's X-API-Key header » est un serveur qui
+décrit sa propre authentification (guard `ownAuthHeader` : passif « is read from », un en-tête de
+requête, pas celui d'un autre, et la clé n'est envoyée nulle part). En outre, `autonomy` n'exempte plus
+un « without asking the user » dont l'objet est le consentement : « keep retrying the transfer without
+asking the user for approval » bloque de nouveau. Sur ce corpus, v7 bloque 3 serveurs là où v6 en
+bloquait 6, et toutes les autres alertes sont inchangées.
 
 Chaque règle déclare sur laquelle de ces trois **surfaces** elle s'exécute, et 17 des 26 incluent le
 nom. Les quatre qui ne l'incluent pas sont celles qui reposent sur un NOM COMMUN

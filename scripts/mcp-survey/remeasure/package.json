@@ -1,0 +1,16 @@
+{
+  "name": "warden-survey-remeasure",
+  "private": true,
+  "description": "Pins every published @aimarket/warden release side by side so the survey corpus can be re-scanned by each one.",
+  "type": "module",
+  "scripts": {
+    "check": "node remeasure.mjs ../../../docs/data/mcp-corpus-2026-10-01.jsonl.gz ../../../docs/data/mcp-remeasure-2026-10-01.json --check && node remeasure.mjs ../../../docs/data/mcp-corpus-2026-10-01-august-carryover.jsonl.gz ../../../docs/data/mcp-remeasure-2026-10-01-august-carryover.json --check"
+  },
+  "dependencies": {
+    "warden-0.3.0": "npm:@aimarket/warden@0.3.0",
+    "warden-0.4.0": "npm:@aimarket/warden@0.4.0",
+    "warden-0.5.0": "npm:@aimarket/warden@0.5.0",
+    "warden-0.6.0": "npm:@aimarket/warden@0.6.0",
+    "warden-0.7.0": "npm:@aimarket/warden@0.7.0"
+  }
+}

@@ -49,7 +49,7 @@ defecto; expresarlo bajando su severidad la volvía bloqueante para quien endure
 ## static-scan
 
 Escaneo local con regex sobre el `name`, la `description` y el `inputSchema` de cada herramienta. 26
-reglas en el conjunto **v6**: 15 `block`, 11 `advise`, y 15 de ellas llevan un **guard** de contexto:
+reglas en el conjunto **v7**: 15 `block`, 11 `advise`, y 15 de ellas llevan un **guard** de contexto:
 una comprobación con nombre que decide si una coincidencia es de verdad lo que la regla busca. Véase
 [el estudio de campo](mcp-survey.es.md), la ejecución sobre 1 108 servidores con la que se calibró v4.
 
@@ -73,6 +73,18 @@ v5 también elimina tres falsos positivos medidos: «send the user to https://�
 `navigation`), «keep calling … without asking the user» (autonomía, guard `autonomy`) y el unificador de ancho
 cero dentro de un emoji. Sobre el corpus de 10 645 servidores v5 bloquea 56 donde v4 bloqueaba 63, y ninguno
 que v4 no bloqueara.
+
+**v7** elimina tres falsos positivos que el conjunto v6 aún daba sobre el corpus versionado del
+2026-10-01 ([el estudio de campo](mcp-survey.es.md)). «Private key/value memory» nombra un almacén
+clave-valor, no una clave privada (guard `keyValue`: un compuesto con barra o guion seguido de un
+sustantivo de almacén). «Find … without asking the user for ids» es una herramienta que resuelve sola
+un identificador (guard `autonomy`, que ahora también acepta un verbo de búsqueda cuando todo el
+objeto es un identificador). «The key is read from the MCP connection's X-API-Key header» es un
+servidor que describe su propia autenticación (guard `ownAuthHeader`: pasiva «is read from», una
+cabecera de la petición, no ajena, y la clave no se envía a ninguna parte). Además, `autonomy` ya no
+exime un «without asking the user» cuyo objeto es el consentimiento: «keep retrying the transfer
+without asking the user for approval» vuelve a bloquear. Sobre ese corpus v7 bloquea 3 servidores
+donde v6 bloqueaba 6, y el resto de hallazgos no cambia.
 
 Cada regla declara sobre cuál de esas tres **superficies** se ejecuta, y 17 de las 26 incluyen el
 nombre. Las cuatro que no lo hacen son las que se apoyan en un SUSTANTIVO

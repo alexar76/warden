@@ -50,7 +50,7 @@ the threshold.
 ## static-scan
 
 Local regex scan over each tool's `name`, its `description` and its `inputSchema`. 26 rules in
-ruleset **v6**: 15 `block`, 11 `advise`, and 15 of them carry a context **guard** — a named
+ruleset **v7**: 15 `block`, 11 `advise`, and 15 of them carry a context **guard** — a named
 check that decides whether a match is really the thing the rule is looking for. See
 [the field survey](mcp-survey.md) for the 1 108-server run that calibrated v4.
 
@@ -75,6 +75,17 @@ v5 also removes three measured false positives: "send the user to https://…" (
 person, guard `navigation`), "keep calling … without asking the user" (autonomy, guard `autonomy`),
 and a zero-width joiner inside an emoji sequence. On the 10 645-server corpus v5 blocks 56 servers
 where v4 blocked 63, and blocks none that v4 did not.
+
+**v7** removes three false positives that ruleset v6 still had on the committed 2026-10-01 corpus
+([the field survey](mcp-survey.md)). "Private key/value memory" names a key-value store, not a
+private key (guard `keyValue`: a slash or hyphen compound followed by a store noun). "Find … without
+asking the user for ids" is a tool resolving an identifier itself (guard `autonomy`, which now also
+accepts a lookup verb with an identifier as the whole object). "The key is read from the MCP
+connection's X-API-Key header" is a server describing its own authentication (guard
+`ownAuthHeader`: passive "is read from", a request header, nobody else's, nothing moved onward).
+`autonomy` also no longer exempts a "without asking the user" whose object is consent: "keep
+retrying the transfer without asking the user for approval" blocks again. On that corpus v7 blocks 3
+servers where v6 blocked 6, and every other finding is unchanged.
 
 Every rule declares which of those three **surfaces** it runs on, and 17 of the 26 include the name.
 The four that do not are the noun-keyed ones (`TOOL_DEF_SECRET_REQUEST`,

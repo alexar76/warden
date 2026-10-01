@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync, existsSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { gunzipSync } from "node:zlib";
 import { fileURLToPath } from "node:url";
 import { join } from "node:path";
 import { staticScanRuleset, STATIC_SCAN_RULESET_VERSION, ThreatFeed } from "../src/index.js";
@@ -88,32 +90,61 @@ describe("landing page", () => {
       expect(html, `landing should mention ${figure}`).toContain(figure);
     }
     // The before/after that the whole page leans on.
-    expect(html).toContain("50 → 6");
     expect(html).toContain("4 → 4");
   });
 
-  it("does not present the v4 re-measure as published data", () => {
-    // The committed dataset is the run as executed: @aimarket/warden@0.3.0, ruleset v2,
-    // plus a ruleset_v2_vs_v3 block showing v3 changed nothing on this corpus. There is
-    // no v4 row anywhere in it. So `50 → 6` is a real measurement we cannot hand anyone
-    // the corpus for, and both the page and the survey have to say so — otherwise the
-    // most quotable number on the landing is the one number a reader cannot check.
+  it("quotes the re-measure that the committed corpus reproduces", () => {
+    // The August dataset is the run as executed: @aimarket/warden@0.3.0, ruleset v2, plus a
+    // ruleset_v2_vs_v3 block showing v3 changed nothing on that corpus. August's v4 re-run was
+    // measured on a harvest that was never kept, so `50 → 6` may only appear as history. The
+    // figures the page quotes come from the 2026-10-01 corpus, which IS committed: here the
+    // page is checked against the result files and the result files against the corpus hash.
+    // Recomputing the scans themselves needs the five published releases from npm, which is
+    // `npm run check` in scripts/mcp-survey/remeasure rather than this offline suite.
     const data = JSON.parse(
       readFileSync(join(root, "docs", "data", "mcp-survey-2026-08-24.json"), "utf8"),
     ) as { survey: { ruleset: { version: string } }; ruleset_v2_vs_v3?: unknown };
-    expect(data.survey.ruleset.version, "dataset is still the pre-v4 run").toBe("2");
+    expect(data.survey.ruleset.version, "August dataset is still the pre-v4 run").toBe("2");
     expect(data.ruleset_v2_vs_v3, "v3-equivalence block is what licenses the v3 label").toBeTruthy();
 
-    // The page marks the column and carries the provenance note in all five languages.
-    expect(html, "v4 column is flagged").toContain("ruleset v4 *");
-    expect(html, "provenance note present").toContain('data-i18n="survey.prov"');
-    expect(html, "card label says re-run").toContain("v3 → v4 (re-run)");
+    type Release = { package: string; blocked: number; blocking_findings: number; advisory_findings: number };
+    type Result = { corpus: { file: string; sha256: string }; releases: Release[] };
+    const load = (name: string): Result => {
+      const r = JSON.parse(readFileSync(join(root, "docs", "data", name), "utf8")) as Result;
+      const corpus = gunzipSync(readFileSync(join(root, "docs", "data", r.corpus.file))).toString("utf8");
+      expect(createHash("sha256").update(corpus).digest("hex"), `${name} names its corpus`).toBe(r.corpus.sha256);
+      return r;
+    };
+    const fmt = (n: number) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+    const fresh = load("mcp-remeasure-2026-10-01.json");
+    const carry = load("mcp-remeasure-2026-10-01-august-carryover.json");
+    const by = (r: Result, v: string) => r.releases.find((x) => x.package === `@aimarket/warden@${v}`)!;
 
-    // The survey itself must not leave the v4 column unqualified.
+    // Card: August's false positives re-asked, 0.3.0 → every release from 0.4.0 (which agree).
+    const later = carry.releases.filter((r) => r.package !== "@aimarket/warden@0.3.0").map((r) => r.blocked);
+    expect(new Set(later).size, "0.4.0+ agree on the carry-over").toBe(1);
+    expect(html, "carry-over card").toContain(`${by(carry, "0.3.0").blocked} → ${later[0]}`);
+
+    // Table: 0.3.0 against the newest release, on the fresh corpus.
+    const [a, b] = [by(fresh, "0.3.0"), by(fresh, "0.7.0")];
+    for (const [label, x, y] of [
+      ["servers blocked", a.blocked, b.blocked],
+      ["blocking findings", a.blocking_findings, b.blocking_findings],
+      ["advisory findings", a.advisory_findings, b.advisory_findings],
+    ] as const) {
+      expect(html, `table row ${label}`).toContain(
+        `${label}</td><td class="mono">${fmt(x)}</td><td class="mono">${fmt(y)}</td>`,
+      );
+    }
+    expect(html, "provenance note present").toContain('data-i18n="survey.prov"');
+    expect(html, "the old figure is marked as not recomputable").toContain("cannot be recomputed");
+
+    // The survey says the same, with the same numbers.
     const survey = readFileSync(SURVEY, "utf8");
-    expect(survey, "v4 column header qualified").toContain("ruleset v4 (re-run, not published)");
-    expect(survey, "survey states what is not reproducible").toContain(
-      "The v4 column is **not** in this repo",
+    expect(survey, "August v4 column qualified").toContain("ruleset v4 (August re-run, corpus not kept)");
+    expect(survey, "how to check").toContain("npm run check");
+    expect(survey, "fresh corpus table").toContain(
+      `| servers blocked | ${a.blocked} | ${fresh.releases.slice(1).map((r) => r.blocked).join(" | ")} |`,
     );
   });
 

@@ -2,13 +2,15 @@
 
 ## 0.8.0 — unreleased
 
-- Add `warden-mcp wrap [flags] -- command [args]`: stdio proxy over the existing gates, without new runtime dependencies or ruleset changes.
+- Add `warden-mcp wrap [flags] -- command [args]`: stdio proxy over the existing gates, without new runtime dependencies.
 - Vet before spawning, scan initialization instructions, aggregate bounded tool pages and expose only approved definitions. Quarantine changes and revalidate every call against what the client saw; withhold results if a change is observed during execution.
 - Preserve transparent JSON bodies and IDs, handle bidirectional requests, accept NDJSON/Content-Length clients and 32 MiB pass-through frames. Close and reap child processes on EOF.
 - Add locked TOFU pins, saved review candidates, terminal-only `pins status|approve|revoke`, and compare-and-swap review. Revocation persists denial; audit-only never establishes pins.
 - Add signed feed options, reproducible JSONL verdicts, sanitized stderr and explicit audit-only mode.
 - Keep no-argument inspection tools and Glama startup unchanged. Update README/gate documentation in five languages, registry metadata and unreleased landing copy.
 - Add subprocess acceptance tests and a reproducible 50-tool latency benchmark. See [release validation](docs/wrap-validation.md) for measured overhead and outstanding live-client/release checks.
+- Make the field-survey numbers checkable. A 2026-10-01 harvest (986 servers, 13 902 tool definitions) and a re-ask of the servers August blocked are committed under `docs/data/` with the results of scanning them with every published release; `npm run check` in `scripts/mcp-survey/remeasure/` recomputes both and fails on any difference. 0.3.0 blocks 42 servers, 0.4.0–0.7.0 block 6 — by our reading 1 holds up, 1 is arguable, 4 are new false positives, named in the survey. Of August's 41 named false positives that still answer, 0.3.0 blocks 39 and 0.4.0+ block 2. The August v4 re-run (`50 → 6`) is marked as not reproducible: its corpus was not kept. The harvest scripts lose their hard 80-page cap, retry slow registry pages and open at most two connections per host.
+- Ruleset **v7** (digest `sha256-nMFVesjb4Cj3shEsB1hORajQunoGPbAVI86wvgiXTyc=`, still 26 rules, 15 block / 11 advise). Removes three of the four false positives v6 had on the 2026-10-01 corpus: "Private key/value memory" (new guard `keyValue` on the private-key rule), "find … without asking the user for ids" (`autonomy` accepts a lookup verb with an identifier as the whole object), and "the key is read from the MCP connection's X-API-Key header" (new guard `ownAuthHeader` on `TOOL_DEF_SECRET_HARVEST`). `autonomy` also stops exempting any "without asking the user" whose object is consent, so "keep retrying the transfer without asking the user for approval" blocks again. Scanning the committed corpus with this source: 6 blocked → 3 (conduit, margaret-poems, redu), carry-over 2 → 1; the three dropped findings are the only findings that change in either corpus. The published-release table is unchanged until 0.8.0 is on npm.
 
 
 ## 0.7.0 — 2026-09-30
@@ -78,7 +80,8 @@ the ZERO WIDTH NON-JOINER its language requires. A scanner with that false-posit
 get tuned by its users; it gets uninstalled.
 
 Ruleset **v4** brings blocking from 50 servers down to **6** on the same corpus, with all four real
-findings still caught.
+findings still caught. (That re-run's corpus was not kept, so the count cannot be recomputed; the
+2026-10-01 re-measure in the survey can.)
 
 ### Rules read context now
 

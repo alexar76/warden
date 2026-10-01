@@ -302,10 +302,10 @@ Recovering that by hand was most of the work of this survey.
 
 ### Re-measured on the same 1 108 servers
 
-| | ruleset v3 (as surveyed) | ruleset v4 (re-run, not published) |
+| | ruleset v3 (as surveyed) | ruleset v4 (August re-run, corpus not kept) |
 |---|---|---|
-| servers blocked | 50 | **6** |
-| of those, substantiated | 4 | **4** |
+| servers blocked | 50 | 6 |
+| of those, substantiated | 4 | 4 |
 | blocking findings | 492 | 12 |
 | advisory findings | 3 472 | 3 494 |
 | servers with any finding | 444 | 439 |
@@ -317,13 +317,12 @@ findings, 3 964 findings — plus a `ruleset_v2_vs_v3` block establishing that v
 this corpus: `servers_with_new_findings: 0`, `newly_blocked: []`, *"same 444 servers with findings,
 same 50 blocked, same 3 964 findings"*. That is why the column is labelled v3 while the file says v2.
 
-The v4 column is **not** in this repo, and no committed file records it. It was measured here against
-the same collected tool definitions, but that collection is not committed — `scripts/mcp-survey/`
-ships the harness, not its output, so the only v4 artefact is this table. Treat those five numbers as
-our measurement reported in good faith, not as something you can recompute from this tree. The
-`50 → 6` figure quoted on the landing page and in the READMEs inherits exactly that status.
+The v4 column cannot be recomputed by anyone, including us. It was measured against the August
+harvest, and that harvest was never committed and no longer exists anywhere we can find. Those five
+numbers are a measurement reported in good faith; nothing below depends on them. The numbers to
+quote are the ones in the next section, which come with their corpus.
 
-What *is* reproducible, and what the claim actually rests on, is the **direction**.
+What was always reproducible is the **direction**.
 [`test/field-survey-regression.test.ts`](../test/field-survey-regression.test.ts) holds the verbatim
 descriptions of the servers behind the 46 false positives and behind the 4 substantiated findings,
 and asserts both ways: under v4 the false positives no longer block, and every one of the four real
@@ -332,13 +331,77 @@ corpus's actual text rather than from fixtures, because nobody sitting down to i
 write "the private key never leaves your machine" or spell a description with a Persian ZERO WIDTH
 NON-JOINER.
 
-A corpus-wide v4 count would need a fresh harvest, and it would not land on 6 even if the ruleset
-were perfect: 1 215 of the 3 121 registry servers answered `4xx` on the day, and which ones do that
-is a property of the day rather than of the rules.
+### Re-measured on a committed corpus (2026-10-01)
+
+On 2026-10-01 we harvested again with the same scripts and the same rule — the first 80 registry
+pages — and committed the result:
+[`data/mcp-corpus-2026-10-01.jsonl.gz`](data/mcp-corpus-2026-10-01.jsonl.gz), 2 529 endpoints, 986
+of which answered with 13 902 tool definitions (950 refused with `401`). Every published release
+then scanned it, each installed from the registry by exact version and integrity hash:
+
+| | 0.3.0 · v2 | 0.4.0 · v4 | 0.5.0 · v4 | 0.6.0 · v5 | 0.7.0 · v6 |
+|---|---|---|---|---|---|
+| servers blocked | 42 | 6 | 6 | 6 | 6 |
+| blocking findings | 556 | 9 | 9 | 10 | 10 |
+| advisory findings | 2 672 | 2 683 | 2 683 | 2 685 | 2 685 |
+| servers with any finding | 390 | 385 | 385 | 385 | 385 |
+
+The registry is paged in name order, so 80 pages is an alphabetical slice, and it shrinks as the
+registry grows: in August it stopped at exactly 8 000 rows and 3 121 servers; on 2026-10-01 the same
+80 pages hold 2 776 servers and end at `co.p…`, while the whole registry now lists about 23 500. So
+the servers August blocked were also re-asked directly, by the URL August recorded
+([`data/mcp-corpus-2026-10-01-august-carryover.jsonl.gz`](data/mcp-corpus-2026-10-01-august-carryover.jsonl.gz)).
+46 are named; 41 still answer:
+
+| August's named false positives, re-asked | 0.3.0 · v2 | 0.4.0 · v4 | 0.5.0 · v4 | 0.6.0 · v5 | 0.7.0 · v6 |
+|---|---|---|---|---|---|
+| servers blocked (of 41) | 39 | 2 | 2 | 2 | 2 |
+| blocking findings | 552 | 4 | 4 | 5 | 5 |
+
+Five weeks on, 0.3.0 still blocks 39 of the 41: their definitions have barely moved, which makes
+this the closest thing to re-running August that exists. Every release from 0.4.0 blocks two of them.
+
+Both tables are in [`data/mcp-remeasure-2026-10-01.json`](data/mcp-remeasure-2026-10-01.json) and
+[`data/mcp-remeasure-2026-10-01-august-carryover.json`](data/mcp-remeasure-2026-10-01-august-carryover.json),
+next to the SHA-256 of the corpus each was computed from. `npm run check` in
+[`scripts/mcp-survey/remeasure/`](../scripts/mcp-survey/remeasure/) re-scans both corpora with all
+five releases and fails if a single number differs. The result files hash each release's blocked set
+rather than naming it; `--list <version>` prints the names from the corpus.
+
+**The six that 0.4.0–0.7.0 block on the new corpus, by our reading.** One holds up: an agent-identity
+service whose tools tell the model to write `private_key` JWKs into `~/.conduit` and read them back —
+legitimate, and exactly what a host should gate. One is arguable: a commission service that asks the
+model to pass back "the private key you were given when you commissioned", a credential the service
+issued itself. Four are ours, and like every false positive in this report they are named:
+
+- `app.agentbit/mcp` — *"**Private key**/value memory for an agent"*. A key/value store, read as a
+  credential noun.
+- `ai.switchapp/switch` — *"find the take from earlier … **without asking the user** for ids"*. The
+  `autonomy` guard knows *keep / poll / until*, not *for ids*. In August this server was blocked for
+  a `data:` URL that v4 fixed; the sentence that trips it now was added since.
+- `app.liquidvision/derivatives` — *"The key is **read from** the MCP connection's X-API-Key header"*.
+  A server describing its own authentication, read as a harvest instruction.
+- `cloud.redu/mcp` — the documented `ssh -i ~/.ssh/<keypair_name>` from August, still there.
+
+The six is a coincidence, not a confirmation: August's six were 4 substantiated and 2 ours, these six
+are 1 and 4, on different servers. The precision of the blocking tier on this corpus is low, and it is
+low for the same reason it was in August — vocabulary collisions the guards have not met yet.
+
+**Ruleset v7, in the unreleased 0.8.0 source, guards the first three.** `keyValue` reads "key/value"
+followed by a store noun as a store; `autonomy` accepts a lookup verb with an identifier as the whole
+object of "asking for"; `ownAuthHeader` reads a passive "is read from … header" about the server's own
+request as a description of its authentication ([gates](gates.md#static-scan)). Each is pinned both
+ways in `test/field-survey-regression.test.ts` with the verbatim text above. Scanning this corpus with
+the source tree (`npm run build`, then `node remeasure.mjs <corpus> --local ../../../dist` in the
+remeasure directory) blocks **3** servers with 7 blocking findings — conduit, the commission service
+and redu — and 1 of the 41 carry-over servers (redu). Those three findings are the only findings that
+change, in either corpus. The figure is not in the tables above, which pin published releases only; it
+joins them when 0.8.0 is on npm.
 
 ### What still fires, and why we left it
 
-Two of the six remaining blocks are still ours:
+Two of August's six remaining blocks were ours (on 2026-10-01 the first answers `404`, the second
+still fires):
 
 - A blockchain-forensics tool named `wallet_funds`, on the built-in `*drain*wallet*` pattern. Its
   description asks *"did they drain the project wallet"* — the two words genuinely are adjacent, so a
@@ -373,10 +436,11 @@ changing the version.
   invisible to this method, and a 4/50 precision figure says nothing about recall.
 - **Auth-gated servers are absent.** 1 215 servers refused without credentials. Those are
   disproportionately the commercial ones, so the corpus skews toward open and hobby servers.
-- **The v4 re-measure is not reproducible from this repo.** Only the v2/v3 run is committed as data.
-  The v4 column, and the `50 → 6` headline everywhere it appears, rest on a local re-run whose raw
-  output is not published; the regression suite reproduces the direction, not the counts. See
-  [Which half of that table you can check](#re-measured-on-the-same-1-108-servers).
+- **August's v4 column is not reproducible.** Its corpus was not kept, so `50 → 6` is ours to
+  report and nobody's to check. The 2026-10-01 re-measure replaces it as the quotable figure and is
+  reproducible to the digit — see [the committed corpus](#re-measured-on-a-committed-corpus-2026-10-01).
+- **A page cap is an alphabetical slice.** The registry is paged in name order, so "the first 80
+  pages" is a different and narrower set of servers every time the registry grows.
 
 ## Reproduce it
 
@@ -396,10 +460,14 @@ python3 classify.py                  # exact matched span per blocking finding
 `harvest_tools.py` makes two or three requests per server and executes nothing. If you re-run it,
 your reachability numbers will differ from ours — endpoints come and go by the hour.
 
-The pin above is `0.3.0` deliberately: it reproduces the survey as published, ruleset v2. Swap it for
-`@aimarket/warden@0.4.0` and you get ruleset v4 — but on **your** corpus, harvested on **your** day,
-so the result is your own measurement rather than a check of ours. That is the honest state of the v4
-column: we cannot hand you the corpus it was computed on.
+The pin above is `0.3.0` deliberately: it reproduces the survey as published, ruleset v2. A harvest
+of your own is your measurement, not a check of ours. To check ours, use the committed corpus:
+
+```bash
+cd scripts/mcp-survey/remeasure
+npm ci               # 0.3.0 … 0.7.0 from the registry, pinned by integrity hash
+npm run check        # re-scan both committed corpora with each release; exit 1 on any difference
+```
 
 ## Baseline
 

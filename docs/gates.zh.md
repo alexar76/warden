@@ -44,7 +44,7 @@ const SEVERITY_RANK = { info: 0, low: 1, medium: 2, high: 3, critical: 4 };
 
 ## static-scan
 
-对每个工具的 `name`、`description` 与 `inputSchema` 做本地正则扫描。规则集 **v6** 共 26 条规则（其中 15 条带有上下文 **guard**——一项具名检查，用于判断某次命中是否真是该规则要找的东西；参见[实地普查](mcp-survey.zh.md)，即校准 v4 的 1 108 台服务器实测）：
+对每个工具的 `name`、`description` 与 `inputSchema` 做本地正则扫描。规则集 **v7** 共 26 条规则（其中 15 条带有上下文 **guard**——一项具名检查，用于判断某次命中是否真是该规则要找的东西；参见[实地普查](mcp-survey.zh.md)，即校准 v4 的 1 108 台服务器实测）：
 15 条 `block`，11 条 `advise`。
 
 **v5：任何规则读取文本之前，先对文本做归一化。** NFKC 把全角字母、连字和其他兼容形式变成普通字母；单词内部的不可见字符被删除；Unicode 标签区块（ASCII 的不可见副本，能藏下一整句话）被解码；在拉丁字母与西里尔或希腊字母混写的单词里，形近字母被换成拉丁字母，而整词只用一种文字写成的单词保持不变。于是，无论周围文本是什么语言，英文规则都不能再被全角字母、词内零宽空格、标签字符或西里尔字母 `о` 绕过。归一化以 `fold` 的形式与规则一起发布，并计入 digest。两条隐藏载荷规则读取**原始**文本（`raw: true`）。
@@ -52,6 +52,8 @@ const SEVERITY_RANK = { info: 0, low: 1, medium: 2, high: 3, critical: 4 };
 正则表格读不懂含义：用规则没有覆盖的语言写成的说法不在它的范围内。v5 增加了与语言无关的部分：归一化；`TOOL_DEF_SECRET_EXFIL` 组合（机密存放位置与外部地址相距不超过 100 个字符；仅提示，因为它在 10 645 台真实服务器上唯一的命中是正当用途）；`TOOL_DEF_HIDDEN_UNICODE` 纳入标签区块和双向隔离符；HISTOR 会标出服务器定义中新出现的任何外部地址。按含义识别属于分类器的工作，而不是这张表的工作。
 
 v5 还消除了三类实测误报：“send the user to https://…”（引导用户跳转，guard `navigation`）、“keep calling … without asking the user”（自主运行，guard `autonomy`），以及表情符号序列中的零宽连接符。在 10 645 台服务器的语料上，v4 阻止 63 台，v5 阻止 56 台，且没有新增任何 v4 未阻止的服务器。
+
+**v7** 消除了规则集 v6 在已提交的 2026-10-01 语料上仍有的三处误报（[实地普查](mcp-survey.zh.md)）。“Private key/value memory” 指键值存储，而非私钥（guard `keyValue`：以斜杠或连字符构成的复合词，后接表示存储的名词）。“Find … without asking the user for ids” 是工具自行解析标识符（guard `autonomy` 现在也接受查找类动词，前提是被索要的对象整体就是标识符）。“The key is read from the MCP connection's X-API-Key header” 是服务器在描述自己的认证方式（guard `ownAuthHeader`：被动语态 “is read from”、来源是请求头、不是他人的请求头、密钥未被转交他处）。此外，当 “without asking the user” 的对象是“同意”时，`autonomy` 不再豁免：“keep retrying the transfer without asking the user for approval” 重新被阻止。在该语料上，v6 阻止 6 台服务器，v7 阻止 3 台，其余所有发现均不变。
 
 每条规则都声明自己在这三个**面**中的哪些上运行，26 条里有 17 条包含名称。不包含名称的那四条是以**名词**为
 锚的规则（`TOOL_DEF_SECRET_REQUEST`、`TOOL_DEF_CREDENTIAL_PARAM`、`TOOL_DEF_ENV_REFERENCE`、`TOOL_DEF_SECRET_EXFIL`）：名称是标识
