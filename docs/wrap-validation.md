@@ -1,5 +1,8 @@
 # WARDEN 0.8.0 release validation
 
+> **Published 2026-10-01 as 0.8.1** (0.8.0, published 23 s earlier, is identical apart from the
+> version field). Everything below is the pre-publication record and is kept as it was.
+
 Status: implementation ready for review; **not released**. All npm config examples labelled
 0.8.0 require publication first. Existing ARGUS version/lockfile remain unchanged.
 

@@ -55,21 +55,21 @@ delante de tu propio host MCP sin adoptar un agente.
 
 ## Proteger Claude Desktop o Cursor con un envoltorio
 
-**Candidato 0.8.0: use el ejemplo npm solo después de publicarlo.** Hasta entonces compile localmente y use `node /ruta/absoluta/warden/dist/mcp-server.js wrap ...`. Añadir WARDEN como servidor separado no inspecciona los demás servidores. Sustituya el comando de cada servidor protegido por `wrap`:
+**Publicado como 0.8.1 (2026-10-01).** Desde el código fuente, `node /ruta/absoluta/warden/dist/mcp-server.js wrap ...` funciona igual. Añadir WARDEN como servidor separado no inspecciona los demás servidores. Sustituya el comando de cada servidor protegido por `wrap`:
 
 ```json
 {
   "mcpServers": {
     "filesystem": {
       "command": "npx",
-      "args": ["-y", "@aimarket/warden@0.8.0", "wrap", "--id", "filesystem", "--",
+      "args": ["-y", "@aimarket/warden@0.8.1", "wrap", "--id", "filesystem", "--",
                "npx", "-y", "@modelcontextprotocol/server-filesystem", "/Users/me/docs"]
     }
   }
 }
 ```
 
-Especifique siempre `--id`: sin él, cambiar los argumentos crea otra identidad y otro primer contacto. Con un ID estable, cambiar el comando o una ruta produce `SERVER_IDENTITY_DRIFT`. El hijo hereda el entorno, excluido de la identidad. Después del lanzamiento, `npm install -g @aimarket/warden@0.8.0` y el comando `warden-mcp` evitan arranques fríos repetidos de `npx`.
+Especifique siempre `--id`: sin él, cambiar los argumentos crea otra identidad y otro primer contacto. Con un ID estable, cambiar el comando o una ruta produce `SERVER_IDENTITY_DRIFT`. El hijo hereda el entorno, excluido de la identidad. `npm install -g @aimarket/warden@0.8.1` y el comando `warden-mcp` evitan arranques fríos repetidos de `npx`.
 
 La política predeterminada bloquea **todo el servidor** desde gravedad high, fija definiciones y permite servidores declarados. No hay modo parcial. La primera comprobación correcta crea un pin TOFU persistente. Cualquier cambio posterior, incluso inocuo, exige aprobación humana. Con la política explícita `{"pinToolDefs":false}`, los cambios limpios se notifican tras verificarlos. Una notificación sin cambios también pasa tras verificarse.
 

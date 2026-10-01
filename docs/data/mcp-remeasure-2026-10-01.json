@@ -153,6 +153,54 @@
         "TOOL_DEF_SECRET_REQUEST": 6
       },
       "blocked_set_sha256": "0d4c516defe2b1b75e2281608c777cba26f9daeba0e296e34a18aea78654a352"
+    },
+    {
+      "package": "@aimarket/warden@0.8.0",
+      "integrity": "sha512-rQBRA+e4pcQoktCU2XgL+hEp2k+0qOOz9MAiuYShbq7oW1J48RtBKZQ8w9WMyOndrxuJeG4K7K2jnxByqvZGUw==",
+      "ruleset": {
+        "version": "7",
+        "ref": {
+          "version": "7",
+          "digest": "sha256-nMFVesjb4Cj3shEsB1hORajQunoGPbAVI86wvgiXTyc="
+        }
+      },
+      "scanned": 986,
+      "scan_errors": 0,
+      "clean": 601,
+      "with_findings": 385,
+      "blocked": 3,
+      "findings_total": 2692,
+      "blocking_findings": 7,
+      "advisory_findings": 2685,
+      "blocking_by_code": {
+        "THREAT_SSH_KEY_READ": 2,
+        "TOOL_DEF_SECRET_REQUEST": 5
+      },
+      "blocked_set_sha256": "f6866f7fdd6be3c4bcbac9b78611ae7f007705ed908ad9766fcc6151fe5039c9"
+    },
+    {
+      "package": "@aimarket/warden@0.8.1",
+      "integrity": "sha512-jsxp1xsZXjDmvdThQTwnkCFyuPm7+F4Wabk+4T4glJqA1qcCkwQdD7H2Ml+kvXDJyYf9WbffAnFTqSdv22251g==",
+      "ruleset": {
+        "version": "7",
+        "ref": {
+          "version": "7",
+          "digest": "sha256-nMFVesjb4Cj3shEsB1hORajQunoGPbAVI86wvgiXTyc="
+        }
+      },
+      "scanned": 986,
+      "scan_errors": 0,
+      "clean": 601,
+      "with_findings": 385,
+      "blocked": 3,
+      "findings_total": 2692,
+      "blocking_findings": 7,
+      "advisory_findings": 2685,
+      "blocking_by_code": {
+        "THREAT_SSH_KEY_READ": 2,
+        "TOOL_DEF_SECRET_REQUEST": 5
+      },
+      "blocked_set_sha256": "f6866f7fdd6be3c4bcbac9b78611ae7f007705ed908ad9766fcc6151fe5039c9"
     }
   ],
   "august_blocked_cross_check": {
@@ -163,7 +211,9 @@
       "@aimarket/warden@0.4.0": 2,
       "@aimarket/warden@0.5.0": 2,
       "@aimarket/warden@0.6.0": 2,
-      "@aimarket/warden@0.7.0": 2
+      "@aimarket/warden@0.7.0": 2,
+      "@aimarket/warden@0.8.0": 1,
+      "@aimarket/warden@0.8.1": 1
     }
   }
 }

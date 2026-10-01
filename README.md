@@ -61,21 +61,21 @@ of your own MCP host without adopting an agent.
 
 ## Protect Claude Desktop or Cursor with one wrapper
 
-**0.8.0 release candidate — use the npm example only after publication.** Until then, build locally and use `node /absolute/path/warden/dist/mcp-server.js wrap ...`. Adding WARDEN as a separate MCP server does not inspect other servers. Replace each protected server’s command with `wrap`:
+**Published as 0.8.1 (2026-10-01).** From source, `node /absolute/path/warden/dist/mcp-server.js wrap ...` works the same. Adding WARDEN as a separate MCP server does not inspect other servers. Replace each protected server’s command with `wrap`:
 
 ```json
 {
   "mcpServers": {
     "filesystem": {
       "command": "npx",
-      "args": ["-y", "@aimarket/warden@0.8.0", "wrap", "--id", "filesystem", "--",
+      "args": ["-y", "@aimarket/warden@0.8.1", "wrap", "--id", "filesystem", "--",
                "npx", "-y", "@modelcontextprotocol/server-filesystem", "/Users/me/docs"]
     }
   }
 }
 ```
 
-Always specify `--id`: without it, changing command arguments creates a new identity and a new first contact. A stable ID turns a command or path change into `SERVER_IDENTITY_DRIFT`. Environment variables are inherited by the child and excluded from identity. To avoid repeated cold `npx` starts, install globally with `npm install -g @aimarket/warden@0.8.0` after release, then use `warden-mcp`.
+Always specify `--id`: without it, changing command arguments creates a new identity and a new first contact. A stable ID turns a command or path change into `SERVER_IDENTITY_DRIFT`. Environment variables are inherited by the child and excluded from identity. To avoid repeated cold `npx` starts, install globally with `npm install -g @aimarket/warden@0.8.1`, then use `warden-mcp`.
 
 The default policy blocks the **whole server** at high severity, pins tool definitions, and allows operator-declared servers. There is no partial mode. The first successful check creates a durable TOFU pin. Later changes, including harmless edits, require human reapproval. With an explicit `{"pinToolDefs":false}` policy, vetted clean changes can be announced automatically. An unchanged list notification also passes after verification.
 

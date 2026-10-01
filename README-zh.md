@@ -51,21 +51,21 @@ WARDEN 在**该服务器的任何工具到达模型之前**审查它，并返回
 
 ## 通过一层代理保护 Claude Desktop 或 Cursor
 
-**0.8.0 候选版本：npm 示例仅在发布后可用。** 发布前请本地构建并使用 `node /绝对路径/warden/dist/mcp-server.js wrap ...`。单独添加 WARDEN MCP 服务器不会检查其他服务器。请把每个需要保护的服务器命令替换为 `wrap`：
+**已发布为 0.8.1（2026-10-01）。** 从源码运行 `node /绝对路径/warden/dist/mcp-server.js wrap ...` 效果相同。单独添加 WARDEN MCP 服务器不会检查其他服务器。请把每个需要保护的服务器命令替换为 `wrap`：
 
 ```json
 {
   "mcpServers": {
     "filesystem": {
       "command": "npx",
-      "args": ["-y", "@aimarket/warden@0.8.0", "wrap", "--id", "filesystem", "--",
+      "args": ["-y", "@aimarket/warden@0.8.1", "wrap", "--id", "filesystem", "--",
                "npx", "-y", "@modelcontextprotocol/server-filesystem", "/Users/me/docs"]
     }
   }
 }
 ```
 
-始终指定 `--id`：否则修改命令参数会创建新身份并重新执行首次信任。稳定 ID 会把命令或路径变更识别为 `SERVER_IDENTITY_DRIFT`。子进程继承环境变量，身份哈希不包含环境。发布后可运行 `npm install -g @aimarket/warden@0.8.0`，使用 `warden-mcp` 避免反复进行 `npx` 冷启动。
+始终指定 `--id`：否则修改命令参数会创建新身份并重新执行首次信任。稳定 ID 会把命令或路径变更识别为 `SERVER_IDENTITY_DRIFT`。子进程继承环境变量，身份哈希不包含环境。可运行 `npm install -g @aimarket/warden@0.8.1`，使用 `warden-mcp` 避免反复进行 `npx` 冷启动。
 
 默认策略在 high 级别阻止**整个服务器**，固定工具定义并允许操作者声明的服务器。没有部分放行模式。首次成功检查建立持久 TOFU 快照。此后任何变更，包括无害修改，都需要人工批准。只有显式设置 `{"pinToolDefs":false}` 时，通过检查的干净变更才自动通知客户端。未改变定义的通知也会在检查后转发。
 

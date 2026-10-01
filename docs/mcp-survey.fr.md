@@ -298,6 +298,132 @@ Classé par le nombre des 46 que chaque point corrige :
 9. **Digest du ruleset en CI** → une release doit échouer si le `dist` publié annonce une version de
    ruleset différente de celle de la source dont il est issu.
 
+### Re-mesuré sur les mêmes 1 108 serveurs
+
+| | ruleset v3 (tel qu'étudié) | ruleset v4 (nouvelle mesure d'août, corpus non conservé) |
+|---|---|---|
+| serveurs bloqués | 50 | 6 |
+| dont étayés | 4 | 4 |
+| constats bloquants | 492 | 12 |
+| constats indicatifs | 3 472 | 3 494 |
+| serveurs avec au moins un constat | 444 | 439 |
+
+**Quelle moitié de ce tableau vous pouvez vérifier.** La colonne v3 se déduit du jeu de données de ce
+dépôt. [`data/mcp-survey-2026-08-24.json`](data/mcp-survey-2026-08-24.json) consigne la campagne telle
+qu'elle a été exécutée — `@aimarket/warden@0.3.0` depuis le registre, `ruleset.version: "2"`, 50
+bloqués, 444 avec constats, 3 964 constats — ainsi qu'un bloc `ruleset_v2_vs_v3` établissant que v3 n'a
+rien changé sur ce corpus : `servers_with_new_findings: 0`, `newly_blocked: []`, *« same 444 servers
+with findings, same 50 blocked, same 3 964 findings »*. C'est pourquoi la colonne porte v3 alors que le
+fichier indique v2.
+
+Personne ne peut recalculer la colonne v4, nous compris. Elle a été mesurée sur la collecte d'août, qui
+n'a jamais été versionnée et n'existe plus nulle part où nous puissions la trouver. Ces cinq nombres
+sont une mesure rapportée de bonne foi ; rien de ce qui suit n'en dépend. Les chiffres à citer sont ceux
+de la section suivante, qui viennent avec leur corpus.
+
+Ce qui a toujours été reproductible, c'est le **sens**.
+[`test/field-survey-regression.test.ts`](../test/field-survey-regression.test.ts) conserve les
+descriptions verbatim des serveurs derrière les 46 faux positifs et derrière les 4 constats étayés, et
+vérifie dans les deux sens : sous v4 les faux positifs ne bloquent plus et chacune des quatre vraies
+détections bloque toujours. Il tourne sous `npm test`, sans réseau ni corpus. Il est construit à partir
+du texte réel du corpus plutôt que de fixtures inventées, car personne inventant des données de test
+n'écrirait « the private key never leaves your machine » ni une description avec le ZERO WIDTH
+NON-JOINER persan.
+
+### Re-mesuré sur un corpus versionné (2026-10-01)
+
+Le 2026-10-01, nous avons collecté à nouveau avec les mêmes scripts et la même règle — les 80 premières
+pages du registre — et versionné le résultat :
+[`data/mcp-corpus-2026-10-01.jsonl.gz`](data/mcp-corpus-2026-10-01.jsonl.gz), 2 529 endpoints, dont
+986 ont répondu avec 13 902 définitions d'outils (950 ont refusé avec `401`). Chaque version publiée l'a
+ensuite analysé, installée depuis le registre par version exacte et hash d'intégrité :
+
+| | 0.3.0 · v2 | 0.4.0 · v4 | 0.5.0 · v4 | 0.6.0 · v5 | 0.7.0 · v6 | 0.8.0 · v7 | 0.8.1 · v7 |
+|---|---|---|---|---|---|---|---|
+| serveurs bloqués | 42 | 6 | 6 | 6 | 6 | 3 | 3 |
+| constats bloquants | 556 | 9 | 9 | 10 | 10 | 7 | 7 |
+| constats indicatifs | 2 672 | 2 683 | 2 683 | 2 685 | 2 685 | 2 685 | 2 685 |
+| serveurs avec au moins un constat | 390 | 385 | 385 | 385 | 385 | 385 | 385 |
+
+Le registre est paginé par nom, donc 80 pages forment une tranche alphabétique, qui rétrécit à mesure
+que le registre grandit : en août la collecte s'est arrêtée à exactement 8 000 lignes et 3 121 serveurs ;
+le 2026-10-01, les mêmes 80 pages contiennent 2 776 serveurs et s'arrêtent à `co.p…`, alors que le
+registre entier en liste désormais environ 23 500. Les serveurs bloqués en août ont donc aussi été
+réinterrogés directement, par l'URL enregistrée en août
+([`data/mcp-corpus-2026-10-01-august-carryover.jsonl.gz`](data/mcp-corpus-2026-10-01-august-carryover.jsonl.gz)).
+46 sont nommés ; 41 répondent encore :
+
+| Faux positifs nommés d'août, réinterrogés | 0.3.0 · v2 | 0.4.0 · v4 | 0.5.0 · v4 | 0.6.0 · v5 | 0.7.0 · v6 | 0.8.0 · v7 | 0.8.1 · v7 |
+|---|---|---|---|---|---|---|---|
+| serveurs bloqués (sur 41) | 39 | 2 | 2 | 2 | 2 | 1 | 1 |
+| constats bloquants | 552 | 4 | 4 | 5 | 5 | 4 | 4 |
+
+Cinq semaines plus tard, 0.3.0 bloque encore 39 des 41 : leurs définitions ont à peine bougé, ce qui en
+fait ce qui existe de plus proche d'une réexécution d'août. Chaque version de 0.4.0 à 0.7.0 en bloque
+deux ; 0.8.x en bloque un, le `ssh -i` documenté plus bas. 0.8.0 et 0.8.1 sont le même paquet publié
+deux fois après un conflit du registre, identiques à part le champ de version.
+
+Les deux tableaux sont dans [`data/mcp-remeasure-2026-10-01.json`](data/mcp-remeasure-2026-10-01.json)
+et [`data/mcp-remeasure-2026-10-01-august-carryover.json`](data/mcp-remeasure-2026-10-01-august-carryover.json),
+à côté du SHA-256 du corpus sur lequel chacun a été calculé. `npm run check` dans
+[`scripts/mcp-survey/remeasure/`](../scripts/mcp-survey/remeasure/) réanalyse les deux corpus avec
+chaque version épinglée et échoue si un seul chiffre diffère. Les fichiers de résultats enregistrent un
+hash de l'ensemble bloqué par chaque version au lieu de le nommer ; `--list <version>` affiche les noms
+à partir du corpus.
+
+**Les six que 0.4.0–0.7.0 bloquent sur le nouveau corpus, selon notre lecture.** Un est étayé : un
+service d'identité d'agents dont les outils demandent au modèle d'écrire des JWK `private_key` dans
+`~/.conduit` puis de les relire — légitime, et exactement ce qu'un hôte devrait encadrer. Un est
+discutable : un service de commandes qui demande au modèle de renvoyer « the private key you were given
+when you commissioned », un identifiant émis par le service lui-même. Quatre sont les nôtres et, comme
+chaque faux positif de ce rapport, ils sont nommés :
+
+- `app.agentbit/mcp` — *« **Private key**/value memory for an agent »*. Un magasin clé-valeur lu comme
+  un nom de secret.
+- `ai.switchapp/switch` — *« find the take from earlier … **without asking the user** for ids »*. Le
+  guard `autonomy` connaît *keep / poll / until*, pas *for ids*. En août ce serveur était bloqué pour une
+  URL `data:` que v4 a corrigée ; la phrase qui le déclenche maintenant a été ajoutée depuis.
+- `app.liquidvision/derivatives` — *« The key is **read from** the MCP connection's X-API-Key
+  header »*. Un serveur qui décrit sa propre authentification, lu comme une instruction de collecte.
+- `cloud.redu/mcp` — le `ssh -i ~/.ssh/<keypair_name>` documenté en août, toujours là.
+
+Le six est une coïncidence, pas une confirmation : les six d'août étaient 4 étayés et 2 nôtres, ces six
+sont 1 et 4, sur d'autres serveurs. La précision du niveau bloquant sur ce corpus est faible, et pour la
+même raison qu'en août : des collisions de vocabulaire que les guards n'avaient pas encore rencontrées.
+
+**Le ruleset v7, publié dans 0.8.1, protège les trois premiers.** `keyValue` lit « key/value » suivi
+d'un nom de magasin comme un magasin ; `autonomy` accepte un verbe de recherche dont l'objet entier
+d'« asking for » est un identifiant ; `ownAuthHeader` lit un passif « is read from … header » portant
+sur la propre requête du serveur comme la description de son authentification
+([gates](gates.fr.md#static-scan)). Chacun est épinglé dans les deux sens dans
+`test/field-survey-regression.test.ts` avec le texte verbatim ci-dessus. Sur ce corpus, 0.8.1 bloque
+**3** serveurs avec 7 constats bloquants — conduit, le service de commandes et redu — et 1 des 41
+serveurs réinterrogés (redu) ; ces trois constats sont les seuls qui changent, dans l'un ou l'autre
+corpus. Des trois qu'il bloque encore, selon notre lecture, un est étayé, un est discutable et un est
+le nôtre.
+
+### Ce qui se déclenche encore, et pourquoi nous l'avons laissé
+
+Deux des six blocages restants d'août étaient les nôtres (le 2026-10-01 le premier répond `404`, le
+second se déclenche toujours) :
+
+- Un outil de forensique blockchain nommé `wallet_funds`, sur le motif intégré `*drain*wallet*`. Sa
+  description demande *« did they drain the project wallet »* — les deux mots sont réellement voisins,
+  donc une borne de proximité n'aide pas. C'est l'aveuglement au rôle au niveau du threat-feed, et le
+  feed n'a aucune notion de défenseur. Doter les enregistrements de menaces signés d'un mécanisme de
+  guards changerait le modèle de confiance du feed plus que ce passage ne le devrait.
+- Le `get_ssh_command` d'un hébergeur cloud, sur `~/.ssh` dans une invocation documentée
+  `ssh -i ~/.ssh/<keypair_name>`. Une définition qui oriente le modèle vers le répertoire de clés SSH
+  de l'utilisateur mérite sans doute un signalement ; un blocage, sans doute pas. Laissé tel quel plutôt
+  qu'ajusté sur un seul exemple.
+
+### Le garde-fou de release
+
+`npm run check:ruleset` échoue si la version de `package.json` est déjà sur le registre avec une autre
+référence de ruleset. Il tourne en CI et dans `prepublishOnly`, et à sa première exécution il a attrapé
+le défaut réel décrit plus haut : 0.3.0 publié en v2 alors que les sources étaient en v4. Changer les
+règles impose désormais de changer la version.
+
 ## Limites
 
 - **Un seul transport.** streamable-http uniquement ; 37 serveurs `sse` ont été ignorés, et tous les
@@ -317,6 +443,13 @@ Classé par le nombre des 46 que chaque point corrige :
 - **Les serveurs authentifiés sont absents.** 1 215 serveurs ont refusé sans identifiants. Ce sont
   disproportionnellement les serveurs commerciaux, le corpus penche donc vers les serveurs ouverts et
   amateurs.
+- **La colonne v4 d'août n'est pas reproductible.** Son corpus n'a pas été conservé, donc `50 → 6` est à
+  nous de le rapporter et à personne de le vérifier. La nouvelle mesure du 2026-10-01 la remplace comme
+  chiffre citable et se reproduit au chiffre près — voir
+  [le corpus versionné](#re-mesuré-sur-un-corpus-versionné-2026-10-01).
+- **Une limite de pages est une tranche alphabétique.** Le registre est paginé par nom, donc « les 80
+  premières pages » forment un ensemble de serveurs différent et plus étroit à chaque croissance du
+  registre.
 
 ## Reproduire
 
@@ -336,6 +469,16 @@ python3 classify.py                  # extrait exact pour chaque constat bloquan
 `harvest_tools.py` fait deux ou trois requêtes par serveur et n'exécute rien. Si vous le relancez, vos
 chiffres d'accessibilité différeront des nôtres — les endpoints apparaissent et disparaissent d'heure
 en heure.
+
+L'épinglage ci-dessus est `0.3.0` à dessein : il reproduit l'étude telle que publiée, ruleset v2. Une
+collecte de votre côté est votre mesure, pas une vérification de la nôtre. Pour vérifier la nôtre,
+utilisez le corpus versionné :
+
+```bash
+cd scripts/mcp-survey/remeasure
+npm ci               # 0.3.0 … 0.8.1 depuis le registre, épinglés par hash d'intégrité
+npm run check        # réanalyser les deux corpus versionnés avec chaque version ; exit 1 à la moindre différence
+```
 
 ## Point de départ
 

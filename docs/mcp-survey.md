@@ -339,12 +339,12 @@ pages — and committed the result:
 of which answered with 13 902 tool definitions (950 refused with `401`). Every published release
 then scanned it, each installed from the registry by exact version and integrity hash:
 
-| | 0.3.0 · v2 | 0.4.0 · v4 | 0.5.0 · v4 | 0.6.0 · v5 | 0.7.0 · v6 |
-|---|---|---|---|---|---|
-| servers blocked | 42 | 6 | 6 | 6 | 6 |
-| blocking findings | 556 | 9 | 9 | 10 | 10 |
-| advisory findings | 2 672 | 2 683 | 2 683 | 2 685 | 2 685 |
-| servers with any finding | 390 | 385 | 385 | 385 | 385 |
+| | 0.3.0 · v2 | 0.4.0 · v4 | 0.5.0 · v4 | 0.6.0 · v5 | 0.7.0 · v6 | 0.8.0 · v7 | 0.8.1 · v7 |
+|---|---|---|---|---|---|---|---|
+| servers blocked | 42 | 6 | 6 | 6 | 6 | 3 | 3 |
+| blocking findings | 556 | 9 | 9 | 10 | 10 | 7 | 7 |
+| advisory findings | 2 672 | 2 683 | 2 683 | 2 685 | 2 685 | 2 685 | 2 685 |
+| servers with any finding | 390 | 385 | 385 | 385 | 385 | 385 | 385 |
 
 The registry is paged in name order, so 80 pages is an alphabetical slice, and it shrinks as the
 registry grows: in August it stopped at exactly 8 000 rows and 3 121 servers; on 2026-10-01 the same
@@ -353,19 +353,21 @@ the servers August blocked were also re-asked directly, by the URL August record
 ([`data/mcp-corpus-2026-10-01-august-carryover.jsonl.gz`](data/mcp-corpus-2026-10-01-august-carryover.jsonl.gz)).
 46 are named; 41 still answer:
 
-| August's named false positives, re-asked | 0.3.0 · v2 | 0.4.0 · v4 | 0.5.0 · v4 | 0.6.0 · v5 | 0.7.0 · v6 |
-|---|---|---|---|---|---|
-| servers blocked (of 41) | 39 | 2 | 2 | 2 | 2 |
-| blocking findings | 552 | 4 | 4 | 5 | 5 |
+| August's named false positives, re-asked | 0.3.0 · v2 | 0.4.0 · v4 | 0.5.0 · v4 | 0.6.0 · v5 | 0.7.0 · v6 | 0.8.0 · v7 | 0.8.1 · v7 |
+|---|---|---|---|---|---|---|---|
+| servers blocked (of 41) | 39 | 2 | 2 | 2 | 2 | 1 | 1 |
+| blocking findings | 552 | 4 | 4 | 5 | 5 | 4 | 4 |
 
 Five weeks on, 0.3.0 still blocks 39 of the 41: their definitions have barely moved, which makes
-this the closest thing to re-running August that exists. Every release from 0.4.0 blocks two of them.
+this the closest thing to re-running August that exists. Every release from 0.4.0 to 0.7.0 blocks two of
+them; 0.8.x blocks one, the documented `ssh -i` below. 0.8.0 and 0.8.1 are the same package published
+twice after a registry conflict — identical apart from the version field.
 
 Both tables are in [`data/mcp-remeasure-2026-10-01.json`](data/mcp-remeasure-2026-10-01.json) and
 [`data/mcp-remeasure-2026-10-01-august-carryover.json`](data/mcp-remeasure-2026-10-01-august-carryover.json),
 next to the SHA-256 of the corpus each was computed from. `npm run check` in
-[`scripts/mcp-survey/remeasure/`](../scripts/mcp-survey/remeasure/) re-scans both corpora with all
-five releases and fails if a single number differs. The result files hash each release's blocked set
+[`scripts/mcp-survey/remeasure/`](../scripts/mcp-survey/remeasure/) re-scans both corpora with every
+pinned release and fails if a single number differs. The result files hash each release's blocked set
 rather than naming it; `--list <version>` prints the names from the corpus.
 
 **The six that 0.4.0–0.7.0 block on the new corpus, by our reading.** One holds up: an agent-identity
@@ -387,16 +389,14 @@ The six is a coincidence, not a confirmation: August's six were 4 substantiated 
 are 1 and 4, on different servers. The precision of the blocking tier on this corpus is low, and it is
 low for the same reason it was in August — vocabulary collisions the guards have not met yet.
 
-**Ruleset v7, in the unreleased 0.8.0 source, guards the first three.** `keyValue` reads "key/value"
-followed by a store noun as a store; `autonomy` accepts a lookup verb with an identifier as the whole
-object of "asking for"; `ownAuthHeader` reads a passive "is read from … header" about the server's own
-request as a description of its authentication ([gates](gates.md#static-scan)). Each is pinned both
-ways in `test/field-survey-regression.test.ts` with the verbatim text above. Scanning this corpus with
-the source tree (`npm run build`, then `node remeasure.mjs <corpus> --local ../../../dist` in the
-remeasure directory) blocks **3** servers with 7 blocking findings — conduit, the commission service
-and redu — and 1 of the 41 carry-over servers (redu). Those three findings are the only findings that
-change, in either corpus. The figure is not in the tables above, which pin published releases only; it
-joins them when 0.8.0 is on npm.
+**Ruleset v7, published in 0.8.1, guards the first three.** `keyValue` reads "key/value" followed by a
+store noun as a store; `autonomy` accepts a lookup verb with an identifier as the whole object of
+"asking for"; `ownAuthHeader` reads a passive "is read from … header" about the server's own request as
+a description of its authentication ([gates](gates.md#static-scan)). Each is pinned both ways in
+`test/field-survey-regression.test.ts` with the verbatim text above. On this corpus 0.8.1 blocks **3**
+servers with 7 blocking findings — conduit, the commission service and redu — and 1 of the 41
+carry-over servers (redu); those three findings are the only ones that change, in either corpus. So of
+the three it still blocks, by our reading one holds up, one is arguable and one is ours.
 
 ### What still fires, and why we left it
 
@@ -465,7 +465,7 @@ of your own is your measurement, not a check of ours. To check ours, use the com
 
 ```bash
 cd scripts/mcp-survey/remeasure
-npm ci               # 0.3.0 … 0.7.0 from the registry, pinned by integrity hash
+npm ci               # 0.3.0 … 0.8.1 from the registry, pinned by integrity hash
 npm run check        # re-scan both committed corpora with each release; exit 1 on any difference
 ```
 

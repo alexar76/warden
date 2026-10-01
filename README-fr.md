@@ -55,21 +55,21 @@ placer devant votre propre hôte MCP sans adopter d'agent.
 
 ## Protéger Claude Desktop ou Cursor avec un wrapper
 
-**Version candidate 0.8.0 : exemple npm utilisable après publication seulement.** Avant cela, compilez localement et utilisez `node /chemin/absolu/warden/dist/mcp-server.js wrap ...`. Ajouter WARDEN comme serveur distinct ne vérifie pas les autres serveurs. Remplacez la commande de chaque serveur protégé par `wrap` :
+**Publiée en 0.8.1 (2026-10-01).** Depuis les sources, `node /chemin/absolu/warden/dist/mcp-server.js wrap ...` fonctionne de la même façon. Ajouter WARDEN comme serveur distinct ne vérifie pas les autres serveurs. Remplacez la commande de chaque serveur protégé par `wrap` :
 
 ```json
 {
   "mcpServers": {
     "filesystem": {
       "command": "npx",
-      "args": ["-y", "@aimarket/warden@0.8.0", "wrap", "--id", "filesystem", "--",
+      "args": ["-y", "@aimarket/warden@0.8.1", "wrap", "--id", "filesystem", "--",
                "npx", "-y", "@modelcontextprotocol/server-filesystem", "/Users/me/docs"]
     }
   }
 }
 ```
 
-Spécifiez toujours `--id` : sans cet identifiant, modifier les arguments crée une nouvelle identité et un premier contact. Un ID stable transforme un changement de commande ou de chemin en `SERVER_IDENTITY_DRIFT`. Le processus enfant hérite de l’environnement, exclu de l’identité. Après publication, `npm install -g @aimarket/warden@0.8.0` puis `warden-mcp` évitent les démarrages à froid répétés de `npx`.
+Spécifiez toujours `--id` : sans cet identifiant, modifier les arguments crée une nouvelle identité et un premier contact. Un ID stable transforme un changement de commande ou de chemin en `SERVER_IDENTITY_DRIFT`. Le processus enfant hérite de l’environnement, exclu de l’identité. `npm install -g @aimarket/warden@0.8.1` puis `warden-mcp` évitent les démarrages à froid répétés de `npx`.
 
 Par défaut, **tout le serveur** est bloqué dès la gravité high, les définitions sont épinglées et les serveurs déclarés sont autorisés. Aucun mode partiel. La première vérification réussie crée une empreinte TOFU persistante. Tout changement ultérieur, même bénin, exige une approbation humaine. Avec `{"pinToolDefs":false}` explicitement, les changements sains sont notifiés après vérification. Une notification sans modification passe aussi après vérification.
 

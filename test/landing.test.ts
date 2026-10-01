@@ -120,13 +120,13 @@ describe("landing page", () => {
     const carry = load("mcp-remeasure-2026-10-01-august-carryover.json");
     const by = (r: Result, v: string) => r.releases.find((x) => x.package === `@aimarket/warden@${v}`)!;
 
-    // Card: August's false positives re-asked, 0.3.0 → every release from 0.4.0 (which agree).
-    const later = carry.releases.filter((r) => r.package !== "@aimarket/warden@0.3.0").map((r) => r.blocked);
-    expect(new Set(later).size, "0.4.0+ agree on the carry-over").toBe(1);
-    expect(html, "carry-over card").toContain(`${by(carry, "0.3.0").blocked} → ${later[0]}`);
+    // Card and table: 0.3.0 against the newest pinned release, whatever it is now.
+    const newest = fresh.releases[fresh.releases.length - 1]!.package.split("@").pop()!;
+    expect(html, "carry-over card").toContain(`${by(carry, "0.3.0").blocked} → ${by(carry, newest).blocked}`);
+    expect(html, "card names the newest release").toContain(`blocked by 0.3.0 → ${newest}`);
+    expect(html, "table header names the newest release").toContain(`<th>${newest} · v`);
 
-    // Table: 0.3.0 against the newest release, on the fresh corpus.
-    const [a, b] = [by(fresh, "0.3.0"), by(fresh, "0.7.0")];
+    const [a, b] = [by(fresh, "0.3.0"), by(fresh, newest)];
     for (const [label, x, y] of [
       ["servers blocked", a.blocked, b.blocked],
       ["blocking findings", a.blocking_findings, b.blocking_findings],
