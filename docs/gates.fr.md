@@ -210,3 +210,7 @@ injoignable si vous n'avez pas réellement envoyé de requête** (`test/no-phant
 sur les portes livrées), et renvoyez un score que vous pouvez défendre — une porte qui n'a rien mesuré
 doit renvoyer `1`, pas un 0,6 « neutre », sinon elle taxe chaque serveur pour une mesure qu'elle n'a
 jamais prise.
+
+## Les portes en mode wrap
+
+`vetLaunch` précède le lancement. `initialize.instructions` passe par static-scan et est retiré en cas de blocage. `tools/list` collecte au plus 32 pages, 256 outils uniques et 1 MiB avant `vet` ; les définitions autorisées sont exposées en une page. `list_changed` déclenche immédiatement la quarantaine et n’est transmis qu’après vérification réussie. Chaque appel relit la liste et compare avec la définition montrée au client. Une modification pendant la vérification bloque l’envoi ; pendant l’exécution, elle retient la réponse. Les messages transparents sont limités à 32 MiB. Les requêtes internes expirent après 10 secondes. EOF ferme stdin de l’enfant, SIGTERM arrive après 5 secondes puis SIGKILL avant 10. Les requêtes du serveur et les autres messages gardent leurs ID et leur JSON original. Voir README pour politique, TOFU, révision humaine et audit-only.

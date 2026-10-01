@@ -170,3 +170,7 @@ const warden = new Warden({
 自己写门控时有两条规矩：**没有真的发出请求，就绝不宣称远端服务不可达**
 （`test/no-phantom-gate.test.ts` 会对随包发布的门控强制这一点）；以及返回一个你能站得住脚的评分——什么都没测量的
 门控必须返回 `1`，而不是一个「中性」的 0.6，否则它就是在为一次从未做过的测量惩罚每一台服务器。
+
+## wrap 模式的检查流程
+
+启动子进程前调用 `vetLaunch`。`initialize.instructions` 使用现有 static-scan，遇到阻止判定时删除。`tools/list` 最多读取 32 页、256 个唯一工具及 1 MiB，然后调用 `vet`；允许的定义以单页返回。`list_changed` 立即隔离服务器，只有重新检查成功才转发。每次调用前重新读取列表，与客户端最后看到的定义比较。检查期间变更阻止发送；执行期间变更则隐藏响应。透传消息另有 32 MiB 上限，内部请求超时为 10 秒。EOF 关闭子进程 stdin，5 秒后 SIGTERM，10 秒前 SIGKILL。服务器反向请求及其他消息保留 ID 和原始 JSON。策略、TOFU、人工审批及 audit-only 限制参见 README。

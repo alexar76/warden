@@ -206,3 +206,7 @@ Dos reglas para una puerta propia: **nunca afirmes que un servicio remoto es ina
 enviaste realmente una petición** (`test/no-phantom-gate.test.ts` lo impone sobre las puertas que se
 envían) y devuelve una puntuación que puedas defender — una puerta que no midió nada debe devolver
 `1`, no un 0.6 «neutro», o penaliza a cada servidor por una medición que nunca hizo.
+
+## Las puertas en modo wrap
+
+`vetLaunch` precede al arranque. `initialize.instructions` pasa por static-scan y se elimina al bloquearse. `tools/list` reúne como máximo 32 páginas, 256 herramientas únicas y 1 MiB antes de `vet`; solo se exponen definiciones permitidas en una página. `list_changed` activa cuarentena inmediatamente y se reenvía solo tras verificar. Cada llamada vuelve a listar y compara con la definición mostrada al cliente. Un cambio durante la comprobación impide enviar; durante la ejecución retiene el resultado. Los mensajes transparentes tienen límite de 32 MiB. Las peticiones internas caducan a los 10 segundos. EOF cierra stdin del hijo, SIGTERM llega tras 5 segundos y SIGKILL antes de 10. Las peticiones del servidor y demás mensajes conservan ID y JSON original. Consulte README para política, TOFU, revisión humana y audit-only.

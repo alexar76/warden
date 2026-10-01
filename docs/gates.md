@@ -202,3 +202,7 @@ Two rules for a gate you write: **never claim a remote service is unreachable un
 sent a request** (`test/no-phantom-gate.test.ts` enforces this over the shipped gates), and return a
 score you can defend — a gate that measured nothing must return `1`, not a "neutral" 0.6, or it taxes
 every server for a measurement it never took.
+
+## Wrap and the gates
+
+`vetLaunch` runs before spawn. `initialize.instructions` is scanned with the existing static gate and stripped on a blocking verdict. `tools/list` collects at most 32 pages, 256 unique tools and 1 MiB before `vet`; only allowed definitions are exposed in one page. `list_changed` immediately quarantines the server; notifications are forwarded only after a successful refresh. Every call re-lists and compares the definition with the last list shown to the client. A change during verification rejects dispatch; during execution it withholds the response. Transparent frames have a separate 32 MiB limit. Internal page requests time out after 10 seconds. EOF closes child stdin, sends SIGTERM after 5 seconds and SIGKILL just before 10 seconds. Server-to-client requests and unrelated message bodies retain their IDs and raw JSON. See the README for policy, TOFU, human review and audit-only limitations.

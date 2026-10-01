@@ -1,7 +1,7 @@
 {
   "name": "@aimarket/warden",
-  "version": "0.7.0",
-  "description": "WARDEN — MCP security firewall. Library + stdio MCP server: vets tool definitions (static-scan → threat-feed → origin → pinning) before they reach the model. Zero npm runtime dependencies.",
+  "version": "0.8.0",
+  "description": "WARDEN — MCP security firewall. Stdio wrap proxy, inspection tools and library. Vets definitions before model exposure. Zero runtime dependencies.",
   "type": "module",
   "license": "MIT",
   "author": "AICOM (alexar76)",
@@ -40,7 +40,8 @@
     "README-zh.md",
     "CHANGELOG.md",
     "LICENSE",
-    "docs/security-hardening*.md"
+    "docs/security-hardening*.md",
+    "docs/gates*.md"
   ],
   "engines": {
     "node": ">=20"
@@ -54,7 +55,8 @@
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "prepublishOnly": "npm run build && npm test && npm run check:ruleset",
-    "check:ruleset": "node scripts/check-published-ruleset.mjs"
+    "check:ruleset": "node scripts/check-published-ruleset.mjs",
+    "bench:wrap": "npm run build && node scripts/benchmark-wrap.mjs"
   },
   "keywords": [
     "mcp",

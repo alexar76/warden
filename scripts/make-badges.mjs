@@ -74,3 +74,14 @@ for (const [file, [label, value, color]] of Object.entries(badges)) {
   writeFileSync(join(out, file), badge(label, value, color));
   console.log(`${file.padEnd(14)} ${label}: ${value}`);
 }
+
+// Keep prose counters in sync with the same runner result as the SVG badge.
+for (const suffix of ["", "-ru", "-es", "-fr", "-zh"]) {
+  const path = join(root, `README${suffix}.md`);
+  const source = readFileSync(path, "utf8");
+  writeFileSync(path, source
+    .replace(/(src="docs\/badges\/tests.svg" alt=")\d+/, `$1${tests}`)
+    .replace(/(npm install && npm run build && npm test\s*# )\d+/g, `$1${tests}`));
+}
+const landing = join(root, "docs", "landing", "index.html");
+writeFileSync(landing, readFileSync(landing, "utf8").replace(/<b>\d+<\/b>( <span data-i18n="badge.tests">)/, `<b>${tests}</b>$1`));

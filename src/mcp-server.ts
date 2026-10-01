@@ -74,7 +74,26 @@ async function main(): Promise<void> {
   if (mode === "lsp" && buf.length) throw new Error("Incomplete MCP frame");
 }
 
-main().catch((err) => {
+async function entry(): Promise<void> {
+  if (process.argv.length <= 2) return main();
+  const { parseWrapArgs, runPins } = await import("./wrap-cli.js");
+  let options;
+  try {
+    options = await parseWrapArgs(process.argv.slice(2));
+    if (options.mode === "pins") { await runPins(options); return; }
+  } catch (err) {
+    const { displaySafe } = await import("./sanitize.js");
+    stderr.write(`warden-mcp: ${displaySafe(err instanceof Error ? err.message : String(err), 8192)}\n`);
+    process.exitCode = 2;
+    return;
+  }
+  const { runWrap } = await import("./wrap.js");
+  const code = await runWrap(options);
+  // Flush stdout (including a launch refusal) before terminating an open client pipe.
+  stdout.write("", () => process.exit(code));
+}
+
+entry().catch((err) => {
   stderr.write(`warden-mcp: ${err instanceof Error ? err.stack ?? err.message : String(err)}\n`);
   process.exit(1);
 });

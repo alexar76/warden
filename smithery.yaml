@@ -1,3 +1,5 @@
+# Default mode remains the inspection server for registry health checks.
+# Optional CLI: warden-mcp wrap --id filesystem -- command args
 # Smithery.ai — https://smithery.ai/docs/build/project-config
 # Connect the GitHub repo alexar76/warden in the Smithery UI after this file is on main.
 startCommand:

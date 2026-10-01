@@ -603,7 +603,7 @@ function asServer(raw: unknown): McpServerRef {
   return ref;
 }
 
-function asPolicy(raw: unknown): WardenPolicy {
+export function asPolicy(raw: unknown): WardenPolicy {
   const policy: WardenPolicy = { ...DEFAULT_MCP_POLICY };
   if (raw == null) return policy;
   if (typeof raw !== "object" || Array.isArray(raw)) throw new McpToolError("policy must be an object");

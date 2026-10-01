@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.8.0 — unreleased
+
+- Add `warden-mcp wrap [flags] -- command [args]`: stdio proxy over the existing gates, without new runtime dependencies or ruleset changes.
+- Vet before spawning, scan initialization instructions, aggregate bounded tool pages and expose only approved definitions. Quarantine changes and revalidate every call against what the client saw; withhold results if a change is observed during execution.
+- Preserve transparent JSON bodies and IDs, handle bidirectional requests, accept NDJSON/Content-Length clients and 32 MiB pass-through frames. Close and reap child processes on EOF.
+- Add locked TOFU pins, saved review candidates, terminal-only `pins status|approve|revoke`, and compare-and-swap review. Revocation persists denial; audit-only never establishes pins.
+- Add signed feed options, reproducible JSONL verdicts, sanitized stderr and explicit audit-only mode.
+- Keep no-argument inspection tools and Glama startup unchanged. Update README/gate documentation in five languages, registry metadata and unreleased landing copy.
+- Add subprocess acceptance tests and a reproducible 50-tool latency benchmark. See [release validation](docs/wrap-validation.md) for measured overhead and outstanding live-client/release checks.
+
 
 ## 0.7.0 — 2026-09-30
 

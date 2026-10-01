@@ -1,0 +1,40 @@
+{
+  "date": "2026-09-30T20:07:27.013Z",
+  "node": "v22.22.1",
+  "platform": "darwin",
+  "arch": "arm64",
+  "cpu": "Apple M4",
+  "samples": 100,
+  "warmup": 10,
+  "tools": 50,
+  "milliseconds": {
+    "list": {
+      "direct": {
+        "p50": 0.257,
+        "p95": 0.76
+      },
+      "wrap": {
+        "p50": 16.669,
+        "p95": 23.33
+      },
+      "quantileDifference": {
+        "p50": 16.412,
+        "p95": 22.57
+      }
+    },
+    "call": {
+      "direct": {
+        "p50": 0.178,
+        "p95": 0.632
+      },
+      "wrap": {
+        "p50": 17.421,
+        "p95": 27.251
+      },
+      "quantileDifference": {
+        "p50": 17.243,
+        "p95": 26.619
+      }
+    }
+  }
+}
