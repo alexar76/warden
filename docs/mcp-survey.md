@@ -341,12 +341,12 @@ then scanned it, each installed from the registry by exact version and integrity
 field each tool advertises — name, description, input schema, title, output schema, annotations and
 extension metadata — as a host passes them:
 
-| | 0.3.0 · v2 | 0.4.0 · v4 | 0.5.0 · v4 | 0.6.0 · v5 | 0.7.0 · v6 | 0.8.0 · v7 | 0.8.1 · v7 |
-|---|---|---|---|---|---|---|---|
-| servers blocked | 42 | 6 | 6 | 6 | 7 | 4 | 4 |
-| blocking findings | 556 | 9 | 9 | 10 | 78 | 75 | 75 |
-| advisory findings | 2 672 | 2 683 | 2 683 | 2 685 | 2 837 | 2 837 | 2 837 |
-| servers with any finding | 390 | 385 | 385 | 385 | 389 | 389 | 389 |
+| | 0.3.0 · v2 | 0.4.0 · v4 | 0.5.0 · v4 | 0.6.0 · v5 | 0.7.0 · v6 | 0.8.0 · v7 | 0.8.1 · v7 | 0.8.2 · v8 |
+|---|---|---|---|---|---|---|---|---|
+| servers blocked | 42 | 6 | 6 | 6 | 7 | 4 | 4 | 3 |
+| blocking findings | 556 | 9 | 9 | 10 | 78 | 75 | 75 | 7 |
+| advisory findings | 2 672 | 2 683 | 2 683 | 2 685 | 2 837 | 2 837 | 2 837 | 2 837 |
+| servers with any finding | 390 | 385 | 385 | 385 | 389 | 389 | 389 | 388 |
 
 An earlier version of this section scanned only the name, description and input schema of each tool,
 and printed 6 for 0.7.0 and 3 for 0.8.x. Rulesets v6 and v7 also read the other four fields, so that
@@ -359,10 +359,10 @@ the servers August blocked were also re-asked directly, by the URL August record
 ([`data/mcp-corpus-2026-10-01-august-carryover.jsonl.gz`](data/mcp-corpus-2026-10-01-august-carryover.jsonl.gz)).
 46 are named; 41 still answer:
 
-| August's named false positives, re-asked | 0.3.0 · v2 | 0.4.0 · v4 | 0.5.0 · v4 | 0.6.0 · v5 | 0.7.0 · v6 | 0.8.0 · v7 | 0.8.1 · v7 |
-|---|---|---|---|---|---|---|---|
-| servers blocked (of 41) | 39 | 2 | 2 | 2 | 3 | 2 | 2 |
-| blocking findings | 552 | 4 | 4 | 5 | 6 | 5 | 5 |
+| August's named false positives, re-asked | 0.3.0 · v2 | 0.4.0 · v4 | 0.5.0 · v4 | 0.6.0 · v5 | 0.7.0 · v6 | 0.8.0 · v7 | 0.8.1 · v7 | 0.8.2 · v8 |
+|---|---|---|---|---|---|---|---|---|
+| servers blocked (of 41) | 39 | 2 | 2 | 2 | 3 | 2 | 2 | 1 |
+| blocking findings | 552 | 4 | 4 | 5 | 6 | 5 | 5 | 4 |
 
 Five weeks on, 0.3.0 still blocks 39 of the 41: their definitions have barely moved, which makes
 this the closest thing to re-running August that exists. 0.4.0 to 0.6.0 block two of them; 0.7.0
@@ -490,7 +490,7 @@ of your own is your measurement, not a check of ours. To check ours, use the com
 
 ```bash
 cd scripts/mcp-survey/remeasure
-npm ci               # 0.3.0 … 0.8.1 from the registry, pinned by integrity hash
+npm ci               # 0.3.0 … 0.8.2 from the registry, pinned by integrity hash
 npm run check        # re-scan both committed corpora with each release; exit 1 on any difference
 ```
 

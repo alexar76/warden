@@ -339,12 +339,12 @@ escaneó cada versión publicada, instalada desde el registro por versión exact
 sobre cada campo que anuncia cada herramienta — nombre, descripción, esquema de entrada, título,
 esquema de salida, anotaciones y metadatos de extensión — tal como los pasa un host:
 
-| | 0.3.0 · v2 | 0.4.0 · v4 | 0.5.0 · v4 | 0.6.0 · v5 | 0.7.0 · v6 | 0.8.0 · v7 | 0.8.1 · v7 |
-|---|---|---|---|---|---|---|---|
-| servidores bloqueados | 42 | 6 | 6 | 6 | 7 | 4 | 4 |
-| hallazgos bloqueantes | 556 | 9 | 9 | 10 | 78 | 75 | 75 |
-| hallazgos de aviso | 2 672 | 2 683 | 2 683 | 2 685 | 2 837 | 2 837 | 2 837 |
-| servidores con algún hallazgo | 390 | 385 | 385 | 385 | 389 | 389 | 389 |
+| | 0.3.0 · v2 | 0.4.0 · v4 | 0.5.0 · v4 | 0.6.0 · v5 | 0.7.0 · v6 | 0.8.0 · v7 | 0.8.1 · v7 | 0.8.2 · v8 |
+|---|---|---|---|---|---|---|---|---|
+| servidores bloqueados | 42 | 6 | 6 | 6 | 7 | 4 | 4 | 3 |
+| hallazgos bloqueantes | 556 | 9 | 9 | 10 | 78 | 75 | 75 | 7 |
+| hallazgos de aviso | 2 672 | 2 683 | 2 683 | 2 685 | 2 837 | 2 837 | 2 837 | 2 837 |
+| servidores con algún hallazgo | 390 | 385 | 385 | 385 | 389 | 389 | 389 | 388 |
 
 Una versión anterior de esta sección escaneaba solo el nombre, la descripción y el esquema de entrada
 de cada herramienta, e imprimía 6 para 0.7.0 y 3 para 0.8.x. Los conjuntos v6 y v7 leen también los
@@ -359,10 +359,10 @@ directamente, por la URL que agosto registró
 ([`data/mcp-corpus-2026-10-01-august-carryover.jsonl.gz`](data/mcp-corpus-2026-10-01-august-carryover.jsonl.gz)).
 Hay 46 nombrados; 41 siguen respondiendo:
 
-| Falsos positivos nombrados de agosto, consultados de nuevo | 0.3.0 · v2 | 0.4.0 · v4 | 0.5.0 · v4 | 0.6.0 · v5 | 0.7.0 · v6 | 0.8.0 · v7 | 0.8.1 · v7 |
-|---|---|---|---|---|---|---|---|
-| servidores bloqueados (de 41) | 39 | 2 | 2 | 2 | 3 | 2 | 2 |
-| hallazgos bloqueantes | 552 | 4 | 4 | 5 | 6 | 5 | 5 |
+| Falsos positivos nombrados de agosto, consultados de nuevo | 0.3.0 · v2 | 0.4.0 · v4 | 0.5.0 · v4 | 0.6.0 · v5 | 0.7.0 · v6 | 0.8.0 · v7 | 0.8.1 · v7 | 0.8.2 · v8 |
+|---|---|---|---|---|---|---|---|---|
+| servidores bloqueados (de 41) | 39 | 2 | 2 | 2 | 3 | 2 | 2 | 1 |
+| hallazgos bloqueantes | 552 | 4 | 4 | 5 | 6 | 5 | 5 | 4 |
 
 Cinco semanas después, 0.3.0 sigue bloqueando 39 de los 41: sus definiciones apenas se han movido, lo
 que convierte esto en lo más parecido a repetir agosto que existe. De 0.4.0 a 0.6.0 bloquean dos;
@@ -506,7 +506,7 @@ corpus publicado:
 
 ```bash
 cd scripts/mcp-survey/remeasure
-npm ci               # 0.3.0 … 0.8.1 desde el registro, fijados por hash de integridad
+npm ci               # 0.3.0 … 0.8.2 desde el registro, fijados por hash de integridad
 npm run check        # reescanear ambos corpus publicados con cada versión; exit 1 ante cualquier diferencia
 ```
 

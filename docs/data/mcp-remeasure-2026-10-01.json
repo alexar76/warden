@@ -207,6 +207,30 @@
         "TOOL_DEF_SECRET_REQUEST": 5
       },
       "blocked_set_sha256": "a68d5907541752b8629e59420630e9c681c9e543605417052f741b999ca55f2f"
+    },
+    {
+      "package": "@aimarket/warden@0.8.2",
+      "integrity": "sha512-jSdepve/mwTLCwrSmbQ3vJLGPSXBWvgIQcJFi3CVrcUqiiXBbSPjlClqMUGIaT0tEE/exRcPgfAPOUe1SyuXow==",
+      "ruleset": {
+        "version": "8",
+        "ref": {
+          "version": "8",
+          "digest": "sha256-n7MLgD6v62p7ZPn5brfrgfz3BIJF60eNrZ5508GdRHw="
+        }
+      },
+      "scanned": 986,
+      "scan_errors": 0,
+      "clean": 598,
+      "with_findings": 388,
+      "blocked": 3,
+      "findings_total": 2844,
+      "blocking_findings": 7,
+      "advisory_findings": 2837,
+      "blocking_by_code": {
+        "THREAT_SSH_KEY_READ": 2,
+        "TOOL_DEF_SECRET_REQUEST": 5
+      },
+      "blocked_set_sha256": "f6866f7fdd6be3c4bcbac9b78611ae7f007705ed908ad9766fcc6151fe5039c9"
     }
   ],
   "august_blocked_cross_check": {
@@ -219,7 +243,8 @@
       "@aimarket/warden@0.6.0": 2,
       "@aimarket/warden@0.7.0": 2,
       "@aimarket/warden@0.8.0": 1,
-      "@aimarket/warden@0.8.1": 1
+      "@aimarket/warden@0.8.1": 1,
+      "@aimarket/warden@0.8.2": 1
     }
   }
 }

@@ -340,12 +340,12 @@ ensuite analysé, installée depuis le registre par version exacte et hash d'int
 qu'annonce chaque outil — nom, description, schéma d'entrée, titre, schéma de sortie, annotations et
 métadonnées d'extension — tels qu'un hôte les transmet :
 
-| | 0.3.0 · v2 | 0.4.0 · v4 | 0.5.0 · v4 | 0.6.0 · v5 | 0.7.0 · v6 | 0.8.0 · v7 | 0.8.1 · v7 |
-|---|---|---|---|---|---|---|---|
-| serveurs bloqués | 42 | 6 | 6 | 6 | 7 | 4 | 4 |
-| constats bloquants | 556 | 9 | 9 | 10 | 78 | 75 | 75 |
-| constats indicatifs | 2 672 | 2 683 | 2 683 | 2 685 | 2 837 | 2 837 | 2 837 |
-| serveurs avec au moins un constat | 390 | 385 | 385 | 385 | 389 | 389 | 389 |
+| | 0.3.0 · v2 | 0.4.0 · v4 | 0.5.0 · v4 | 0.6.0 · v5 | 0.7.0 · v6 | 0.8.0 · v7 | 0.8.1 · v7 | 0.8.2 · v8 |
+|---|---|---|---|---|---|---|---|---|
+| serveurs bloqués | 42 | 6 | 6 | 6 | 7 | 4 | 4 | 3 |
+| constats bloquants | 556 | 9 | 9 | 10 | 78 | 75 | 75 | 7 |
+| constats indicatifs | 2 672 | 2 683 | 2 683 | 2 685 | 2 837 | 2 837 | 2 837 | 2 837 |
+| serveurs avec au moins un constat | 390 | 385 | 385 | 385 | 389 | 389 | 389 | 388 |
 
 Une version antérieure de cette section n'analysait que le nom, la description et le schéma d'entrée
 de chaque outil, et affichait 6 pour 0.7.0 et 3 pour 0.8.x. Les rulesets v6 et v7 lisent aussi les
@@ -360,10 +360,10 @@ réinterrogés directement, par l'URL enregistrée en août
 ([`data/mcp-corpus-2026-10-01-august-carryover.jsonl.gz`](data/mcp-corpus-2026-10-01-august-carryover.jsonl.gz)).
 46 sont nommés ; 41 répondent encore :
 
-| Faux positifs nommés d'août, réinterrogés | 0.3.0 · v2 | 0.4.0 · v4 | 0.5.0 · v4 | 0.6.0 · v5 | 0.7.0 · v6 | 0.8.0 · v7 | 0.8.1 · v7 |
-|---|---|---|---|---|---|---|---|
-| serveurs bloqués (sur 41) | 39 | 2 | 2 | 2 | 3 | 2 | 2 |
-| constats bloquants | 552 | 4 | 4 | 5 | 6 | 5 | 5 |
+| Faux positifs nommés d'août, réinterrogés | 0.3.0 · v2 | 0.4.0 · v4 | 0.5.0 · v4 | 0.6.0 · v5 | 0.7.0 · v6 | 0.8.0 · v7 | 0.8.1 · v7 | 0.8.2 · v8 |
+|---|---|---|---|---|---|---|---|---|
+| serveurs bloqués (sur 41) | 39 | 2 | 2 | 2 | 3 | 2 | 2 | 1 |
+| constats bloquants | 552 | 4 | 4 | 5 | 6 | 5 | 5 | 4 |
 
 Cinq semaines plus tard, 0.3.0 bloque encore 39 des 41 : leurs définitions ont à peine bougé, ce qui en
 fait ce qui existe de plus proche d'une réexécution d'août. 0.4.0 à 0.6.0 en bloquent deux ; 0.7.0,
@@ -507,7 +507,7 @@ utilisez le corpus versionné :
 
 ```bash
 cd scripts/mcp-survey/remeasure
-npm ci               # 0.3.0 … 0.8.1 depuis le registre, épinglés par hash d'intégrité
+npm ci               # 0.3.0 … 0.8.2 depuis le registre, épinglés par hash d'intégrité
 npm run check        # réanalyser les deux corpus versionnés avec chaque version ; exit 1 à la moindre différence
 ```
 
