@@ -137,18 +137,18 @@
       },
       "scanned": 41,
       "scan_errors": 0,
-      "clean": 5,
-      "with_findings": 36,
-      "blocked": 2,
-      "findings_total": 855,
-      "blocking_findings": 5,
-      "advisory_findings": 850,
+      "clean": 4,
+      "with_findings": 37,
+      "blocked": 3,
+      "findings_total": 892,
+      "blocking_findings": 6,
+      "advisory_findings": 886,
       "blocking_by_code": {
         "THREAT_SSH_KEY_READ": 2,
         "TOOL_DEF_INJECTION": 1,
-        "TOOL_DEF_SECRET_REQUEST": 2
+        "TOOL_DEF_SECRET_REQUEST": 3
       },
-      "blocked_set_sha256": "37b603d7882e003826eb8554e9caa81313b51c57cc95db7956d33a2bcbe604b4"
+      "blocked_set_sha256": "3990aec4cd2e573716e592329ada7ca599c5993d92c93b60028ea8009a9c2f05"
     },
     {
       "package": "@aimarket/warden@0.8.0",
@@ -162,17 +162,17 @@
       },
       "scanned": 41,
       "scan_errors": 0,
-      "clean": 5,
-      "with_findings": 36,
-      "blocked": 1,
-      "findings_total": 854,
-      "blocking_findings": 4,
-      "advisory_findings": 850,
+      "clean": 4,
+      "with_findings": 37,
+      "blocked": 2,
+      "findings_total": 891,
+      "blocking_findings": 5,
+      "advisory_findings": 886,
       "blocking_by_code": {
         "THREAT_SSH_KEY_READ": 2,
-        "TOOL_DEF_SECRET_REQUEST": 2
+        "TOOL_DEF_SECRET_REQUEST": 3
       },
-      "blocked_set_sha256": "81cb74537d40ee01543d8779abceb22d4b37fc5b978e7ec13bc720cc32a31cc3"
+      "blocked_set_sha256": "cee5a1e4fb2e18b6627227b51718a2d93bcbe131ab0fc37fb5cd5e5e938d59ac"
     },
     {
       "package": "@aimarket/warden@0.8.1",
@@ -186,17 +186,17 @@
       },
       "scanned": 41,
       "scan_errors": 0,
-      "clean": 5,
-      "with_findings": 36,
-      "blocked": 1,
-      "findings_total": 854,
-      "blocking_findings": 4,
-      "advisory_findings": 850,
+      "clean": 4,
+      "with_findings": 37,
+      "blocked": 2,
+      "findings_total": 891,
+      "blocking_findings": 5,
+      "advisory_findings": 886,
       "blocking_by_code": {
         "THREAT_SSH_KEY_READ": 2,
-        "TOOL_DEF_SECRET_REQUEST": 2
+        "TOOL_DEF_SECRET_REQUEST": 3
       },
-      "blocked_set_sha256": "81cb74537d40ee01543d8779abceb22d4b37fc5b978e7ec13bc720cc32a31cc3"
+      "blocked_set_sha256": "cee5a1e4fb2e18b6627227b51718a2d93bcbe131ab0fc37fb5cd5e5e938d59ac"
     }
   ],
   "august_blocked_cross_check": {
@@ -207,9 +207,9 @@
       "@aimarket/warden@0.4.0": 2,
       "@aimarket/warden@0.5.0": 2,
       "@aimarket/warden@0.6.0": 2,
-      "@aimarket/warden@0.7.0": 2,
-      "@aimarket/warden@0.8.0": 1,
-      "@aimarket/warden@0.8.1": 1
+      "@aimarket/warden@0.7.0": 3,
+      "@aimarket/warden@0.8.0": 2,
+      "@aimarket/warden@0.8.1": 2
     }
   }
 }

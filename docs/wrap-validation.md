@@ -2,6 +2,12 @@
 
 > **Published 2026-10-01 as 0.8.1** (0.8.0, published 23 s earlier, is identical apart from the
 > version field). Everything below is the pre-publication record and is kept as it was.
+>
+> **Release gates were skipped.** 0.8.0 and 0.8.1 went to the registry before the live-client checks
+> under [Live clients and release gates](#live-clients-and-release-gates) were done, contrary to the
+> release sequence at the end of this page. They are still open. Review after publication found a
+> forged-response bypass and a fractional-number failure in the proxy, both fixed in 0.8.2
+> ([CHANGELOG](../CHANGELOG.md)); 0.8.2 is held to the same gates.
 
 Status: implementation ready for review; **not released**. All npm config examples labelled
 0.8.0 require publication first. Existing ARGUS version/lockfile remain unchanged.

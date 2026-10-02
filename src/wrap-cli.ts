@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { asPolicy } from './mcp-tools.js';
 import { defaultStateDir, readState, withStateLock, writeState } from './state.js';
 import { FilePinStore, pinRevision } from './pin-store.js';
-import { Warden, ThreatFeed, canonicalToolsHash, serverIdentityHash, displaySafe } from './index.js';
+import { Warden, ThreatFeed, pinToolsHash, serverIdentityHash, displaySafe } from './index.js';
 import { observationPath, observationRevision, describeReview } from './wrap-state.js';
 import type { Observation } from './wrap-state.js';
 import type { McpServerRef, WardenLogger, WardenPolicy } from './types.js';
@@ -97,7 +97,10 @@ export async function runPins(opts: WrapOptions): Promise<void> {
     if (observationRevision(await readState<Observation>(path)) !== observationRevision(current)) throw new Error('Observed definitions changed since review; inspect status again');
     if (opts.action === 'revoke') {
       // Persist denial before deleting the pin, so a crash cannot accidentally enable TOFU.
-      if (current) await writeState(path, { ...current, revoked: true });
+      // A pin taken without a wrap observation (approve_mcp_server, another host) gets a
+      // minimal one: without it the next wrap would see no denial and re-pin on first contact.
+      await writeState(path, current ? { ...current, revoked: true }
+        : { server: { id, name: id, transport: 'stdio' }, policy: opts.policy, revoked: true } satisfies Observation);
       await store.replace(id, pinRevision(previous));
     } else {
       const tools = current!.tools ?? previous?.tools;
@@ -107,7 +110,7 @@ export async function runPins(opts: WrapOptions): Promise<void> {
       const warden = Warden.create({ policy, threatFeed: feed, store: { getPin: async () => undefined, putPin: async () => {} } });
       const verdict = await warden.vet(current!.server, tools);
       if (!verdict.allow) throw new Error(`Approval blocked: ${verdict.findings.map(f => f.code).join(', ')}`);
-      await store.replace(id, pinRevision(previous), { serverId: id, tools, toolsHash: canonicalToolsHash(tools), toolsHashVersion: 2,
+      await store.replace(id, pinRevision(previous), { serverId: id, tools, toolsHash: pinToolsHash(tools), toolsHashVersion: 2,
         identityHash: serverIdentityHash(current!.server), toolNames: tools.map(t => t.name).sort(), approvedAt: new Date().toISOString() });
       await writeState(path, { ...current, revoked: false });
     }

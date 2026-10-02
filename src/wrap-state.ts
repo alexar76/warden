@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { FilePinStore, pinRevision } from './pin-store.js';
 import { readState, writeState, withStateLock } from './state.js';
-import { Warden, canonicalToolsHash, serverIdentityHash, displaySafe } from './index.js';
+import { Warden, pinToolsHash, serverIdentityHash, displaySafe } from './index.js';
 import type { McpServerRef, ToolDef, WardenPolicy, WardenVerdict } from './types.js';
 import type { ThreatFeed } from './threat-feed.js';
 
@@ -13,6 +13,9 @@ export interface Observation {
   policy: WardenPolicy;
   revoked?: boolean;
 }
+/** A refusal WARDEN decided, as opposed to a check that could not run (timeout, lock, child error). */
+export class WardenBlock extends Error {}
+
 export function observationPath(dir: string, id: string): string {
   return join(dir, 'wrap', createHash('sha256').update(id).digest('hex') + '.json');
 }
@@ -37,8 +40,8 @@ export async function vetAndPin(dir: string, server: McpServerRef, tools: ToolDe
     await writeState(path, { server, tools, policy, revoked: previous?.revoked });
     const verdict = await warden.vet(server, tools);
     record(verdict);
-    if (!auditOnly && !isCurrent()) throw new Error('tools changed, blocked by WARDEN during verification');
-    if (previous?.revoked && !auditOnly) throw new Error('Approval revoked; inspect pins status and approve before reconnecting');
+    if (!auditOnly && !isCurrent()) throw new WardenBlock('tools changed, blocked by WARDEN during verification');
+    if (previous?.revoked && !auditOnly) throw new WardenBlock('Approval revoked; inspect pins status and approve before reconnecting');
     if (!auditOnly && verdict.allow && policy.pinToolDefs && !previous?.revoked && !await store.getPin(server.id)) {
       // Use the published approve API with a CAS adapter: other hosts may share this store.
       const firstContact = Warden.create({ policy, threatFeed: feed,
@@ -63,7 +66,7 @@ export function describeReview(previous: Awaited<ReturnType<FilePinStore['getPin
       if (next) lines.push('+ ' + JSON.stringify(next));
     }
   }
-  lines.push(`Previous tools: ${previous?.toolsHash ?? '(none)'}`, `Observed tools: ${canonicalToolsHash(newTools)}`,
+  lines.push(`Previous tools: ${previous?.toolsHash ?? '(none)'}`, `Observed tools: ${pinToolsHash(newTools)}`,
     `Revoked: ${current?.revoked === true}`);
   return lines.map(line => displaySafe(line, 2_000_000)).join('\n');
 }

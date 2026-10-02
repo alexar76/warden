@@ -57,7 +57,11 @@ const servers = records
     input: {
       server: { id: r.name, name: r.server_info?.name ?? r.name, transport: "http", url: r.url,
                 catalog: "registry.modelcontextprotocol.io" },
+      // Every advertised field, as a host passes them: since ruleset v6 a rule also covers the
+      // title, the output schema, the annotations and extension metadata, and a scan of three
+      // fields would never exercise those surfaces.
       tools: r.tools.map((t) => ({
+        ...t,
         name: String(t.name ?? ""),
         description: String(t.description ?? ""),
         inputSchema: (t.inputSchema && typeof t.inputSchema === "object") ? t.inputSchema : {},

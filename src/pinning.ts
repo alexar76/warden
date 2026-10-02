@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { canonicalize, CanonicalizationError } from "./jcs.js";
+import { canonicalize, canonicalizeRfc8785, CanonicalizationError } from "./jcs.js";
 import { displaySafe } from "./sanitize.js";
 import type {
   McpServerRef,
@@ -40,7 +40,7 @@ export class PinningGate implements WardenGate {
 
     let hash: string;
     try {
-      hash = canonicalToolsHash(input.tools);
+      hash = pinToolsHash(input.tools);
     } catch (err) {
       if (!(err instanceof CanonicalizationError)) throw err;
       return this.uncanonical(input, pin, err);
@@ -160,13 +160,14 @@ export class PinningGate implements WardenGate {
    * Persist the current tool-def set as the trusted snapshot for this server.
    * Called by Warden.approve() once a user has accepted the connection.
    *
-   * Throws {@link CanonicalizationError} when the set has no canonical form; the
-   * host must fail closed when pinning is required; ARGUS closes the connection.
+   * Throws {@link CanonicalizationError} only when the set has no RFC 8785 form at
+   * all (a lone surrogate, nesting past the bound); fractional numbers are pinned
+   * with {@link pinToolsHash}. The host must fail closed when pinning is required.
    */
   async pin(server: McpServerRef, tools: ToolDef[]): Promise<void> {
     const pinned: PinnedServer = {
       serverId: server.id,
-      toolsHash: canonicalToolsHash(tools),
+      toolsHash: pinToolsHash(tools),
       toolsHashVersion: 2,
       approvedAt: new Date().toISOString(),
       toolNames: [...tools.map((t) => t.name)].sort(compareCodeUnits),
@@ -207,7 +208,35 @@ export const UNCANONICAL_TOOLS_HASH = "uncanonical:non-canonical-tool-defs";
  *   digest is honest; emitting one nobody else can reproduce is not.
  */
 export function canonicalToolsHash(tools: ToolDef[]): string {
-  const canonical = [...tools]
+  return createHash("sha256").update(canonicalize(canonicalToolSet(tools)), "utf8").digest("hex");
+}
+
+/** Prefix of a {@link pinToolsHash} taken over plain RFC 8785 because the set has fractional numbers. */
+export const RFC8785_PIN_PREFIX = "rfc8785:";
+
+/**
+ * The hash a host pins and re-checks ITSELF: {@link canonicalToolsHash} wherever
+ * that exists, so every existing pin still matches; otherwise `rfc8785:` + sha256
+ * over plain RFC 8785, which serialises a fractional number (`"default": 0.7`) in
+ * its ECMAScript form instead of refusing it.
+ *
+ * About one public server in fourteen has a fractional number somewhere in its
+ * schemas. Refusing to pin those made them impossible to wrap at all. Drift is
+ * still caught: adding or removing a fractional number moves the set between the
+ * two forms, and the two never compare equal. The `rfc8785:` form is local
+ * state, never a receipt digest — receipts keep {@link tryCanonicalToolsHash}.
+ */
+export function pinToolsHash(tools: ToolDef[]): string {
+  try {
+    return canonicalToolsHash(tools);
+  } catch (err) {
+    if (!(err instanceof CanonicalizationError) || (err.code !== "AWR-CANON-001" && err.code !== "AWR-CANON-002")) throw err;
+    return RFC8785_PIN_PREFIX + createHash("sha256").update(canonicalizeRfc8785(canonicalToolSet(tools)), "utf8").digest("hex");
+  }
+}
+
+function canonicalToolSet(tools: ToolDef[]): Array<Record<string, unknown>> {
+  return [...tools]
     .sort((a, b) => compareCodeUnits(a.name, b.name))
     .map((t) => ({
       ...Object.fromEntries(Object.entries(t).filter(([, value]) => value !== undefined)),
@@ -215,7 +244,6 @@ export function canonicalToolsHash(tools: ToolDef[]): string {
       description: t.description ?? "",
       inputSchema: t.inputSchema ?? {},
     }));
-  return createHash("sha256").update(canonicalize(canonical), "utf8").digest("hex");
 }
 
 /**

@@ -140,19 +140,21 @@
       },
       "scanned": 986,
       "scan_errors": 0,
-      "clean": 601,
-      "with_findings": 385,
-      "blocked": 6,
-      "findings_total": 2695,
-      "blocking_findings": 10,
-      "advisory_findings": 2685,
+      "clean": 597,
+      "with_findings": 389,
+      "blocked": 7,
+      "findings_total": 2915,
+      "blocking_findings": 78,
+      "advisory_findings": 2837,
       "blocking_by_code": {
         "THREAT_SSH_KEY_READ": 2,
+        "TOOL_DEF_BASE64_BLOB": 34,
+        "TOOL_DEF_DATA_URL": 34,
         "TOOL_DEF_INJECTION": 1,
         "TOOL_DEF_SECRET_HARVEST": 1,
         "TOOL_DEF_SECRET_REQUEST": 6
       },
-      "blocked_set_sha256": "0d4c516defe2b1b75e2281608c777cba26f9daeba0e296e34a18aea78654a352"
+      "blocked_set_sha256": "373dd602c9b3771ec7de7a448894005f5904f3c19917076de5768f895d7d6f7b"
     },
     {
       "package": "@aimarket/warden@0.8.0",
@@ -166,17 +168,19 @@
       },
       "scanned": 986,
       "scan_errors": 0,
-      "clean": 601,
-      "with_findings": 385,
-      "blocked": 3,
-      "findings_total": 2692,
-      "blocking_findings": 7,
-      "advisory_findings": 2685,
+      "clean": 597,
+      "with_findings": 389,
+      "blocked": 4,
+      "findings_total": 2912,
+      "blocking_findings": 75,
+      "advisory_findings": 2837,
       "blocking_by_code": {
         "THREAT_SSH_KEY_READ": 2,
+        "TOOL_DEF_BASE64_BLOB": 34,
+        "TOOL_DEF_DATA_URL": 34,
         "TOOL_DEF_SECRET_REQUEST": 5
       },
-      "blocked_set_sha256": "f6866f7fdd6be3c4bcbac9b78611ae7f007705ed908ad9766fcc6151fe5039c9"
+      "blocked_set_sha256": "a68d5907541752b8629e59420630e9c681c9e543605417052f741b999ca55f2f"
     },
     {
       "package": "@aimarket/warden@0.8.1",
@@ -190,17 +194,19 @@
       },
       "scanned": 986,
       "scan_errors": 0,
-      "clean": 601,
-      "with_findings": 385,
-      "blocked": 3,
-      "findings_total": 2692,
-      "blocking_findings": 7,
-      "advisory_findings": 2685,
+      "clean": 597,
+      "with_findings": 389,
+      "blocked": 4,
+      "findings_total": 2912,
+      "blocking_findings": 75,
+      "advisory_findings": 2837,
       "blocking_by_code": {
         "THREAT_SSH_KEY_READ": 2,
+        "TOOL_DEF_BASE64_BLOB": 34,
+        "TOOL_DEF_DATA_URL": 34,
         "TOOL_DEF_SECRET_REQUEST": 5
       },
-      "blocked_set_sha256": "f6866f7fdd6be3c4bcbac9b78611ae7f007705ed908ad9766fcc6151fe5039c9"
+      "blocked_set_sha256": "a68d5907541752b8629e59420630e9c681c9e543605417052f741b999ca55f2f"
     }
   ],
   "august_blocked_cross_check": {

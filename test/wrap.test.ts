@@ -147,6 +147,48 @@ describe('wrap proxy', () => {
     await until(() => h.stderr().includes('TOOL_DEF_DRIFT'));
     expect(h.messages.some(m => m.method === 'notifications/tools/list_changed')).toBe(false); await h.stop();
   });
+  it('drops child responses to requests the client never sent it, so a forged tools/list reply cannot reach the client', async () => {
+    const h = harness({ config: { spray: true } }); await h.init();
+    const listed = await h.request('tools/list');
+    expect(listed.result.tools[0].description).toBe('Read notes.');
+    expect(h.raws.some(r => r.includes('IMPORTANT'))).toBe(false);
+    expect(h.stderr()).toContain('dropped a child response');
+    expect((await h.request('tools/call', { name: 'notes' })).result.content[0].text).toBe('hello');
+    await h.stop();
+  });
+  it('a pre-call check that failed to run is retried by the next call, not held until the client re-lists', async () => {
+    const dir = state(), fail = join(dir, 'fail-once'), h = harness({ dir, config: { failOnce: fail } });
+    await ready(h); writeFileSync(fail, '');
+    expect((await h.request('tools/call', { name: 'notes' })).error.message).toContain('transient fixture failure');
+    expect(existsSync(fail + '.used')).toBe(true);
+    expect((await h.request('tools/call', { name: 'notes' })).result.content[0].text).toBe('hello');
+    await h.stop();
+  });
+  it('refuses a JSON-RPC batch request by request and keeps the session', async () => {
+    const h = harness(); await ready(h);
+    h.send([{ jsonrpc: '2.0', id: 'b1', method: 'ping' }, { jsonrpc: '2.0', method: 'notifications/x' }, { jsonrpc: '2.0', id: 'b2', method: 'tools/list' }]);
+    await until(() => h.messages.some(m => Array.isArray(m)));
+    const reply = h.messages.find(m => Array.isArray(m));
+    expect(reply.map((r: any) => r.id)).toEqual(['b1', 'b2']);
+    expect(reply.every((r: any) => r.error.code === -32600)).toBe(true);
+    expect((await h.request('ping', { ok: 1 })).result).toEqual({ ok: 1 });
+    await h.stop();
+  });
+  it('wraps and pins a server whose schemas carry fractional numbers', async () => {
+    const tools = [{ name: 'llm', description: 'Complete a prompt.', inputSchema: { type: 'object', properties: { temperature: { type: 'number', default: 0.7, minimum: 0.0, maximum: 1.5 } } } }];
+    const h = harness({ config: { tools } });
+    expect((await ready(h)).result.tools.map((t: any) => t.name)).toEqual(['llm']);
+    expect((await h.request('tools/call', { name: 'llm' })).result.content[0].text).toBe('hello');
+    expect((await new FilePinStore(join(h.dir, 'pins')).getPin('fixture'))?.toolsHash).toMatch(/^rfc8785:/);
+    await h.stop();
+  });
+  it('revoking a pin that has no wrap observation still blocks the next wrap', async () => {
+    const dir = state(), store = new FilePinStore(join(dir, 'pins'));
+    await store.replace('fixture', null, { serverId: 'fixture', toolsHash: 'a'.repeat(64), toolsHashVersion: 2, toolNames: ['notes'], approvedAt: '2026-01-01T00:00:00Z' });
+    ttyPins(dir, 'revoke');
+    expect(await store.getPin('fixture')).toBeUndefined();
+    const next = harness({ dir }); expect((await next.init()).error.message).toContain('revoked'); expect(await next.exited).toBe(3);
+  });
   it('catches a silent change on the next call, without sending that call', async () => {
     const dir = state(), calls = join(dir, 'calls'), h = harness({ dir, config: { callsFile: calls } });
     await ready(h); h.change({ description: 'Different notes.' });

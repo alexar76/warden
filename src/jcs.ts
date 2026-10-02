@@ -78,11 +78,26 @@ const MAX_DEPTH = 64;
  */
 export function canonicalize(value: unknown): string {
   const out: string[] = [];
-  serialize(value, out, "$", 0, new Set<object>());
+  serialize(value, out, "$", 0, new Set<object>(), serializeNumber);
   return out.join("");
 }
 
-function serialize(value: unknown, out: string[], path: string, depth: number, seen: Set<object>): void {
+/**
+ * Plain RFC 8785, outside the AWR profile: the same bytes as {@link canonicalize}
+ * wherever that succeeds, and every other finite number in the ECMAScript form
+ * RFC 8785 §3.2.2.3 specifies (`0.7`, `1e+21`). For a host's OWN comparisons — a
+ * pin it took and re-checks itself — where the profile's cross-language concern
+ * does not arise. Never for bytes another implementation must reproduce.
+ */
+export function canonicalizeRfc8785(value: unknown): string {
+  const out: string[] = [];
+  serialize(value, out, "$", 0, new Set<object>(), serializeEs6Number);
+  return out.join("");
+}
+
+type NumberSerializer = (n: number, path: string) => string;
+
+function serialize(value: unknown, out: string[], path: string, depth: number, seen: Set<object>, num: NumberSerializer): void {
   if (depth > MAX_DEPTH) {
     throw new CanonicalizationError("AWR-CANON-005", `nesting deeper than ${MAX_DEPTH} at ${path}`);
   }
@@ -95,7 +110,7 @@ function serialize(value: unknown, out: string[], path: string, depth: number, s
       out.push(value ? "true" : "false");
       return;
     case "number":
-      out.push(serializeNumber(value, path));
+      out.push(num(value, path));
       return;
     case "string":
       out.push(serializeString(value, path));
@@ -117,7 +132,7 @@ function serialize(value: unknown, out: string[], path: string, depth: number, s
       out.push("[");
       for (let i = 0; i < obj.length; i++) {
         if (i > 0) out.push(",");
-        serialize(obj[i], out, `${path}[${i}]`, depth + 1, seen);
+        serialize(obj[i], out, `${path}[${i}]`, depth + 1, seen, num);
       }
       out.push("]");
       return;
@@ -150,7 +165,7 @@ function serialize(value: unknown, out: string[], path: string, depth: number, s
       if (!first) out.push(",");
       first = false;
       out.push(serializeString(key, `property name "${key}" at ${path}`), ":");
-      serialize(member, out, `${path}.${key}`, depth + 1, seen);
+      serialize(member, out, `${path}.${key}`, depth + 1, seen, num);
     }
     out.push("}");
   } finally {
@@ -171,6 +186,15 @@ function serializeNumber(n: number, path: string): string {
   }
   // Safe integers never render in exponential form, and `String(-0)` is "0".
   return String(n);
+}
+
+/** RFC 8785 §3.2.2.3: any finite number, in ECMAScript `Number.prototype.toString` form. */
+function serializeEs6Number(n: number, path: string): string {
+  if (!Number.isFinite(n)) {
+    throw new CanonicalizationError("AWR-CANON-001", `${String(n)} at ${path} is not a JSON number`);
+  }
+  // JSON.stringify emits that form, and "0" for -0.
+  return JSON.stringify(n);
 }
 
 /**

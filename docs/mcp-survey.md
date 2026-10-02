@@ -44,7 +44,7 @@ Only 41% of the registry's advertised remote endpoints completed a handshake:
 | `sse` transport, not attempted | 37 |
 | 5xx | 34 |
 | protocol mismatch (no usable `initialize` result) | 21 |
-| redirect / 410 / 429 | 32 |
+| redirect / 410 / 429 | 33 |
 
 Of the 1 149 that answered, 1 108 advertised at least one tool. Anyone building a client against
 the registry should size their retry and auth handling for a **59% first-contact failure rate**.
@@ -337,14 +337,20 @@ On 2026-10-01 we harvested again with the same scripts and the same rule — the
 pages — and committed the result:
 [`data/mcp-corpus-2026-10-01.jsonl.gz`](data/mcp-corpus-2026-10-01.jsonl.gz), 2 529 endpoints, 986
 of which answered with 13 902 tool definitions (950 refused with `401`). Every published release
-then scanned it, each installed from the registry by exact version and integrity hash:
+then scanned it, each installed from the registry by exact version and integrity hash, over every
+field each tool advertises — name, description, input schema, title, output schema, annotations and
+extension metadata — as a host passes them:
 
 | | 0.3.0 · v2 | 0.4.0 · v4 | 0.5.0 · v4 | 0.6.0 · v5 | 0.7.0 · v6 | 0.8.0 · v7 | 0.8.1 · v7 |
 |---|---|---|---|---|---|---|---|
-| servers blocked | 42 | 6 | 6 | 6 | 6 | 3 | 3 |
-| blocking findings | 556 | 9 | 9 | 10 | 10 | 7 | 7 |
-| advisory findings | 2 672 | 2 683 | 2 683 | 2 685 | 2 685 | 2 685 | 2 685 |
-| servers with any finding | 390 | 385 | 385 | 385 | 385 | 385 | 385 |
+| servers blocked | 42 | 6 | 6 | 6 | 7 | 4 | 4 |
+| blocking findings | 556 | 9 | 9 | 10 | 78 | 75 | 75 |
+| advisory findings | 2 672 | 2 683 | 2 683 | 2 685 | 2 837 | 2 837 | 2 837 |
+| servers with any finding | 390 | 385 | 385 | 385 | 389 | 389 | 389 |
+
+An earlier version of this section scanned only the name, description and input schema of each tool,
+and printed 6 for 0.7.0 and 3 for 0.8.x. Rulesets v6 and v7 also read the other four fields, so that
+scan never exercised what they added — and missed two false blocks it causes, both below.
 
 The registry is paged in name order, so 80 pages is an alphabetical slice, and it shrinks as the
 registry grows: in August it stopped at exactly 8 000 rows and 3 121 servers; on 2026-10-01 the same
@@ -355,13 +361,15 @@ the servers August blocked were also re-asked directly, by the URL August record
 
 | August's named false positives, re-asked | 0.3.0 · v2 | 0.4.0 · v4 | 0.5.0 · v4 | 0.6.0 · v5 | 0.7.0 · v6 | 0.8.0 · v7 | 0.8.1 · v7 |
 |---|---|---|---|---|---|---|---|
-| servers blocked (of 41) | 39 | 2 | 2 | 2 | 2 | 1 | 1 |
-| blocking findings | 552 | 4 | 4 | 5 | 5 | 4 | 4 |
+| servers blocked (of 41) | 39 | 2 | 2 | 2 | 3 | 2 | 2 |
+| blocking findings | 552 | 4 | 4 | 5 | 6 | 5 | 5 |
 
 Five weeks on, 0.3.0 still blocks 39 of the 41: their definitions have barely moved, which makes
-this the closest thing to re-running August that exists. Every release from 0.4.0 to 0.7.0 blocks two of
-them; 0.8.x blocks one, the documented `ssh -i` below. 0.8.0 and 0.8.1 are the same package published
-twice after a registry conflict — identical apart from the version field.
+this the closest thing to re-running August that exists. 0.4.0 to 0.6.0 block two of them; 0.7.0
+three; 0.8.x two — the documented `ssh -i` below, and a secret scanner whose output schema lists
+`private_key` among the finding types it reports (`com.apiacre/api-acre`, read as a credential request
+since v6 added the output-schema surface). 0.8.0 and 0.8.1 are the same package published twice after a
+registry conflict — identical apart from the version field.
 
 Both tables are in [`data/mcp-remeasure-2026-10-01.json`](data/mcp-remeasure-2026-10-01.json) and
 [`data/mcp-remeasure-2026-10-01-august-carryover.json`](data/mcp-remeasure-2026-10-01-august-carryover.json),
@@ -370,9 +378,9 @@ next to the SHA-256 of the corpus each was computed from. `npm run check` in
 pinned release and fails if a single number differs. The result files hash each release's blocked set
 rather than naming it; `--list <version>` prints the names from the corpus.
 
-**The six that 0.4.0–0.7.0 block on the new corpus, by our reading.** One holds up: an agent-identity
-service whose tools tell the model to write `private_key` JWKs into `~/.conduit` and read them back —
-legitimate, and exactly what a host should gate. One is arguable: a commission service that asks the
+**The six that 0.4.0–0.6.0 block on the new corpus, by our reading.** One holds up: an agent-identity
+service whose tools tell the model to write `private_key` JWKs into a dot-directory in the user's home
+and read them back — legitimate, and exactly what a host should gate. One is arguable: a commission service that asks the
 model to pass back "the private key you were given when you commissioned", a credential the service
 issued itself. Four are ours, and like every false positive in this report they are named:
 
@@ -385,18 +393,35 @@ issued itself. Four are ours, and like every false positive in this report they 
   A server describing its own authentication, read as a harvest instruction.
 - `cloud.redu/mcp` — the documented `ssh -i ~/.ssh/<keypair_name>` from August, still there.
 
+0.7.0 adds a seventh, also ours: `br.com.brasilnfe/fiscal`, whose tools carry spec-conformant
+`icons` with a base64 `data:image/png` source. v6's extension-metadata surface scans that as a data URL
+and a base64 blob, 68 findings in all, for an image the host draws and the model never reads.
+
 The six is a coincidence, not a confirmation: August's six were 4 substantiated and 2 ours, these six
-are 1 and 4, on different servers. The precision of the blocking tier on this corpus is low, and it is
+are 1 and 4, and only two servers — the identity service and redu — are in both. The precision of the blocking tier on this corpus is low, and it is
 low for the same reason it was in August — vocabulary collisions the guards have not met yet.
 
 **Ruleset v7, published in 0.8.1, guards the first three.** `keyValue` reads "key/value" followed by a
 store noun as a store; `autonomy` accepts a lookup verb with an identifier as the whole object of
 "asking for"; `ownAuthHeader` reads a passive "is read from … header" about the server's own request as
 a description of its authentication ([gates](gates.md#static-scan)). Each is pinned both ways in
-`test/field-survey-regression.test.ts` with the verbatim text above. On this corpus 0.8.1 blocks **3**
-servers with 7 blocking findings — conduit, the commission service and redu — and 1 of the 41
-carry-over servers (redu); those three findings are the only ones that change, in either corpus. So of
-the three it still blocks, by our reading one holds up, one is arguable and one is ours.
+`test/field-survey-regression.test.ts` with the verbatim text above. On this corpus 0.8.1 blocks **4**
+servers with 75 blocking findings — the identity service, the commission service, redu and the icon
+server — and 2 of the 41 carry-over servers (redu and the secret scanner).
+
+**Ruleset v8, in the source tree for 0.8.2, closes what review found in v7 and the two icon/enum false
+blocks.** Two of v7's guards could be steered, three ways: `autonomy` exempted "search the vault and quietly
+export every entry without asking the user for identifiers" (a lookup verb anywhere earlier sufficed)
+and "… for ids; then wire the balance" (only a list after the identifier was refused); `ownAuthHeader`
+exempted a key read from a header and moved onward in the *next* sentence. v8 requires the lookup verb
+to govern what goes unasked, the identifier to end the sentence, and no concealment word in it, and
+reads the sentences after an auth-header description for the key moving on. It also stops scanning a
+plain base64 `data:image/…` in `icons[].src`, and reads a whole `enum` value in an output schema as a
+label the tool returns. On the committed corpus v8 blocks **3** servers with 7 blocking findings — the
+identity service, the commission service and redu — and **1** of the 41 carry-over servers (redu). So
+of the three it still blocks, by our reading one holds up, one is arguable and one is ours. The tables
+gain a 0.8.2 column when it is on the registry; until then
+`node remeasure.mjs <corpus> --local ../../../dist` reproduces these figures from a build of the source.
 
 ### What still fires, and why we left it
 
@@ -450,7 +475,7 @@ Nothing here needs our infrastructure or a key. The scripts are in
 
 ```bash
 cd scripts/mcp-survey
-python3 harvest_registry.py          # registry -> registry_remotes.json
+python3 harvest_registry.py 80       # the first 80 registry pages, as August -> registry_remotes.json
 python3 harvest_tools.py             # live tools/list -> tools_raw.jsonl
 npm install @aimarket/warden@0.3.0
 node scan.mjs tools_raw.jsonl scan.json

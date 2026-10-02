@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { createHash } from "node:crypto";
 import { StaticScanGate } from "../src/static-scan.js";
 import { ThreatFeed, Warden } from "../src/index.js";
-import { PinningGate, canonicalToolsHash, tryCanonicalToolsHash } from "../src/pinning.js";
+import { PinningGate, canonicalToolsHash, tryCanonicalToolsHash, pinToolsHash } from "../src/pinning.js";
 import { CanonicalizationError } from "../src/jcs.js";
 import { EgressGuard, isSensitiveTool } from "../src/sandbox.js";
 import { OriginGate } from "../src/origin.js";
@@ -161,24 +161,49 @@ describe("canonicalToolsHash — a digest another implementation can reproduce",
   });
 });
 
-describe("PinningGate — an unhashable tool-def set", () => {
+describe("PinningGate — fractional numbers and sets with no canonical form", () => {
   const fractional: ToolDef = {
     name: "price",
     description: "quote",
     inputSchema: { type: "object", properties: { usd: { multipleOf: 0.01 } } },
   };
+  const loneSurrogate: ToolDef = { name: "bad", description: "x\ud800y", inputSchema: { type: "object" } };
 
-  it("warns without blocking when there is no pin to contradict", async () => {
-    const r = await new PinningGate(makeStore()).evaluate({ server, tools: [fractional], prior: [], policy });
+  it("pins a fractional set under the rfc8785 form, while integer-only sets keep the strict hash", () => {
+    expect(pinToolsHash([fractional])).toMatch(/^rfc8785:[0-9a-f]{64}$/);
+    const integers: ToolDef = { ...fractional, inputSchema: { minimum: 1 } };
+    expect(pinToolsHash([integers])).toBe(canonicalToolsHash([integers]));
+  });
+
+  it("treats a fractional set like any other: unpinned at first contact, clean once approved", async () => {
+    const store = makeStore();
+    const first = await new PinningGate(store).evaluate({ server, tools: [fractional], prior: [], policy });
+    expect(first.findings[0].code).toBe("TOOL_DEF_UNPINNED");
+    await new PinningGate(store).pin(server, [fractional]);
+    const again = await new PinningGate(store).evaluate({ server, tools: [fractional], prior: [], policy });
+    expect(again.findings).toEqual([]);
+  });
+
+  it("still catches drift into or out of fractional numbers, so pinning cannot be disarmed", async () => {
+    const store = makeStore();
+    const integers: ToolDef = { ...fractional, inputSchema: { minimum: 1 } };
+    await new PinningGate(store).pin(server, [integers]);
+    const r = await new PinningGate(store).evaluate({ server, tools: [fractional], prior: [], policy });
+    expect(r.findings[0].code).toBe("TOOL_DEF_DRIFT");
+    expect(r.fatal).toBe(true);
+  });
+
+  it("warns without blocking when a set with no RFC 8785 form has no pin to contradict", async () => {
+    const r = await new PinningGate(makeStore()).evaluate({ server, tools: [loneSurrogate], prior: [], policy });
     expect(r.findings[0].code).toBe("TOOL_DEF_UNCANONICAL");
     expect(r.findings[0].severity).toBe("medium");
     expect(r.fatal).toBeFalsy();
   });
 
-  it("treats an unverifiable pinned set as drift, so pinning cannot be disarmed", async () => {
+  it("treats an unverifiable pinned set as drift", async () => {
     const store = makeStore();
-    await store.putPin({ serverId: server.id, toolsHash: "deadbeef", approvedAt: "2026-01-01T00:00:00Z", toolNames: ["price"] });
-    const r = await new PinningGate(store).evaluate({ server, tools: [fractional], prior: [], policy });
+    await store.putPin({ serverId: server.id, toolsHash: "deadbeef", approvedAt: "2026-01-01T00:00:00Z", toolNames: ["bad"] });
+    const r = await new PinningGate(store).evaluate({ server, tools: [loneSurrogate], prior: [], policy });
     expect(r.findings[0].code).toBe("TOOL_DEF_UNCANONICAL");
     expect(r.findings[0].severity).toBe("high");
     expect(r.fatal).toBe(true);

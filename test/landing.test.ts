@@ -63,6 +63,13 @@ describe("landing page", () => {
       expect(missing, `${lang} is missing: ${missing.join(", ")}`).toEqual([]);
       const extra = Object.keys(table).filter((k) => !keys.includes(k));
       expect(extra, `${lang} has keys the page does not use: ${extra.join(", ")}`).toEqual([]);
+      // Numbers that move with a release must move in every language, not only in the English
+      // markup: a translated string once kept an old ruleset version for a release.
+      const version = (JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as { version: string }).version;
+      expect(table["wrap.p"], `${lang} wrap.p names the release`).toContain(`@aimarket/warden@${version}`);
+      expect(table["wrap.demo"], `${lang} wrap.demo names the ruleset`).toContain(`v${STATIC_SCAN_RULESET_VERSION}`);
+      expect(table["gates.t.g1"], `${lang} gate row names the ruleset`).toContain(`v${STATIC_SCAN_RULESET_VERSION}`);
+      expect(table["gates.t.g1"], `${lang} gate row counts the rules`).toContain(String(staticScanRuleset().rules.length));
     }
   });
 

@@ -2,11 +2,11 @@ import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { unlink } from 'node:fs/promises';
 import { defaultStateDir, readState, writeState, withStateLock } from './state.js';
-import { canonicalize } from './jcs.js';
+import { canonicalizeRfc8785 } from './jcs.js';
 import type { PinStore, PinnedServer } from './types.js';
 
 export function pinRevision(pin: PinnedServer | undefined): string | null {
-  return pin ? createHash('sha256').update(canonicalize(pin)).digest('hex') : null;
+  return pin ? createHash('sha256').update(canonicalizeRfc8785(pin)).digest('hex') : null;
 }
 
 /** One atomic file per server; hashed filenames cannot escape the state directory. */
@@ -16,7 +16,7 @@ export class FilePinStore implements PinStore {
   async getPin(id: string): Promise<PinnedServer | undefined> {
     const pin = await readState<PinnedServer>(this.path(id));
     if (pin !== undefined && (!pin || typeof pin !== 'object' || pin.serverId !== id ||
-        typeof pin.toolsHash !== 'string' || !/^[a-f0-9]{64}$/.test(pin.toolsHash) ||
+        typeof pin.toolsHash !== 'string' || !/^(?:rfc8785:)?[a-f0-9]{64}$/.test(pin.toolsHash) ||
         typeof pin.approvedAt !== 'string' || !Array.isArray(pin.toolNames) || !pin.toolNames.every(n => typeof n === 'string'))) {
       throw new Error('Invalid pin state; refusing to treat it as first contact');
     }

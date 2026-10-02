@@ -1,5 +1,5 @@
 import { FilePinStore, pinRevision } from "./pin-store.js";
-import { canonicalToolsHash, serverIdentityHash } from "./pinning.js";
+import { pinToolsHash, serverIdentityHash } from "./pinning.js";
 /**
  * MCP tool surface for the WARDEN stdio server.
  *
@@ -63,7 +63,8 @@ export interface McpToolDef {
 const TOOL_DEF_ITEM = {
   type: "object",
   additionalProperties: true,
-  required: ["name", "description", "inputSchema", "title", "outputSchema", "annotations", "metadata"],
+  // What asTools() enforces; title/outputSchema/annotations and extensions are optional, scanned when present.
+  required: ["name", "description", "inputSchema"],
   properties: {
     title: { type: "string", description: "Unmodified advertised tool title; scanned and pinned." },
     outputSchema: { type: "object", description: "Unmodified output schema, including nested descriptions; scanned and pinned." },
@@ -260,7 +261,7 @@ export const MCP_TOOLS: McpToolDef[] = [
     name: "static_scan_tools",
     title: "Static-scan MCP tool definitions for injection and exfil",
     description:
-      "Run only the static-scan gate (ruleset v7, 26 signatures with context guards, text folded first) over advertised tool names, descriptions, and input schemas. Returns findings, a 0..1 gate score, and the published ruleset digest.\n\n" +
+      "Run only the static-scan gate (ruleset v8, 26 signatures with context guards, text folded first) over every advertised tool field: name, description, input schema, title, output schema, annotations and extension metadata. Returns findings, a 0..1 gate score, and the published ruleset digest.\n\n" +
       "When to use: you have a tools/list dump and want injection / credential / hidden-Unicode hits without origin, pinning, or the threat feed. Cheaper and narrower than vet_mcp_server.\n\n" +
       "When NOT to use: you need the full host decision (vet_mcp_server); you want operator glob classification (classify_sensitive_tools); you want the published rule table itself (list_scan_rules).\n\n" +
       "Behaviour: local regex+guard evaluation, no network, no mutation. Advisory-tier hits are reported with advisory=true and do not reduce the score. Does not launch servers or send tool output to a model.\n\n" +
@@ -440,8 +441,8 @@ export const MCP_TOOLS: McpToolDef[] = [
     name: "list_scan_rules",
     title: "List the published WARDEN static-scan rule table",
     description:
-      "Return the in-force static-scan ruleset: version, digest, and every rule's code, severity, tier (block vs advise), surfaces (name / description / inputSchema), optional regex source, and named guards. A recorded verdict is only reproducible together with this identity.\n\n" +
-      "When to use: explain a finding code, confirm you are on ruleset v7, or re-run a scan with the same table. include_source=true adds the regex source and flags for an independent re-implementation.\n\n" +
+      "Return the in-force static-scan ruleset: version, digest, and every rule's code, severity, tier (block vs advise), surfaces (name / description / inputSchema / title / outputSchema / annotations / metadata), optional regex source, and named guards. A recorded verdict is only reproducible together with this identity.\n\n" +
+      "When to use: explain a finding code, confirm you are on ruleset v8, or re-run a scan with the same table. include_source=true adds the regex source and flags for an independent re-implementation.\n\n" +
       "When NOT to use: evaluating a live tools/list (static_scan_tools or vet_mcp_server — those apply the table). This tool does not scan anything.\n\n" +
       "Behaviour: local snapshot of the compiled rule table, no network, no mutation. Digest is sha256 over the RFC 8785 form of {version, fold, rules} (each rule carries its `raw` flag).\n\n" +
       "Returns the ruleset object. Example: list_scan_rules({ include_source: false }).",
@@ -686,7 +687,7 @@ async function managePin(name: string, args: Record<string, unknown>): Promise<o
     return { revoked: true, serverId: server.id };
   }
   const tools = asTools(args.tools);
-  const toolsHash = canonicalToolsHash(tools);
+  const toolsHash = pinToolsHash(tools);
   const identityHash = serverIdentityHash(server);
   if (name === "status_mcp_server") {
     return { serverId: server.id, previous: previous ?? null, previousRevision: pinRevision(previous), currentToolsHash: toolsHash, currentIdentityHash: identityHash,

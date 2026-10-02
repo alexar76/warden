@@ -24,7 +24,7 @@ export {
   staticScanRulesetRef,
   STATIC_SCAN_RULESET_VERSION,
 } from "./static-scan.js";
-export { PinningGate, canonicalToolsHash, tryCanonicalToolsHash, serverIdentityHash, UNCANONICAL_TOOLS_HASH } from "./pinning.js";
+export { PinningGate, canonicalToolsHash, tryCanonicalToolsHash, pinToolsHash, RFC8785_PIN_PREFIX, serverIdentityHash, UNCANONICAL_TOOLS_HASH } from "./pinning.js";
 export { FilePinStore } from "./pin-store.js";
 export { OriginGate } from "./origin.js";
 export { ThreatFeed, ThreatGate, DEFAULT_FEED_MAX_AGE_MS, FEED_CLOCK_SKEW_MS } from "./threat-feed.js";

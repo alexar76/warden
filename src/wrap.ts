@@ -3,11 +3,11 @@ import { randomUUID } from 'node:crypto';
 import { appendFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { constants } from 'node:os';
-import { Warden, FilePinStore, canonicalToolsHash, displaySafe, StaticScanGate } from './index.js';
+import { Warden, FilePinStore, pinToolsHash, displaySafe, StaticScanGate } from './index.js';
 import type { ToolDef, WardenVerdict } from './types.js';
 import { WrapFrames, readFrames } from './wrap-wire.js';
 import { loadWrapFeed, wrapLogger, wrapServer, type WrapOptions } from './wrap-cli.js';
-import { observe, vetAndPin, observationPath, type Observation } from './wrap-state.js';
+import { observe, vetAndPin, observationPath, WardenBlock, type Observation } from './wrap-state.js';
 import { readState } from './state.js';
 
 type Message = { jsonrpc: '2.0'; id?: string | number | null; method?: string; params?: Record<string, unknown>; result?: any; error?: unknown };
@@ -37,13 +37,19 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
   const frames = new WrapFrames();
   let child: ChildProcessWithoutNullStreams | undefined;
   let finished = false, closing = false, generation = 0, quarantined = true;
+  // Why tools are withheld: a WARDEN decision or a change waits for the client to list again;
+  // a check that merely failed to run (timeout, lock, child error) is retried by the next call.
+  let quarantineKind: 'start' | 'changed' | 'blocked' | 'error' = 'start';
   let blockReason = blockedLaunch ? (prior?.revoked ? 'Approval revoked; run warden-mcp pins status --id ' + server.id : reason(launch)) : '';
   let visible: ToolDef[] = [];
   let refresh: Promise<ToolDef[]> | undefined;
   const prefix = `warden:${randomUUID()}:`;
   let seq = 0;
   const pending = new Map<string, { resolve: (value: { result: any; bytes: number }) => void; reject: (e: Error) => void; timer: NodeJS.Timeout }>();
-  const tracked = new Map<string | number | null, { kind: 'initialize' | 'call'; generation: number }>();
+  // Every client request forwarded to the child, by id. A child response is delivered only
+  // against one of these, once: a response to an id the client never sent to the child (its
+  // tools/list, which this proxy answers) or already received is a forgery, not a reply.
+  const tracked = new Map<string | number | null, { kind: 'initialize' | 'call' | 'other'; generation: number }>();
   let activeChecks = 0;
   let stopTimer: NodeJS.Timeout | undefined, killTimer: NodeJS.Timeout | undefined;
 
@@ -125,8 +131,8 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
       const work = (async () => {
         const tools = await listAll();
         const verdict = await vetAndPin(opts.stateDir, server, tools, opts.policy, store, warden, feed, opts.auditOnly, () => epoch === generation && !closing, record);
-        if (!opts.auditOnly && epoch !== generation) throw new Error('tools changed, blocked by WARDEN during verification');
-        if (!opts.auditOnly && !verdict.allow) throw new Error(reason(verdict));
+        if (!opts.auditOnly && epoch !== generation) throw new WardenBlock('tools changed, blocked by WARDEN during verification');
+        if (!opts.auditOnly && !verdict.allow) throw new WardenBlock(reason(verdict));
         if (closing) throw new Error('MCP connection closing');
         blockReason = ''; quarantined = false;
         return opts.auditOnly ? tools : tools.filter(t => verdict.allowedTools.includes(t.name));
@@ -134,11 +140,27 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
       refresh = work;
       void work.then(() => { if (refresh === work) refresh = undefined; }, e => {
         if (refresh === work) refresh = undefined;
-        quarantined = true; blockReason = e instanceof Error ? e.message : String(e); log.warn(blockReason);
+        quarantined = true; quarantineKind = e instanceof WardenBlock ? 'blocked' : 'error';
+        blockReason = e instanceof Error ? e.message : String(e); log.warn(blockReason);
       });
       return work;
     };
+    // Batches (allowed by protocol 2025-03-26, removed in 2025-06-18) are refused per request,
+    // as an array of errors, rather than ending the session: each element would need its own
+    // tools/list and tools/call checks, and splitting them would change the reply shape.
+    const refuseBatch = (body: string): boolean => {
+      let raw: unknown;
+      try { raw = JSON.parse(body); } catch { return false; }
+      if (!Array.isArray(raw)) return false;
+      if (raw.length === 0) { send({ jsonrpc: '2.0', id: null, error: { code: -32600, message: 'Invalid Request: empty batch' } }); return true; }
+      const replies = raw.filter((m): m is Message => !!m && typeof m === 'object' && !Array.isArray(m) && m.method !== undefined && m.id !== undefined)
+        .map(m => ({ jsonrpc: '2.0', id: typeof m.id === 'string' || typeof m.id === 'number' ? m.id : null,
+          error: { code: -32600, message: 'warden wrap does not accept JSON-RPC batches; send each request on its own' } }));
+      if (replies.length) send(replies);
+      return true;
+    };
     const fromClient = async (body: string) => {
+      if (refuseBatch(body)) return;
       const msg = parse(body);
       if (typeof msg.id === 'string' && msg.id.startsWith(prefix)) { fail(msg, 'Reserved proxy request ID'); return; }
       if (blockedLaunch) {
@@ -160,11 +182,12 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
           } else {
             const name = msg.params?.name;
             const seen = visible.find(t => t.name === name);
-            if (!opts.auditOnly && (quarantined || !seen)) throw new Error(blockReason || 'tool blocked by WARDEN');
+            // A failed check is retried here; a refusal or a change waits for the client to re-list.
+            if (!opts.auditOnly && ((quarantined && quarantineKind !== 'error') || !seen)) throw new Error(blockReason || 'tool blocked by WARDEN');
             const epoch = generation;
             const current = await check();
             const def = current.find(t => t.name === name);
-            if (!opts.auditOnly && (quarantined || epoch !== generation || !def || !seen || canonicalToolsHash([def]) !== canonicalToolsHash([seen]))) throw new Error('tool blocked by WARDEN: definition changed since exposure');
+            if (!opts.auditOnly && (quarantined || epoch !== generation || !def || !seen || pinToolsHash([def]) !== pinToolsHash([seen]))) throw new Error('tool blocked by WARDEN: definition changed since exposure');
             if (tracked.size >= 256 || tracked.has(msg.id)) throw new Error('Too many or duplicate pending MCP requests');
             tracked.set(msg.id, { kind: 'call', generation });
             childWrite(body);
@@ -173,9 +196,9 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
         finally { activeChecks--; }
         return;
       }
-      if (msg.method === 'initialize' && msg.id !== undefined) {
+      if (msg.method !== undefined && msg.id !== undefined) {
         if (tracked.size >= 256 || tracked.has(msg.id)) { fail(msg, 'Too many or duplicate pending MCP requests'); return; }
-        tracked.set(msg.id, { kind: 'initialize', generation });
+        tracked.set(msg.id, { kind: msg.method === 'initialize' ? 'initialize' : 'other', generation });
       }
       childWrite(body);
     };
@@ -190,7 +213,7 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
         return;
       }
       if (msg.method === 'notifications/tools/list_changed') {
-        generation++; quarantined = true; blockReason = 'tools changed, blocked by WARDEN';
+        generation++; quarantined = true; quarantineKind = 'changed'; blockReason = 'tools changed, blocked by WARDEN';
         const epoch = generation;
         // Do not reuse a check that started before the notification.
         void (async () => {
@@ -203,7 +226,8 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
       }
       if (msg.method === undefined && msg.id !== undefined) {
         const request = tracked.get(msg.id);
-        if (request) {
+        if (!request) { log.warn(`dropped a child response to request ${displaySafe(JSON.stringify(msg.id), 80)}, which the client did not send to it or already received`); return; }
+        {
           tracked.delete(msg.id);
           if (request.kind === 'call' && !opts.auditOnly && (quarantined || request.generation !== generation)) {
             fail(msg, 'tools changed, blocked by WARDEN; result withheld, execution may already have occurred'); return;
