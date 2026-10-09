@@ -1,0 +1,11 @@
+{
+  "name": "warden",
+  "displayName": "WARDEN — MCP firewall",
+  "version": "0.9.0",
+  "description": "Vets the MCP servers this project starts before the model sees their tools: blocks prompt injection, exfiltration and secret requests in tool descriptions, and denies calls to blocked servers. Offline, no account, no API key.",
+  "author": { "name": "AICOM (alexar76)", "url": "https://github.com/alexar76" },
+  "homepage": "https://warden.modelmarket.dev/",
+  "repository": "https://github.com/alexar76/warden",
+  "license": "MIT",
+  "keywords": ["mcp", "security", "prompt-injection", "tool-poisoning", "firewall"]
+}

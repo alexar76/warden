@@ -1,0 +1,142 @@
+{
+ "app.aiconduit/conduit": {
+  "verdict": "holds-up",
+  "why": "Agent-identity service whose tools tell the model to write private_key JWKs into a dot-directory in the user home and read them back: legitimate, and what a host should gate."
+ },
+ "ai.lorepunk.poems/margaret-poems": {
+  "verdict": "arguable",
+  "why": "Commission service asks the model to pass back the private key it issued at commissioning."
+ },
+ "cloud.redu/mcp": {
+  "verdict": "false-positive",
+  "why": "Documents `ssh -i ~/.ssh/<keypair_name>` for the deploy key of the VM it created; also tells the agent to read one key from that VM's .env over SSH."
+ },
+ "ai.coldstate/knowledge": {
+  "verdict": "false-positive",
+  "why": "Homoglyph rule on text written wholly in its own script: Greek Ψ used as a score symbol (\"Ψ scores\")."
+ },
+ "ai.dynamicfeed/dynamic-feed": {
+  "verdict": "false-positive",
+  "why": "Homoglyph rule on text written wholly in its own script: Greek Φ in a satellite name (Φsat-2)."
+ },
+ "ai.fukushi/dictionary": {
+  "verdict": "false-positive",
+  "why": "Homoglyph rule on text written wholly in its own script: Japanese text with full-width brackets."
+ },
+ "ai.intuitek.the-stall/the-stall": {
+  "verdict": "false-positive",
+  "why": "Homoglyph rule on text written wholly in its own script: Greek λ and σ in physics and finance formulas."
+ },
+ "ai.marketcrew/market-data": {
+  "verdict": "false-positive",
+  "why": "Homoglyph rule on text written wholly in its own script: A Russian phrase quoted in an English description."
+ },
+ "ai.meacheal/mrc-data": {
+  "verdict": "false-positive",
+  "why": "Homoglyph rule on text written wholly in its own script: Chinese text with full-width punctuation."
+ },
+ "ai.svtr/aidb": {
+  "verdict": "false-positive",
+  "why": "Homoglyph rule on text written wholly in its own script: Chinese text with full-width punctuation."
+ },
+ "app.listentosadhu/corpus": {
+  "verdict": "false-positive",
+  "why": "Homoglyph rule on text written wholly in its own script: Russian book codes (БГ) beside Latin ones."
+ },
+ "app.sallim/korea-realty": {
+  "verdict": "false-positive",
+  "why": "Homoglyph rule on text written wholly in its own script: Korean text with Greek ρ (a correlation)."
+ },
+ "bg.namerimidom/namerimidom": {
+  "verdict": "false-positive",
+  "why": "Homoglyph rule on text written wholly in its own script: Bulgarian titles."
+ },
+ "by.ai-belarus/registry": {
+  "verdict": "false-positive",
+  "why": "Homoglyph rule on text written wholly in its own script: Belarusian/Russian text."
+ },
+ "by.ai-tender/tenders": {
+  "verdict": "false-positive",
+  "why": "Homoglyph rule on text written wholly in its own script: Russian text."
+ },
+ "cc.roboparts/roboparts": {
+  "verdict": "false-positive",
+  "why": "Homoglyph rule on text written wholly in its own script: Chinese text with full-width punctuation."
+ },
+ "chat.1233/marketplace": {
+  "verdict": "false-positive",
+  "why": "Homoglyph rule on text written wholly in its own script: Russian text (Kyrgyz marketplace)."
+ },
+ "cn.narracore/screenplay-formatter": {
+  "verdict": "false-positive",
+  "why": "Homoglyph rule on text written wholly in its own script: Chinese text with full-width punctuation."
+ },
+ "cn.tutulife/aijiayao": {
+  "verdict": "false-positive",
+  "why": "Homoglyph rule on text written wholly in its own script: Chinese text with full-width punctuation."
+ },
+ "ai.eykon/intelligence": {
+  "verdict": "false-positive",
+  "why": "\"do not tell the user results were filtered by commodity\" — the filter is not applied; an honesty instruction."
+ },
+ "ai.gondola/gondola": {
+  "verdict": "false-positive",
+  "why": "\"do not say seat data is unavailable until this tool has been checked\" — an honesty instruction."
+ },
+ "ai.offerhopper.mcp/german-grocery-assistant": {
+  "verdict": "false-positive",
+  "why": "\"do NOT say discounts require an app\" — an accuracy instruction."
+ },
+ "ai.ohmyfin/banking-intelligence": {
+  "verdict": "false-positive",
+  "why": "\"do not tell the user the check digits are wrong\" — an honesty instruction about a validation result."
+ },
+ "ai.tunnelmind/data": {
+  "verdict": "false-positive",
+  "why": "An injection detector describing the classes it detects (\"ignore/override previous rules\")."
+ },
+ "ai.uwear/uwear": {
+  "verdict": "false-positive",
+  "why": "\"Do not tell the user to drag assets into chat\" — a UX instruction."
+ },
+ "al.flytravel/travel-prices": {
+  "verdict": "false-positive",
+  "why": "\"do NOT say they are unavailable — the cache only holds recent offers\" — an accuracy instruction."
+ },
+ "app.dreamfare/mcp": {
+  "verdict": "false-positive",
+  "why": "\"even when they do not mention them\" — describes the traveller, not an instruction."
+ },
+ "app.offendersearch/offendersearch": {
+  "verdict": "false-positive",
+  "why": "\"Do NOT tell a user their search results are stale on the basis of these fields\" — an accuracy instruction."
+ },
+ "app.promptfax/promptfax": {
+  "verdict": "false-positive",
+  "why": "\"Do not tell ChatGPT users to get a quote\" — a UX instruction."
+ },
+ "au.com.totalparks/mcp": {
+  "verdict": "false-positive",
+  "why": "\"do not mention refs, endpoints, tool names, cache internals\" — hides implementation detail, not an action."
+ },
+ "cloud.atatravel/travel-agency": {
+  "verdict": "false-positive",
+  "why": "\"Do not mention handoffs/tool details to the traveler\" — hides implementation detail, not an action."
+ },
+ "ai.surfingdog/inbox": {
+  "verdict": "false-positive",
+  "why": "\"base64url(SHA-256(receipt jws))\" — a JWS field format."
+ },
+ "app.agentbit/mcp": {
+  "verdict": "false-positive",
+  "why": "A utility tool listing \"base64 encode/decode\" among its operations."
+ },
+ "app.cleanor/cleanor": {
+  "verdict": "false-positive",
+  "why": "A base64 encode/decode tool."
+ },
+ "ai.borealhost/mcp": {
+  "verdict": "false-positive",
+  "why": "A hosting tool that appends the user's SSH public key to authorized_keys — public key material, its stated job."
+ }
+}

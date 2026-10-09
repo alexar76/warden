@@ -428,9 +428,19 @@ un valor `enum` completo en un esquema de salida como una etiqueta que devuelve 
 el corpus versionado v8 bloquea **3** servidores con 7 hallazgos bloqueantes — el servicio de
 identidad, el servicio de encargos y redu — y **1** de los 41 servidores consultados de nuevo (redu).
 Así que de los tres que aún bloquea, según nuestra lectura uno está fundamentado, uno es discutible y
-uno es nuestro. Las tablas ganarán una columna 0.8.2 cuando esté en el registro; hasta entonces
-`node remeasure.mjs <corpus> --local ../../../dist` reproduce estas cifras a partir de una compilación
-del código fuente.
+uno es nuestro.
+
+**Ruleset v9, en el código fuente para 0.9.0, añade seis reglas que bloquean y aquí no bloquea nada
+nuevo.** Salen de comparar WARDEN con otros dos escáneres sobre conjuntos de ataques (véase la
+[guía de scan](scan.es.md#cómo-se-compara)): un objeto más largo o un buzón en «send … to <dirección>», una
+copia oculta a un buzón fijo, la conversación enviada junto a una dirección, una credencial o una señal de
+ocultación, una ruta de almacén de credenciales que antes cortaba la ventana de la regla en su punto, la
+ocultación del comportamiento de la propia herramienta, el borrado recursivo de `~` o `/`, y el nombre de
+una herramienta leído como las palabras que forma. Un primer borrador bloqueaba otros cuatro servidores de
+este corpus — negativas («never include the full conversation») y una herramienta que lee su propio hilo —
+y esas frases son ahora pruebas de regresión. Sobre el corpus versionado v9 bloquea los mismos **3**
+servidores y **1** de los 41 del arrastre de agosto. `node remeasure.mjs <corpus> --local ../../../dist`
+lo reproduce a partir de una compilación del código fuente hasta que 0.9.0 esté en el registro.
 
 ### Lo que sigue disparándose y por qué lo dejamos
 

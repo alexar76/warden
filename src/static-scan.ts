@@ -118,7 +118,10 @@ type GuardName =
   | "secretExfilPair"
   | "keyValue"
   | "ownAuthHeader"
-  | "outputEnumLabel";
+  | "outputEnumLabel"
+  | "dataObject"
+  | "placeholderAddress"
+  | "contextExfil";
 
 // Imperative instructions aimed at the model — the classic injection tells.
 const INJECTION_PATTERNS: SignaturePattern[] = [
@@ -132,6 +135,13 @@ const INJECTION_PATTERNS: SignaturePattern[] = [
   // that refers to the tool's own action; the bare phrase does not carry one.
   { re: /\bdo\s+not\s+(?:tell|inform|mention|reveal\s+to|notify)\s+(?:the\s+)?user\b/i, code: "TOOL_DEF_INJECTION", severity: "medium", tier: "advise", surfaces: ALL_SURFACES, guards: ["mention"] },
   { re: /\bwithout\s+(?:telling|informing|asking)\s+(?:the\s+)?user\b/i, code: "TOOL_DEF_INJECTION", severity: "high", tier: "block", surfaces: ALL_SURFACES, guards: ["autonomy"] },
+  // v9. What the v4 demotion asked for: a concealment whose target is the tool's OWN
+  // behaviour. "do not tell the user ABOUT THIS / THAT THIS TOOL …" and "do not mention
+  // that you (first read …)" hide an action; the honest uses the survey found ("do not
+  // tell the user a refund is coming", "… the check digits are wrong", "… results were
+  // filtered") stop the model inventing a claim and never take these objects.
+  { re: /\b(?:do\s+not|don'?t|never)\s+(?:tell|inform|notify|alert)\s+(?:the\s+)?user\s+(?:about\s+(?:this|these|it|that)\b|that\s+(?:this|the)\s+tool\b|of\s+(?:this|these)\b)/i, code: "TOOL_DEF_INJECTION", severity: "high", tier: "block", surfaces: ALL_SURFACES, guards: ["mention"] },
+  { re: /\b(?:do\s+not|don'?t|never)\s+mention\s+that\s+you\b/i, code: "TOOL_DEF_INJECTION", severity: "high", tier: "block", surfaces: ALL_SURFACES, guards: ["mention"] },
   { re: /<\s*\/?\s*(?:system|instructions?|important)\s*>/i, code: "TOOL_DEF_INJECTION", severity: "high", tier: "block", surfaces: ALL_SURFACES },
   // Demoted in v4. The comment here used to say this was "the blocking rule most
   // likely to need a policy override"; the survey settled it — 15 findings across
@@ -166,6 +176,34 @@ const EXFIL_PATTERNS: SignaturePattern[] = [
   },
   { re: /\b(?:post|send|put)\s+to\s+https?:\/\//i, code: "TOOL_DEF_EXFIL", severity: "critical", tier: "block", surfaces: ALL_SURFACES },
   { re: /\bupload\b[\s\S]{0,40}\bto\s+(?:https?:\/\/|[\w.-]+\.[a-z]{2,})/i, code: "TOOL_DEF_EXFIL", severity: "high", tier: "block", surfaces: ALL_SURFACES },
+  // v9. "POST the original text and the conversation history to https://…", "send a copy
+  // of all messages to someone@host": the object is a phrase, not one word, and the
+  // destination may be a mailbox. Imperative base forms only ("Posts the page to
+  // https://api.notion.com" describes the tool's own call and does not match), a
+  // literal URL or address only, and the object must name data the user owns.
+  {
+    re: /\b(?:send|post|forward|relay|copy|transmit|e-?mail)\s[^.;!?\n]{0,80}?\bto\s+(?:https?:\/\/[^\s"'<>)]+|[\w.+-]{1,64}@[\w-]{1,63}(?:\.[\w-]{1,63})+)/i,
+    code: "TOOL_DEF_EXFIL",
+    severity: "high",
+    tier: "block",
+    surfaces: ALL_SURFACES,
+    guards: ["navigation", "mention", "dataObject", "placeholderAddress", "polarity"],
+  },
+  // v9. A blind copy to a fixed mailbox is the shadowing shape: "add bcc x@host".
+  { re: /\b(?:bcc|cc)\b\s*:?\s*[\w.+-]{1,64}@[\w-]{1,63}(?:\.[\w-]{1,63})+/i, code: "TOOL_DEF_EXFIL", severity: "high", tier: "block", surfaces: ALL_SURFACES, guards: ["mention", "placeholderAddress", "polarity"] },
+  // v9. The conversation itself as the payload. Blocking only together with a reason to
+  // believe it leaves: an external address in the same definition, a credential in the
+  // same clause, or a concealment cue. "Saves the entire conversation to your notes" has
+  // none of them.
+  {
+    re: /\b(?:entire|whole|full|complete)\s+(?:conversation|chat)(?:\s+(?:history|log|so\s+far))?|\bconversation\s+history\b|\b(?:list\s+of\s+)?(?:last|previous|all)\s+(?:the\s+)?(?:messages|chats)\b/i,
+    code: "TOOL_DEF_EXFIL",
+    severity: "high",
+    tier: "block",
+    surfaces: ALL_SURFACES,
+    note: "asks for the conversation itself, alongside an outside address, a credential or a concealment cue",
+    guards: ["mention", "polarity", "contextExfil"],
+  },
 ];
 
 // Secrets. Naming a credential PARAMETER is what normal tools do; demanding the
@@ -181,7 +219,10 @@ const SECRET_PATTERNS: SignaturePattern[] = [
     // The gap may no longer cross a sentence or a JSON string boundary. It used
     // to be `[\s\S]{0,30}`, which matched "read an open or sealed run (pass
     // api_key" — a verb in prose reaching into the next field's parameter name.
-    re: /\b(?:read|extract|retrieve|fetch|obtain|dump|reveal|collect|harvest|grab|copy|print)\s[^.;"\n]{0,30}?\b(?:api[_\s-]?key|access[_\s-]?token|bearer\s+token|credential|password|passwd|secret|\.env\b|environment\s+variable)/i,
+    // v9: a dot followed by a word character or a slash is part of a path, not the end of
+    // a sentence, so "read ~/.aws/credentials" is one clause again; and the stores that
+    // hold cloud and registry credentials are named.
+    re: /\b(?:read|extract|retrieve|fetch|obtain|dump|reveal|collect|harvest|grab|copy|print)\s(?:[^.;"\n]|\.(?=[\w/])){0,40}?(?:\b(?:api[_\s-]?key|access[_\s-]?token|bearer\s+token|credential|password|passwd|secret|environment\s+variable)|\.env\b|\.kube\/config\b|application_default_credentials|\.docker\/config\.json|\.git-credentials|\.netrc\b|\.pgpass\b|\.npmrc\b|\.pypirc\b)/i,
     code: "TOOL_DEF_SECRET_HARVEST",
     severity: "critical",
     tier: "block",
@@ -240,6 +281,12 @@ const SECRET_EXFIL_PATTERNS: SignaturePattern[] = [
     note: "names a secret store and an external address in the same breath",
     guards: ["publicKeyPath", "polarity", "detection", "secretExfilPair"],
   },
+];
+
+// v9. A recursive delete of a home or root directory written into a definition. The threat
+// feed's command record only ever saw the launch line.
+const DESTRUCTIVE_PATTERNS: SignaturePattern[] = [
+  { re: /\brm\s+-(?:rf|fr|r\s+-f|f\s+-r)\s+(?:~\/?|\/|\$HOME\/?|\*)(?=[\s"'`;)]|$)/, code: "TOOL_DEF_INJECTION", severity: "high", tier: "block", surfaces: ALL_SURFACES, note: "instructs a recursive delete of a home or root directory", guards: ["mention", "polarity", "detection"] },
 ];
 
 // Dangerous URL schemes embedded in text.
@@ -749,6 +796,42 @@ const GUARDS: Record<GuardName, Guard> = {
     return "no owner or location for the secret — reads as a credential being issued, not taken";
   },
 
+  /**
+   * v9. The object of "send … to <address>" names the user's data, not the tool's own
+   * request. "Send requests to https://api.example.org" documents an endpoint; "send the
+   * conversation history to https://…" moves data out.
+   */
+  dataObject(m) {
+    const toAt = m[0].toLowerCase().lastIndexOf(" to ");
+    const object = toAt >= 0 ? m[0].slice(0, toAt) : m[0];
+    if (/\b(?:conversation|history|chats?|messages?|transcripts?|contents?|data|files?|credentials?|keys?|tokens?|secrets?|passwords?|results?|outputs?|everything|all|cop(?:y|ies)|original|documents?|emails?|logs?|notes?|answers?|repl(?:y|ies)|context|prompts?)\b/i.test(object)) return null;
+    return "object of 'send … to' is not the user's data — documents an endpoint";
+  },
+
+  /** v9. RFC 2606 documentation hosts are placeholders in examples, not destinations. */
+  placeholderAddress(m) {
+    if (/@(?:[\w-]+\.)*example\.(?:com|org|net)\b|:\/\/(?:[\w-]+\.)*example\.(?:com|org|net)\b/i.test(m[0])) return "documentation placeholder address (RFC 2606)";
+    return null;
+  },
+
+  /**
+   * v9. The conversation is a payload only when the same clause MOVES it (send, include,
+   * pass, append, encode …) and something says it leaves: an outside address anywhere in
+   * the definition, or a credential or a concealment cue in that clause. "Read the human's
+   * answer and the whole conversation so far" reads; it does not move anything.
+   */
+  contextExfil(m, text) {
+    const { before, after } = clauseAround(text, m.index, m.index + m[0].length);
+    const clause = before + m[0] + after;
+    if (!/\b(?:send|sends|include|includes|pass|passes|append|appends|attach|attaches|encode|encodes|post|posts|forward|forwards|upload|uploads|put|puts|add|adds|share|shares|copy|copies|relay|relays|transmit\w*)\b/i.test(clause)) {
+      return "the clause does not move the conversation anywhere";
+    }
+    if (hasExternalAddress(text.slice(0, ADDR_SCAN_CAP))) return null;
+    if (/\b(?:api[_\s-]?keys?|access[_\s-]?tokens?|passwords?|secrets?|credentials?|private[_\s-]?keys?)\b/i.test(clause)) return null;
+    if (CONCEALMENT_CUE.test(clause)) return null;
+    return "conversation named without an outside address, a credential or concealment — ordinary context use";
+  },
+
   /** `.ssh/authorized_keys` and `id_ed25519.pub` are public by definition. */
   publicKeyPath(m, text) {
     // A RAW forward window, not a clause: the giveaway is the extension, and
@@ -770,6 +853,7 @@ const RULES: SignaturePattern[] = [
   ...SECRET_EXFIL_PATTERNS,
   ...URL_SCHEME_PATTERNS,
   ...PAYLOAD_PATTERNS,
+  ...DESTRUCTIVE_PATTERNS,
 ];
 
 /**
@@ -856,7 +940,7 @@ function hasExternalAddress(text: string): boolean {
 // asking the user for ids" (`autonomy`, which also stops exempting any "without asking
 // the user" whose object is consent), and "the key is read from the MCP connection's
 // X-API-Key header" (`ownAuthHeader`).
-export const STATIC_SCAN_RULESET_VERSION = "8";
+export const STATIC_SCAN_RULESET_VERSION = "9";
 
 const SEVERITY_RANK: Record<Severity, number> = {
   info: 0,
@@ -990,7 +1074,9 @@ export class StaticScanGate implements WardenGate {
         // honours). The two hidden-payload rules set `raw` and skip the folded
         // pass, because they look for exactly what the fold removes.
         const folded = foldForScan(text);
-        const passes = rule_texts(text, folded);
+        // v9: a name is an identifier, so its words are joined — `ignore_previous_
+        // instructions` and `ignorePreviousInstructions` are read as the phrase they spell.
+        const passes = surface === "name" ? [...new Set([...rule_texts(text, folded), splitIdentifier(folded)])] : rule_texts(text, folded);
         for (const rule of RULES) {
           if (!rule.surfaces.includes(surface)) continue;
           // First match, across either text, that every guard keeps. Guards run
@@ -1096,6 +1182,11 @@ const SPAN_MAX = 80;
  * form, the raw one dropped when the fold changed nothing so the common case
  * scans once.
  */
+/** `get_userData-v2` → `get user Data v2`: separators and lower→upper case changes become spaces. */
+function splitIdentifier(name: string): string {
+  return name.replace(/[_\-.]+/g, " ").replace(/([a-z0-9])([A-Z])/g, "$1 $2").trim();
+}
+
 function rule_texts(raw: string, folded: string): string[] {
   return raw === folded ? [raw] : [folded, raw];
 }

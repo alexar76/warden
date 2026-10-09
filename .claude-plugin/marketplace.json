@@ -1,0 +1,14 @@
+{
+  "name": "warden",
+  "owner": { "name": "AICOM (alexar76)", "url": "https://github.com/alexar76" },
+  "description": "WARDEN, the MCP firewall, as a Claude Code plugin.",
+  "plugins": [
+    {
+      "name": "warden",
+      "source": "./claude-plugin",
+      "description": "Vets the MCP servers this project starts before the model sees their tools, and denies calls to blocked ones.",
+      "category": "security",
+      "tags": ["mcp", "security", "prompt-injection"]
+    }
+  ]
+}

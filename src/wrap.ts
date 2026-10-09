@@ -9,6 +9,7 @@ import { WrapFrames, readFrames } from './wrap-wire.js';
 import { loadWrapFeed, wrapLogger, wrapServer, type WrapOptions } from './wrap-cli.js';
 import { observe, vetAndPin, observationPath, WardenBlock, type Observation } from './wrap-state.js';
 import { readState } from './state.js';
+import { listAllTools } from './tool-list.js';
 
 type Message = { jsonrpc: '2.0'; id?: string | number | null; method?: string; params?: Record<string, unknown>; result?: any; error?: unknown };
 function parse(body: string): Message {
@@ -17,7 +18,6 @@ function parse(body: string): Message {
       (msg.id !== undefined && msg.id !== null && typeof msg.id !== 'string' && typeof msg.id !== 'number')) throw new Error('Invalid JSON-RPC message');
   return msg;
 }
-const LIST_BYTES = 1_048_576;
 
 export async function runWrap(opts: WrapOptions): Promise<number> {
   const server = wrapServer(opts), log = wrapLogger(opts.auditOnly);
@@ -100,31 +100,7 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
       try { childWrite(JSON.stringify({ jsonrpc: '2.0', id, method: 'tools/list', params: cursor === undefined ? {} : { cursor } })); }
       catch (e) { clearTimeout(timer); pending.delete(id); reject(e); }
     });
-    const listAll = async (): Promise<ToolDef[]> => {
-      const tools: ToolDef[] = [], names = new Set<string>(), cursors = new Set<string>();
-      let cursor: string | undefined, bytes = 0;
-      for (let page = 0; page < 32; page++) {
-        const response = await requestPage(cursor), listed = response.result;
-        bytes += response.bytes;
-        if (bytes > LIST_BYTES) throw new Error('MCP tools/list exceeds 1 MiB');
-        if (!listed || !Array.isArray(listed.tools)) throw new Error('Invalid MCP tools/list');
-        if (tools.length + listed.tools.length > 256) throw new Error('MCP tools/list exceeds 256 tools');
-        for (const t of listed.tools) {
-          if (!t || typeof t !== 'object' || Array.isArray(t) || typeof t.name !== 'string' || !t.name || names.has(t.name) ||
-              (t.description !== undefined && typeof t.description !== 'string') || (t.title !== undefined && typeof t.title !== 'string')) throw new Error('Invalid or duplicate MCP tool definition');
-          for (const key of ['inputSchema', 'outputSchema', 'annotations']) {
-            if (t[key] !== undefined && (!t[key] || typeof t[key] !== 'object' || Array.isArray(t[key]))) throw new Error(`Invalid MCP ${key}`);
-          }
-          names.add(t.name);
-          tools.push({ ...t, description: t.description ?? '', inputSchema: t.inputSchema ?? { type: 'object', properties: {} } });
-        }
-        if (listed.nextCursor === undefined) return tools;
-        cursor = listed.nextCursor;
-        if (typeof cursor !== 'string' || !cursor || cursors.has(cursor)) throw new Error('Invalid or repeated MCP next-page token');
-        cursors.add(cursor);
-      }
-      throw new Error('MCP tools/list exceeds 32 pages');
-    };
+    const listAll = (): Promise<ToolDef[]> => listAllTools(requestPage);
     const check = (): Promise<ToolDef[]> => {
       if (refresh) return refresh;
       const epoch = generation;

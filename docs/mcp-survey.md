@@ -419,9 +419,19 @@ reads the sentences after an auth-header description for the key moving on. It a
 plain base64 `data:image/…` in `icons[].src`, and reads a whole `enum` value in an output schema as a
 label the tool returns. On the committed corpus v8 blocks **3** servers with 7 blocking findings — the
 identity service, the commission service and redu — and **1** of the 41 carry-over servers (redu). So
-of the three it still blocks, by our reading one holds up, one is arguable and one is ours. The tables
-gain a 0.8.2 column when it is on the registry; until then
-`node remeasure.mjs <corpus> --local ../../../dist` reproduces these figures from a build of the source.
+of the three it still blocks, by our reading one holds up, one is arguable and one is ours.
+
+**Ruleset v9, in the source tree for 0.9.0, adds six blocking rules and blocks nothing new here.** They
+came from comparing WARDEN with two other scanners on attack sets (see the
+[scan guide](scan.md#how-it-compares)): a longer object or a mailbox in "send … to <address>", a blind
+copy to a fixed mailbox, the conversation sent out together with an address, a credential or a
+concealment cue, a credential-store path that used to end the harvest window at its dot, concealment of
+the tool's own behaviour, a recursive delete of `~` or `/`, and a tool name read as the words it spells.
+An early draft blocked four more servers on this corpus — refusals ("never include the full
+conversation") and a tool reading its own thread — and those sentences are now regression tests. On the
+committed corpus v9 blocks the same **3** servers and **1** of the 41 carry-over servers.
+`node remeasure.mjs <corpus> --local ../../../dist` reproduces this from a build of the source until
+0.9.0 is on the registry.
 
 ### What still fires, and why we left it
 

@@ -76,6 +76,14 @@ async function main(): Promise<void> {
 
 async function entry(): Promise<void> {
   if (process.argv.length <= 2) return main();
+  if (process.argv[2] === 'scan' || process.argv[2] === 'hook') {
+    const code = process.argv[2] === 'scan'
+      ? await (await import("./scan-cli.js")).runScanCli(process.argv.slice(3))
+      : await (await import("./claude-hook.js")).runHookCli(process.argv.slice(3));
+    // Servers scan started are already told to stop; do not wait on their pipes.
+    stdout.write("", () => process.exit(code));
+    return;
+  }
   const { parseWrapArgs, runPins } = await import("./wrap-cli.js");
   let options;
   try {

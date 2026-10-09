@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 import { callMcpTool, MCP_INSTRUCTIONS, MCP_TOOLS, McpToolError, payloadTooLarge } from "./mcp-tools.js";
 
 export const PROTOCOL = "2025-03-26";
-const FALLBACK_VERSION = "0.8.2";
+const FALLBACK_VERSION = "0.9.0";
 
 export function packageVersion(): string {
   try {

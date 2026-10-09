@@ -1,6 +1,6 @@
 {
   "name": "@aimarket/warden",
-  "version": "0.8.2",
+  "version": "0.9.0",
   "description": "WARDEN — MCP security firewall. Stdio wrap proxy, inspection tools and library. Vets definitions before model exposure. Zero runtime dependencies.",
   "type": "module",
   "license": "MIT",
@@ -34,6 +34,7 @@
   "files": [
     "dist",
     "README.md",
+    "docs/scan*.md",
     "README-ru.md",
     "README-es.md",
     "README-fr.md",
@@ -50,6 +51,7 @@
   "scripts": {
     "mcp": "node dist/mcp-server.js",
     "build": "tsc -p tsconfig.json",
+    "prepare": "npm run build",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",

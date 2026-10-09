@@ -428,10 +428,19 @@ repérer une clé transmise plus loin. Il cesse aussi d'analyser un simple `data
 `icons[].src`, et lit une valeur `enum` entière dans un schéma de sortie comme un libellé que l'outil
 renvoie. Sur le corpus versionné, v8 bloque **3** serveurs avec 7 constats bloquants — le service
 d'identité, le service de commandes et redu — et **1** des 41 serveurs réinterrogés (redu). Des trois
-qu'il bloque encore, selon notre lecture, un est étayé, un est discutable et un est le nôtre. Les
-tableaux gagneront une colonne 0.8.2 quand elle sera sur le registre ; d'ici là,
-`node remeasure.mjs <corpus> --local ../../../dist` reproduit ces chiffres à partir d'une compilation des
-sources.
+qu'il bloque encore, selon notre lecture, un est étayé, un est discutable et un est le nôtre.
+
+**Le ruleset v9, dans l'arbre des sources pour 0.9.0, ajoute six règles bloquantes et ne bloque rien de
+nouveau ici.** Elles viennent d'une comparaison de WARDEN avec deux autres scanners sur des jeux
+d'attaques (voir le [guide de scan](scan.fr.md#comparaison)) : un objet plus long ou une boîte aux lettres
+dans « send … to <adresse> », une copie cachée vers une boîte fixe, la conversation envoyée avec une
+adresse, un identifiant ou un indice de dissimulation, un chemin de magasin d'identifiants qui coupait la
+fenêtre de la règle à son point, la dissimulation du comportement de l'outil lui-même, la suppression
+récursive de `~` ou `/`, et le nom d'un outil lu comme les mots qu'il forme. Un premier brouillon bloquait
+quatre serveurs de plus sur ce corpus — des refus (« never include the full conversation ») et un outil qui
+lit son propre fil — et ces phrases sont désormais des tests de régression. Sur le corpus versionné, v9
+bloque les **3** mêmes serveurs et **1** des 41 serveurs reportés. `node remeasure.mjs <corpus> --local
+../../../dist` le reproduit à partir d'une compilation des sources tant que 0.9.0 n'est pas sur le registre.
 
 ### Ce qui se déclenche encore, et pourquoi nous l'avons laissé
 

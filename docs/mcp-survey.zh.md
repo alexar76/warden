@@ -332,7 +332,9 @@ v4 一列任何人都无法复算，包括我们自己。它是在 8 月的采�
 
 **ruleset v7（在 0.8.1 中发布）挡住了前三个。** `keyValue` 把后接存储名词的 "key/value" 读作存储；`autonomy` 在 "asking for" 的整个宾语是标识符时接受查找动词；`ownAuthHeader` 把关于服务器自身请求的被动句 "is read from … header" 读作对其认证方式的描述（[gates](gates.zh.md#static-scan)）。每一条都在 `test/field-survey-regression.test.ts` 中用上面的原文双向固定。在这份语料上 0.8.1 阻止 **4** 台服务器、75 条阻止性发现——那个身份服务、那个委托服务、redu 和那台图标服务器——并阻止 41 台重新询问服务器中的 2 台（redu 和那个密钥扫描器）。
 
-**ruleset v8（在 0.8.2 的源码树中）堵住了审查在 v7 中发现的问题，以及图标和 enum 造成的两处误阻止。** v7 的 guard 有三处可被操纵：`autonomy` 曾豁免 "search the vault and quietly export every entry without asking the user for identifiers"（句中更早任何位置出现查找动词即可）和 "… for ids; then wire the balance"（标识符之后只有接着列举才不予豁免）；`ownAuthHeader` 曾豁免从请求头读取、又在*下一句*被转交他处的密钥。v8 要求查找动词支配未被索要的对象、标识符位于句末、句中没有隐瞒类词语，并会读取认证请求头描述之后的句子，检查密钥是否被转交。它还不再扫描 `icons[].src` 中普通的 base64 `data:image/…`，并把输出 schema 中完整的 `enum` 值读作工具返回的标签。在已提交的语料上，v8 阻止 **3** 台服务器、7 条阻止性发现——那个身份服务、那个委托服务和 redu——并阻止 41 台重新询问服务器中的 **1** 台（redu）。所以在它仍阻止的三台中，按我们的判断一台站得住脚，一台存疑，一台是我们的误报。等它上架注册表，两张表会增加一列 0.8.2；在此之前，`node remeasure.mjs <corpus> --local ../../../dist` 可以从源码构建复现这些数字。
+**ruleset v8（在 0.8.2 的源码树中）堵住了审查在 v7 中发现的问题，以及图标和 enum 造成的两处误阻止。** v7 的 guard 有三处可被操纵：`autonomy` 曾豁免 "search the vault and quietly export every entry without asking the user for identifiers"（句中更早任何位置出现查找动词即可）和 "… for ids; then wire the balance"（标识符之后只有接着列举才不予豁免）；`ownAuthHeader` 曾豁免从请求头读取、又在*下一句*被转交他处的密钥。v8 要求查找动词支配未被索要的对象、标识符位于句末、句中没有隐瞒类词语，并会读取认证请求头描述之后的句子，检查密钥是否被转交。它还不再扫描 `icons[].src` 中普通的 base64 `data:image/…`，并把输出 schema 中完整的 `enum` 值读作工具返回的标签。在已提交的语料上，v8 阻止 **3** 台服务器、7 条阻止性发现——那个身份服务、那个委托服务和 redu——并阻止 41 台重新询问服务器中的 **1** 台（redu）。所以在它仍阻止的三台中，按我们的判断一台站得住脚，一台存疑，一台是我们的误报。
+
+**ruleset v9（在 0.9.0 的源码树中）新增六条可阻止的规则，在这里没有新增任何阻止。** 这些规则来自在攻击样本集上把 WARDEN 与另外两款扫描器对比的结果（见 [scan 指南](scan.zh.md#对比)）：“send … to <地址>” 中更长的宾语或邮箱地址、发往固定邮箱的密送、连同地址、凭据或隐瞒提示一起发出的对话、以前会在点号处截断规则窗口的凭据存储路径、隐瞒工具自身的行为、递归删除 `~` 或 `/`，以及把工具名称按其拼出的单词来读。早期草稿在这份语料上还多阻止了四台服务器——都是拒绝的说法（“never include the full conversation”）和读取自身会话线程的工具——这些句子现在都成了回归测试。在已提交的语料上，v9 阻止的仍是同样的 **3** 台服务器，8 月遗留的 41 台中阻止 **1** 台。在 0.9.0 上架注册表之前，`node remeasure.mjs <corpus> --local ../../../dist` 可以从源码构建复现这一结果。
 
 ### 仍会触发的部分，以及我们为何保留
 

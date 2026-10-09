@@ -252,26 +252,26 @@ describe("exfil detection is anchored on an external destination", () => {
 describe("ruleset is versioned and digestible", () => {
   it("exposes a stable digest over the rule table", () => {
     const rs = staticScanRuleset();
-    expect(rs.version).toBe("8");
+    expect(rs.version).toBe("9");
     // If this fails you changed a rule: bump STATIC_SCAN_RULESET_VERSION and
     // update the value here. A scan result is only comparable within one digest.
-    expect(rs.digest).toBe("sha256-n7MLgD6v62p7ZPn5brfrgfz3BIJF60eNrZ5508GdRHw=");
+    expect(rs.digest).toBe("sha256-nC+ybcePE8AWwVn5rnMvkm4lPGTezj2sDnkxYG24wek=");
     // The fold is part of the ruleset identity: the same regexes over folded and
     // unfolded text are different scans, so the digest covers it too.
     expect(rs.fold).toBe("nfkc+tags-decoded+invisible-stripped+mixed-script-confusables/1");
     expect(rs.rules.every((r) => typeof r.raw === "boolean")).toBe(true);
-    expect(rs.rules.length).toBe(26);
-    // v5 added TOOL_DEF_SECRET_EXFIL as an advisory pair rule.
-    expect(rs.rules.filter((r) => r.tier === "block").length).toBe(15);
+    expect(rs.rules.length).toBe(32);
+    // v5 added TOOL_DEF_SECRET_EXFIL as an advisory pair rule; v9 added six blocking rules.
+    expect(rs.rules.filter((r) => r.tier === "block").length).toBe(21);
     expect(rs.rules.filter((r) => r.tier === "advise").length).toBe(11);
     // A rule's guards are part of the table, so the digest changes when a guard
     // is added even if every regex stays byte-identical. v5 added the navigation
     // and autonomy guards and the secret-exfil pair guard.
-    expect(rs.rules.filter((r) => r.guards.length > 0).length).toBe(15);
+    expect(rs.rules.filter((r) => r.guards.length > 0).length).toBe(21);
     // v3: every rule declares its surfaces, and the tool name is scanned by the
     // phrase and hidden-payload rules but by none of the noun-keyed ones.
     expect(rs.rules.every((r) => r.surfaces.includes("description") && r.surfaces.includes("inputSchema"))).toBe(true);
-    expect(rs.rules.filter((r) => r.surfaces.includes("name")).length).toBe(17);
+    expect(rs.rules.filter((r) => r.surfaces.includes("name")).length).toBe(23);
     const nounCodes = new Set(
       rs.rules.filter((r) => !r.surfaces.includes("name")).map((r) => r.code),
     );

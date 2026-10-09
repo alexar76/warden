@@ -1,0 +1,81 @@
+name: WARDEN MCP firewall scan
+description: Vet the MCP servers a repository configures before a model sees their tools. SARIF for code scanning, and a lock file that turns tool-definition changes into a reviewable diff.
+author: AICOM (alexar76)
+branding:
+  icon: shield
+  color: blue
+
+inputs:
+  config:
+    description: Client config files to scan, one per line. Empty means .mcp.json, .cursor/mcp.json and .vscode/mcp.json in working-directory.
+    required: false
+    default: ''
+  working-directory:
+    description: Directory the configs and the lock are relative to.
+    required: false
+    default: '.'
+  lock:
+    description: Lock file with reviewed tool definitions (warden-mcp scan --lock FILE --update-lock). Used when it exists; then a server missing from it, or advertising different tools, fails the check.
+    required: false
+    default: warden.lock.json
+  launch-stdio:
+    description: Start stdio servers to read their tools. Off by default, because on a pull request that runs a program the pull request chose. Off, stdio servers get their launch line vetted and compared with the lock.
+    required: false
+    default: 'false'
+  public-only:
+    description: Refuse remote servers that resolve to loopback, private, link-local or cloud-metadata addresses.
+    required: false
+    default: 'true'
+  fail-on:
+    description: Severity that blocks a server and fails the step (info, low, medium, high, critical).
+    required: false
+    default: high
+  histor:
+    description: Ask the public HISTOR log whether each remote server serves this runner the tool set it serves everyone. Sends the endpoint and a digest, never tool text.
+    required: false
+    default: 'false'
+  sarif:
+    description: Where to write SARIF 2.1.0. Empty to skip.
+    required: false
+    default: warden.sarif
+  upload-sarif:
+    description: 'Upload the SARIF to GitHub code scanning. Needs `security-events: write` permission in the workflow.'
+    required: false
+    default: 'false'
+  version:
+    description: '@aimarket/warden version to run.'
+    required: false
+    default: 0.9.0
+
+outputs:
+  blocked:
+    description: Number of servers WARDEN blocked.
+    value: ${{ steps.scan.outputs.blocked }}
+  servers:
+    description: Number of servers found in the configs.
+    value: ${{ steps.scan.outputs.servers }}
+  sarif:
+    description: Path of the SARIF file, when one was written.
+    value: ${{ steps.scan.outputs.sarif }}
+
+runs:
+  using: composite
+  steps:
+    - id: scan
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        WARDEN_VERSION: ${{ inputs.version }}
+        WARDEN_CONFIG: ${{ inputs.config }}
+        WARDEN_LOCK: ${{ inputs.lock }}
+        WARDEN_LAUNCH_STDIO: ${{ inputs.launch-stdio }}
+        WARDEN_PUBLIC_ONLY: ${{ inputs.public-only }}
+        WARDEN_FAIL_ON: ${{ inputs.fail-on }}
+        WARDEN_HISTOR: ${{ inputs.histor }}
+        WARDEN_SARIF: ${{ inputs.sarif }}
+      run: bash "$GITHUB_ACTION_PATH/action/run.sh"
+    - if: ${{ always() && inputs.upload-sarif == 'true' && steps.scan.outputs.sarif != '' }}
+      uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d  # v4.38.3
+      with:
+        sarif_file: ${{ steps.scan.outputs.sarif }}
+        category: warden

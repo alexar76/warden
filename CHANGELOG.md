@@ -1,6 +1,22 @@
 # Changelog
 
-## 0.8.2 — unreleased
+## 0.9.0 — unreleased
+
+`scan`: vet the servers your MCP clients start, without changing how they start; and ruleset v9.
+
+- **Ruleset v9** (`sha256-nC+ybcePE8AWwVn5rnMvkm4lPGTezj2sDnkxYG24wek=`, 32 rules, 21 block / 11 advise, 23 cover the name). Six blocking rules from a comparison with two other scanners on attack sets: a phrase or a mailbox in "send … to <address>" (the object must name the user's data; RFC 2606 placeholder hosts and refusals are left alone); `bcc <mailbox>`; the conversation itself sent out, only when the same clause moves it and an outside address, a credential or a concealment cue goes with it; concealment whose target is the tool's own behaviour ("do not tell the user about this / that this tool", "do not mention that you"); a recursive delete of `~` or `/`. The harvest rule's window now crosses the dots of a path (`read ~/.aws/credentials`) and names `~/.kube/config`, `application_default_credentials`, `.docker/config.json`, `.git-credentials`, `.netrc`, `.pgpass`, `.npmrc`, `.pypirc`. A tool name is also read as the words it spells (`ignore_previous_instructions`). On the committed corpus v9 blocks the same 3 servers as v8 and 1 of the 41 carry-over servers; an early draft blocked four more, and those sentences are regression tests in `test/ruleset-v9.test.ts`.
+
+- **`warden-mcp scan`** reads the MCP configs of Claude Code (`.mcp.json`, `~/.claude.json`), Claude Desktop, Cursor, VS Code (JSONC) and Windsurf, connects to every server they start (stdio, streamable HTTP, legacy HTTP+SSE), lists every page of tools, and runs the gate chain on them and on `initialize.instructions`. It never calls a tool. A table, `--json`, `--json-file`, `--sarif` (2.1.0, blocking findings only, located at the server's line) and `--markdown`. Exit 0 / 1 (blocked; or `--fail-on-error` and unchecked) / 2 (usage). Disabled entries, `${input:…}` entries and entries without command or url are listed as skipped. A server started through `wrap` is scanned behind the wrapper under `wrap`'s own pin id; `scan` reads those pins and never writes any.
+- **`--no-launch`** vets stdio launch lines without starting anything; **`--public-only`** refuses remote servers that resolve to loopback, private, link-local, CGNAT or metadata addresses, checked on the address actually dialled; redirects are not followed; responses are bounded.
+- **Lock file** (`--lock warden.lock.json`, `--update-lock`): reviewed launch identity and full tool definitions per server, sorted and stable so re-running changes nothing. Blocks `LOCK_MISSING`, `SERVER_IDENTITY_DRIFT` and `TOOL_DEF_DRIFT`, and the Markdown report shows the change as a diff. `--update-lock` refuses to record a server WARDEN blocks and keeps the reviewed entry.
+- **`--histor`** asks the HISTOR transparency log whether each remote server served this machine the tool set it serves everyone. Sends the endpoint (scheme, host, path; no query, no credentials) and the MTL/1 digest only; never tool text, headers or stdio servers; skips private hosts and key-shaped paths. Advisory `HISTOR_UNSEEN_TOOLSET` / `HISTOR_OLDER_TOOLSET`; never blocks. The MTL/1 digest is checked against HISTOR's own implementation (`test/fixtures/mtl-vectors.json`).
+- Credentials in launch lines and URLs are shown as `***`; untrusted names and descriptions are escaped in the table and cannot leave their code spans and blocks in Markdown.
+- **GitHub Action** (`action.yml`, `uses: alexar76/warden@v0.9.0`): project configs, stdio not started by default, `--public-only` by default, lock when present, job summary, outputs `blocked` / `servers` / `sarif`, optional SARIF upload. Inputs reach the script as environment variables only.
+- **pre-commit** (`.pre-commit-hooks.yaml`): `warden-scan` (changed configs, no launch) and `warden-lock` (the project matches `warden.lock.json`). They run the published package through `npx`; npm cannot build a TypeScript git dependency installed globally.
+- **Claude Code plugin** (`claude-plugin/`, marketplace in `.claude-plugin/marketplace.json`): `SessionStart` scans the project's servers and tells the user and the model which are blocked, by name and code only; `PreToolUse` on `mcp__.*` denies calls to blocked servers and tools from a small verdict file, with a dependency-free script whose decisions are tested against the package's. `/warden:scan` skill. `warden-mcp hook session-start|pre-tool-use` are the same hooks as CLI commands.
+- `wrap` and `scan` share one `tools/list` collector (`src/tool-list.ts`). `prepare` builds `dist/`.
+
+## 0.8.2 — 2026-10-02
 
 Security fixes for the stdio proxy and ruleset v8. Upgrade from 0.8.1.
 
