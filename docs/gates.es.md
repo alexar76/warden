@@ -50,8 +50,8 @@ defecto; expresarlo bajando su severidad la volvía bloqueante para quien endure
 
 Escaneo local con regex sobre cada campo que anuncia una herramienta: su `name`, `description` e
 `inputSchema`, y desde v6 su `title`, `outputSchema`, `annotations` y metadatos de extensión (todo lo
-demás que envió el servidor, salvo un icono de imagen en base64). 32 reglas en el conjunto **v9**: 21
-`block`, 11 `advise`, y 21 de ellas llevan un **guard** de contexto:
+demás que envió el servidor, salvo un icono de imagen en base64). 35 reglas en el conjunto **v10**: 24
+`block`, 11 `advise`, y 24 de ellas llevan un **guard** de contexto:
 una comprobación con nombre que decide si una coincidencia es de verdad lo que la regla busca. Véase
 [el estudio de campo](mcp-survey.es.md), la ejecución sobre 1 108 servidores con la que se calibró v4.
 
@@ -117,8 +117,25 @@ palabras que forma, así que `ignore_previous_instructions` es la frase. Cada re
 honesta que debe dejar pasar (`test/ruleset-v9.test.ts`). Sobre el corpus versionado v9 bloquea los mismos 3
 servidores que v8, y 1 de los 41 del arrastre de agosto.
 
-Cada regla declara sobre cuál de esas siete **superficies** se ejecuta, y 23 de las 32 incluyen el
-nombre. Las cuatro que no lo hacen son las que se apoyan en un SUSTANTIVO
+**v10** está escrito contra MCPTox (Wang et al., AAAI 2026): 485 herramientas envenenadas en 45 servidores reales,
+generadas con tres plantillas de ataque. Sus servidores se dividieron en dos mitades con un hash fijo antes de
+escribir ninguna regla; las reglas salen solo de la primera mitad y la segunda es la medición
+([guía de scan](scan.es.md#cómo-se-compara)). Casi todas las herramientas de MCPTox tienen una forma: su texto se
+ata a la llamada de OTRA herramienta. El nuevo código `TOOL_DEF_CROSS_TOOL` bloquea cuando una frase nombra la
+llamada de otra herramienta («when using `X`», «before running `X`», «any query to `X`», «before any …») y en la
+misma frase reescribe su entrada (modify, replace, append …), o en esa frase o la siguiente ordena llamar antes a
+una tercera; y cuando una herramienta sin entrada solo ordena llamar a otra. El ancla es el identificador de la
+otra herramienta, que se escribe igual en todos los idiomas. El nombre y los parámetros propios de la herramienta
+nunca cuentan como otra herramienta, así que «use `get_video` to check status before calling this tool» y «call
+`refresh` first, then this tool» pasan: nombran una herramienta como medio. Los guards reciben ahora la
+herramienta, y así una regla conoce sus propios identificadores. v10 también bloquea una definición que reclama
+prioridad sobre el usuario. En la mitad reservada v10 bloquea 171 de 218 herramientas envenenadas, donde 0.8.2
+bloqueaba 26; no bloquea ninguno de los 45 servidores limpios de MCPTox, y en el corpus versionado bloquea los
+mismos 3 servidores y 1 de los 41 del arrastre. Sus dos reglas entre herramientas no se ejecutan sobre el nombre:
+leen una frase sobre la llamada de otra herramienta. Pruebas: `test/ruleset-v10.test.ts`.
+
+Cada regla declara sobre cuál de esas siete **superficies** se ejecuta, y 24 de las 35 incluyen el
+nombre. Cuatro de los códigos que no lo hacen son los que se apoyan en un SUSTANTIVO
 (`TOOL_DEF_SECRET_REQUEST`, `TOOL_DEF_CREDENTIAL_PARAM`, `TOOL_DEF_ENV_REFERENCE`, `TOOL_DEF_SECRET_EXFIL`): un nombre es un
 identificador, `api_key` y `private_key` son partes ordinarias de uno, y rechazar
 `sign_with_private_key` sería cometer el error de calibración de v1 en una superficie nueva. Las
@@ -138,10 +155,11 @@ afectan.
 
 | Código | Severidad | Nivel | ¿Nombre? | Qué detecta |
 |---|---|---|---|---|
-| `TOOL_DEF_INJECTION` | critical / high | block | ✅ | «ignore all previous instructions», ocultación del comportamiento de la propia herramienta («do not tell the user about this»), etiquetas `<system>`, borrado recursivo de `~` o `/`, referencias al prompt del desarrollador |
+| `TOOL_DEF_INJECTION` | critical / high | block | ✅ | «ignore all previous instructions», ocultación del comportamiento de la propia herramienta («do not tell the user about this»), etiquetas `<system>`, una pretensión de prioridad sobre el usuario, borrado recursivo de `~` o `/`, referencias al prompt del desarrollador |
 | `TOOL_DEF_SECRET_REQUEST` | critical | block | — | `private_key`, `seed_phrase`/`mnemonic`, rutas `~/.ssh` |
 | `TOOL_DEF_SECRET_HARVEST` | critical | block | ✅ | una herramienta cuyo cometido declarado es leer/volcar/revelar secretos, también desde `~/.aws/credentials`, `~/.kube/config` y otros almacenes de credenciales |
 | `TOOL_DEF_EXFIL` | critical / high | block | ✅ | «post to https://…», «send a copy of all messages to <buzón>», `bcc <buzón>`, la conversación enviada con una dirección, credencial u ocultación, «exfiltrate», fraseo de subida a un host |
+| `TOOL_DEF_CROSS_TOOL` | high | block | — | el texto de una herramienta se ata a la llamada de otra para reescribir su entrada o adelantarse con una tercera; una herramienta sin entrada que solo ordena otra llamada |
 | `TOOL_DEF_HIDDEN_UNICODE` | high | block | ✅ | caracteres de ancho cero y de control bidi — texto que el revisor no ve |
 | `TOOL_DEF_BASE64_BLOB` | high | block | ✅ | una tirada base64 de 120+ caracteres en un nombre, una descripción o un esquema |
 | `TOOL_DEF_DATA_URL` | high | block | ✅ | URLs `data:…;base64,` y `javascript:` |

@@ -22,3 +22,5 @@ It also adds the skill `/warden:scan`, which runs the scan and explains the resu
 - The first session downloads `@aimarket/warden` through `npx`; later sessions use the npm cache.
 
 Environment: `WARDEN_STATE_DIR` (where verdicts live), `WARDEN_HOOK_TIMEOUT_MS` (per server, default 20000), `WARDEN_HOOK_STRICT`, `WARDEN_HOOK_NO_LAUNCH`.
+
+Opt-in classifier: set `WARDEN_CLASSIFIER_URL` (an OpenAI-compatible endpoint, for example a local Ollama at `http://localhost:11434/v1`) and `WARDEN_CLASSIFIER_MODEL`; a key, if needed, in `WARDEN_CLASSIFIER_API_KEY`. Tool definitions are then sent to that endpoint at session start. Its verdicts are advisory unless `WARDEN_CLASSIFIER_BLOCKS=1`. See [the scan guide](../docs/scan.md#the-optional-classifier).

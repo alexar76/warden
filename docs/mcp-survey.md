@@ -433,6 +433,12 @@ committed corpus v9 blocks the same **3** servers and **1** of the 41 carry-over
 `node remeasure.mjs <corpus> --local ../../../dist` reproduces this from a build of the source until
 0.9.0 is on the registry.
 
+**Ruleset v10, which 0.9.0 ships, adds three blocking rules and still blocks the same 3 servers here,
+and 1 of the 41 carry-over servers.** They cover one tool's text binding to another tool's call (to
+rewrite its input or pre-empt it with a third call) and a claim to outrank the user. They were written
+from half of the MCPTox benchmark's servers and measured on the other half; see the
+[scan guide](scan.md#how-it-compares).
+
 ### What still fires, and why we left it
 
 Two of August's six remaining blocks were ours (on 2026-10-01 the first answers `404`, the second

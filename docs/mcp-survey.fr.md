@@ -442,6 +442,12 @@ lit son propre fil — et ces phrases sont désormais des tests de régression. 
 bloque les **3** mêmes serveurs et **1** des 41 serveurs reportés. `node remeasure.mjs <corpus> --local
 ../../../dist` le reproduit à partir d'une compilation des sources tant que 0.9.0 n'est pas sur le registre.
 
+**Le ruleset v10, livré avec 0.9.0, ajoute trois règles bloquantes et bloque toujours ici les 3 mêmes
+serveurs, et 1 des 41 serveurs reportés.** Elles couvrent le texte d'un outil attaché à l'appel d'un autre
+(pour réécrire son entrée ou le devancer par un troisième appel) et une revendication de priorité sur
+l'utilisateur. Elles ont été écrites à partir de la moitié des serveurs du benchmark MCPTox et mesurées
+sur l'autre moitié ; voir le [guide de scan](scan.fr.md#comparaison).
+
 ### Ce qui se déclenche encore, et pourquoi nous l'avons laissé
 
 Deux des six blocages restants d'août étaient les nôtres (le 2026-10-01 le premier répond `404`, le

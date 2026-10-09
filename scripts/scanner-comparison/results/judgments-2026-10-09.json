@@ -138,5 +138,85 @@
  "ai.borealhost/mcp": {
   "verdict": "false-positive",
   "why": "A hosting tool that appends the user's SSH public key to authorized_keys — public key material, its stated job."
+ },
+ "ai.clearvoyance/clearvoyance": {
+  "verdict": "false-positive",
+  "why": "\"returns its API key ONCE — store it\", \"no password\", \"instead of\": describes the key it issues."
+ },
+ "ai.foura/mcp": {
+  "verdict": "false-positive",
+  "why": "\"One FourA API key authenticates every call\", \"instead of\": describes its own authentication."
+ },
+ "ai.getvda/authenticated-llm-traced-agent": {
+  "verdict": "false-positive",
+  "why": "\"verify a Google ID token\": describes its own OAuth check."
+ },
+ "ai.getvda/oauth-langchain-openai-agent": {
+  "verdict": "false-positive",
+  "why": "\"verify a Google ID token\": describes its own OAuth check."
+ },
+ "ai.router/ai-gateway": {
+  "verdict": "false-positive",
+  "why": "An ellipsis (\"Claude / GPT / Gemini / ...\") read as path traversal."
+ },
+ "ai.scoreia/forge": {
+  "verdict": "false-positive",
+  "why": "An ellipsis (\"...\") read as path traversal."
+ },
+ "ai.signal8/mcp": {
+  "verdict": "false-positive",
+  "why": "An ellipsis in a list of halt codes read as path traversal."
+ },
+ "ai.vetaid/vetaid": {
+  "verdict": "false-positive",
+  "why": "\"Bearer vak_...\" in its own auth instructions, read as path traversal."
+ },
+ "ai.weio/site-check": {
+  "verdict": "false-positive",
+  "why": "\"(WordPress, Wix, Squarespace, Shopify...)\" read as path traversal."
+ },
+ "app.divekit/mcp": {
+  "verdict": "false-positive",
+  "why": "An example URL ending in \"...\" read as path traversal."
+ },
+ "app.goshipyard/shipyard": {
+  "verdict": "false-positive",
+  "why": "\"needs an API key\": describes its own authentication."
+ },
+ "app.nausika/mcp": {
+  "verdict": "false-positive",
+  "why": "\"legs=[{...}]\" in an example read as path traversal."
+ },
+ "app.neotic.www/neotic": {
+  "verdict": "false-positive",
+  "why": "\"{...}\" in schema examples read as path traversal."
+ },
+ "app.netlify.gleaming-cassata-d41682/lion-mcp": {
+  "verdict": "false-positive",
+  "why": "\"no API key\", \"token (0x address)\": describes public data and token addresses."
+ },
+ "app.vercel.slopcheck-one/slopcheck": {
+  "verdict": "false-positive",
+  "why": "\"a bare UC... channel ID\" read as path traversal."
+ },
+ "build.exascale/osint": {
+  "verdict": "false-positive",
+  "why": "\"type_1..3\" ranges and \"token string\" (a study-phase code) read as traversal and secret access."
+ },
+ "cc.ticktape/mcp": {
+  "verdict": "false-positive",
+  "why": "\"bearer token\" pricing option and a market \"token_id\"."
+ },
+ "cl.alfabot/mcp-server": {
+  "verdict": "false-positive",
+  "why": "\"Authorization: Bearer <token>\" in its own auth instructions; a \"notes\" parameter."
+ },
+ "cloud.fetcher/fetcher": {
+  "verdict": "false-positive",
+  "why": "\"(YouTube, Vimeo, X, Spotify...)\" read as path traversal."
+ },
+ "cn.one1/trademark": {
+  "verdict": "false-positive",
+  "why": "\"results:[...]\" in a return-shape description read as path traversal."
  }
 }

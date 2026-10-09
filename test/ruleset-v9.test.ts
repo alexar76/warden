@@ -65,12 +65,3 @@ describe('ruleset v9: what it leaves alone', () => {
     expect(await blocks({ name: 'send_to_slack', description: 'Posts a message to a Slack channel.' })).toEqual([]);
   });
 });
-
-describe('ruleset v9: identity', () => {
-  it('is version 9 with 32 rules, 21 of them blocking', () => {
-    const rs = staticScanRuleset();
-    expect(rs.version).toBe('9');
-    expect(rs.rules.length).toBe(32);
-    expect(rs.rules.filter(r => r.tier === 'block').length).toBe(21);
-  });
-});

@@ -34,6 +34,18 @@ inputs:
     description: Ask the public HISTOR log whether each remote server serves this runner the tool set it serves everyone. Sends the endpoint and a digest, never tool text.
     required: false
     default: 'false'
+  classifier-url:
+    description: 'Opt-in: an OpenAI-compatible endpoint (a hosted API, or a model server in your network) asked whether each tool directs the model. Tool definitions are sent to it. Put any key in the WARDEN_CLASSIFIER_API_KEY environment variable from a secret.'
+    required: false
+    default: ''
+  classifier-model:
+    description: Model name for classifier-url.
+    required: false
+    default: ''
+  classifier-blocks:
+    description: Let the classifier's verdicts block like a rule instead of reporting them.
+    required: false
+    default: 'false'
   sarif:
     description: Where to write SARIF 2.1.0. Empty to skip.
     required: false
@@ -73,6 +85,9 @@ runs:
         WARDEN_FAIL_ON: ${{ inputs.fail-on }}
         WARDEN_HISTOR: ${{ inputs.histor }}
         WARDEN_SARIF: ${{ inputs.sarif }}
+        WARDEN_CLASSIFIER_URL_INPUT: ${{ inputs.classifier-url }}
+        WARDEN_CLASSIFIER_MODEL_INPUT: ${{ inputs.classifier-model }}
+        WARDEN_CLASSIFIER_BLOCKS: ${{ inputs.classifier-blocks }}
       run: bash "$GITHUB_ACTION_PATH/action/run.sh"
     - if: ${{ always() && inputs.upload-sarif == 'true' && steps.scan.outputs.sarif != '' }}
       uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d  # v4.38.3

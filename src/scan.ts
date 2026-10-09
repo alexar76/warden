@@ -9,6 +9,7 @@ import { discoverServers, CLIENT_KINDS, type ClientKind, type ConfiguredServer, 
 import { fetchServer, McpClientError, type FetchedServer } from './mcp-client.js';
 import { mtlToolSetDigest, MtlError } from './mtl.js';
 import { historCheck, DEFAULT_HISTOR_URL, type HistorCheck } from './histor.js';
+import { classifyTools, ClassifierError, type ClassifierOptions } from './classifier.js';
 import { LockStore, readLock, writeLock, lockEntryFor, diffTools, LOCK_VERSION, type LockEntry, type LockFile, type ToolChange } from './scan-lock.js';
 import type { PinStore, Severity, ToolDef, WardenFinding, WardenPolicy, WardenVerdict, RulesetRef } from './types.js';
 
@@ -31,6 +32,8 @@ export interface ScanOptions {
   feedKey?: string;
   histor: boolean;
   historUrl: string;
+  /** Opt-in meaning-based check; absent unless both --classifier-url and --classifier-model are given. */
+  classifier?: ClassifierOptions & { blocks: boolean };
   format: 'table' | 'json';
   sarif?: string;
   markdown?: string;
@@ -75,6 +78,7 @@ export interface ScanServerResult {
   mtlDigest?: string;
   mtlError?: string;
   histor?: HistorSummary;
+  classifier?: { model: string; flagged: number; error?: string };
   lock?: { state: 'match' | 'drift' | 'missing' | 'updated' | 'unchanged' | 'refused'; changes?: ToolChange[] };
   /** The fetched definitions; kept for the Markdown diff and --update-lock, not printed in JSON. */
   tools?: ToolDef[];
@@ -124,6 +128,11 @@ Verdicts
   --histor               ask the HISTOR log whether remote servers serve you what they serve everyone
                          (sends the endpoint without query or credentials, and a digest; never tool text)
   --histor-url URL       default ${DEFAULT_HISTOR_URL}
+  --classifier-url URL --classifier-model NAME
+                         also ask a model you choose (OpenAI-compatible: Ollama, vLLM, a hosted API)
+                         whether each tool's text directs the model. Sends tool definitions to that URL.
+                         Key, if any, from WARDEN_CLASSIFIER_API_KEY. Advisory unless --classifier-blocks.
+  --classifier-blocks    let the classifier's high/medium verdicts block like a rule
 
 Output
   --json                 JSON report on stdout instead of a table
@@ -140,6 +149,7 @@ export async function parseScanArgs(argv: string[], env: NodeJS.ProcessEnv = pro
     format: 'table', failOnError: false, color: !!process.stdout.isTTY && !env.NO_COLOR,
   };
   let failOn: Severity | undefined, policyFile: string | undefined;
+  let classifierUrl: string | undefined, classifierModel: string | undefined, classifierBlocks = false;
   const clients: ClientKind[] = [];
   const value = (flag: string) => {
     const v = argv.shift();
@@ -182,6 +192,9 @@ export async function parseScanArgs(argv: string[], env: NodeJS.ProcessEnv = pro
       case '--feed-key': opts.feedKey = value(arg); break;
       case '--histor': opts.histor = true; break;
       case '--histor-url': opts.historUrl = value(arg); opts.histor = true; break;
+      case '--classifier-url': classifierUrl = value(arg); break;
+      case '--classifier-model': classifierModel = value(arg); break;
+      case '--classifier-blocks': classifierBlocks = true; break;
       case '--json': opts.format = 'json'; break;
       case '--sarif': opts.sarif = resolve(value(arg)); break;
       case '--markdown': opts.markdown = resolve(value(arg)); break;
@@ -204,6 +217,14 @@ export async function parseScanArgs(argv: string[], env: NodeJS.ProcessEnv = pro
     opts.policy = asPolicy(raw);
   }
   if (failOn) opts.policy = { ...opts.policy, blockAtSeverity: failOn };
+  if (!!classifierUrl !== !!classifierModel) throw new Error('--classifier-url and --classifier-model go together');
+  if (classifierBlocks && !classifierUrl) throw new Error('--classifier-blocks needs --classifier-url and --classifier-model');
+  if (classifierUrl && classifierModel) {
+    const cu = new URL(classifierUrl);
+    if (cu.protocol !== 'https:' && cu.protocol !== 'http:') throw new Error('--classifier-url must be http(s)');
+    if (cu.username || cu.password) throw new Error('--classifier-url must not carry credentials; use WARDEN_CLASSIFIER_API_KEY');
+    opts.classifier = { url: classifierUrl, model: classifierModel, apiKey: env.WARDEN_CLASSIFIER_API_KEY || undefined, blocks: classifierBlocks };
+  }
   const u = new URL(opts.historUrl);
   if (u.protocol !== 'https:' && u.protocol !== 'http:') throw new Error('--histor-url must be http(s)');
   return opts;
@@ -382,7 +403,37 @@ export async function runScan(opts: ScanOptions, deps: ScanDeps = {}): Promise<S
             message: `HISTOR has never observed the tool set this server served you (${mtlDigest}). Either it changed after the last crawl, or it serves you something it does not serve the public crawler.` });
           if (answer.match === 'previously-observed') findings.push({ gate: 'histor', severity: 'low', code: 'HISTOR_OLDER_TOOLSET', advisory: true,
             message: 'HISTOR observed this tool set earlier, but the server now serves the public a different one.' });
+          // The log's own classifier verdict on the set you were served, when it holds one: advisory, never a block.
+          const cls = answer.classifier as { status?: unknown; model?: unknown; findings?: unknown } | undefined;
+          if (answer.match === 'same' && cls && cls.status === 'classified' && Array.isArray(cls.findings)) {
+            for (const f of cls.findings.slice(0, 50) as Array<Record<string, unknown>>) {
+              const cats = Array.isArray(f.categories) ? f.categories.filter((c): c is string => typeof c === 'string').slice(0, 4) : [];
+              if (!cats.length || typeof f.tool !== 'string') continue;
+              findings.push({ gate: 'histor', severity: 'medium', code: 'HISTOR_CLASSIFIER', advisory: true, tool: f.tool,
+                message: `HISTOR's classifier (${displaySafe(String(cls.model ?? 'model'), 60)}) reads this tool as ${cats.map(c => displaySafe(c, 30)).join(', ')}: ${displaySafe(String(f.reason ?? ''), 300)}` });
+            }
+          }
         } catch (err) { histor = { error: displaySafe(err instanceof Error ? err.message : String(err), 200) }; }
+      }
+    }
+
+    let classifier: ScanServerResult['classifier'];
+    if (opts.classifier && fetched.tools.length) {
+      try {
+        const verdicts = await classifyTools(fetched.tools, opts.classifier);
+        classifier = { model: opts.classifier.model, flagged: verdicts.length };
+        for (const v of verdicts) {
+          const f: WardenFinding = { gate: 'classifier', code: 'TOOL_DEF_CLASSIFIER', severity: v.severity, tool: v.tool,
+            message: `Model ${displaySafe(opts.classifier.model, 60)} reads this tool as ${v.categories.join(', ')}: ${displaySafe(v.reason, 300)} — at "${displaySafe(v.quote, 200)}"` };
+          if (!opts.classifier.blocks) f.advisory = true;
+          findings.push(f);
+          if (opts.classifier.blocks && blocking(f, opts.policy)) {
+            if (allow) decidedBy = 'classifier';
+            allow = false;
+          }
+        }
+      } catch (err) {
+        classifier = { model: opts.classifier.model, flagged: 0, error: displaySafe(err instanceof ClassifierError ? err.message : String(err), 200) };
       }
     }
 
@@ -395,7 +446,8 @@ export async function runScan(opts: ScanOptions, deps: ScanDeps = {}): Promise<S
 
     return { ...base, status: 'scanned', allow, decidedBy: allow ? undefined : decidedBy, score, findings,
       allowedTools: verdict.allowedTools, blockedTools: verdict.blockedTools, toolCount: fetched.tools.length,
-      serverInfo: fetched.serverInfo, mtlDigest, mtlError, histor, lock, tools: fetched.tools };
+      serverInfo: fetched.serverInfo, mtlDigest, mtlError, histor, classifier, lock, tools: fetched.tools,
+      ...(classifier && opts.classifier?.blocks ? { blockedTools: [...new Set([...verdict.blockedTools, ...findings.filter(f => f.gate === 'classifier' && !f.advisory && blocking(f, opts.policy)).map(f => f.tool!)])] } : {}) };
   });
 
   let lockSummary: ScanReport['lock'];

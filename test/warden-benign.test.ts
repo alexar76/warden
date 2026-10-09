@@ -252,31 +252,33 @@ describe("exfil detection is anchored on an external destination", () => {
 describe("ruleset is versioned and digestible", () => {
   it("exposes a stable digest over the rule table", () => {
     const rs = staticScanRuleset();
-    expect(rs.version).toBe("9");
+    expect(rs.version).toBe("10");
     // If this fails you changed a rule: bump STATIC_SCAN_RULESET_VERSION and
     // update the value here. A scan result is only comparable within one digest.
-    expect(rs.digest).toBe("sha256-nC+ybcePE8AWwVn5rnMvkm4lPGTezj2sDnkxYG24wek=");
+    expect(rs.digest).toBe("sha256-lJuKKKV5mtruN5D+K3X1OK89u6KLXF//oS1NpmhZRuI=");
     // The fold is part of the ruleset identity: the same regexes over folded and
     // unfolded text are different scans, so the digest covers it too.
     expect(rs.fold).toBe("nfkc+tags-decoded+invisible-stripped+mixed-script-confusables/1");
     expect(rs.rules.every((r) => typeof r.raw === "boolean")).toBe(true);
-    expect(rs.rules.length).toBe(32);
-    // v5 added TOOL_DEF_SECRET_EXFIL as an advisory pair rule; v9 added six blocking rules.
-    expect(rs.rules.filter((r) => r.tier === "block").length).toBe(21);
+    expect(rs.rules.length).toBe(35);
+    // v5 added TOOL_DEF_SECRET_EXFIL as an advisory pair rule; v9 added six blocking rules, v10 three.
+    expect(rs.rules.filter((r) => r.tier === "block").length).toBe(24);
     expect(rs.rules.filter((r) => r.tier === "advise").length).toBe(11);
     // A rule's guards are part of the table, so the digest changes when a guard
     // is added even if every regex stays byte-identical. v5 added the navigation
     // and autonomy guards and the secret-exfil pair guard.
-    expect(rs.rules.filter((r) => r.guards.length > 0).length).toBe(21);
+    expect(rs.rules.filter((r) => r.guards.length > 0).length).toBe(24);
     // v3: every rule declares its surfaces, and the tool name is scanned by the
     // phrase and hidden-payload rules but by none of the noun-keyed ones.
     expect(rs.rules.every((r) => r.surfaces.includes("description") && r.surfaces.includes("inputSchema"))).toBe(true);
-    expect(rs.rules.filter((r) => r.surfaces.includes("name")).length).toBe(23);
+    expect(rs.rules.filter((r) => r.surfaces.includes("name")).length).toBe(24);
     const nounCodes = new Set(
       rs.rules.filter((r) => !r.surfaces.includes("name")).map((r) => r.code),
     );
+    // v10's cross-tool rules read a sentence about another tool's call, which a name never is.
     expect([...nounCodes].sort()).toEqual([
       "TOOL_DEF_CREDENTIAL_PARAM",
+      "TOOL_DEF_CROSS_TOOL",
       "TOOL_DEF_ENV_REFERENCE",
       "TOOL_DEF_SECRET_EXFIL",
       "TOOL_DEF_SECRET_REQUEST",

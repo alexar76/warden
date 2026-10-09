@@ -1,0 +1,2859 @@
+{
+ "summary": {
+  "labelled": {
+   "mcp-audit": {
+    "attacks": 23,
+    "attacks_blocked": 10,
+    "attacks_flagged": 10,
+    "others": 12,
+    "others_blocked": 1,
+    "others_flagged": 2
+   },
+   "mcp-shield": {
+    "attacks": 23,
+    "attacks_blocked": 6,
+    "attacks_flagged": 10,
+    "others": 12,
+    "others_blocked": 1,
+    "others_flagged": 2
+   },
+   "warden-0.8.2": {
+    "attacks": 23,
+    "attacks_blocked": 14,
+    "attacks_flagged": 18,
+    "others": 12,
+    "others_blocked": 0,
+    "others_flagged": 3
+   },
+   "warden-0.9.0": {
+    "attacks": 23,
+    "attacks_blocked": 20,
+    "attacks_flagged": 23,
+    "others": 12,
+    "others_blocked": 0,
+    "others_flagged": 3
+   }
+  },
+  "independent": {
+   "mcp-audit": {
+    "attacks": 10,
+    "attacks_blocked": 10,
+    "attacks_flagged": 10,
+    "others": 2,
+    "others_blocked": 0,
+    "others_flagged": 0
+   },
+   "mcp-shield": {
+    "attacks": 10,
+    "attacks_blocked": 8,
+    "attacks_flagged": 9,
+    "others": 2,
+    "others_blocked": 0,
+    "others_flagged": 1
+   },
+   "warden-0.8.2": {
+    "attacks": 10,
+    "attacks_blocked": 7,
+    "attacks_flagged": 9,
+    "others": 2,
+    "others_blocked": 0,
+    "others_flagged": 0
+   },
+   "warden-0.9.0": {
+    "attacks": 10,
+    "attacks_blocked": 10,
+    "attacks_flagged": 10,
+    "others": 2,
+    "others_blocked": 0,
+    "others_flagged": 0
+   }
+  },
+  "corpus": {
+   "mcp-audit": {
+    "servers": 986,
+    "checked": 986,
+    "blocked": 33,
+    "flagged": 122,
+    "blocked_by_judgment": {
+     "false-positive": 33
+    }
+   },
+   "mcp-shield": {
+    "servers": 986,
+    "checked": 986,
+    "blocked": 343,
+    "flagged": 451,
+    "blocked_by_judgment": {
+     "unjudged": 309,
+     "false-positive": 33,
+     "holds-up": 1
+    }
+   },
+   "warden-0.8.2": {
+    "servers": 986,
+    "checked": 986,
+    "blocked": 3,
+    "flagged": 388,
+    "blocked_by_judgment": {
+     "arguable": 1,
+     "holds-up": 1,
+     "false-positive": 1
+    }
+   },
+   "warden-0.9.0": {
+    "servers": 986,
+    "checked": 986,
+    "blocked": 3,
+    "flagged": 388,
+    "blocked_by_judgment": {
+     "arguable": 1,
+     "holds-up": 1,
+     "false-positive": 1
+    }
+   }
+  }
+ },
+ "detail": {
+  "labelled": {
+   "A01-important-tag": {
+    "label": "attack",
+    "mcp-audit": "block",
+    "mcp-shield": "block",
+    "warden-0.8.2": "block",
+    "warden-0.9.0": "block"
+   },
+   "A02-ssh-into-param": {
+    "label": "attack",
+    "mcp-audit": "block",
+    "mcp-shield": "block",
+    "warden-0.8.2": "block",
+    "warden-0.9.0": "block"
+   },
+   "A03-shadowing-bcc": {
+    "label": "attack",
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "block"
+   },
+   "A04-zero-width-hidden": {
+    "label": "attack",
+    "mcp-audit": "block",
+    "mcp-shield": "-",
+    "warden-0.8.2": "block",
+    "warden-0.9.0": "block"
+   },
+   "A05-unicode-tags": {
+    "label": "attack",
+    "mcp-audit": "block",
+    "mcp-shield": "-",
+    "warden-0.8.2": "block",
+    "warden-0.9.0": "block"
+   },
+   "A06-base64-payload": {
+    "label": "attack",
+    "mcp-audit": "-",
+    "mcp-shield": "-",
+    "warden-0.8.2": "block",
+    "warden-0.9.0": "block"
+   },
+   "A07-russian": {
+    "label": "attack",
+    "mcp-audit": "block",
+    "mcp-shield": "block",
+    "warden-0.8.2": "block",
+    "warden-0.9.0": "block"
+   },
+   "A08-chinese": {
+    "label": "attack",
+    "mcp-audit": "block",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "A09-paraphrase": {
+    "label": "attack",
+    "mcp-audit": "-",
+    "mcp-shield": "flag",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "A10-schema-hidden": {
+    "label": "attack",
+    "mcp-audit": "-",
+    "mcp-shield": "flag",
+    "warden-0.8.2": "block",
+    "warden-0.9.0": "block"
+   },
+   "A11-annotation-injection": {
+    "label": "attack",
+    "mcp-audit": "-",
+    "mcp-shield": "-",
+    "warden-0.8.2": "block",
+    "warden-0.9.0": "block"
+   },
+   "A12-exfil-url": {
+    "label": "attack",
+    "mcp-audit": "-",
+    "mcp-shield": "-",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "block"
+   },
+   "A13-name-injection": {
+    "label": "attack",
+    "mcp-audit": "-",
+    "mcp-shield": "-",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "block"
+   },
+   "A14-private-key-param": {
+    "label": "attack",
+    "mcp-audit": "-",
+    "mcp-shield": "-",
+    "warden-0.8.2": "block",
+    "warden-0.9.0": "block"
+   },
+   "A15-seed-phrase": {
+    "label": "attack",
+    "mcp-audit": "-",
+    "mcp-shield": "-",
+    "warden-0.8.2": "block",
+    "warden-0.9.0": "block"
+   },
+   "A16-javascript-url": {
+    "label": "attack",
+    "mcp-audit": "-",
+    "mcp-shield": "-",
+    "warden-0.8.2": "block",
+    "warden-0.9.0": "block"
+   },
+   "A17-ignore-previous": {
+    "label": "attack",
+    "mcp-audit": "block",
+    "mcp-shield": "-",
+    "warden-0.8.2": "block",
+    "warden-0.9.0": "block"
+   },
+   "A18-system-tag": {
+    "label": "attack",
+    "mcp-audit": "block",
+    "mcp-shield": "flag",
+    "warden-0.8.2": "block",
+    "warden-0.9.0": "block"
+   },
+   "A19-call-first-history": {
+    "label": "attack",
+    "mcp-audit": "-",
+    "mcp-shield": "-",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "block"
+   },
+   "A20-env-dump": {
+    "label": "attack",
+    "mcp-audit": "-",
+    "mcp-shield": "-",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "A21-destructive": {
+    "label": "attack",
+    "mcp-audit": "-",
+    "mcp-shield": "-",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "block"
+   },
+   "A22-concealment": {
+    "label": "attack",
+    "mcp-audit": "block",
+    "mcp-shield": "flag",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "block"
+   },
+   "A23-spanish": {
+    "label": "attack",
+    "mcp-audit": "block",
+    "mcp-shield": "block",
+    "warden-0.8.2": "block",
+    "warden-0.9.0": "block"
+   },
+   "B01-never-send-key": {
+    "label": "benign",
+    "mcp-audit": "-",
+    "mcp-shield": "-",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "B02-injection-scanner": {
+    "label": "benign",
+    "mcp-audit": "block",
+    "mcp-shield": "flag",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "B03-api-key-param": {
+    "label": "benign",
+    "mcp-audit": "-",
+    "mcp-shield": "-",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "B04-javascript-word": {
+    "label": "benign",
+    "mcp-audit": "-",
+    "mcp-shield": "-",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "B05-persian-zwnj": {
+    "label": "benign",
+    "mcp-audit": "flag",
+    "mcp-shield": "-",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "B06-refunds": {
+    "label": "benign",
+    "mcp-audit": "-",
+    "mcp-shield": "-",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "B07-send-email": {
+    "label": "benign",
+    "mcp-audit": "-",
+    "mcp-shield": "-",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "B08-secret-scanner": {
+    "label": "benign",
+    "mcp-audit": "-",
+    "mcp-shield": "-",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "B09-password-vault": {
+    "label": "benign",
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "B10-upload-drive": {
+    "label": "benign",
+    "mcp-audit": "-",
+    "mcp-shield": "-",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "B11-ssh-howto": {
+    "label": "benign",
+    "mcp-audit": "-",
+    "mcp-shield": "-",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "B12-translate": {
+    "label": "benign",
+    "mcp-audit": "-",
+    "mcp-shield": "-",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   }
+  },
+  "independent": {
+   "T-audit-behavioral_override_stealth": {
+    "label": "attack",
+    "mcp-audit": "block",
+    "mcp-shield": "block",
+    "warden-0.8.2": "block",
+    "warden-0.9.0": "block"
+   },
+   "T-audit-cloud_credential_exfiltration": {
+    "label": "attack",
+    "mcp-audit": "block",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "block"
+   },
+   "T-audit-crowdstrike_add_numbers": {
+    "label": "attack",
+    "mcp-audit": "block",
+    "mcp-shield": "block",
+    "warden-0.8.2": "block",
+    "warden-0.9.0": "block"
+   },
+   "T-audit-fake_postmark_exfiltration": {
+    "label": "attack",
+    "mcp-audit": "block",
+    "mcp-shield": "-",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "block"
+   },
+   "T-audit-invariant_labs_ssh_exfiltration": {
+    "label": "attack",
+    "mcp-audit": "block",
+    "mcp-shield": "block",
+    "warden-0.8.2": "block",
+    "warden-0.9.0": "block"
+   },
+   "T-audit-xml_injection_override": {
+    "label": "attack",
+    "mcp-audit": "block",
+    "mcp-shield": "block",
+    "warden-0.8.2": "block",
+    "warden-0.9.0": "block"
+   },
+   "T-shield-calculateSum": {
+    "label": "attack",
+    "mcp-audit": "block",
+    "mcp-shield": "block",
+    "warden-0.8.2": "block",
+    "warden-0.9.0": "block"
+   },
+   "T-shield-fetchWeather": {
+    "label": "ambiguous",
+    "mcp-audit": "-",
+    "mcp-shield": "flag",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "T-shield-getFactOfTheDay": {
+    "label": "attack",
+    "mcp-audit": "block",
+    "mcp-shield": "flag",
+    "warden-0.8.2": "block",
+    "warden-0.9.0": "block"
+   },
+   "T-shield-readFile": {
+    "label": "attack",
+    "mcp-audit": "block",
+    "mcp-shield": "block",
+    "warden-0.8.2": "block",
+    "warden-0.9.0": "block"
+   },
+   "T-shield-sendEmail": {
+    "label": "attack",
+    "mcp-audit": "block",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "block"
+   },
+   "T-shield-whatsapp": {
+    "label": "benign",
+    "mcp-audit": "-",
+    "mcp-shield": "-",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   }
+  },
+  "corpus": {
+   "ad.getle/leads": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.aient/mcp": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.alphacreek/alphacreek-mcp": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.aislabs/recorder": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.analyticslegends/sap-analytics": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.auteng/docs": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.autonomad/travel": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.atdev/supershopping": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.bankee/inferventis-mcp": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.bitroad/bitroad": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.borealhost/mcp": {
+    "mcp-audit": "block",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.bowmark/bowmark": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.byteask/embedded-docs": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.cerebrium/docs": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.chronary/mcp": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.clearvoyance/clearvoyance": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.cloudworldmodel/cloud-world-model": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.com.mcp/contabo": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.coldstate/knowledge": {
+    "mcp-audit": "block",
+    "mcp-shield": "-",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.contentsweep/agent-access": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.contextstudios/mcp": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.compeller/compel": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.clawfight/mcp": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.contractorsnearme/contractors-near-me": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.daishi/world": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.dataecho/mcp": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.darkfunnels/docs": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.datamerge/mcp": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.datacenterindex/datacenterindex": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.creativescope/creative-intelligence": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.deployit/product-expert": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.drillr/drillr": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.duami/intent-exchange": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.droneintelligence/drone-intelligence": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.dynamicfeed/dynamic-feed": {
+    "mcp-audit": "block",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.duvera/gateway": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.easyterritory/ezt-mcp": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.entityenricher/enricher": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.epinu/epinu": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.eykon/intelligence": {
+    "mcp-audit": "block",
+    "mcp-shield": "flag",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.facesign/facesign-mcp": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.firmbrain/x402-services": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.finestructure/fine-structure": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.flowcastle/flowcastle": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.fukushi/dictionary": {
+    "mcp-audit": "block",
+    "mcp-shield": "-",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.foura/mcp": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.geodesiclabs/governance-platform": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.genomicintelligence/genomic-intelligence": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.getvda/authenticated-llm-mcp-agent": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.getvda/authenticated-llm-traced-agent": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.getvda/elasticsearch-mongodb-redis-stack-generator-elasticsearch-elasticsearch": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.getvda/elasticsearch-redis-mysql-stack-generator": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.getvda/elasticsearch-redis-stack-generator-elasticsearch-elasticsearch": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.getvda/elasticsearch-redis-stack-generator": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.getvda/authenticated-multi-llm-agent": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.getvda/encrypted-oauth-llm-agent": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.getvda/google-oauth-credential-service": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.getvda/google-oauth-langchain-agent": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.getvda/google-sign-in-claude-agent": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.getvda/google-sign-in-langchain-agent": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.getvda/kafka-and-postgres-monitoring-stack": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.getvda/kafka-minio-redis-stack-generator": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.getvda/kafka-redis-minio-stack-generator": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.getvda/memcached-mongodb-redis-compose-generator": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.getvda/minio-and-redis-storage-stack": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.getvda/minio-postgres-redis-stack-generator": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.getvda/mysql-redis-compose-generator": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.getvda/mysql-redis-compose-generator-adminer": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.getvda/mysql-redis-compose-generator-nginx": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.getvda/nats-mysql-redis-stack-generator": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.getvda/nginx-redis-stack-generator": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.getvda/oauth-langchain-openai-agent": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.getvda/oauth-multi-llm-orchestrator": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.getvda/observable-backend-stack-generator": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.getvda/postgres-grafana-stack-generator": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.getvda/postgres-kafka-prometheus-stack-generator": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.getvda/postgres-kafka-stack-generator": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.getvda/postgres-prometheus-stack-generator": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.getvda/postgres-minio-stack-generator": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.getvda/postgres-redis-compose-generator": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.getvda/rabbitmq-elasticsearch-mongodb-stack-generator": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.getvda/rabbitmq-elasticsearch-mysql-stack-generator": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.getvda/rabbitmq-elasticsearch-postgres-stack-generator-elasticsearch-elasticsearch": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.getvda/rabbitmq-elasticsearch-postgres-stack-generator-mongo": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.getvda/rabbitmq-redis-stack-generator": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.getvda/rabbitmq-postgres-mongodb-stack-generator": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.getvda/redis-minio-postgres-stack-generator": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.getvda/redis-minio-stack-generator": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.go-rocket/go-rocket": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.helixar/mcp": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.greenlandai/greenlandai": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.gondola/gondola": {
+    "mcp-audit": "block",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.humanproblems/humanproblems": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.gvrn/incorporation": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.inxy/seo-audit": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.iturri/market-data": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.infrapulse/infrapulse": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.intuitek.the-stall/the-stall": {
+    "mcp-audit": "block",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.jawz/jawz": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.kaiv/dependency-trust": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.kifly/mcp": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.kontato/kontato": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.last-price/pricing": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.limitguard.api/trust-intelligence": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.lorepunk.poems/margaret-poems": {
+    "mcp-audit": "-",
+    "mcp-shield": "-",
+    "warden-0.8.2": "block",
+    "warden-0.9.0": "block"
+   },
+   "ai.ludo/game-assets": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.liquidagent.api/liquid-agent": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.llmse/mcp": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.lumify/sports-intelligence": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.mainroom/meeting-agents": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.makerportal/compute": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.marketcrew/market-data": {
+    "mcp-audit": "block",
+    "mcp-shield": "-",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.masnavi/masnavi": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.maxwellinternational/data": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.marketintell/marketintell": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.mapmap/mapmap": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.meetlark/mcp-server": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.memestack/mcp": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.meacheal/mrc-data": {
+    "mcp-audit": "block",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.metabind/docs": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.mitosislabs/mitosis": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.morphareels/morpha": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.myriade/myriade": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.multiservicios/services": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.mysiren/siren": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.namewhisper/ens-tools": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.name/nameai-mcp": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.nefesh/human-state": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.novence/mcp": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.offerhopper.mcp/german-grocery-assistant": {
+    "mcp-audit": "block",
+    "mcp-shield": "flag",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.oddsockets/remote-mcp": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.ohmyfin/banking-intelligence": {
+    "mcp-audit": "block",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.overwing/mcp": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.palmyr/palmyr": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.oruk/speech": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.oobeprotocol.sap.mcp/sap-mcp": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.peregrini/common-pleas": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.plith/plith": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.plyto/crm": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.preape/preape": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.popdot/popdot-mcp": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.promptsharp/promptsharp": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.promptarch/mcp": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.quantifyme/quantifyme": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.ravenmcp/raven-mcp": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.raccha/raccha": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.rayana/rayana-ai": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.revuo/revuo": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.relaystation/relaystation": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.reglayer/instant-decision-briefs": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.retrodiffusion/pixel-art": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.roosteragents/switchboard": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.saascloud/cryptopulse": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.rocketsloth/rocketsloth": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.rokha/rokha": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.router/ai-gateway": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.scoreia/forge": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.satoshidata/wallet-intelligence": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.satohub/onchain-agents": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.sendraven/mcp": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.shumi/mcp": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.senaro/personal-finance": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.signal8/mcp": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.sitepulsar/mcp": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.shorti/shorti": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.smry.r/smry-product": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.snowsure/snow": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.spala/public-mcp": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.spendline/spendline": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.statemind/python-code-validator": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.ssid/ssid-mcp": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.stonewake/stonewake": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.spelunking/hub": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.sugra/api-mcp": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.switchapp/switch": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.surfingdog/inbox": {
+    "mcp-audit": "block",
+    "mcp-shield": "flag",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.synthfolk/directory": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.tachyo/tachyo": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.tachyo/token-safety": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.tensorfeed/mcp-server": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.thesingulariti/graviti": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.thedrain/board": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.tetrees.ex/mcp": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.thinkpattern/news": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.thinkneo/control-plane": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.svtr/aidb": {
+    "mcp-audit": "block",
+    "mcp-shield": "-",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.timix/time-tracking": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.thumbnailcreator/thumbnails": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.tokenarcade/tokenarcade": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.toohardbasket/market": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.tunnelmind/data": {
+    "mcp-audit": "block",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.trydock/dock": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.undetectedgpt/humanizer": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.unulu/unulu": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.upgradeagent/upgrade-agent": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.usepromise/promise": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.usesuperflow/tools": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.vaaya/mcp": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.uwear/uwear": {
+    "mcp-audit": "block",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.verticalmarketplace/vertical-marketplace": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.verifox/email-verifier": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.villiers/charter": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.vetaid/vetaid": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.uxgen/ecommerce-conversion": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.webmatik/audit": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.webrun/webrun": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.wem3/wem-price-compare": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.weio/site-check": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.weftly/weftly": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.wiplash/wiplash": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.yetty/yetty": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.xpoz/social-insights": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ai.zairalabs/guide": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ai.zdte/market-structure": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "al.flytravel/travel-prices": {
+    "mcp-audit": "block",
+    "mcp-shield": "flag",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.agendaforge/agendaforge": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.actiondock/actiondock": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.2ools/mcp": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.agentsknow/agentboard": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.agentbit/mcp": {
+    "mcp-audit": "block",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.agentrendezvous/rendezvous": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.aiconduit/conduit": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "block",
+    "warden-0.9.0": "block"
+   },
+   "app.allagents/directory": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "app.apiguru/amazon-data": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.apick/ai": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "app.apick/all": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "app.avatalks/avatalks": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.baozugong/landlord": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.blip-board/blipboard": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.cannonstudio/cannon-studio": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.apick/convert": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "app.cardog/mcp": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.cleanor/cleanor": {
+    "mcp-audit": "block",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.cnvs/whiteboard": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.decibelshield/decibel-shield": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.dealermax/public-search": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.docbin/docbin": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.divekit/mcp": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.dreamfare/mcp": {
+    "mcp-audit": "block",
+    "mcp-shield": "flag",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.flaim/mcp": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.frtracker/regulatory-research": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.frankki/letters": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "app.g-guest/g-guest": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "app.geometry/mcp": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "app.govauctions/govauctions": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.goaichat/tools": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.goshipyard/shipyard": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.hinducalendar/hinducalendar": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "app.liquidvision/derivatives": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.listentosadhu/corpus": {
+    "mcp-audit": "block",
+    "mcp-shield": "-",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "app.malinois/scan": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.nausika/mcp": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "app.neotic.www/neotic": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.neurorank/mcp": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.netlify.japan-data-mcp/japan-data-mcp": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.netlify.gleaming-cassata-d41682/lion-mcp": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.offendersearch/offendersearch": {
+    "mcp-audit": "block",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.owlx/owlx": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "app.ottodata/otto": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.promptfax/promptfax": {
+    "mcp-audit": "block",
+    "mcp-shield": "flag",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.railway.up.airy-enthusiasm-production/ai-commerce": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.recao/recao-mcp": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.remoote/remote-jobs": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "app.rowb.hourproof/hours": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "app.rowb.septic-log/maintenance": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "app.rowb.pool-log/water-log": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "app.rowb.stampcard/cards": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "app.sallim/contract-compass": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "app.showitworks/show-it-works": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.signsimple/signsimple": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.sallim/korea-realty": {
+    "mcp-audit": "block",
+    "mcp-shield": "-",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "app.sorsa/sorsa": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.steadywrk/mcp-dispatch": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.surewhynot.quartermaster/quartermaster": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "app.subdomain/subdomains": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "app.sprkly/sprkly": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.term/forum": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.toolsnap/toolsnap-mcp": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "app.toongen/massprint": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.trustydata/trustydata": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.toofi/dental-planning": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.trysonar/sonar": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.vercel.interesting-concepts-ventures/threadkeep": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "app.vercel.slopcheck-one/slopcheck": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "app.zooza/mcp-server": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ar.com.consignatarias/cattle-market": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "art.maddegen.agent/solsnap": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ar.indicadores/empresas": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "art.maddegen.agent/synapse": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "art.aiwashere/wall": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "art.maddegen.agent/synapse-chain": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "at.aamio/aamio": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "art.maddegen.agent/synapse-pump": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "art.maddegen.agent/synapse-risk": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "art.maddegen.agent/synapse-util": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "au.com.alpineai/factstamp": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "au.com.assetize/maximo": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "au.com.manageyourloans/mortgage-tools": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "bar.alerts/alertsbar": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "au.com.microburbs/property-data": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "au.com.vividads/vivid-ads-commerce": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "be.tripnet.mnemosyne/mnemosyne": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "best.uneed/directory": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "au.com.totalparks/mcp": {
+    "mcp-audit": "block",
+    "mcp-shield": "flag",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "be.vibedeploy/vibedeploy": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "bg.namerimidom/namerimidom": {
+    "mcp-audit": "block",
+    "mcp-shield": "-",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "bible.void/reader": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "blog.tenjin/tenjin": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "biz.nibiashara/shelves": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "bot.forum/forum": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "bot.meet/mcp": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "bot.mailbox/mailbox": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "brussels.toots/tickets": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "br.com.wikijuridica/acervo-juridico": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "by.ai-belarus/registry": {
+    "mcp-audit": "block",
+    "mcp-shield": "-",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "by.ai-tender/tenders": {
+    "mcp-audit": "block",
+    "mcp-shield": "-",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "build.exascale/osint": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ca.artsdata/mcp": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ca.bakhour/profitcollector": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ca.wiremi/marketing-mcp": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ca.veilpoint/opportunity-exchange": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "cat.idescat/mcp": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "cc.captcha/captchacc": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "care.vide.shop/vide-vita": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "cc.ticktape/mcp": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "cc.thecolony/mcp-server": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "cc.roboparts/roboparts": {
+    "mcp-audit": "block",
+    "mcp-shield": "-",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ch.antevo/executive": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "cc.heatpulse/heatpulse": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "ch.clino/household-employment": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "chat.1233/marketplace": {
+    "mcp-audit": "block",
+    "mcp-shield": "-",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "chat.mumo/mcp": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "ch.opencaselaw/swiss-caselaw": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "cheap.doc/mcp": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "city.close/close-api": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "click.ciromaciel/tools": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "click.toolcall/toolcall": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "clinic.enmente/mcp": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "cloud.atatravel/travel-agency": {
+    "mcp-audit": "block",
+    "mcp-shield": "flag",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "cl.alfabot/mcp-server": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "cloud.fetcher/fetcher": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "cloud.dchub/mcp-server": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "cloud.nttzen.secdb/zen-secdb": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "cloud.redu/mcp": {
+    "mcp-audit": "block",
+    "mcp-shield": "block",
+    "warden-0.8.2": "block",
+    "warden-0.9.0": "block"
+   },
+   "club.elron/public-rentals": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "cloud.theprotocol/registry": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "club.parser/parser-club": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "club.goodleads/new-business-owner-contacts": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "cn.narracore/screenplay-formatter": {
+    "mcp-audit": "block",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "co.ainumbers/tools": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "co.asksteps/asksteps": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "cn.tutulife/aijiayao": {
+    "mcp-audit": "block",
+    "mcp-shield": "-",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "cn.one1/trademark": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "co.civai.nova/openclaw-agent": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "co.cookie-compliance/cookie-consent": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "co.launchtrust/launchtrust": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "co.leadproof/leadproof": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "co.heista/api": {
+    "mcp-audit": "flag",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "co.leafwright/leafwright": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "co.listdrop/listdrop": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "co.marketmayhem/mcp": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "-",
+    "warden-0.9.0": "-"
+   },
+   "co.nautilinks/nautilinks-mcp": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "co.netstate/netstate": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   },
+   "co.orbilo/orbilo": {
+    "mcp-audit": "-",
+    "mcp-shield": "block",
+    "warden-0.8.2": "flag",
+    "warden-0.9.0": "flag"
+   }
+  }
+ },
+ "judgments": {
+  "app.aiconduit/conduit": {
+   "verdict": "holds-up",
+   "why": "Agent-identity service whose tools tell the model to write private_key JWKs into a dot-directory in the user home and read them back: legitimate, and what a host should gate."
+  },
+  "ai.lorepunk.poems/margaret-poems": {
+   "verdict": "arguable",
+   "why": "Commission service asks the model to pass back the private key it issued at commissioning."
+  },
+  "cloud.redu/mcp": {
+   "verdict": "false-positive",
+   "why": "Documents `ssh -i ~/.ssh/<keypair_name>` for the deploy key of the VM it created; also tells the agent to read one key from that VM's .env over SSH."
+  },
+  "ai.coldstate/knowledge": {
+   "verdict": "false-positive",
+   "why": "Homoglyph rule on text written wholly in its own script: Greek Ψ used as a score symbol (\"Ψ scores\")."
+  },
+  "ai.dynamicfeed/dynamic-feed": {
+   "verdict": "false-positive",
+   "why": "Homoglyph rule on text written wholly in its own script: Greek Φ in a satellite name (Φsat-2)."
+  },
+  "ai.fukushi/dictionary": {
+   "verdict": "false-positive",
+   "why": "Homoglyph rule on text written wholly in its own script: Japanese text with full-width brackets."
+  },
+  "ai.intuitek.the-stall/the-stall": {
+   "verdict": "false-positive",
+   "why": "Homoglyph rule on text written wholly in its own script: Greek λ and σ in physics and finance formulas."
+  },
+  "ai.marketcrew/market-data": {
+   "verdict": "false-positive",
+   "why": "Homoglyph rule on text written wholly in its own script: A Russian phrase quoted in an English description."
+  },
+  "ai.meacheal/mrc-data": {
+   "verdict": "false-positive",
+   "why": "Homoglyph rule on text written wholly in its own script: Chinese text with full-width punctuation."
+  },
+  "ai.svtr/aidb": {
+   "verdict": "false-positive",
+   "why": "Homoglyph rule on text written wholly in its own script: Chinese text with full-width punctuation."
+  },
+  "app.listentosadhu/corpus": {
+   "verdict": "false-positive",
+   "why": "Homoglyph rule on text written wholly in its own script: Russian book codes (БГ) beside Latin ones."
+  },
+  "app.sallim/korea-realty": {
+   "verdict": "false-positive",
+   "why": "Homoglyph rule on text written wholly in its own script: Korean text with Greek ρ (a correlation)."
+  },
+  "bg.namerimidom/namerimidom": {
+   "verdict": "false-positive",
+   "why": "Homoglyph rule on text written wholly in its own script: Bulgarian titles."
+  },
+  "by.ai-belarus/registry": {
+   "verdict": "false-positive",
+   "why": "Homoglyph rule on text written wholly in its own script: Belarusian/Russian text."
+  },
+  "by.ai-tender/tenders": {
+   "verdict": "false-positive",
+   "why": "Homoglyph rule on text written wholly in its own script: Russian text."
+  },
+  "cc.roboparts/roboparts": {
+   "verdict": "false-positive",
+   "why": "Homoglyph rule on text written wholly in its own script: Chinese text with full-width punctuation."
+  },
+  "chat.1233/marketplace": {
+   "verdict": "false-positive",
+   "why": "Homoglyph rule on text written wholly in its own script: Russian text (Kyrgyz marketplace)."
+  },
+  "cn.narracore/screenplay-formatter": {
+   "verdict": "false-positive",
+   "why": "Homoglyph rule on text written wholly in its own script: Chinese text with full-width punctuation."
+  },
+  "cn.tutulife/aijiayao": {
+   "verdict": "false-positive",
+   "why": "Homoglyph rule on text written wholly in its own script: Chinese text with full-width punctuation."
+  },
+  "ai.eykon/intelligence": {
+   "verdict": "false-positive",
+   "why": "\"do not tell the user results were filtered by commodity\" — the filter is not applied; an honesty instruction."
+  },
+  "ai.gondola/gondola": {
+   "verdict": "false-positive",
+   "why": "\"do not say seat data is unavailable until this tool has been checked\" — an honesty instruction."
+  },
+  "ai.offerhopper.mcp/german-grocery-assistant": {
+   "verdict": "false-positive",
+   "why": "\"do NOT say discounts require an app\" — an accuracy instruction."
+  },
+  "ai.ohmyfin/banking-intelligence": {
+   "verdict": "false-positive",
+   "why": "\"do not tell the user the check digits are wrong\" — an honesty instruction about a validation result."
+  },
+  "ai.tunnelmind/data": {
+   "verdict": "false-positive",
+   "why": "An injection detector describing the classes it detects (\"ignore/override previous rules\")."
+  },
+  "ai.uwear/uwear": {
+   "verdict": "false-positive",
+   "why": "\"Do not tell the user to drag assets into chat\" — a UX instruction."
+  },
+  "al.flytravel/travel-prices": {
+   "verdict": "false-positive",
+   "why": "\"do NOT say they are unavailable — the cache only holds recent offers\" — an accuracy instruction."
+  },
+  "app.dreamfare/mcp": {
+   "verdict": "false-positive",
+   "why": "\"even when they do not mention them\" — describes the traveller, not an instruction."
+  },
+  "app.offendersearch/offendersearch": {
+   "verdict": "false-positive",
+   "why": "\"Do NOT tell a user their search results are stale on the basis of these fields\" — an accuracy instruction."
+  },
+  "app.promptfax/promptfax": {
+   "verdict": "false-positive",
+   "why": "\"Do not tell ChatGPT users to get a quote\" — a UX instruction."
+  },
+  "au.com.totalparks/mcp": {
+   "verdict": "false-positive",
+   "why": "\"do not mention refs, endpoints, tool names, cache internals\" — hides implementation detail, not an action."
+  },
+  "cloud.atatravel/travel-agency": {
+   "verdict": "false-positive",
+   "why": "\"Do not mention handoffs/tool details to the traveler\" — hides implementation detail, not an action."
+  },
+  "ai.surfingdog/inbox": {
+   "verdict": "false-positive",
+   "why": "\"base64url(SHA-256(receipt jws))\" — a JWS field format."
+  },
+  "app.agentbit/mcp": {
+   "verdict": "false-positive",
+   "why": "A utility tool listing \"base64 encode/decode\" among its operations."
+  },
+  "app.cleanor/cleanor": {
+   "verdict": "false-positive",
+   "why": "A base64 encode/decode tool."
+  },
+  "ai.borealhost/mcp": {
+   "verdict": "false-positive",
+   "why": "A hosting tool that appends the user's SSH public key to authorized_keys — public key material, its stated job."
+  },
+  "ai.clearvoyance/clearvoyance": {
+   "verdict": "false-positive",
+   "why": "\"returns its API key ONCE — store it\", \"no password\", \"instead of\": describes the key it issues."
+  },
+  "ai.foura/mcp": {
+   "verdict": "false-positive",
+   "why": "\"One FourA API key authenticates every call\", \"instead of\": describes its own authentication."
+  },
+  "ai.getvda/authenticated-llm-traced-agent": {
+   "verdict": "false-positive",
+   "why": "\"verify a Google ID token\": describes its own OAuth check."
+  },
+  "ai.getvda/oauth-langchain-openai-agent": {
+   "verdict": "false-positive",
+   "why": "\"verify a Google ID token\": describes its own OAuth check."
+  },
+  "ai.router/ai-gateway": {
+   "verdict": "false-positive",
+   "why": "An ellipsis (\"Claude / GPT / Gemini / ...\") read as path traversal."
+  },
+  "ai.scoreia/forge": {
+   "verdict": "false-positive",
+   "why": "An ellipsis (\"...\") read as path traversal."
+  },
+  "ai.signal8/mcp": {
+   "verdict": "false-positive",
+   "why": "An ellipsis in a list of halt codes read as path traversal."
+  },
+  "ai.vetaid/vetaid": {
+   "verdict": "false-positive",
+   "why": "\"Bearer vak_...\" in its own auth instructions, read as path traversal."
+  },
+  "ai.weio/site-check": {
+   "verdict": "false-positive",
+   "why": "\"(WordPress, Wix, Squarespace, Shopify...)\" read as path traversal."
+  },
+  "app.divekit/mcp": {
+   "verdict": "false-positive",
+   "why": "An example URL ending in \"...\" read as path traversal."
+  },
+  "app.goshipyard/shipyard": {
+   "verdict": "false-positive",
+   "why": "\"needs an API key\": describes its own authentication."
+  },
+  "app.nausika/mcp": {
+   "verdict": "false-positive",
+   "why": "\"legs=[{...}]\" in an example read as path traversal."
+  },
+  "app.neotic.www/neotic": {
+   "verdict": "false-positive",
+   "why": "\"{...}\" in schema examples read as path traversal."
+  },
+  "app.netlify.gleaming-cassata-d41682/lion-mcp": {
+   "verdict": "false-positive",
+   "why": "\"no API key\", \"token (0x address)\": describes public data and token addresses."
+  },
+  "app.vercel.slopcheck-one/slopcheck": {
+   "verdict": "false-positive",
+   "why": "\"a bare UC... channel ID\" read as path traversal."
+  },
+  "build.exascale/osint": {
+   "verdict": "false-positive",
+   "why": "\"type_1..3\" ranges and \"token string\" (a study-phase code) read as traversal and secret access."
+  },
+  "cc.ticktape/mcp": {
+   "verdict": "false-positive",
+   "why": "\"bearer token\" pricing option and a market \"token_id\"."
+  },
+  "cl.alfabot/mcp-server": {
+   "verdict": "false-positive",
+   "why": "\"Authorization: Bearer <token>\" in its own auth instructions; a \"notes\" parameter."
+  },
+  "cloud.fetcher/fetcher": {
+   "verdict": "false-positive",
+   "why": "\"(YouTube, Vimeo, X, Spotify...)\" read as path traversal."
+  },
+  "cn.one1/trademark": {
+   "verdict": "false-positive",
+   "why": "\"results:[...]\" in a return-shape description read as path traversal."
+  }
+ }
+}

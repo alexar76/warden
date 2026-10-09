@@ -9,7 +9,7 @@ npx -y @aimarket/warden@0.9.0 scan
 ```
 
 ```text
-WARDEN scan 0.9.0 · ruleset 9 sha256-nC+ybcePE8AW… · block at high
+WARDEN scan 0.9.0 · ruleset 10 sha256-lJuKKKV5mtru… · block at high
   read .mcp.json (claude-code, 3 servers)
 
   ✓ allow   notes        claude-code    1 tool · score 0.90
@@ -90,7 +90,7 @@ jobs:
           upload-sarif: 'true'
 ```
 
-默认情况下，它读取项目文件，不启动 stdio 服务器（该程序由 pull request 决定），拒绝非公网地址，存在 `warden.lock.json` 时使用它，写入作业摘要，并在有服务器被阻止时失败。输入：`config`、`working-directory`、`lock`、`launch-stdio`、`public-only`、`fail-on`、`histor`、`sarif`、`upload-sarif`、`version`。输出：`blocked`、`servers`、`sarif`。在生产 workflow 中请按提交 SHA 固定该 Action。
+默认情况下，它读取项目文件，不启动 stdio 服务器（该程序由 pull request 决定），拒绝非公网地址，存在 `warden.lock.json` 时使用它，写入作业摘要，并在有服务器被阻止时失败。输入：`config`、`working-directory`、`lock`、`launch-stdio`、`public-only`、`fail-on`、`histor`、`classifier-url`、`classifier-model`、`classifier-blocks`、`sarif`、`upload-sarif`、`version`。输出：`blocked`、`servers`、`sarif`。在生产 workflow 中请按提交 SHA 固定该 Action。
 
 ## pre-commit
 
@@ -128,6 +128,54 @@ repos:
 | `not-listed`、`not-observed` | HISTOR 不认识这个端点，或尚未成功读取过它 |
 
 HISTOR 的回答从不阻止。HISTOR 没有响应时会在报告中注明，扫描继续进行。
+
+## 可选的分类器
+
+WARDEN 的规则离线、确定性地运行，也会漏掉任何规则都没提到的内容：改写的说法、另一种语言的指令。`--classifier-url` 和 `--classifier-model` 通过任意 OpenAI 兼容端点，加入你所选模型的第二意见：本地的 Ollama、vLLM 或 LM Studio，或托管 API。
+
+```bash
+warden-mcp scan --classifier-url http://localhost:11434/v1 --classifier-model qwen2.5:14b
+WARDEN_CLASSIFIER_API_KEY=… warden-mcp scan --classifier-url https://api.deepseek.com --classifier-model deepseek-flash
+```
+
+- **默认关闭，开启后会发送工具文本。** 两个参数都给出时，每个工具的名称、描述和 schema 都会发送到该端点。本地模型会让它们留在你的机器上。如需密钥，只从 `WARDEN_CLASSIFIER_API_KEY` 读取，从不通过命令行参数。
+- **除非加 `--classifier-blocks`，否则只作建议。** 它的判定以 `TOOL_DEF_CLASSIFIER` 报告。加上 `--classifier-blocks` 后，达到或超过阻止阈值（默认 `high`）的判定会像规则一样阻止该工具。分类器没有响应时会在报告中注明，且从不阻止。
+- **与 HISTOR 问同一个问题。** 提示词、四个类别（`instruction_to_model`、`exfiltration`、`secret_request`、`concealment`）和回答格式都与 HISTOR 日志的分类器相同。工具文本放在带随机后缀的标记之间，它无法伪造这些标记；模型的回答会逐字段校验。加上 `--histor` 时，还会显示日志对你收到的工具集保存的判定（`HISTOR_CLASSIFIER`，仅作建议）。
+- **它不读取 annotations 和扩展字段。** 规则会读取。
+
+2026 年 10 月 9 日用 `deepseek-flash`（HISTOR 使用的同一模型）在 MCPTox（下文对比中介绍的公开基准）和我们自己的样本集上测得：
+
+| | 规则（v10） | 规则 + 分类器，`high` 时阻止 | 规则 + 分类器的任何标记（仅作建议） |
+|---|---|---|---|
+| MCPTox 留出的一半，218 个投毒工具中被发现的数量 | 171 | 191 | 218 |
+| 45 台 MCPTox 干净服务器，被阻止或被标记 | 0 | 0 | 4 台被标记 |
+| 随机抽取的 200 台语料服务器，被阻止或被标记 | 2 台被阻止 | 2 台被阻止 | 2 台被阻止，另 12 台被标记 |
+| 我们写的 23 个攻击 / 12 个困难的良性样例 | 20 / 0 | 22 / 0 | 23 / 0 |
+
+规则阻止的那两台是下文对比中的身份服务和部署工具。分类器标记的 13 台服务器都是 `medium` 或 `low`，没有 `high`。其中 6 台值得人工查看：一台要求模型“作为第一个也是唯一的动作”进行不可撤销的 ENS 名称转移，且不询问用户；另一台要求模型不要透露其数据来源。模型还标记了官方的 Fetch 服务器，它的描述告诉模型现在可以上网、不应拒绝。这是对模型的指令，但不是攻击。模型漏掉了规则能发现的内容：annotations 中的注入、以参数形式索要私钥或助记词，以及 `rm -rf ~`。
+
+## 对比
+
+2026 年 10 月 9 日，我们在同一批服务器上运行了 WARDEN、mcp-audit 0.18.2（`--connect`）和 mcp-shield 1.0.4。每台服务器都通过 stdio 重放，因此每个扫描器连接它的方式与真实环境相同。测试工具、样本集和每一条判定都在 [`scripts/scanner-comparison`](../scripts/scanner-comparison/) 中。包含方法和全部注意事项的完整研究，见[扫描器对比](scanner-comparison.zh.md)。
+
+最后三行来自 MCPTox（Wang 等，AAAI 2026）：一个公开的基准，包含为 45 台真实 MCP 服务器编写的 485 个投毒工具。我们用固定哈希把它的服务器分成两半。ruleset v10 依据其中 22 台服务器编写；表中报告的是另外 23 台，共 218 个投毒工具，没有任何规则照着它们调过。
+
+| 服务器 | WARDEN 0.8.2（v8） | WARDEN 0.9.0（v10） | mcp-audit 0.18.2 | mcp-shield 1.0.4 |
+|---|---|---|---|---|
+| 我们编写的 23 个攻击，阻止数 | 14 | 20 | 10 | 6 |
+| 取自 mcp-audit 与 mcp-shield 自带样例的 10 个攻击，阻止数 | 7 | 10 | 10 | 8 |
+| 12 个困难的良性样例，阻止数 | 0 | 0 | 1 | 1 |
+| 986 台公开服务器，阻止数 | 3 | 3 | 33 | 343 |
+| …读过文本后站得住脚的阻止 | 1 台，另 1 台存疑 | 1 台，另 1 台存疑 | 0 | 随机抽取的 20 台中 0 台 |
+| MCPTox 留出服务器上的 218 个投毒工具，阻止数 | 26 | 171 | 25 | 41 |
+| 带 `<IMPORTANT>` 或 “Ignore the previous instructions” 前缀的 225 个 MCPTox 工具，阻止数 | 225 | 225 | 222 | 未运行 |
+| 45 台 MCPTox 干净服务器，阻止数 | 0 | 0 | 2 | 3 |
+
+- **先看语料这一行。** 没有任何规则是照着它调的。mcp-audit 的 33 次阻止中，16 次是对完全用本文字书写的文本报“同形字”（中文标点、希腊符号、西里尔字母），12 次是诚实性提示（如 “do not tell the user the check digits are wrong”），3 次是 base64 工具，一个 SSH 公钥工具，还有 WARDEN 也误阻止的那个部署工具。mcp-shield 阻止了 35% 的真实服务器，几乎都因为关键词：“API key”“token”、`.env`、“..”。省略号（“Shopify...”）被当作路径穿越。它也阻止了 WARDEN 阻止的那个身份服务，但依据是 “credentials” 这个词。
+- **要清楚哪些数字是调出来的。** 第一组攻击样本是我们写的。ruleset v9 是在读过两组攻击样本之后写的，v10 是在读过另一半的 22 台 MCPTox 服务器之后写的。所以 20 和 10 是“照着见过的样本调出来的规则”的召回率。MCPTox 留出的那一行、干净服务器、语料以及整个 0.8.2 列都没有经过调整。在语料上，v10 阻止的与 v8 完全相同。
+- **MCPTox 考的是结构，不是关键词。** 几乎每个投毒工具都要求模型先调用另一个工具，或修改另一个工具的参数。v10 为这种结构命名（`TOOL_DEF_CROSS_TOOL`，见[关卡链](gates.zh.md)），在留出的 218 个工具中阻止 171 个；在用来编写它的那一半上是 267 个中的 189 个。加上基准自带的 `<IMPORTANT>` 或 “Ignore the previous instructions” 前缀后，我们运行的每个扫描器都能发现；mcp-shield 没有在这一组上运行。在干净服务器上，mcp-audit 阻止了 AmapMap 和 BaiduMap，mcp-shield 以 “sensitive file access” 为由阻止了 FileSystem、AdFin 和 Commander。
+- **WARDEN 仍会漏掉的：** 留出的 218 个 MCPTox 工具中的 47 个、用中文写的读取 `.env` 的指令、没有关键词的改写（“gather every credential file … keep this step to yourself”），以及 “include the output of env”。这 47 个中的 41 个以及我们的这三个，它会以建议的形式报告，但不会阻止。这些需要基于语义的检查，而不是再加一条规则：加上上文的可选分类器，218 个中有 191 个在 `high` 级别被阻止，218 个全部被标记。
+- **未参与对比：** Snyk Agent Scan（原 Invariant mcp-scan），使用最广的扫描器。它在 Snyk 的服务器上判定描述，需要账号令牌。mcp-audit 同样提供 lock 文件、PR diff 模式和 SARIF；在这个位置上 WARDEN 并不是唯一的选择。
 
 ## scan 不做什么
 

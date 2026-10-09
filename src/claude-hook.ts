@@ -113,6 +113,9 @@ export async function sessionStart(input: Record<string, unknown>, env: NodeJS.P
   const args = ['--client', 'claude-code', '--cwd', cwd, '--timeout', env.WARDEN_HOOK_TIMEOUT_MS || '20000', '--state-dir', stateDir, '--no-color'];
   if (env.WARDEN_HOOK_NO_LAUNCH === '1') args.push('--no-launch');
   if (existsSync(join(cwd, 'warden.lock.json'))) args.push('--lock', join(cwd, 'warden.lock.json'));
+  // Opt-in meaning-based check, configured the same way as for `scan` (key from WARDEN_CLASSIFIER_API_KEY).
+  if (env.WARDEN_CLASSIFIER_URL && env.WARDEN_CLASSIFIER_MODEL) args.push('--classifier-url', env.WARDEN_CLASSIFIER_URL, '--classifier-model', env.WARDEN_CLASSIFIER_MODEL);
+  if (env.WARDEN_CLASSIFIER_URL && env.WARDEN_CLASSIFIER_BLOCKS === '1') args.push('--classifier-blocks');
   const opts = await parseScanArgs(args, env);
   const report = await runScan(opts, deps);
   const path = sessionPath(stateDir, sessionId);

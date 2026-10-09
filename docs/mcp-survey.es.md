@@ -442,6 +442,12 @@ y esas frases son ahora pruebas de regresión. Sobre el corpus versionado v9 blo
 servidores y **1** de los 41 del arrastre de agosto. `node remeasure.mjs <corpus> --local ../../../dist`
 lo reproduce a partir de una compilación del código fuente hasta que 0.9.0 esté en el registro.
 
+**El ruleset v10, que incluye 0.9.0, añade tres reglas que bloquean y aquí sigue bloqueando los mismos 3
+servidores, y 1 de los 41 del arrastre de agosto.** Cubren el texto de una herramienta atado a la llamada
+de otra (para reescribir su entrada o adelantarse con una tercera llamada) y una pretensión de prioridad
+sobre el usuario. Se escribieron con la mitad de los servidores del benchmark MCPTox y se midieron sobre
+la otra mitad; véase la [guía de scan](scan.es.md#cómo-se-compara).
+
 ### Lo que sigue disparándose y por qué lo dejamos
 
 Dos de los seis bloqueos que quedaban en agosto eran nuestros (el 2026-10-01 el primero responde `404`;

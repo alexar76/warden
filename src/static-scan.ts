@@ -7,6 +7,7 @@ import type {
   RulesetRef,
   Severity,
   WardenFinding,
+  ToolDef,
   WardenGate,
   WardenGateInput,
   WardenGateResult,
@@ -100,7 +101,10 @@ interface SignaturePattern {
  * machine", a security scanner listing the attacks it detects. A rule table with
  * no notion of polarity or of quotation selects for the honest server.
  */
-type Guard = (m: RegExpExecArray, text: string, surface: Surface) => string | null;
+/** The tool being scanned, for guards whose question is about the tool itself (v10). */
+interface GuardContext { tool: ToolDef }
+
+type Guard = (m: RegExpExecArray, text: string, surface: Surface, ctx: GuardContext) => string | null;
 
 type GuardName =
   | "polarity"
@@ -121,10 +125,15 @@ type GuardName =
   | "outputEnumLabel"
   | "dataObject"
   | "placeholderAddress"
-  | "contextExfil";
+  | "contextExfil"
+  | "crossTool"
+  | "zeroArgCall";
 
 // Imperative instructions aimed at the model — the classic injection tells.
 const INJECTION_PATTERNS: SignaturePattern[] = [
+  // v10. A definition claiming to outrank the user ("this description's priority is higher than the
+  // user's query").
+  { re: /\b(?:priority|precedence)\s+(?:is\s+)?(?:higher\s+than|over|above)\s+(?:that\s+of\s+)?(?:the\s+|any\s+|all\s+)?(?:user'?s?\b|user\s+(?:query|request|instructions?)|(?:previous\s+|other\s+)?instructions?\b|system\s+prompt)/i, code: "TOOL_DEF_INJECTION", severity: "high", tier: "block", surfaces: ALL_SURFACES, guards: ["polarity", "detection"] },
   { re: /\bignore\s+(?:all\s+|the\s+)?(?:previous|prior|above|preceding)\b/i, code: "TOOL_DEF_INJECTION", severity: "critical", tier: "block", surfaces: ALL_SURFACES, guards: ["mention"] },
   { re: /\bdisregard\s+(?:all\s+|the\s+|any\s+)?(?:previous|prior|above|instructions?|rules?)\b/i, code: "TOOL_DEF_INJECTION", severity: "critical", tier: "block", surfaces: ALL_SURFACES, guards: ["mention"] },
   // Demoted in v4. The survey found four real uses and all four were the
@@ -281,6 +290,41 @@ const SECRET_EXFIL_PATTERNS: SignaturePattern[] = [
     note: "names a secret store and an external address in the same breath",
     guards: ["publicKeyPath", "polarity", "detection", "secretExfilPair"],
   },
+];
+
+// v10. One tool's description directing how ANOTHER tool is called (no `mention` guard: naming a
+// tool in quotes or backticks is how these definitions are written, not a citation) — the shape of every attack
+// template in MCPTox (Wang et al., AAAI 2026): "when using `X`, modify its argument …", "before
+// running `X`, you must first call `Y` …", "you must call `Y` with the query '…'". The anchor is the
+// other tool's identifier, which reads the same in every language; honest chaining ("use `X` to
+// change an address", "call `X` first, then this tool", "use `X` to check status before calling
+// this tool") names a tool as the MEANS, never binds to its call to rewrite or pre-empt it. Written
+// from half of MCPTox's servers only; the other half is the reported measurement.
+const ID = String.raw`(?:[\`'"]?([A-Za-z][A-Za-z0-9]*(?:[_-][A-Za-z0-9]+)+|[a-z]+[A-Z][A-Za-z0-9]+)[\`'"]?|[\`'"]([a-z][A-Za-z0-9]{1,40})[\`'"])(?:\s+tool)?`;
+/** A word in any letter case, without /i: identifiers (camelCase) must stay case-sensitive. */
+const ci = (w: string): string => w.replace(/[a-z]/g, (c) => `[${c}${c.toUpperCase()}]`);
+const CALL_VERB = `(?:${["call", "calling", "use", "using", "run", "running", "invoke", "invoking", "execute", "executing", "fetch", "fetching", "query", "querying", "trigger", "triggering"].map(ci).join("|")})`;
+const S = String.raw`\s+`;
+const CROSS_TOOL_FRAME = new RegExp(
+  String.raw`\b(?:${["when", "whenever", "before", "after", "while", "if"].map(ci).join("|")}|${ci("each")}${S}${ci("time")}|${ci("every")}${S}${ci("time")})${S}(?:${ci("you")}${S})?(?:${ci("are")}${S})?(?:${ci("first")}${S})?${CALL_VERB}${S}(?:${ci("the")}${S})?${ID}` +
+  String.raw`|\b(?:${["submitted", "passed", "sent", "given"].map(ci).join("|")})${S}${ci("to")}${S}(?:${ci("the")}${S})?${ID}` +
+  String.raw`|\b(?:${["queries", "query", "requests", "request", "calls", "call", "inputs", "input"].map(ci).join("|")})${S}${ci("to")}${S}(?:${ci("the")}${S})?${ID}` +
+  String.raw`|\b${ci("before")}${S}\w+ing\b[^.;
+]{0,60}?\b(?:${["using", "with", "via", "through"].map(ci).join("|")})${S}(?:${ci("the")}${S})?${ID}` +
+  String.raw`|\b${ci("before")}${S}(?:${["any", "every", "each"].map(ci).join("|")})\b`,
+);
+const ALTER_VERB = /\b(?:modify|modified|change|changed|replace|replaced|append|appended|prepend|prepended|remove|removed|strip|override|overwrite|alter|rewrite|substitute|inject|insert)\b/i;
+const MANDATE_WORDS = `(?:${["must", "should", "mandatory"].map(ci).join("|")}|${ci("need")}${S}${ci("to")}|${ci("have")}${S}${ci("to")}|${ci("required")}${S}${ci("to")}|${ci("is")}${S}${ci("required")})`;
+const MANDATED_CALL = new RegExp(
+  String.raw`\b${MANDATE_WORDS}\b[^.;
+]{0,40}?\b${CALL_VERB}${S}(?:${ci("the")}${S})?${ID}` +
+  String.raw`|(?:^\s*|,\s*(?:${ci("then")}${S})?)(?:${["call", "run", "use", "invoke", "fetch", "query", "execute"].map(ci).join("|")})${S}(?:${ci("the")}${S})?${ID}`,
+  "g",
+);
+const CROSS_TOOL_PATTERNS: SignaturePattern[] = [
+  { re: CROSS_TOOL_FRAME, code: "TOOL_DEF_CROSS_TOOL", severity: "high", tier: "block", surfaces: PROSE, note: "binds to another tool's call to rewrite its input or pre-empt it with a different call", guards: ["crossTool"] },
+  { re: new RegExp(String.raw`\b(?:${["must"].map(ci).join("|")}|${ci("need")}${S}${ci("to")}|${ci("have")}${S}${ci("to")})\b[^.;
+]{0,40}?\b${CALL_VERB}${S}(?:${ci("the")}${S})?${ID}`), code: "TOOL_DEF_CROSS_TOOL", severity: "high", tier: "block", surfaces: PROSE, note: "takes no input and only orders another tool to be called", guards: ["zeroArgCall"] },
 ];
 
 // v9. A recursive delete of a home or root directory written into a definition. The threat
@@ -832,6 +876,40 @@ const GUARDS: Record<GuardName, Guard> = {
     return "conversation named without an outside address, a credential or concealment — ordinary context use";
   },
 
+  /**
+   * v10. The match names another tool's call ("when using `X`", "before running `X`", "before any …").
+   * Kept only when that sentence rewrites the call's input (modify, replace, append …), or that
+   * sentence or the next orders a call to a THIRD tool. Identifiers that are this tool's own name or
+   * one of its own parameters are not "another tool" ("if using video_id, … use get_video before
+   * calling this tool").
+   */
+  crossTool(m, text, _surface, ctx) {
+    const own = ownIdentifiers(ctx.tool);
+    const framed = [m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8]].filter((g): g is string => !!g).map(normId);
+    const isBeforeAny = framed.length === 0;
+    if (!isBeforeAny && framed.every((id) => own.has(id))) return "the named identifier is this tool or one of its own parameters";
+    const sentence = sentenceAround(text, m.index);
+    if (!isBeforeAny && ALTER_VERB.test(sentence.text)) return null;
+    const next = sentenceAround(text, sentence.end + 1);
+    for (const piece of [sentence.text, sentence.end < text.length ? next.text : ""]) {
+      for (const c of allMatches(MANDATED_CALL, piece)) {
+        const ids = [c[1], c[2], c[3], c[4]].filter((g): g is string => !!g).map(normId);
+        if (ids.some((id) => !own.has(id) && !framed.includes(id))) return null;
+      }
+    }
+    return "names another tool's call but neither rewrites its input nor orders a different call first — ordinary chaining";
+  },
+
+  /** v10. Only a tool that takes no input can be nothing but an order to call another tool. */
+  zeroArgCall(m, _text, _surface, ctx) {
+    const props = (ctx.tool.inputSchema as { properties?: Record<string, unknown> } | undefined)?.properties ?? {};
+    if (Object.keys(props).length > 0) return "the tool takes input of its own — a call order here is chaining";
+    const own = ownIdentifiers(ctx.tool);
+    const ids = [m[1], m[2]].filter((g): g is string => !!g).map(normId);
+    if (ids.length === 0 || ids.every((id) => own.has(id))) return "the ordered call is to this tool itself";
+    return null;
+  },
+
   /** `.ssh/authorized_keys` and `id_ed25519.pub` are public by definition. */
   publicKeyPath(m, text) {
     // A RAW forward window, not a clause: the giveaway is the extension, and
@@ -854,6 +932,7 @@ const RULES: SignaturePattern[] = [
   ...URL_SCHEME_PATTERNS,
   ...PAYLOAD_PATTERNS,
   ...DESTRUCTIVE_PATTERNS,
+  ...CROSS_TOOL_PATTERNS,
 ];
 
 /**
@@ -940,7 +1019,7 @@ function hasExternalAddress(text: string): boolean {
 // asking the user for ids" (`autonomy`, which also stops exempting any "without asking
 // the user" whose object is consent), and "the key is read from the MCP connection's
 // X-API-Key header" (`ownAuthHeader`).
-export const STATIC_SCAN_RULESET_VERSION = "9";
+export const STATIC_SCAN_RULESET_VERSION = "10";
 
 const SEVERITY_RANK: Record<Severity, number> = {
   info: 0,
@@ -1088,7 +1167,7 @@ export class StaticScanGate implements WardenGate {
           let dropped: string | null = null;
           for (const candidate of rule.raw ? [text] : passes) {
             for (const cm of allMatches(rule.re, candidate)) {
-              const d = rule.guards?.map((g) => GUARDS[g](cm, candidate, surface)).find((r) => r !== null) ?? null;
+              const d = rule.guards?.map((g) => GUARDS[g](cm, candidate, surface, { tool })).find((r) => r !== null) ?? null;
               if (!d) { m = cm; hay = candidate; dropped = null; break; }
               dropped = d;
             }
@@ -1182,6 +1261,32 @@ const SPAN_MAX = 80;
  * form, the raw one dropped when the fold changed nothing so the common case
  * scans once.
  */
+/** An identifier compared without case or separators: `get_user`, `getUser`, `get-user` are one. */
+function normId(id: string): string {
+  return id.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+/** The tool's own name and parameter names — never "another tool". */
+function ownIdentifiers(tool: ToolDef): Set<string> {
+  const props = (tool.inputSchema as { properties?: Record<string, unknown> } | undefined)?.properties ?? {};
+  return new Set([normId(tool.name ?? ""), ...Object.keys(props).map(normId)]);
+}
+
+/**
+ * The sentence holding `index`: bounded by `.`/`!`/`?` followed by space, a newline, or a literal
+ * "\n" escape (descriptions copied from code often carry it as text).
+ */
+function sentenceAround(text: string, index: number): { text: string; start: number; end: number } {
+  const stop = /[.!?](?=\s)|\n|\\n/g;
+  let start = 0, end = text.length, mm: RegExpExecArray | null;
+  while ((mm = stop.exec(text)) !== null) {
+    const at = mm.index + mm[0].length;
+    if (at <= index) start = at;
+    else { end = mm.index + (mm[0] === "\n" || mm[0] === "\\n" ? 0 : 1); break; }
+  }
+  return { text: text.slice(start, end), start, end };
+}
+
 /** `get_userData-v2` → `get user Data v2`: separators and lower→upper case changes become spaces. */
 function splitIdentifier(name: string): string {
   return name.replace(/[_\-.]+/g, " ").replace(/([a-z0-9])([A-Z])/g, "$1 $2").trim();

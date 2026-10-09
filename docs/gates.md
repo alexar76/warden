@@ -51,8 +51,8 @@ the threshold.
 
 Local regex scan over every field a tool advertises: its `name`, `description` and `inputSchema`,
 and since v6 its `title`, `outputSchema`, `annotations` and extension metadata (everything else the
-server sent, a base64 image icon excepted). 32 rules in ruleset **v9**: 21 `block`, 11 `advise`, and
-21 of them carry a context **guard** — a named
+server sent, a base64 image icon excepted). 35 rules in ruleset **v10**: 24 `block`, 11 `advise`, and
+24 of them carry a context **guard** — a named
 check that decides whether a match is really the thing the rule is looking for. See
 [the field survey](mcp-survey.md) for the 1 108-server run that calibrated v4.
 
@@ -115,8 +115,24 @@ spells, so `ignore_previous_instructions` is the phrase. Every v9 rule is tested
 leave alone (`test/ruleset-v9.test.ts`). On the committed corpus v9 blocks the same 3 servers as v8, and 1 of the 41
 carry-over servers.
 
-Every rule declares which of those seven **surfaces** it runs on, and 23 of the 32 include the name.
-The four that do not are the noun-keyed ones (`TOOL_DEF_SECRET_REQUEST`,
+**v10** is written against MCPTox (Wang et al., AAAI 2026): 485 poisoned tools on 45 real servers, generated
+from three attack templates. Its servers were split in half by a fixed hash before any rule was written; the
+rules come from the first half only and the second half is the measurement ([scan guide](scan.md#how-it-compares)).
+Almost every MCPTox tool is one shape: its text binds to ANOTHER tool's call. New code `TOOL_DEF_CROSS_TOOL`
+blocks when a sentence names another tool's call ("when using `X`", "before running `X`", "any query to `X`",
+"before any …") and in the same sentence rewrites that call's input (modify, replace, append …), or in that
+sentence or the next orders a call to a third tool; and when a tool that takes no input only orders another
+tool to be called. The anchor is the other tool's identifier, which reads the same in every language. The
+tool's own name and parameters never count as another tool, so "use `get_video` to check status before
+calling this tool" and "call `refresh` first, then this tool" pass: they name a tool as the means. Guards now
+receive the tool, which is how a rule knows its own identifiers. v10 also blocks a definition claiming
+priority over the user. On the held-out half v10 blocks 171 of 218 poisoned tools, where 0.8.2 blocked 26; it
+blocks none of MCPTox's 45 clean servers, the same 3 servers of the committed corpus and 1 of the 41 carry-over
+servers. Its two cross-tool rules do not run on the tool name: they read a sentence about another tool's call.
+Tests: `test/ruleset-v10.test.ts`.
+
+Every rule declares which of those seven **surfaces** it runs on, and 24 of the 35 include the name.
+Four of the codes that do not are the noun-keyed ones (`TOOL_DEF_SECRET_REQUEST`,
 `TOOL_DEF_CREDENTIAL_PARAM`, `TOOL_DEF_ENV_REFERENCE`, `TOOL_DEF_SECRET_EXFIL`): a name is an identifier, `api_key` and
 `private_key` are ordinary parts of one, and refusing `sign_with_private_key` would be the ruleset
 v1 calibration error committed on a new surface. Phrase-keyed rules need whitespace and so cannot
@@ -134,10 +150,11 @@ Gate score is `1 − penalty(worst blocking severity)`; advisory hits never affe
 
 | Code | Severity | Tier | Name? | What it catches |
 |---|---|---|---|---|
-| `TOOL_DEF_INJECTION` | critical / high | block | ✅ | "ignore all previous instructions", concealment of the tool's own behaviour ("do not tell the user about this"), `<system>` tags, a recursive delete of `~` or `/`, references to the developer prompt |
+| `TOOL_DEF_INJECTION` | critical / high | block | ✅ | "ignore all previous instructions", concealment of the tool's own behaviour ("do not tell the user about this"), `<system>` tags, a claim to outrank the user, a recursive delete of `~` or `/`, references to the developer prompt |
 | `TOOL_DEF_SECRET_REQUEST` | critical | block | — | `private_key`, `seed_phrase`/`mnemonic`, `~/.ssh` paths |
 | `TOOL_DEF_SECRET_HARVEST` | critical | block | ✅ | a tool whose stated job is to read/dump/reveal secrets, including from `~/.aws/credentials`, `~/.kube/config` and other credential stores |
 | `TOOL_DEF_EXFIL` | critical / high | block | ✅ | "post to https://…", "send a copy of all messages to <mailbox>", `bcc <mailbox>`, the conversation sent out with an address, credential or concealment, "exfiltrate", upload-to-host phrasing |
+| `TOOL_DEF_CROSS_TOOL` | high | block | — | a tool's text binding to another tool's call to rewrite its input or pre-empt it with a third call; a no-input tool that only orders another call |
 | `TOOL_DEF_HIDDEN_UNICODE` | high | block | ✅ | zero-width, bidi control and isolate characters, and the Unicode-tag block — text the reviewer cannot see |
 | `TOOL_DEF_BASE64_BLOB` | high | block | ✅ | a 120+ character base64 run in a name, description or schema |
 | `TOOL_DEF_DATA_URL` | high | block | ✅ | `data:…;base64,` and `javascript:` URLs |

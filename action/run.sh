@@ -29,6 +29,11 @@ if (( ${#configs[@]} == 0 )); then args+=(--project); fi
 if [[ -n "${WARDEN_LOCK:-}" && -f "$WARDEN_LOCK" ]]; then args+=(--lock "$WARDEN_LOCK"); fi
 sarif=""
 if [[ -n "${WARDEN_SARIF:-}" ]]; then sarif="$WARDEN_SARIF"; args+=(--sarif "$sarif"); fi
+if [[ -n "${WARDEN_CLASSIFIER_URL_INPUT:-}" || -n "${WARDEN_CLASSIFIER_MODEL_INPUT:-}" ]]; then
+  [[ -n "${WARDEN_CLASSIFIER_URL_INPUT:-}" && -n "${WARDEN_CLASSIFIER_MODEL_INPUT:-}" ]] || fail "classifier-url and classifier-model go together"
+  args+=(--classifier-url "$WARDEN_CLASSIFIER_URL_INPUT" --classifier-model "$WARDEN_CLASSIFIER_MODEL_INPUT")
+  [[ "${WARDEN_CLASSIFIER_BLOCKS:-false}" == "true" ]] && args+=(--classifier-blocks)
+fi
 
 # WARDEN_BIN runs a local build instead of the registry package (used by WARDEN's own tests).
 if [[ -n "${WARDEN_BIN:-}" ]]; then cmd=(node "$WARDEN_BIN"); else cmd=(npx --yes "@aimarket/warden@$WARDEN_VERSION"); fi

@@ -9,7 +9,7 @@ npx -y @aimarket/warden@0.9.0 scan
 ```
 
 ```text
-WARDEN scan 0.9.0 · ruleset 9 sha256-nC+ybcePE8AW… · block at high
+WARDEN scan 0.9.0 · ruleset 10 sha256-lJuKKKV5mtru… · block at high
   read .mcp.json (claude-code, 3 servers)
 
   ✓ allow   notes        claude-code    1 tool · score 0.90
@@ -90,7 +90,7 @@ jobs:
           upload-sarif: 'true'
 ```
 
-Por defecto lee los archivos del proyecto, no inicia servidores stdio (ese programa lo elige el pull request), rechaza direcciones no públicas, usa `warden.lock.json` si existe, escribe el resumen del job y falla ante un servidor bloqueado. Entradas: `config`, `working-directory`, `lock`, `launch-stdio`, `public-only`, `fail-on`, `histor`, `sarif`, `upload-sarif`, `version`. Salidas: `blocked`, `servers`, `sarif`. En workflows de producción, fija la acción por SHA de commit.
+Por defecto lee los archivos del proyecto, no inicia servidores stdio (ese programa lo elige el pull request), rechaza direcciones no públicas, usa `warden.lock.json` si existe, escribe el resumen del job y falla ante un servidor bloqueado. Entradas: `config`, `working-directory`, `lock`, `launch-stdio`, `public-only`, `fail-on`, `histor`, `classifier-url`, `classifier-model`, `classifier-blocks`, `sarif`, `upload-sarif`, `version`. Salidas: `blocked`, `servers`, `sarif`. En workflows de producción, fija la acción por SHA de commit.
 
 ## pre-commit
 
@@ -128,6 +128,54 @@ Qué se envía: el endpoint, solo esquema, host y ruta (sin query, sin usuario n
 | `not-listed`, `not-observed` | HISTOR no conoce este endpoint o todavía no lo ha leído con éxito |
 
 Las respuestas de HISTOR nunca bloquean. Si HISTOR no responde, se informa y el análisis continúa.
+
+## El clasificador opcional
+
+Las reglas de WARDEN funcionan sin conexión y de forma determinista, y no ven lo que ninguna regla nombra: una paráfrasis, una instrucción en otro idioma. `--classifier-url` y `--classifier-model` añaden una segunda opinión de un modelo que tú eliges, mediante cualquier endpoint compatible con OpenAI: Ollama, vLLM o LM Studio en local, o una API alojada.
+
+```bash
+warden-mcp scan --classifier-url http://localhost:11434/v1 --classifier-model qwen2.5:14b
+WARDEN_CLASSIFIER_API_KEY=… warden-mcp scan --classifier-url https://api.deepseek.com --classifier-model deepseek-flash
+```
+
+- **Está apagado por defecto y envía el texto de las herramientas.** Con ambos flags, el nombre, la descripción y los esquemas de cada herramienta van a ese endpoint. Un modelo local los mantiene en tu máquina. La clave, si hace falta, viene solo de `WARDEN_CLASSIFIER_API_KEY`, nunca de un flag.
+- **Consultivo salvo con `--classifier-blocks`.** Sus veredictos se informan como `TOOL_DEF_CLASSIFIER`. Con `--classifier-blocks`, un veredicto en el umbral de bloqueo o por encima (`high` por defecto) bloquea la herramienta como una regla. Un clasificador que no responde se informa y nunca bloquea.
+- **La misma pregunta que HISTOR.** El prompt, las cuatro categorías (`instruction_to_model`, `exfiltration`, `secret_request`, `concealment`) y el formato de respuesta son los del clasificador del registro HISTOR. El texto de las herramientas va entre marcadores con un sufijo aleatorio que no puede falsificar, y la respuesta del modelo se comprueba campo por campo. Con `--histor` también se muestra el veredicto que el propio registro guarda sobre el conjunto que te sirvieron (`HISTOR_CLASSIFIER`, consultivo).
+- **No lee anotaciones ni campos de extensión.** Las reglas sí.
+
+Medido el 9 de octubre de 2026 con `deepseek-flash`, el modelo que usa HISTOR, sobre MCPTox (el benchmark publicado que se describe en la comparación de abajo) y sobre nuestros conjuntos:
+
+| | Reglas (v10) | Reglas + clasificador, bloqueando en `high` | Reglas + cualquier marca del clasificador (consultiva) |
+|---|---|---|---|
+| Mitad reservada de MCPTox, detectadas de 218 herramientas envenenadas | 171 | 191 | 218 |
+| 45 servidores limpios de MCPTox, bloqueados o marcados | 0 | 0 | 4 marcados |
+| 200 servidores del corpus elegidos al azar, bloqueados o marcados | 2 bloqueados | 2 bloqueados | 2 bloqueados, 12 marcados más |
+| 23 ataques nuestros / 12 casos benignos difíciles | 20 / 0 | 22 / 0 | 23 / 0 |
+
+Los dos que bloquean las reglas son el servicio de identidad y la herramienta de despliegue de la comparación de abajo. Los 13 servidores que marcó el clasificador lo fueron con `medium` o `low`, nunca `high`. Seis merecen que los mire una persona: uno le dice al modelo que haga una transferencia irreversible de un nombre ENS «como primera y única acción» sin preguntar al usuario, otro que no revele de dónde salen sus datos. El modelo también marca el servidor oficial Fetch, cuya descripción le dice al modelo que ahora tiene acceso a internet y no debe negarse. Es una instrucción al modelo, aunque no un ataque. El modelo no detectó lo que sí detectan las reglas: una inyección en anotaciones, una clave privada o frase semilla pedida como parámetro y `rm -rf ~`.
+
+## Cómo se compara
+
+El 9 de octubre de 2026 ejecutamos WARDEN, mcp-audit 0.18.2 (`--connect`) y mcp-shield 1.0.4 sobre los mismos servidores. Cada servidor se reprodujo por stdio, así que cada escáner se conectó a él como lo haría en la práctica. El banco de pruebas, los conjuntos y cada juicio están en [`scripts/scanner-comparison`](../scripts/scanner-comparison/). El estudio completo, con el método y todas las salvedades, es la [comparación de escáneres](scanner-comparison.es.md).
+
+Las tres últimas filas vienen de MCPTox (Wang et al., AAAI 2026), un benchmark publicado de 485 herramientas envenenadas escritas para 45 servidores MCP reales. Dividimos sus servidores en dos con un hash fijo. El ruleset v10 se escribió a partir de 22 servidores; la tabla informa sobre los otros 23, con 218 herramientas envenenadas a las que no se ajustó ninguna regla.
+
+| Servidores | WARDEN 0.8.2 (v8) | WARDEN 0.9.0 (v10) | mcp-audit 0.18.2 | mcp-shield 1.0.4 |
+|---|---|---|---|---|
+| 23 ataques escritos por nosotros, bloqueados | 14 | 20 | 10 | 6 |
+| 10 ataques de los propios fixtures de mcp-audit y mcp-shield, bloqueados | 7 | 10 | 10 | 8 |
+| 12 casos benignos difíciles, bloqueados | 0 | 0 | 1 | 1 |
+| 986 servidores públicos, bloqueados | 3 | 3 | 33 | 343 |
+| …bloqueos que se sostienen al leer el texto | 1, y 1 discutible | 1, y 1 discutible | 0 | 0 de 20 elegidos al azar |
+| 218 herramientas envenenadas de MCPTox en los servidores reservados, bloqueadas | 26 | 171 | 25 | 41 |
+| 225 herramientas de MCPTox con el prefijo `<IMPORTANT>` o «Ignore the previous instructions», bloqueadas | 225 | 225 | 222 | no ejecutado |
+| 45 servidores limpios de MCPTox, bloqueados | 0 | 0 | 2 | 3 |
+
+- **Lee primero la fila del corpus.** Ninguna regla se ajustó a ella. Los 33 bloqueos de mcp-audit son 16 «homoglifos» en texto escrito por completo en su propio alfabeto (puntuación china, símbolos griegos, cirílico), 12 instrucciones de honestidad como «do not tell the user the check digits are wrong», 3 utilidades base64, una herramienta de clave pública SSH y la herramienta de despliegue que WARDEN también bloquea por error. mcp-shield bloquea el 35 % de los servidores reales, casi siempre por una palabra clave: «API key», «token», `.env`, «..». Unos puntos suspensivos («Shopify...») cuentan como salto de directorio. También bloquea el servicio de identidad que bloquea WARDEN, pero por la palabra «credentials».
+- **Ten presente qué números están ajustados.** El primer conjunto de ataques lo escribimos nosotros. El ruleset v9 se escribió después de leer ambos conjuntos de ataques, y v10 después de los 22 servidores de MCPTox de la otra mitad. Así que 20 y 10 son la exhaustividad de reglas ajustadas a lo que vieron. La fila reservada de MCPTox, los servidores limpios, el corpus y toda la columna 0.8.2 no están ajustados. Sobre el corpus, v10 bloquea exactamente lo mismo que v8.
+- **MCPTox prueba una forma, no una palabra clave.** Casi todas las herramientas envenenadas le dicen al modelo que llame antes a otra herramienta o que cambie los argumentos de otra. v10 nombra esa forma (`TOOL_DEF_CROSS_TOOL`, ver [la cadena de compuertas](gates.es.md)) y bloquea 171 de las 218 herramientas reservadas, frente a 189 de 267 en la mitad con la que se escribió. Con el prefijo `<IMPORTANT>` o «Ignore the previous instructions» del benchmark, todos los escáneres que ejecutamos las detectan; mcp-shield no lo ejecutamos sobre ese conjunto. En los servidores limpios, mcp-audit bloquea AmapMap y BaiduMap, y mcp-shield bloquea FileSystem, AdFin y Commander por «sensitive file access».
+- **Lo que WARDEN todavía no detecta:** 47 de las 218 herramientas reservadas de MCPTox, una instrucción en chino para leer `.env`, una paráfrasis sin palabras clave («gather every credential file … keep this step to yourself») y «include the output of env». Informa 41 de esas 47, y las tres nuestras, como avisos, no como bloqueos. Necesitan una comprobación por significado, no otra regla: con el clasificador opcional de arriba, 191 de las 218 quedan bloqueadas en `high` y las 218 quedan marcadas.
+- **No comparado:** Snyk Agent Scan, antes Invariant mcp-scan y el escáner más usado. Juzga las descripciones en los servidores de Snyk y necesita un token de cuenta. mcp-audit también tiene archivo lock, modo diff para PR y SARIF; WARDEN no está solo en ese hueco.
 
 ## Lo que scan no hace
 

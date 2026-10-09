@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Normalize WARDEN / mcp-audit / mcp-shield outputs to {server: {scanner: {status, block, warn, codes}}}.
+"""Normalize WARDEN / mcp-audit / mcp-shield / Snyk Agent Scan outputs to {server: {scanner: {status, block, warn, codes}}}.
 
 block = the scanner's own high-or-worse verdict on the tool definitions; warn = any finding about
 the tool definitions at all. Config-level findings caused by the replay harness (absolute node path,
 /tmp paths, file permissions, first-scan baselines) are excluded for every scanner.
-usage: normalize.py RAWDIR OUT.json   (RAWDIR holds warden-*.json, mcp-audit/*.json, mcp-shield/*.txt)
+usage: normalize.py RAWDIR OUT.json   (RAWDIR holds warden-*.json, mcp-audit/*.json, mcp-shield/*.txt, snyk-agent-scan/*.json)
 """
 import json, os, re, sys, glob
 raw, out = sys.argv[1], sys.argv[2]
@@ -41,5 +41,19 @@ for p in glob.glob(os.path.join(raw, 'mcp-shield', '*.txt')):
     levels = [lvl.upper() for _, lvl, _ in entries]
     issues = sorted({m for _, _, block in entries for m in re.findall(r'– ([^:\n]+):', block)})
     put(key, 'mcp-shield', status='scanned', block=any(l in ('HIGH', 'CRITICAL') for l in levels), warn=bool(entries), codes=issues)
+# Snyk Agent Scan scores four risk indexes per server (0-1000). Only prompt_injection_tool_desc is a
+# verdict on the tool text; untrusted_content, private_data and destructive_capabilities describe what
+# a server can do. block = a prompt-injection score is present; warn = any index is present. Its own
+# `--ci` fails on any index, which would count every web-reading or file-writing server.
+for p in glob.glob(os.path.join(raw, 'snyk-agent-scan', '*.json')):
+    key = os.path.basename(p)[:-5]; d = json.load(open(p))
+    paths = d.get('scan_path_responses') if isinstance(d, dict) else None
+    risks = [r for sp in (paths or []) for r in sp.get('server_risks', [])]
+    errors = [sp.get('error') for sp in (paths or []) if sp.get('error')] + [r.get('error') for r in risks if r.get('error')]
+    if '_error' in d or paths is None or (errors and not any(r.get('risk_indexes') for r in risks)):
+        put(key, 'snyk-agent-scan', status='error', block=False, warn=False, codes=[]); continue
+    idx = {name: v['score'] for r in risks for name, v in (r.get('risk_indexes') or {}).items() if v}
+    put(key, 'snyk-agent-scan', status='scanned', block='prompt_injection_tool_desc' in idx, warn=bool(idx),
+        codes=sorted(f'{n}:{sc}' for n, sc in idx.items()))
 json.dump(res, open(out, 'w'), indent=1, ensure_ascii=False)
 print('servers', len(res))

@@ -30,6 +30,9 @@ export const CODE_TEXT: Record<string, string> = {
   SERVER_UNDECLARED: 'Server came from a catalog, not from the operator',
   LOCK_MISSING: 'Server is not in the reviewed lock file',
   HISTOR_UNSEEN_TOOLSET: 'HISTOR never observed the tool set this server served',
+  HISTOR_CLASSIFIER: "HISTOR's classifier reads a tool as directing the model",
+  TOOL_DEF_CLASSIFIER: 'A model reads the tool as directing the model (opt-in classifier)',
+  TOOL_DEF_CROSS_TOOL: "A tool's description directs how another tool is called",
   HISTOR_OLDER_TOOLSET: 'This server served a tool set HISTOR saw earlier, not the current one',
   GATE_ERROR: 'A WARDEN gate failed to complete',
 };
@@ -84,6 +87,7 @@ export function toTable(report: ScanReport, cwd: string, color: boolean): string
       if (more > 0) parts.push(`+${more} more`);
       if (s.lock) parts.push(`lock: ${s.lock.state}`);
       if (s.histor) parts.push(`histor: ${displaySafe(s.histor.match ?? (s.histor.notSent ? 'not sent' : 'unavailable'), 40)}`);
+      if (s.classifier) parts.push(s.classifier.error ? 'classifier: no answer' : `classifier: ${s.classifier.flagged} flagged`);
       detail = parts.join(' · ');
     }
     lines.push(`  ${mark}  ${name}  ${c('2', s.client.padEnd(14))} ${detail}`);
