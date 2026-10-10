@@ -252,13 +252,13 @@ describe("exfil detection is anchored on an external destination", () => {
 describe("ruleset is versioned and digestible", () => {
   it("exposes a stable digest over the rule table", () => {
     const rs = staticScanRuleset();
-    expect(rs.version).toBe("10");
+    expect(rs.version).toBe("12");
     // If this fails you changed a rule: bump STATIC_SCAN_RULESET_VERSION and
     // update the value here. A scan result is only comparable within one digest.
-    expect(rs.digest).toBe("sha256-lJuKKKV5mtruN5D+K3X1OK89u6KLXF//oS1NpmhZRuI=");
+    expect(rs.digest).toBe("sha256-3E1lfPR+y6rFZtWN+L9Nkc1SVirrXTWxfEVNXQn4W4I=");
     // The fold is part of the ruleset identity: the same regexes over folded and
     // unfolded text are different scans, so the digest covers it too.
-    expect(rs.fold).toBe("nfkc+tags-decoded+invisible-stripped+mixed-script-confusables/1");
+    expect(rs.fold).toBe("escapes+entities+percent+base64/4x64k+nfkc+tags+invisible+confusables/2");
     expect(rs.rules.every((r) => typeof r.raw === "boolean")).toBe(true);
     expect(rs.rules.length).toBe(35);
     // v5 added TOOL_DEF_SECRET_EXFIL as an advisory pair rule; v9 added six blocking rules, v10 three.

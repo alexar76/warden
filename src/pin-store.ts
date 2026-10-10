@@ -17,6 +17,7 @@ export class FilePinStore implements PinStore {
     const pin = await readState<PinnedServer>(this.path(id));
     if (pin !== undefined && (!pin || typeof pin !== 'object' || pin.serverId !== id ||
         typeof pin.toolsHash !== 'string' || !/^(?:rfc8785:)?[a-f0-9]{64}$/.test(pin.toolsHash) ||
+        (pin.approvalMode !== undefined && !['operator', 'automatic'].includes(pin.approvalMode)) ||
         typeof pin.approvedAt !== 'string' || !Array.isArray(pin.toolNames) || !pin.toolNames.every(n => typeof n === 'string'))) {
       throw new Error('Invalid pin state; refusing to treat it as first contact');
     }

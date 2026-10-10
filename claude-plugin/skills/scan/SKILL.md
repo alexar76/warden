@@ -10,7 +10,7 @@ Run WARDEN against the MCP servers Claude Code starts for this project and repor
 1. Run, from the project root:
 
    ```bash
-   npx --yes @aimarket/warden@0.9.0 scan --client claude-code --json
+   npx --yes @aimarket/warden@0.13.0 scan --client claude-code --json
    ```
 
    Add `--lock warden.lock.json` when that file exists in the project root.

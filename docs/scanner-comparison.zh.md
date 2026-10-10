@@ -2,7 +2,7 @@
 
 > 🌐 [English](scanner-comparison.md) · [Русский](scanner-comparison.ru.md) · [Español](scanner-comparison.es.md) · [Français](scanner-comparison.fr.md) · **中文**
 
-2026 年 10 月 9 日，我们在同一批服务器上运行了 WARDEN 和两款开源 MCP 扫描器：mcp-audit 与 mcp-shield。我们想从每款扫描器得到两个数字：它阻止了多少投毒工具，以及它误阻止了多少诚实的服务器。第二个数字决定了有没有人敢让扫描器一直开着。
+2026 年 10 月 9 日，我们在同一批服务器上运行了 WARDEN 和两款开源 MCP 扫描器：mcp-audit 与 mcp-shield[^snyk]。我们想从每款扫描器得到两个数字：它阻止了多少投毒工具，以及它误阻止了多少诚实的服务器。第二个数字决定了有没有人敢让扫描器一直开着。
 
 用自己的测试集衡量扫描器，结果总是好看，我们的也一样。所以本页大部分内容讲的是一个三家作者都没写过的样本集：MCPTox，一个发表于 AAAI 2026 的工具投毒基准。我们依据它一半的服务器编写了 WARDEN 最新的规则，并在另一半上测量。
 
@@ -105,12 +105,6 @@ v10 漏掉了 218 个留出工具中的 47 个，其中 41 个会以建议的形
 - **它会漏掉规则能抓到的东西：** 注解（annotations）里的注入、作为参数索取的私钥，以及 `rm -rf ~`。两者要搭配使用。
 - **成本很低。** 整个测量共 816 次请求；按我们的估算，不到一美元。
 
-## Snyk Agent Scan
-
-Snyk Agent Scan（原 Invariant mcp-scan）是使用最广的 MCP 扫描器。它在 Snyk 的服务器上判定工具描述，需要账号令牌。2026 年 10 月 9 日，我们持有有效的令牌。服务对我们的第一次请求就返回了 HTTP 429：“The public quota for this service has been exceeded”。这份配额由所有免费用户共享，在我们到来之前就已用完。扫描器自己的提示把它称作每日使用上限。我们的测试工具每小时重试一次，通过之后会放慢节奏运行。运行完成后，我们会补上这一列。
-
-这只是关于访问的说明，不涉及检测能力。我们没有测量 Snyk 的检测效果。
-
 ## 局限，以及我们的利益
 
 - **我们并不中立。** WARDEN 由我们发布，免费，采用 MIT 许可。23 个攻击和 55 条判定由我们编写。正因如此，样本集、重放测试工具、原始结果和每一条判定都是公开的。
@@ -133,3 +127,5 @@ npx -y @aimarket/warden@0.9.0 scan
 ```
 
 [scan 指南](scan.zh.md)介绍 lock 文件、GitHub Action、pre-commit 钩子和分类器。[实地普查](mcp-survey.zh.md)是更早的一项研究，讲的是 WARDEN 在 1 108 台公开服务器上判错了什么。
+
+[^snyk]: 使用最广的 MCP 扫描器 Snyk Agent Scan 未参与对比。2026 年 10 月 9 日，它的免费版本对每一次请求都返回 HTTP 429：“The public quota for this service has been exceeded”。从第一次请求起即如此，两个 CLI 版本（0.6.8 和 0.5.17）均如此，从两个网络地址发出也一样。

@@ -112,7 +112,7 @@ const RULESET_REF_SCHEMA = {
   additionalProperties: false,
   required: ["version", "digest"],
   properties: {
-    version: { type: "string", description: "Monotonic static-scan ruleset version (currently \"5\")." },
+    version: { type: "string", description: "Monotonic static-scan ruleset version (currently \"12\")." },
     digest: {
       type: "string",
       description: "sha256-<base64> over the RFC 8785 canonical form of the published rule table. A recorded scan is not reproducible without this.",
@@ -217,10 +217,21 @@ export const MCP_TOOLS: McpToolDef[] = [
               description:
                 "Case-insensitive * globs matched against tool names. Hits are still advertised; they go to blockedTools only when a finding also trips. For a glob-only split, call classify_sensitive_tools.",
             },
+            capabilityBindings: {
+              type: "array", maxItems: 1000,
+              description: "Operator-reviewed capabilities, bound to launch identity and complete definitions. Unbound capabilities remain unknown.",
+              items: { type: "object", required: ["serverId", "identityHash", "toolsHash", "tools"], additionalProperties: false,
+                properties: { serverId: { type: "string" }, identityHash: { type: "string" }, toolsHash: { type: "string" },
+                  tools: { type: "object", additionalProperties: { type: "array", items: { enum: ["private", "untrusted", "outbound"] } } } } },
+            },
             allowUnknownServers: {
               type: "boolean",
               description:
                 "When false, servers that carry server.catalog are refused by the origin gate. Default true on this stdio scanner so you can inspect catalog entries without declaring them.",
+            },
+            requireApproval: {
+              type: "boolean",
+              description: "Require an explicit operator approval of every advertised field and server identity. Automatic and legacy pins do not qualify. Default false.",
             },
             pinToolDefs: {
               type: "boolean",
@@ -261,7 +272,7 @@ export const MCP_TOOLS: McpToolDef[] = [
     name: "static_scan_tools",
     title: "Static-scan MCP tool definitions for injection and exfil",
     description:
-      "Run only the static-scan gate (ruleset v10, 35 signatures with context guards, text folded first) over every advertised tool field: name, description, input schema, title, output schema, annotations and extension metadata. Returns findings, a 0..1 gate score, and the published ruleset digest.\n\n" +
+      "Run only the static-scan gate (ruleset v12, 35 signatures with context guards, text folded first) over every advertised tool field: name, description, input schema, title, output schema, annotations and extension metadata. Returns findings, a 0..1 gate score, and the published ruleset digest.\n\n" +
       "When to use: you have a tools/list dump and want injection / credential / hidden-Unicode hits without origin, pinning, or the threat feed. Cheaper and narrower than vet_mcp_server.\n\n" +
       "When NOT to use: you need the full host decision (vet_mcp_server); you want operator glob classification (classify_sensitive_tools); you want the published rule table itself (list_scan_rules).\n\n" +
       "Behaviour: local regex+guard evaluation, no network, no mutation. Advisory-tier hits are reported with advisory=true and do not reduce the score. Does not launch servers or send tool output to a model.\n\n" +
@@ -442,7 +453,7 @@ export const MCP_TOOLS: McpToolDef[] = [
     title: "List the published WARDEN static-scan rule table",
     description:
       "Return the in-force static-scan ruleset: version, digest, and every rule's code, severity, tier (block vs advise), surfaces (name / description / inputSchema / title / outputSchema / annotations / metadata), optional regex source, and named guards. A recorded verdict is only reproducible together with this identity.\n\n" +
-      "When to use: explain a finding code, confirm you are on ruleset v10, or re-run a scan with the same table. include_source=true adds the regex source and flags for an independent re-implementation.\n\n" +
+      "When to use: explain a finding code, confirm you are on ruleset v12, or re-run a scan with the same table. include_source=true adds the regex source and flags for an independent re-implementation.\n\n" +
       "When NOT to use: evaluating a live tools/list (static_scan_tools or vet_mcp_server — those apply the table). This tool does not scan anything.\n\n" +
       "Behaviour: local snapshot of the compiled rule table, no network, no mutation. Digest is sha256 over the RFC 8785 form of {version, fold, rules} (each rule carries its `raw` flag).\n\n" +
       "Returns the ruleset object. Example: list_scan_rules({ include_source: false }).",
@@ -619,8 +630,22 @@ export function asPolicy(raw: unknown): WardenPolicy {
     if (!Array.isArray(rec.sensitiveToolPatterns)) throw new McpToolError("policy.sensitiveToolPatterns must be an array");
     policy.sensitiveToolPatterns = rec.sensitiveToolPatterns.map(String);
   }
+  if (rec.capabilityBindings !== undefined) {
+    if (!Array.isArray(rec.capabilityBindings) || rec.capabilityBindings.some(b =>
+      !b || typeof b !== 'object' || typeof b.serverId !== 'string' || !b.serverId ||
+      typeof b.identityHash !== 'string' || !/^[a-f0-9]{64}$/.test(b.identityHash) ||
+      typeof b.toolsHash !== 'string' || !/^(?:rfc8785:)?[a-f0-9]{64}$/.test(b.toolsHash) ||
+      !b.tools || typeof b.tools !== 'object' || Array.isArray(b.tools) ||
+      Object.values(b.tools).some(v => !Array.isArray(v) || v.some(c => !['private', 'untrusted', 'outbound'].includes(c)))))
+      throw new McpToolError('policy.capabilityBindings must bind capabilities to serverId, identityHash and toolsHash');
+    policy.capabilityBindings = structuredClone(rec.capabilityBindings);
+  }
   if (typeof rec.allowUnknownServers === "boolean") policy.allowUnknownServers = rec.allowUnknownServers;
   if (typeof rec.pinToolDefs === "boolean") policy.pinToolDefs = rec.pinToolDefs;
+  if ("requireApproval" in rec) {
+    if (typeof rec.requireApproval !== "boolean") throw new McpToolError("policy.requireApproval must be boolean");
+    policy.requireApproval = rec.requireApproval;
+  }
   return policy;
 }
 
@@ -702,7 +727,7 @@ async function managePin(name: string, args: Record<string, unknown>): Promise<o
     store: { getPin: async () => undefined, putPin: async () => {} } });
   const verdict = await warden.vet(server, tools);
   if (!verdict.allow) throw new McpToolError("Server failed security checks; approval refused");
-  const pin = { serverId: server.id, toolsHash, toolsHashVersion: 2, identityHash, tools,
+  const pin = { serverId: server.id, toolsHash, toolsHashVersion: 2, identityHash, tools, approvalMode: "operator" as const,
     toolNames: tools.map(t => t.name).sort(), approvedAt: new Date().toISOString() };
   await store.replace(server.id, args.previous_pin_revision as string | null, pin);
   return { approved: true, pin };

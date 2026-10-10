@@ -1,0 +1,8 @@
+**
+!warden
+!warden/**
+warden/node_modules
+warden/dist
+warden/coverage
+warden/.git
+warden/.env*

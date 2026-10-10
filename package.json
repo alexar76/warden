@@ -1,6 +1,6 @@
 {
   "name": "@aimarket/warden",
-  "version": "0.9.0",
+  "version": "0.13.0",
   "description": "WARDEN — MCP security firewall. Stdio wrap proxy, inspection tools and library. Vets definitions before model exposure. Zero runtime dependencies.",
   "type": "module",
   "license": "MIT",
@@ -33,6 +33,8 @@
   },
   "files": [
     "dist",
+    "scripts/check-quality-gate.mjs",
+    "scripts/quality-public-key.pem",
     "README.md",
     "docs/scan*.md",
     "README-ru.md",
@@ -56,7 +58,8 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
-    "prepublishOnly": "npm run build && npm test && npm run check:ruleset",
+    "prepublishOnly": "npm run build && npm test && npm run check:ruleset && npm run check:quality",
+    "check:quality": "node scripts/check-quality-gate.mjs",
     "check:ruleset": "node scripts/check-published-ruleset.mjs",
     "bench:wrap": "npm run build && node scripts/benchmark-wrap.mjs"
   },
@@ -79,7 +82,7 @@
     "access": "public"
   },
   "devDependencies": {
-    "@types/node": "^22.10.2",
+    "@types/node": "^26.6.4",
     "@vitest/coverage-v8": "^4.1.11",
     "typescript": "^5.7.2",
     "vitest": "^4.1.11"

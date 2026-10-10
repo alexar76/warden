@@ -162,6 +162,10 @@
               "pinToolDefs": {
                 "type": "boolean",
                 "description": "When true, tool-def drift after a stored pin is fatal. Pins persist across calls and restarts; first contact stays UNPINNED/advisory. Default true."
+              },
+              "requireApproval": {
+                "type": "boolean",
+                "description": "Require an explicit operator approval of every advertised field and server identity. Automatic and legacy pins do not qualify. Default false."
               }
             }
           }
@@ -267,7 +271,7 @@
                 "properties": {
                   "version": {
                     "type": "string",
-                    "description": "Monotonic static-scan ruleset version (currently \"5\")."
+                    "description": "Monotonic static-scan ruleset version (currently \"12\")."
                   },
                   "digest": {
                     "type": "string",
@@ -300,7 +304,7 @@
     {
       "name": "static_scan_tools",
       "title": "Static-scan MCP tool definitions for injection and exfil",
-      "description": "Run only the static-scan gate (ruleset v10, 35 signatures with context guards, text folded first) over every advertised tool field: name, description, input schema, title, output schema, annotations and extension metadata. Returns findings, a 0..1 gate score, and the published ruleset digest.\n\nWhen to use: you have a tools/list dump and want injection / credential / hidden-Unicode hits without origin, pinning, or the threat feed. Cheaper and narrower than vet_mcp_server.\n\nWhen NOT to use: you need the full host decision (vet_mcp_server); you want operator glob classification (classify_sensitive_tools); you want the published rule table itself (list_scan_rules).\n\nBehaviour: local regex+guard evaluation, no network, no mutation. Advisory-tier hits are reported with advisory=true and do not reduce the score. Does not launch servers or send tool output to a model.\n\nReturns structured JSON matching outputSchema. Example: static_scan_tools({ tools: [{ name: \"add\", description: \"Add two integers.\", inputSchema: { type: \"object\" } }] }).",
+      "description": "Run only the static-scan gate (ruleset v12, 35 signatures with context guards, text folded first) over every advertised tool field: name, description, input schema, title, output schema, annotations and extension metadata. Returns findings, a 0..1 gate score, and the published ruleset digest.\n\nWhen to use: you have a tools/list dump and want injection / credential / hidden-Unicode hits without origin, pinning, or the threat feed. Cheaper and narrower than vet_mcp_server.\n\nWhen NOT to use: you need the full host decision (vet_mcp_server); you want operator glob classification (classify_sensitive_tools); you want the published rule table itself (list_scan_rules).\n\nBehaviour: local regex+guard evaluation, no network, no mutation. Advisory-tier hits are reported with advisory=true and do not reduce the score. Does not launch servers or send tool output to a model.\n\nReturns structured JSON matching outputSchema. Example: static_scan_tools({ tools: [{ name: \"add\", description: \"Add two integers.\", inputSchema: { type: \"object\" } }] }).",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -420,7 +424,7 @@
             "properties": {
               "version": {
                 "type": "string",
-                "description": "Monotonic static-scan ruleset version (currently \"5\")."
+                "description": "Monotonic static-scan ruleset version (currently \"12\")."
               },
               "digest": {
                 "type": "string",
@@ -642,7 +646,7 @@
     {
       "name": "list_scan_rules",
       "title": "List the published WARDEN static-scan rule table",
-      "description": "Return the in-force static-scan ruleset: version, digest, and every rule's code, severity, tier (block vs advise), surfaces (name / description / inputSchema / title / outputSchema / annotations / metadata), optional regex source, and named guards. A recorded verdict is only reproducible together with this identity.\n\nWhen to use: explain a finding code, confirm you are on ruleset v8, or re-run a scan with the same table. include_source=true adds the regex source and flags for an independent re-implementation.\n\nWhen NOT to use: evaluating a live tools/list (static_scan_tools or vet_mcp_server — those apply the table). This tool does not scan anything.\n\nBehaviour: local snapshot of the compiled rule table, no network, no mutation. Digest is sha256 over the RFC 8785 form of {version, fold, rules} (each rule carries its `raw` flag).\n\nReturns the ruleset object. Example: list_scan_rules({ include_source: false }).",
+      "description": "Return the in-force static-scan ruleset: version, digest, and every rule's code, severity, tier (block vs advise), surfaces (name / description / inputSchema / title / outputSchema / annotations / metadata), optional regex source, and named guards. A recorded verdict is only reproducible together with this identity.\n\nWhen to use: explain a finding code, confirm you are on ruleset v12, or re-run a scan with the same table. include_source=true adds the regex source and flags for an independent re-implementation.\n\nWhen NOT to use: evaluating a live tools/list (static_scan_tools or vet_mcp_server — those apply the table). This tool does not scan anything.\n\nBehaviour: local snapshot of the compiled rule table, no network, no mutation. Digest is sha256 over the RFC 8785 form of {version, fold, rules} (each rule carries its `raw` flag).\n\nReturns the ruleset object. Example: list_scan_rules({ include_source: false }).",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -1124,7 +1128,7 @@
       }
     }
   ],
-  "version": "0.9.0",
+  "version": "0.13.0",
   "authorUrl": "https://github.com/alexar76",
   "icon": "https://raw.githubusercontent.com/alexar76/warden/main/docs/assets/logo-400.png",
   "category": "developer"

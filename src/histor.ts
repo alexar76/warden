@@ -2,9 +2,11 @@
  * HISTOR — the public transparency log of MCP tool definitions
  * (https://histor.modelmarket.dev, source github.com/alexar76/histor).
  *
- * `scan --histor` asks the log one question per remote server: is the tool set
- * this machine was served the one the log observes for everyone? The request
- * carries the server's endpoint and the MTL/1 digest of the set, nothing else:
+ * `scan --histor` asks the log one question per server: is the tool set this
+ * machine was served the one the log observes for everyone? The request carries
+ * the server's endpoint — or, for a stdio server started from npm or PyPI, the
+ * package name (`npm:<name>`, `pypi:<name>`), which the log runs in a sandbox —
+ * and the MTL/1 digest of the set, nothing else:
  * no tool description ever leaves the machine, and the log cannot learn what a
  * private server advertises. The answer is signed by the log and says `same`,
  * `different` (you were served something the log never saw: a targeted
@@ -19,6 +21,8 @@ export type HistorMatch = 'same' | 'different' | 'previously-observed' | 'not-li
 
 export interface HistorQuery {
   endpoint?: string;
+  /** A stdio server's package: `npm:<name>` or `pypi:<name>` (see `historPackage`). */
+  package?: string;
   name?: string;
   /** `sha256-<base64>` from {@link mtlToolSetDigest}. */
   toolSetDigest?: string;
@@ -29,13 +33,30 @@ export interface HistorCheck {
   note?: string;
   checkedAt?: string;
   issuer?: string;
-  target?: { id?: string; name?: string; endpoint?: string; page?: string; badge?: string; lastStatus?: string; listed?: boolean };
+  target?: { id?: string; name?: string; endpoint?: string; page?: string; badge?: string; lastStatus?: string; listed?: boolean; packageVersion?: string;
+    /** What the registry says about the version HISTOR observed, and what changed since the one before. */
+    packageSignals?: { version?: string; previousVersion?: string; provenance?: boolean; publisher?: string | null; previousPublisher?: string; installScripts?: string[]; newDependencies?: string[]; flags?: string[];
+      /** What the package did in HISTOR's gVisor sandbox, per phase. */
+      behaviour?: Record<string, PackageBehaviour | unknown> } };
+  /** The popular package this package's name imitates, for any package asked about. */
+  packageLookalike?: { of?: string; weekly?: number; how?: string; ownWeekly?: number };
   observed?: { toolSetDigest?: string; subjectDigest?: string; toolCount?: number; firstPinned?: string; unchangedSince?: string; lastObserved?: string; observations?: number; changes?: number };
   seenBefore?: unknown;
   patternScan?: unknown;
   classifier?: unknown;
   log?: { treeSize?: number; rootHash?: string; timestamp?: string };
   [field: string]: unknown;
+}
+
+/** One phase of a package's run in HISTOR's sandbox: install scripts, startup, or the canary tool calls. */
+export interface PackageBehaviour {
+  exec?: string[];
+  network?: string[];
+  lookups?: string[];
+  decoys?: string[];
+  writes?: string[];
+  packages?: string[];
+  tools?: number;
 }
 
 export interface HistorOptions {
@@ -46,14 +67,15 @@ export interface HistorOptions {
 
 export class HistorError extends Error {}
 
-/** POST /api/v1/check with endpoint/name + digest only. */
+/** POST /api/v1/check with endpoint/package/name + digest only. */
 export async function historCheck(base: string, query: HistorQuery, opts: HistorOptions = {}): Promise<HistorCheck> {
   const root = new URL(base);
   if (root.protocol !== 'https:' && root.protocol !== 'http:') throw new HistorError('HISTOR URL must be http(s)');
-  if (!query.endpoint && !query.name) throw new HistorError('a HISTOR check needs an endpoint or a name');
-  // Only these three fields, ever. `tools` and `contribute` are deliberately not forwarded.
+  if (!query.endpoint && !query.package && !query.name) throw new HistorError('a HISTOR check needs an endpoint, a package or a name');
+  // Only these fields, ever. `tools` and `contribute` are deliberately not forwarded.
   const body: HistorQuery = {};
   if (query.endpoint) body.endpoint = query.endpoint;
+  else if (query.package) body.package = query.package;
   if (query.name) body.name = query.name;
   if (query.toolSetDigest) body.toolSetDigest = query.toolSetDigest;
   const url = new URL('/api/v1/check', root);

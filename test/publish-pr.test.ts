@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url';
 import { it, expect } from 'vitest';
-import { mkdtempSync, mkdirSync, writeFileSync, copyFileSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, copyFileSync, readFileSync, rmSync, existsSync } from 'node:fs';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -11,6 +11,7 @@ it('Gitea PR mode retains gates, preserves the base branch and encodes a body fi
     const scripts = join(dir, 'scripts'), bin = join(dir, 'bin'), trace = join(dir, 'trace');
     mkdirSync(scripts); mkdirSync(bin);
     const source = resolve(fileURLToPath(new URL(".", import.meta.url)), '../../scripts');
+    if (!existsSync(join(source, 'push_gitea_monorepo.sh'))) return;
     for (const file of ['push_gitea_monorepo.sh', 'sanitize_git_commit_meta.py']) copyFileSync(join(source, file), join(scripts, file));
     writeFileSync(join(scripts, 'verify_whitepaper_links.sh'), '#!/bin/bash\nexit 0\n', { mode: 0o755 });
     writeFileSync(join(bin, 'git'), `#!${process.execPath}

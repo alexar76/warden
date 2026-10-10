@@ -45,6 +45,7 @@ function validEntry(id: string, e: unknown): e is LockEntry {
   const p = e as LockEntry;
   return p.serverId === id && typeof p.toolsHash === 'string' && /^(?:rfc8785:)?[a-f0-9]{64}$/.test(p.toolsHash) &&
     typeof p.approvedAt === 'string' && Array.isArray(p.toolNames) && p.toolNames.every(n => typeof n === 'string') &&
+    (p.approvalMode === undefined || ['operator', 'automatic'].includes(p.approvalMode)) &&
     (p.identityHash === undefined || /^[a-f0-9]{64}$/.test(p.identityHash)) &&
     (p.tools === undefined || Array.isArray(p.tools));
 }
@@ -82,7 +83,7 @@ export function lockEntryFor(server: McpServerRef, tools: ToolDef[], mtlDigest: 
   const sorted = [...tools].sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
   return {
     serverId: server.id,
-    toolsHash, toolsHashVersion: 2, identityHash,
+    toolsHash, toolsHashVersion: 2, identityHash, approvalMode: "operator",
     // An unchanged entry keeps its date, so re-running --update-lock produces no diff.
     approvedAt: unchanged ? previous.approvedAt : now,
     toolNames: sorted.map(t => t.name),

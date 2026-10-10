@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { flowSentence } from './toxic-flow.js';
 import { relative, isAbsolute, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { readFileSync } from 'node:fs';
@@ -92,6 +93,10 @@ export function toTable(report: ScanReport, cwd: string, color: boolean): string
     }
     lines.push(`  ${mark}  ${name}  ${c('2', s.client.padEnd(14))} ${detail}`);
   }
+  for (const f of report.flows ?? []) {
+    lines.push('');
+    lines.push(`  ${c('33;1', '⚠ toxic flow')}  ${flowSentence(f, t => `${displaySafe(t.server, 28)}.${displaySafe(t.tool, 40)}`)}`);
+  }
   const m = report.summary;
   lines.push('');
   lines.push(`${m.servers} server${m.servers === 1 ? '' : 's'}: ${m.allowed} allowed, ${m.blocked} blocked, ${m.errors} not checked, ${m.skipped} skipped${m.launchOnly ? `, ${m.launchOnly} not started` : ''}.`);
@@ -100,6 +105,7 @@ export function toTable(report: ScanReport, cwd: string, color: boolean): string
     if (report.lock.stale.length) lines.push(`In the lock but not in any config: ${report.lock.stale.map(id => displaySafe(id, 60)).join(', ')}`);
   }
   if (m.blocked) lines.push(`Details: warden-mcp scan --json, or --markdown FILE. To review a changed server: warden-mcp scan --lock warden.lock.json --update-lock.`);
+  if (report.historWatch) lines.push(`Follow changes to these servers in any feed reader: ${displaySafe(report.historWatch, 2000)}`);
   return lines.join('\n');
 }
 
@@ -251,6 +257,14 @@ export function toMarkdown(report: ScanReport, cwd: string): string {
   if (report.lock?.stale.length) {
     out.push('');
     out.push(`In the lock but no longer in any config: ${report.lock.stale.map(id => mdCode(id, 60)).join(', ')}`);
+  }
+  for (const f of report.flows ?? []) {
+    out.push('');
+    out.push(`⚠️ **Toxic flow** (advisory): ${flowSentence(f, t => mdCode(`${t.server}.${t.tool}`, 70))}`);
+  }
+  if (report.historWatch) {
+    out.push('');
+    out.push(`[Follow changes to these servers](${report.historWatch}) (HISTOR feed)`);
   }
   out.push('');
   out.push(`<sub>@aimarket/warden ${displaySafe(report.version, 20)} · ${mdCode(report.ruleset.digest, 60)} · tool descriptions are shown as code; they are untrusted text from the servers.</sub>`);

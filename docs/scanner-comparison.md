@@ -2,7 +2,7 @@
 
 > 🌐 **English** · [Русский](scanner-comparison.ru.md) · [Español](scanner-comparison.es.md) · [Français](scanner-comparison.fr.md) · [中文](scanner-comparison.zh.md)
 
-On 2026-10-09 we ran WARDEN and two open-source MCP scanners, mcp-audit and mcp-shield, over the same
+On 2026-10-09 we ran WARDEN and two open-source MCP scanners, mcp-audit and mcp-shield,[^snyk] over the same
 servers. We wanted two numbers from each: how many poisoned tools it blocks, and how many honest servers
 it blocks by mistake. The second number decides whether anyone can leave a scanner switched on.
 
@@ -164,17 +164,6 @@ uses:
   and `rm -rf ~`. The two work as a pair.
 - **It cost little.** The whole measurement was 816 requests; by our estimate it cost under a dollar.
 
-## Snyk Agent Scan
-
-Snyk Agent Scan, formerly Invariant mcp-scan, is the most used MCP scanner. It judges tool descriptions on
-Snyk's servers and needs an account token. On 2026-10-09 we had a valid token. The service answered our
-first request with HTTP 429, "The public quota for this service has been exceeded". That quota is shared by
-every free user, and it was spent before we arrived. The scanner's own message calls it a daily usage
-limit. Our harness retries every hour and goes slowly when it gets through. We will add the column when it
-has run.
-
-That is a note about access, not about detection. We have not measured Snyk's detection.
-
 ## Limits, and our interest
 
 - **We are not neutral.** We publish WARDEN, MIT-licensed and free. We wrote the 23 attacks and the 55
@@ -207,3 +196,5 @@ npx -y @aimarket/warden@0.9.0 scan
 
 The [scan guide](scan.md) covers the lock file, the GitHub Action, the pre-commit hooks and the classifier.
 The [field survey](mcp-survey.md) is the earlier study of what WARDEN got wrong on 1 108 public servers.
+
+[^snyk]: Snyk Agent Scan, the most used MCP scanner, is not compared. On 2026-10-09 its free version refused every request with HTTP 429, "The public quota for this service has been exceeded": from the first request, with both CLI versions (0.6.8 and 0.5.17) and from two network addresses.

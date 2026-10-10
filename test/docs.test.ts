@@ -68,7 +68,7 @@ describe("documentation set", () => {
 
   it("names itself an MCP server in the H1, like ARGUS / aimarket-mcp", () => {
     for (const f of readmes) {
-      const title = readFileSync(join(root, f), "utf8").split("\n")[0] ?? "";
+      const title = readFileSync(join(root, f), "utf8").split("\n").find((line) => line.startsWith("# ")) ?? "";
       expect(title, `${f} H1 must say MCP`).toMatch(/MCP/i);
     }
   });

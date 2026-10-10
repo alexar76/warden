@@ -32,7 +32,7 @@ export class PinningGate implements WardenGate {
     const pin = await this.store.getPin(input.server.id);
     const drift = this.identityDrift(input, pin);
     return { findings: drift ? [drift] : [], score: drift ? 0 : 1,
-      fatal: !!drift && input.policy.pinToolDefs };
+      fatal: !!drift && (input.policy.pinToolDefs || input.policy.requireApproval === true) };
   }
 
   async evaluate(input: WardenGateInput): Promise<WardenGateResult> {
@@ -47,6 +47,13 @@ export class PinningGate implements WardenGate {
     }
 
     const identityDrift = this.identityDrift(input, pin);
+
+    if (input.policy.requireApproval && (!pin || pin.approvalMode !== "operator" ||
+        pin.toolsHashVersion !== 2 || !pin.identityHash)) {
+      return { score: 0, fatal: true, findings: [{ gate: this.name, severity: "high",
+        code: "TOOL_DEF_APPROVAL_REQUIRED",
+        message: "Tool definitions have no explicit operator approval covering every field and the server identity." }] };
+    }
 
     if (!pin) {
       const finding: WardenFinding = {
@@ -86,7 +93,7 @@ export class PinningGate implements WardenGate {
     if (identityDrift) findings.push(identityDrift);
 
     if (findings.length > 0) {
-      return { findings, score: 0, fatal: input.policy.pinToolDefs === true };
+      return { findings, score: 0, fatal: input.policy.pinToolDefs === true || input.policy.requireApproval === true };
     }
 
     return { findings: [], score: 1 };
@@ -138,6 +145,7 @@ export class PinningGate implements WardenGate {
           },
         ],
         score: 0.5,
+        fatal: input.policy.requireApproval === true,
       };
     }
     return {
@@ -152,7 +160,7 @@ export class PinningGate implements WardenGate {
         },
       ],
       score: 0,
-      fatal: input.policy.pinToolDefs === true,
+      fatal: input.policy.pinToolDefs === true || input.policy.requireApproval === true,
     };
   }
 
@@ -164,12 +172,13 @@ export class PinningGate implements WardenGate {
    * all (a lone surrogate, nesting past the bound); fractional numbers are pinned
    * with {@link pinToolsHash}. The host must fail closed when pinning is required.
    */
-  async pin(server: McpServerRef, tools: ToolDef[]): Promise<void> {
+  async pin(server: McpServerRef, tools: ToolDef[], approvalMode: "operator" | "automatic" = "operator"): Promise<void> {
     const pinned: PinnedServer = {
       serverId: server.id,
       toolsHash: pinToolsHash(tools),
       toolsHashVersion: 2,
       approvedAt: new Date().toISOString(),
+      approvalMode,
       toolNames: [...tools.map((t) => t.name)].sort(compareCodeUnits),
       identityHash: serverIdentityHash(server),
       tools: structuredClone(tools),

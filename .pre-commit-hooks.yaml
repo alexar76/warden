@@ -3,7 +3,7 @@
 - id: warden-scan
   name: WARDEN · vet MCP servers in changed configs
   description: Vets every server a changed MCP config starts. Does not start stdio servers; vets their launch lines and fetches remote servers' tools.
-  entry: npx --yes @aimarket/warden@0.9.0 scan --no-launch --no-color
+  entry: npx --yes @aimarket/warden@0.13.0 scan --no-launch --no-color
   language: system
   files: (^|/)(\.mcp\.json|mcp\.json|claude_desktop_config\.json|mcp_config\.json)$
   pass_filenames: true
@@ -11,7 +11,7 @@
 - id: warden-lock
   name: WARDEN · MCP servers match warden.lock.json
   description: Fails when the project's MCP servers are new, start differently or advertise tools other than the reviewed ones in warden.lock.json. Starts stdio servers, as your MCP client does.
-  entry: npx --yes @aimarket/warden@0.9.0 scan --project --lock warden.lock.json --no-color
+  entry: npx --yes @aimarket/warden@0.13.0 scan --project --lock warden.lock.json --no-color
   language: system
   files: (^|/)(\.mcp\.json|mcp\.json|warden\.lock\.json)$
   pass_filenames: false

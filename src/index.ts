@@ -1,5 +1,6 @@
 import type {
   McpServerRef,
+  CapabilityBinding,
   PinStore,
   Severity,
   ToolDef,
@@ -15,6 +16,7 @@ import { PinningGate } from "./pinning.js";
 import { OriginGate } from "./origin.js";
 import { ThreatFeed, ThreatGate } from "./threat-feed.js";
 import { classifyTools } from "./sandbox.js";
+import { isSemanticallyClean, type ClassifierInspection } from "./classifier.js";
 import { silentLogger } from "./logger.js";
 import { displaySafe } from "./sanitize.js";
 
@@ -24,6 +26,8 @@ export {
   staticScanRulesetRef,
   STATIC_SCAN_RULESET_VERSION,
 } from "./static-scan.js";
+export { inspectTools } from "./classifier.js";
+export type { ClassifierOptions, ClassifierInspection, ClassifierFinding } from "./classifier.js";
 export { PinningGate, canonicalToolsHash, tryCanonicalToolsHash, pinToolsHash, RFC8785_PIN_PREFIX, serverIdentityHash, UNCANONICAL_TOOLS_HASH } from "./pinning.js";
 export { FilePinStore } from "./pin-store.js";
 export { OriginGate } from "./origin.js";
@@ -54,6 +58,8 @@ export interface WardenInit {
 }
 
 export interface WardenCreateDeps {
+  /** Local complete inspection; clears only readable BASE64_BLOB / structured quotation ambiguity on identical tools. */
+  semanticReview?: ClassifierInspection;
   store: PinStore;
   policy: WardenPolicy;
   /**
@@ -120,7 +126,7 @@ export class Warden {
   /** Build the standard gate chain: static → threat → origin → pinning. */
   static create(deps: WardenCreateDeps): Warden {
     const gates: WardenGate[] = [
-      new StaticScanGate(deps.log),
+      new StaticScanGate(deps.log, tool => isSemanticallyClean(deps.semanticReview, tool)),
       new ThreatGate(deps.threatFeed),
       new OriginGate(),
       new PinningGate(deps.store),
@@ -174,7 +180,9 @@ export class Warden {
     // Composite score: product of gate contributions (one bad gate drags it down).
     const score = scores.reduce((acc, s) => acc * s, 1);
 
-    const { allowedTools, blockedTools } = this.partitionTools(tools, findings, blockThreshold);
+    const { allowedTools, blockedTools } = !allow && this.policy.requireApproval
+      ? { allowedTools: [], blockedTools: tools.map(t => t.name) }
+      : this.partitionTools(tools, findings, blockThreshold);
 
     if (!allow) {
       this.log.warn(
@@ -248,13 +256,13 @@ export class Warden {
    * Record the user's approval: pin the current tool defs so future drift is
    * detected. Idempotent — re-approving just refreshes the snapshot.
    */
-  async approve(server: McpServerRef, tools: ToolDef[]): Promise<void> {
+  async approve(server: McpServerRef, tools: ToolDef[], approvalMode: "operator" | "automatic" = "operator"): Promise<void> {
     const pinning = this.gates.find((g): g is PinningGate => g instanceof PinningGate);
     if (!pinning) {
       this.log.warn("approve() called but no PinningGate in the chain; nothing to pin");
       return;
     }
-    await pinning.pin(server, tools);
+    await pinning.pin(server, tools, approvalMode);
     this.log.info(`pinned tool defs for ${displaySafe(server.id)} (${tools.length} tools)`);
   }
 

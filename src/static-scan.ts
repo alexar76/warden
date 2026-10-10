@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { canonicalize } from "./jcs.js";
 import { displaySafe } from "./sanitize.js";
 import { foldForScan, FOLD_ID } from "./fold.js";
+import { decodeForScan } from "./encoded-text.js";
 import { silentLogger } from "./logger.js";
 import type {
   RulesetRef,
@@ -102,7 +103,7 @@ interface SignaturePattern {
  * no notion of polarity or of quotation selects for the honest server.
  */
 /** The tool being scanned, for guards whose question is about the tool itself (v10). */
-interface GuardContext { tool: ToolDef }
+interface GuardContext { tool: ToolDef; structuredLeaf?: boolean; semanticallyClean?: boolean }
 
 type Guard = (m: RegExpExecArray, text: string, surface: Surface, ctx: GuardContext) => string | null;
 
@@ -471,6 +472,16 @@ function isQuoted(text: string, start: number, end: number): boolean {
   return false;
 }
 
+/** JSON delimiters are not evidence of quotation; visit keys and values independently. */
+function jsonStrings(text: string): string[] | undefined {
+  try {
+    const visit = (v: unknown): string[] => typeof v === 'string' ? [v]
+      : Array.isArray(v) ? v.flatMap(visit)
+      : v && typeof v === 'object' ? Object.entries(v).flatMap(([k, val]) => [k, ...visit(val)]) : [];
+    return visit(JSON.parse(text));
+  } catch { return undefined; } // Never skip an unparseable surface.
+}
+
 /** Shannon entropy in bits per character. */
 function entropy(sample: string): number {
   const counts = new Map<string, number>();
@@ -551,13 +562,19 @@ const GUARDS: Record<GuardName, Guard> = {
    * Four of the survey's blocked servers were security tools listing the attacks
    * they detect — one of them in an `enum` of `["exfiltration", …]`.
    */
-  mention(m, text, surface) {
+  mention(m, text, surface, ctx) {
     const start = m.index;
     const end = start + m[0].length;
-    const structured = ["inputSchema", "outputSchema", "annotations", "metadata"].includes(surface);
+    const structured = !ctx.structuredLeaf && ["inputSchema", "outputSchema", "annotations", "metadata"].includes(surface);
     // JSON serialization quotes every string. Those delimiters do not make a
     // description an innocent citation; preserve the narrow whole-token exemption below.
-    if (!structured && isQuoted(text, start, end)) return "match is quoted or in backticks — a citation, not an instruction";
+    if (!structured && isQuoted(text, start, end)) {
+      // A request to carry out a quotation is still an instruction. Do not let an
+      // attacker turn quoted examples into a field-wide exemption.
+      const { before } = clauseAround(text, start, end);
+      if (!/\b(?:follow|obey|execute|perform|apply|comply|do|say|answer)\b/i.test(before))
+        return "match is quoted or in backticks — a citation, not an instruction";
+    }
     if (["inputSchema", "outputSchema", "annotations", "metadata"].includes(surface) && text[start - 1] === '"' && text[end] === '"') {
       return "match is a complete JSON string token — an enum value or field name";
     }
@@ -599,8 +616,11 @@ const GUARDS: Record<GuardName, Guard> = {
    * blob. Real encoded data is near-uniform over the alphabet; identifiers and
    * paths are not, and they repeat words a reviewer can read.
    */
-  blob(m) {
+  blob(m, _text, _surface, ctx) {
     const hit = m[0];
+    // Only a complete semantic review of these exact bytes can clear this ambiguous
+    // encoding heuristic. All content rules and every other gate still run normally.
+    if (ctx.semanticallyClean && decodeForScan(hit) !== hit) return "readable encoding cleared by complete semantic review";
     if (/properties|items|definitions|anyOf|allOf|oneOf|\$defs/i.test(hit)) {
       return "match is a JSON Schema pointer, not an encoded payload";
     }
@@ -1019,7 +1039,7 @@ function hasExternalAddress(text: string): boolean {
 // asking the user for ids" (`autonomy`, which also stops exempting any "without asking
 // the user" whose object is consent), and "the key is read from the MCP connection's
 // X-API-Key header" (`ownAuthHeader`).
-export const STATIC_SCAN_RULESET_VERSION = "10";
+export const STATIC_SCAN_RULESET_VERSION = "12";
 
 const SEVERITY_RANK: Record<Severity, number> = {
   info: 0,
@@ -1114,7 +1134,7 @@ export class StaticScanGate implements WardenGate {
    *   finding is the one behaviour in this gate that cannot be seen in the
    *   verdict, so it is the one that most needs a debug line.
    */
-  constructor(log: WardenLogger = silentLogger()) {
+  constructor(log: WardenLogger = silentLogger(), private readonly semanticallyClean?: (tool: ToolDef) => boolean) {
     this.log = log.child("static-scan");
   }
 
@@ -1122,6 +1142,7 @@ export class StaticScanGate implements WardenGate {
     const findings: WardenFinding[] = [];
 
     for (const tool of input.tools) {
+      const semanticallyClean = this.semanticallyClean?.(tool) === true;
       const schemaText = safeStringifySchema(tool.inputSchema);
       // The name is an identifier, the description is prose, the schema text is
       // field names + descriptions + enums. All three reach the model; each rule
@@ -1156,6 +1177,7 @@ export class StaticScanGate implements WardenGate {
         // v9: a name is an identifier, so its words are joined — `ignore_previous_
         // instructions` and `ignorePreviousInstructions` are read as the phrase they spell.
         const passes = surface === "name" ? [...new Set([...rule_texts(text, folded), splitIdentifier(folded)])] : rule_texts(text, folded);
+        const leaves = ["inputSchema", "outputSchema", "annotations", "metadata"].includes(surface) ? jsonStrings(text) : undefined;
         for (const rule of RULES) {
           if (!rule.surfaces.includes(surface)) continue;
           // First match, across either text, that every guard keeps. Guards run
@@ -1165,9 +1187,14 @@ export class StaticScanGate implements WardenGate {
           let m: RegExpExecArray | null = null;
           let hay = text;
           let dropped: string | null = null;
-          for (const candidate of rule.raw ? [text] : passes) {
+          // Complete semantic review can resolve quotation ambiguity in JSON string contents.
+          // Without it keep conservative v11 parsing; quotation is not language-neutral proof.
+          // Keep strings separate so a quoted example cannot excuse another field.
+          const leafPasses = semanticallyClean && leaves && rule.guards?.includes("mention")
+            ? leaves.flatMap(s => rule_texts(s, foldForScan(s))) : undefined;
+          for (const candidate of rule.raw ? [text] : leafPasses ?? passes) {
             for (const cm of allMatches(rule.re, candidate)) {
-              const d = rule.guards?.map((g) => GUARDS[g](cm, candidate, surface, { tool })).find((r) => r !== null) ?? null;
+              const d = rule.guards?.map((g) => GUARDS[g](cm, candidate, surface, { tool, structuredLeaf: !!leafPasses, semanticallyClean })).find((r) => r !== null) ?? null;
               if (!d) { m = cm; hay = candidate; dropped = null; break; }
               dropped = d;
             }

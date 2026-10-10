@@ -30,7 +30,9 @@
  */
 
 /** Identity of this fold, carried in the ruleset preimage. Bump on any change below. */
-export const FOLD_ID = "nfkc+tags-decoded+invisible-stripped+mixed-script-confusables/1";
+import { decodeForScan } from "./encoded-text.js";
+
+export const FOLD_ID = "escapes+entities+percent+base64/4x64k+nfkc+tags+invisible+confusables/2";
 
 /**
  * Characters with no visible form in running text. Dropped by the fold; the
@@ -75,7 +77,7 @@ const CONFUSABLE_RE = new RegExp(`[${Object.keys(CONFUSABLE).join("")}]`, "gu");
  */
 export function foldForScan(text: string): string {
   if (!text) return text;
-  let out = text.normalize("NFKC");
+  let out = decodeForScan(text.normalize("NFKC")).normalize("NFKC");
   out = out.replace(TAG_RE, (ch) => String.fromCharCode((ch.codePointAt(0) ?? 0xe0020) - 0xe0000));
   out = out.replace(INVISIBLE_RE, "");
   CONFUSABLE_RE.lastIndex = 0;

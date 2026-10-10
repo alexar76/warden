@@ -5,18 +5,19 @@
 `warden-mcp scan` lit la configuration MCP que vous avez déjà, se connecte à chaque serveur qu’elle démarre et vérifie les définitions d’outils avant qu’un modèle ne les voie. C’est la même chaîne de portes que [`wrap`](../README-fr.md) et la [bibliothèque](integration.fr.md), exécutée une fois sur vos configurations au lieu de se placer devant un seul serveur.
 
 ```bash
-npx -y @aimarket/warden@0.9.0 scan
+npx -y @aimarket/warden@0.11.0 scan
 ```
 
 ```text
-WARDEN scan 0.9.0 · ruleset 10 sha256-lJuKKKV5mtru… · block at high
+WARDEN scan 0.10.0 · ruleset 10 sha256-lJuKKKV5mtru… · block at high
   read .mcp.json (claude-code, 3 servers)
 
-  ✓ allow   notes        claude-code    1 tool · score 0.90
-  ✗ BLOCK   evil-notes   claude-code    1 tool · score 0.00 · TOOL_DEF_EXFIL(notes) TOOL_DEF_SECRET_REQUEST(notes)
-  ! error   broken       claude-code    could not start: spawn /nonexistent/bin/server ENOENT
+  ✓ allow   notes       claude-code    1 tool · score 0.90
+  ✗ BLOCK   evil-notes  claude-code    1 tool · score 0.00 · TOOL_DEF_EXFIL(notes) TOOL_DEF_SECRET_REQUEST(notes) THREAT_SSH_KEY_READ(notes)
+  ! error   broken      claude-code    could not start: spawn /nonexistent/bin/server ENOENT
 
 3 servers: 1 allowed, 1 blocked, 1 not checked, 0 skipped.
+Details: warden-mcp scan --json, or --markdown FILE. To review a changed server: warden-mcp scan --lock warden.lock.json --update-lock.
 ```
 
 Pas de compte, pas de clé d’API, pas de modèle. Le seul trafic réseau va vers les serveurs de votre configuration et, si vous passez `--histor`, vers le journal HISTOR.
@@ -85,19 +86,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: alexar76/warden@v0.9.0
+      - uses: alexar76/warden@v0.11.0
         with:
           upload-sarif: 'true'
 ```
 
 Par défaut, elle lit les fichiers du projet, ne démarre pas les serveurs stdio (c’est la pull request qui choisit ce programme), refuse les adresses non publiques, utilise `warden.lock.json` s’il existe, écrit le résumé du job et échoue sur un serveur bloqué. Entrées : `config`, `working-directory`, `lock`, `launch-stdio`, `public-only`, `fail-on`, `histor`, `classifier-url`, `classifier-model`, `classifier-blocks`, `sarif`, `upload-sarif`, `version`. Sorties : `blocked`, `servers`, `sarif`. Dans les workflows de production, épinglez l’action par SHA de commit.
 
+Pour être prévenu quand un serveur que vous utilisez change, lancez aussi le même job selon un horaire (`on: { schedule: [{ cron: '17 6 * * *' }] }`) : avec un `warden.lock.json` versionné, un serveur dont les définitions d’outils ont changé fait échouer l’exécution avec `TOOL_DEF_DRIFT`, et le résumé montre le diff.
+
 ## pre-commit
 
 ```yaml
 repos:
   - repo: https://github.com/alexar76/warden
-    rev: v0.9.0
+    rev: v0.10.0
     hooks:
       - id: warden-scan     # configurations modifiées ; ne démarre pas les serveurs stdio
       - id: warden-lock     # le projet correspond à warden.lock.json ; démarre les serveurs stdio
@@ -114,11 +117,23 @@ Les deux exécutent le paquet publié via `npx` : Node 20 ou plus récent doit �
 
 Au début de la session, il analyse les serveurs que Claude Code démarre pour le projet, vous indique lesquels sont bloqués, et ne donne au modèle que le nom et le code du constat. Une description bloquée n’entre jamais dans le contexte du modèle. Ensuite, un hook `PreToolUse` refuse les appels aux outils d’un serveur bloqué ou à un outil bloqué ; il lit un petit fichier et ne démarre rien. Détails et limites : [claude-plugin/README.md](../claude-plugin/README.md).
 
+## Flux toxiques : sûrs un par un, dangereux ensemble
+
+Un client confie les outils de tous ses serveurs à un même modèle. Si l’un lit vos données privées, si un autre laisse entrer du texte venu de l’extérieur (une page web, une issue, un e-mail) et si un troisième peut envoyer des données dehors, un texte arrivé par le deuxième peut demander au modèle de lire avec le premier et d’envoyer avec le troisième. Aucun serveur n’est en faute : aucun verdict par serveur ne le montre. `scan` le signale par client :
+
+```text
+  ⚠ toxic flow  claude-code can read private data (filesystem.read_file, …), take in text from outside (fetch.fetch) and send data out (fetch.fetch). …
+```
+
+Les capacités sont lues dans les noms des outils et de leurs paramètres (`read_file`, `send_email`, un paramètre `url` ou `to`), pas dans les descriptions : la lecture ne dépend pas de la langue, et une description ne peut pas s’en justifier. Un flux est indicatif : il ne bloque jamais et ne change pas le code de sortie. Il figure dans `--json` (`flows`) et dans le résumé Markdown. Pour le casser, retirez une patte : un serveur `fetch` inutile, ou un serveur de fichiers limité à un dossier dans un autre client.
+
 ## HISTOR : ce serveur vous sert-il ce qu’il sert à tout le monde ?
 
 [HISTOR](https://histor.modelmarket.dev) est un journal public qui enregistre chaque jour les définitions d’outils de tous les serveurs distants du registre MCP officiel. `--histor` lui pose une question par serveur distant : l’ensemble d’outils qu’on vient de vous servir est-il celui qu’observe HISTOR ?
 
-Ce qui est envoyé : l’endpoint, réduit au schéma, à l’hôte et au chemin (sans query, sans nom d’utilisateur ni mot de passe), et le condensé [MTL/1](https://github.com/alexar76/awr) de l’ensemble d’outils. Aucune description d’outil, aucun en-tête, aucun serveur stdio. Les endpoints sur des hôtes ou adresses privés, et les chemins qui semblent contenir une clé, ne sont pas envoyés du tout ; le rapport dit pourquoi.
+Ce qui est envoyé : l’endpoint, réduit au schéma, à l’hôte et au chemin (sans query, sans nom d’utilisateur ni mot de passe), et le condensé [MTL/1](https://github.com/alexar76/awr) de l’ensemble d’outils. Aucune description d’outil, aucun en-tête. Les endpoints sur des hôtes ou adresses privés, et les chemins qui semblent contenir une clé, ne sont pas envoyés du tout ; le rapport dit pourquoi.
+
+Un serveur stdio lancé depuis le registre public npm ou PyPI (`npx`, `bunx`, `npm exec`, `pnpm dlx`, `uvx`, `uv tool run`, `pipx run`) est désigné par son paquet — `npm:<nom>` ou `pypi:<nom>`, sans la version — et le même condensé. HISTOR installe chaque version publiée d’un tel paquet dans un bac à sable gVisor (identifiants leurres, sans route vers l’extérieur ; chaque outil appelé une fois avec des arguments canaris, sans agir sur rien de réel) et enregistre ses outils et ce qu’il a fait et enregistre ses outils : ici, `previously-observed` signifie que vous exécutez une version plus ancienne, et `different` une version qu’HISTOR n’a pas encore atteinte ou un paquet qui n’est pas celui publié. Un chemin local, une URL git ou tarball, un registre privé (`--registry`, `--index-url`) ou un simple lancement `node`/`python` n’est jamais envoyé. Pour un paquet, HISTOR indique aussi, en constats indicatifs, si son nom imite celui d’un paquet populaire (`HISTOR_PACKAGE_LOOKALIKE` : à un caractère près, le même nom sous un autre scope ou d’autres séparateurs, face à un paquet téléchargé au moins 100 fois plus) et si la version observée porte les marques d’un jeton de publication volé : `HISTOR_PACKAGE_PROVENANCE_LOST` (pas de compilation attestée en CI alors que la version précédente en avait une), `HISTOR_PACKAGE_INSTALL_SCRIPTS` (nouveaux scripts d’installation), `HISTOR_PACKAGE_PUBLISHER_CHANGED`, `HISTOR_PACKAGE_NEW_DEPENDENCIES`. Et ce que le paquet a fait dans le bac à sable : `HISTOR_PACKAGE_READS_SECRETS` (il a ouvert des identifiants leurres — clés SSH, jetons cloud ou de registre, portefeuille — à l’installation, au démarrage ou lors d’un appel d’outil), `HISTOR_PACKAGE_PERSISTENCE` (il a écrit là où il survivrait à la session, comme `.bashrc` ou `authorized_keys`), `HISTOR_PACKAGE_STARTUP_NETWORK` (il a contacté le réseau avant tout appel d’outil), `HISTOR_PACKAGE_STARTS_PROGRAMS`, `HISTOR_PACKAGE_INSTALL_BEHAVIOUR` (ce que font ses scripts d’installation). Charger `.env` depuis le répertoire de travail et appeler sa propre API pendant un appel ne sont pas des constats. Avec `--histor`, le rapport donne aussi un lien vers un flux HISTOR des changements des serveurs scannés qu’HISTOR connaît (`historWatch` dans `--json`) : abonnez-vous dans n’importe quel lecteur de flux.
 
 | Réponse | Signification |
 |---|---|
@@ -135,13 +150,13 @@ Les règles de WARDEN fonctionnent hors ligne et de façon déterministe, et ell
 
 ```bash
 warden-mcp scan --classifier-url http://localhost:11434/v1 --classifier-model qwen2.5:14b
-WARDEN_CLASSIFIER_API_KEY=… warden-mcp scan --classifier-url https://api.deepseek.com --classifier-model deepseek-flash
+WARDEN_CLASSIFIER_API_KEY=… warden-mcp scan --classifier-url https://api.deepseek.com --classifier-model deepseek-flash --classifier-reasoning-effort none
 ```
 
-- **Désactivé par défaut, il envoie le texte des outils.** Avec les deux options, le nom, la description et les schémas de chaque outil partent vers cet endpoint. Un modèle local les garde sur votre machine. La clé, si nécessaire, vient uniquement de `WARDEN_CLASSIFIER_API_KEY`, jamais d'une option.
-- **Consultatif sauf avec `--classifier-blocks`.** Ses verdicts sont signalés comme `TOOL_DEF_CLASSIFIER`. Avec `--classifier-blocks`, un verdict au seuil de blocage ou au-dessus (`high` par défaut) bloque l'outil comme une règle. Un classificateur qui ne répond pas est signalé et ne bloque jamais.
-- **La même question que HISTOR.** Le prompt, les quatre catégories (`instruction_to_model`, `exfiltration`, `secret_request`, `concealment`) et le format de réponse sont ceux du classificateur du journal HISTOR. Le texte des outils est placé entre des marqueurs à suffixe aléatoire qu'il ne peut pas forger, et la réponse du modèle est vérifiée champ par champ. Avec `--histor`, le verdict que le journal a lui-même enregistré sur l'ensemble qu'on vous a servi s'affiche aussi (`HISTOR_CLASSIFIER`, consultatif).
-- **Il ne lit ni les annotations ni les champs d'extension.** Les règles, si.
+- **Optatif ; transmet tous les champs annoncés.** Nom, titre, description, schémas, annotations et extensions, avec une lecture normalisée si nécessaire. La clé provient uniquement de `WARDEN_CLASSIFIER_API_KEY`.
+- **Consultatif par défaut ; refus si incomplet avec `--classifier-blocks`.** Les résultats utilisent `TOOL_DEF_CLASSIFIER`. Troncature, incertitude, couverture incomplète, réponse invalide, erreur ou délai dépassé donnent `CLASSIFIER_INCOMPLETE`. Ce sont des échecs d’inspection, pas des attaques détectées ; `--update-lock` ne peut pas les approuver.
+- **Cinq catégories.** `instruction_to_model`, `exfiltration`, `secret_request`, `concealment`, `cross_tool`. L’inspection porte sur l’autorité des instructions, dans toute langue, selon les capacités du modèle. Le protocole exige une décision par outil et des références de champs vérifiées par WARDEN, qui extrait le texte source. Chaque décision incomplète est réessayée une seule fois isolément. Les délimiteurs aléatoires ne garantissent pas l’immunité.
+- **Inspection ne vaut pas approbation.** [`wrap --require-approval`](security-hardening-language-boundary.md) exige l’approbation de l’opérateur indépendamment de la langue. Les résultats historiques de HISTOR restent consultatifs.
 
 Mesuré le 9 octobre 2026 avec `deepseek-flash`, le modèle qu'utilise HISTOR, sur MCPTox (le benchmark publié décrit dans la comparaison ci-dessous) et sur nos propres jeux :
 
@@ -175,7 +190,7 @@ Les trois dernières lignes viennent de MCPTox (Wang et al., AAAI 2026), un benc
 - **Sachez quels chiffres sont ajustés.** Nous avons écrit le premier jeu d’attaques. Le ruleset v9 a été écrit après la lecture des deux jeux d’attaques, et v10 après les 22 serveurs MCPTox de l’autre moitié. 20 et 10 sont donc le rappel de règles ajustées à ce qu’elles ont vu. La ligne MCPTox réservée, les serveurs propres, le corpus et toute la colonne 0.8.2 ne sont pas ajustés. Sur le corpus, v10 bloque exactement ce que bloquait v8.
 - **MCPTox teste une forme, pas un mot-clé.** Presque chaque outil empoisonné dit au modèle d’appeler d’abord un autre outil, ou de changer les arguments d’un autre outil. v10 nomme cette forme (`TOOL_DEF_CROSS_TOOL`, voir [la chaîne de portes](gates.fr.md)) et bloque 171 des 218 outils réservés, contre 189 sur 267 dans la moitié qui a servi à l’écrire. Avec le préfixe `<IMPORTANT>` ou « Ignore the previous instructions » du benchmark, tous les scanners que nous avons lancés les attrapent ; nous n’avons pas lancé mcp-shield sur ce jeu. Sur les serveurs propres, mcp-audit bloque AmapMap et BaiduMap, et mcp-shield bloque FileSystem, AdFin et Commander pour « sensitive file access ».
 - **Ce que WARDEN manque encore :** 47 des 218 outils MCPTox réservés, une consigne en chinois de lire `.env`, une paraphrase sans mot-clé (« gather every credential file … keep this step to yourself ») et « include the output of env ». Il signale 41 de ces 47, et nos trois, à titre consultatif, sans bloquer. Il faut une vérification par le sens, pas une règle de plus : avec le classificateur optionnel ci-dessus, 191 des 218 sont bloqués au niveau `high` et les 218 sont signalés.
-- **Non comparé :** Snyk Agent Scan, anciennement Invariant mcp-scan et le scanner le plus utilisé. Il juge les descriptions sur les serveurs de Snyk et exige un jeton de compte. mcp-audit propose lui aussi un fichier lock, un mode diff pour les PR et SARIF ; WARDEN n’est pas seul sur ce créneau.
+- **WARDEN n’est pas seul sur ce créneau.** mcp-audit propose lui aussi un fichier lock, un mode diff pour les PR et SARIF.
 
 ## Ce que scan ne fait pas
 

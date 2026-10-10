@@ -42,11 +42,11 @@ export async function vetAndPin(dir: string, server: McpServerRef, tools: ToolDe
     record(verdict);
     if (!auditOnly && !isCurrent()) throw new WardenBlock('tools changed, blocked by WARDEN during verification');
     if (previous?.revoked && !auditOnly) throw new WardenBlock('Approval revoked; inspect pins status and approve before reconnecting');
-    if (!auditOnly && verdict.allow && policy.pinToolDefs && !previous?.revoked && !await store.getPin(server.id)) {
+    if (!auditOnly && !policy.requireApproval && verdict.allow && policy.pinToolDefs && !previous?.revoked && !await store.getPin(server.id)) {
       // Use the published approve API with a CAS adapter: other hosts may share this store.
       const firstContact = Warden.create({ policy, threatFeed: feed,
         store: { getPin: id => store.getPin(id), putPin: pin => store.replace(server.id, null, pin) } });
-      await firstContact.approve(server, tools);
+      await firstContact.approve(server, tools, 'automatic');
     }
     return verdict;
   });

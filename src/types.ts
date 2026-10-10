@@ -108,7 +108,16 @@ export interface WardenGate {
   evaluate(input: WardenGateInput): Promise<WardenGateResult>;
 }
 
+/** Operator supplied, bound to launch identity and the full reviewed definition snapshot. */
+export interface CapabilityBinding {
+  serverId: string;
+  identityHash: string;
+  toolsHash: string;
+  tools: Record<string, Array<'private' | 'untrusted' | 'outbound'>>;
+}
+
 export interface WardenPolicy {
+  capabilityBindings?: CapabilityBinding[];
   /** Block the whole connection if any finding >= this severity. */
   blockAtSeverity: Severity;
   /** Tool names that always require explicit user approval before running. */
@@ -128,6 +137,8 @@ export interface WardenPolicy {
   allowUnknownServers: boolean;
   /** Re-approval required if a server's tool defs change after pinning. */
   pinToolDefs: boolean;
+  /** Admit only an explicitly approved v2 snapshot. Automatic/legacy pins do not count. */
+  requireApproval?: boolean;
 }
 
 /** A pinned snapshot of a server's tools, used for drift detection. */
@@ -138,6 +149,8 @@ export interface PinnedServer {
   /** v2 includes all advertised fields; plain three-field definitions retain their digest. */
   toolsHashVersion?: number;
   approvedAt: string;
+  /** Missing on legacy pins. TOFU is deliberately distinguishable from operator review. */
+  approvalMode?: "operator" | "automatic";
   toolNames: string[];
   /** Definitions retained for operator review; do not supply live credentials. */
   tools?: ToolDef[];

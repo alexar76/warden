@@ -29,7 +29,7 @@ mcp-publisher login github                 # as alexar76
 
 Ownership proof: `"mcpName": "io.github.alexar76/warden"` in **published** `package.json` + `<!-- mcp-name: io.github.alexar76/warden -->` in README.
 
-Note: the monorepo keeps `.github/workflows/publish-mcp-registry.yml`; the GitHub satellite mirror currently excludes it until `GH_PAT` includes the `workflow` scope.
+Note: the monorepo keeps `.github/workflows/publish-mcp-registry.yml`. The GitHub mirror does not rsync that file (`GH_PAT` has no `workflow` scope). It copies the blob already on the live satellite tip back into the outgoing tree, so a sync neither edits nor deletes the workflow.
 
 ## mcp.so / Pulse submit blurb
 

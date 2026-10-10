@@ -1,6 +1,41 @@
 # Changelog
 
-## 0.9.0 — unreleased
+## 0.13.0 — 2026-10-10 (unpublished)
+
+- Semantic inspection distinguishes an ordinary imperative over user-provided input from an attempt to override assistant authority, including encoded text in any language. The frozen DeepSeek run blocks 8,244/8,244 synthetic attacks with 0/362 false blocks and no incomplete cases; these are corpus-specific measurements, not a universal guarantee.
+- Oversized tool results explicitly report `RESULT_INSPECTION_INCOMPLETE`; `--results block` withholds them and `warn` marks them uninspected.
+- Composition analysis uses operator capabilities bound to server identity and complete tool definitions. Unbound capabilities remain unknown regardless of identifier language. Blocked servers/tools do not contribute an executable flow.
+
+## 0.12.0 — unreleased
+
+- Confirmed semantic attacks always have host-enforced `high` severity; provider severity is retained as `modelSeverity` for diagnostics. Ambiguity remains an incomplete inspection, not a low-severity attack that can pass the configured threshold.
+- Complete clean semantic inspections may resolve two narrow static ambiguities: readable base64 blobs and actual quotations inside structured JSON strings. The review is held in private process state and bound to the entire pre-request tool snapshot. Advisory, failed, forged, copied or stale reviews cannot grant these exceptions. Other content rules, threat/origin gates and explicit approval still apply. Ordinary offline vet/wrap remain conservative.
+- `scan --classifier-blocks` and lock updates use the same bound review and full WARDEN gate chain. The prompt distinguishes protective negation and quoted detection examples across languages. No new language dictionary or fixture-name allowlist is used.
+- New regression tests cover mixed-language execution of quoted instructions, input mutation while awaiting a model, invalid/copy-pasted reviews, strict approval and real CLI lock updates. MOMUS evaluates the production review-aware gates, retaining separate offline, semantic, incomplete and combined outcomes. See `docs/security-hardening-language-boundary.md` for measured results and limits.
+
+- Frozen-corpus result with DeepSeek at `high`: 8,244/8,244 attacks blocked, 1/362 benign false block (0.28%, down from 8.84%), zero incomplete inspections. All old 16 misses and 32 false blocks corrected; one new model false positive remains. No offline attack regression. These are synthetic development fixtures, not universal-language accuracy.
+
+## 0.11.0 — unreleased
+
+- `wrap --require-approval` / `policy.requireApproval` require an explicit operator pin covering every advertised field and the launch identity. Automatic and legacy pins cannot satisfy it; changes fail closed even with ordinary pinning disabled. Unpinned definitions cannot reach `tools/list` or execute a call. Strict wrap strips unpinned `initialize.instructions`; scan refuses incomplete launch-only approval checks.
+- Ruleset v11 adds bounded, non-executing decoding of literal Unicode/hex escapes, HTML entities, percent encoding and UTF-8 base64 before the existing rules. Original bytes remain a separate scan and determine the pin. No per-language dictionary added.
+- Semantic classification covers all extension fields, adds `cross_tool`, and uses eight-tool batches. Malformed output is an error. `--classifier-blocks` requires full coverage, no uncertainty/truncation and host-validated evidence field IDs. Source previews come from the input, not model-transcribed quotes. Incomplete decisions and length-limited replies retry each affected tool once; provider outages do not fan out. `--classifier-reasoning-effort` configures the provider budget explicitly. Remaining failures block admission and lock updates. Per-tool allow/block lists now agree with the classifier.
+- MOMUS expands the frozen stress corpus to 8,244 attacks in 11 languages and 362 benign controls, with separate detection/admission metrics and old-build comparison. Results and limitations: `docs/security-hardening-language-boundary.md`.
+
+## 0.10.0 — unreleased
+
+`--histor` covers stdio servers started from npm and PyPI.
+
+- **Packages, not only endpoints.** For a stdio server launched with `npx`, `bunx`, `npm exec`, `pnpm dlx`, `yarn dlx`, `bun x`, `uvx`, `uv tool run` or `pipx run`, `scan --histor` names the package — `npm:<name>` or `pypi:<PEP 503 name>`, never the version — and sends it with the MTL/1 digest. HISTOR installs each published version of registry packages in a gVisor sandbox (no network, no secrets, no tool called) and records their tool sets, so the answer says whether you run what everyone who installs that package gets. `HISTOR_OLDER_TOOLSET` now reads "you run an older version of this package" and names the version HISTOR last observed; `HISTOR_UNSEEN_TOOLSET` says a version HISTOR has not reached, or a package that is not the published one. Both stay advisory.
+- **What stays on the machine:** a local path, a git, GitHub or tarball spec, a private registry (`--registry`, `--index-url`, `--extra-index-url`, `--find-links`), and a plain `node` / `python` / `docker` launch. The report says why nothing was sent.
+- `historPackage(command, args)` is exported next to `historEndpoint(url)`.
+- **Package findings from HISTOR** (advisory): `HISTOR_PACKAGE_LOOKALIKE` — the package's name imitates a popular one (one character away, the same name under another scope, other separators; the original downloaded 100× more); `HISTOR_PACKAGE_PROVENANCE_LOST`, `HISTOR_PACKAGE_INSTALL_SCRIPTS`, `HISTOR_PACKAGE_PUBLISHER_CHANGED`, `HISTOR_PACKAGE_NEW_DEPENDENCIES` — the marks of a stolen publishing token on the version HISTOR observed. `packageFindings(answer)` exported.
+- **What the package did in HISTOR's sandbox** (advisory): `HISTOR_PACKAGE_READS_SECRETS` and `HISTOR_PACKAGE_PERSISTENCE` (high), `HISTOR_PACKAGE_STARTUP_NETWORK` and `HISTOR_PACKAGE_INSTALL_BEHAVIOUR` (medium), `HISTOR_PACKAGE_STARTS_PROGRAMS` (low), from gVisor's trace of the install scripts, the startup and canary tool calls, with decoy credentials in HOME. A `.env` load and a tool's call to its own API are not findings. `behaviourFindings()` exported.
+- **Follow changes**: with `--histor` the report links a HISTOR feed of changes to the scanned servers HISTOR knows (`historWatch` in `--json`, a line in the table and the Markdown summary); the scan guide shows the scheduled Action that fails on `TOOL_DEF_DRIFT`.
+- **Toxic flows** (`scan`): per client, a tool that reads private data, one that lets outside text in and one that can send data out — Simon Willison's lethal trifecta — reported as one advisory line naming the tools (`flows` in `--json`, a line in the Markdown summary). Capabilities come from tool and parameter names (`read_file`, `send_email`, `url`, `to`), never from descriptions. Never blocks, never changes the exit code. `src/toxic-flow.ts`, `test/toxic-flow.test.ts` (real tool names from filesystem, fetch, github, gmail, slack, memory, context7, playwright).
+- **Tool results are screened** (`wrap --results warn|block|off`, default `warn`): the text a `tools/call` result puts in front of the model (text, embedded resource text, structured content; 256 KiB head plus a 16 KiB tail) is read by the static rules. A result a blocking-tier rule fires on is passed with a first text block telling the model it is data from the tool's source, not instructions (`warn`), or withheld with an error saying the tool already ran (`block`); the finding goes to stderr and `--verdict-log`. A clean result is still forwarded byte for byte; `--audit-only` records and changes nothing. `src/result-screen.ts`; five tests in `test/wrap.test.ts`.
+
+## 0.9.0 — 2026-10-09
 
 `scan`: vet the servers your MCP clients start, without changing how they start; ruleset v10; and an opt-in classifier.
 

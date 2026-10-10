@@ -3,7 +3,7 @@ import { mkdtempSync, writeFileSync, readFileSync, existsSync, rmSync, readdirSy
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseScanArgs, runScan, exitCode, redactLaunch, redactUrl, historEndpoint, looksSecret, UsageRequested, type ScanOptions } from '../src/scan.js';
+import { parseScanArgs, runScan, exitCode, redactLaunch, redactUrl, historEndpoint, historPackage, behaviourFindings, looksSecret, UsageRequested, type ScanOptions } from '../src/scan.js';
 import { toSarif, toMarkdown, toTable, mdCode, mdBlock } from '../src/scan-report.js';
 import { FilePinStore } from '../src/pin-store.js';
 import type { ConfiguredServer } from '../src/scan-config.js';
@@ -205,6 +205,91 @@ describe('scan: HISTOR, privacy first', () => {
     expect(s.keyed!.histor!.notSent).toMatch(/credential/);
     expect(s.pub!.findings.find(f => f.code === 'HISTOR_UNSEEN_TOOLSET')).toMatchObject({ advisory: true });
     expect(s.pub!.allow).toBe(true);
+  });
+
+  it('names a stdio server by its public npm/PyPI package and sends nothing else', async () => {
+    const dir = tmp(), cfg = join(dir, 'c.json');
+    writeFileSync(cfg, JSON.stringify({ mcpServers: {
+      mem: { command: 'npx', args: ['-y', '@modelcontextprotocol/server-memory@2026.8.31'], env: { API_KEY: 'SECRET123' } },
+      fetch: { command: 'uvx', args: ['Mcp_Server.Fetch==2026.8.18', '--ignore-robots-txt'] },
+      corp: { command: 'npx', args: ['-y', '--registry', 'https://npm.corp.example.com', '@corp/tools'] },
+      local: { command: 'node', args: ['/home/me/server.js'] },
+    } }));
+    const bodies: Array<Record<string, unknown>> = [];
+    const historFetch = (async (_url: unknown, init?: { body?: string }) => {
+      bodies.push(JSON.parse(String(init?.body)));
+      return new Response(JSON.stringify({ match: 'previously-observed', note: 'older', target: { packageVersion: '2026.9.1' } }),
+        { status: 200, headers: { 'content-type': 'application/json' } });
+    }) as typeof fetch;
+    const report = await runScan(await parseScanArgs([cfg, '--histor', '--state-dir', join(dir, 's')], {}), { fetch: async () => ({ tools }), historFetch });
+    expect(bodies.map(b => Object.keys(b).sort())).toEqual([['package', 'toolSetDigest'], ['package', 'toolSetDigest']]);
+    expect(bodies.map(b => b.package).sort()).toEqual(['npm:@modelcontextprotocol/server-memory', 'pypi:mcp-server-fetch']);
+    expect(JSON.stringify(bodies)).not.toMatch(/SECRET|2026\.8|robots|corp|Fetch a job/);
+    const s = byKey(report);
+    expect(s.mem!.histor).toMatchObject({ package: 'npm:@modelcontextprotocol/server-memory', packageVersion: '2026.9.1', match: 'previously-observed' });
+    expect(s.mem!.findings.find(f => f.code === 'HISTOR_OLDER_TOOLSET')!.message).toMatch(/older version of this package.*2026\.9\.1/);
+    expect(report.historWatch).toBeUndefined(); // the answers carried no target id
+    expect(s.corp!.histor).toEqual({ notSent: 'a private registry' });
+    expect(s.local!.histor!.notSent).toMatch(/package manager/);
+  });
+
+  it('turns HISTOR\'s package knowledge into advisory findings: look-alike names and the marks of a stolen token', async () => {
+    const dir = tmp(), cfg = join(dir, 'c.json');
+    writeFileSync(cfg, JSON.stringify({ mcpServers: { gh: { command: 'npx', args: ['-y', '@modelcontextprotocol/server-githb'] } } }));
+    const historFetch = (async () => new Response(JSON.stringify({ match: 'same',
+      packageLookalike: { of: 'npm:@modelcontextprotocol/server-github', weekly: 111195, how: 'one character away', ownWeekly: 3 },
+      target: { id: '0123456789abcdef', packageVersion: '1.0.2', packageSignals: { version: '1.0.2', previousVersion: '1.0.1', publisher: 'mallory', previousPublisher: 'trusted publisher: github',
+        installScripts: ['postinstall'], newDependencies: ['node-fetch-mail'], flags: ['provenance-lost', 'publisher-changed', 'install-scripts-added', 'new-dependencies'] } } }),
+      { status: 200, headers: { 'content-type': 'application/json' } })) as typeof fetch;
+    const report = await runScan(await parseScanArgs([cfg, '--histor', '--state-dir', join(dir, 's')], {}), { fetch: async () => ({ tools }), historFetch });
+    const s = byKey(report).gh!;
+    expect(s.findings.filter(f => f.gate === 'histor').map(f => [f.code, f.severity, f.advisory])).toEqual([
+      ['HISTOR_PACKAGE_LOOKALIKE', 'medium', true], ['HISTOR_PACKAGE_PROVENANCE_LOST', 'medium', true], ['HISTOR_PACKAGE_INSTALL_SCRIPTS', 'medium', true],
+      ['HISTOR_PACKAGE_PUBLISHER_CHANGED', 'low', true], ['HISTOR_PACKAGE_NEW_DEPENDENCIES', 'low', true]]);
+    expect(report.historWatch).toBe('https://histor.modelmarket.dev/feed.xml?watch=0123456789abcdef');
+    expect(s.findings.find(f => f.code === 'HISTOR_PACKAGE_LOOKALIKE')!.message).toMatch(/named like npm:@modelcontextprotocol\/server-github \(111,195 downloads a week; this one: 3\) — one character away/);
+    expect(s.allow).toBe(true);
+  });
+
+  it('reads what the package did in HISTOR\'s sandbox: decoys, persistence, startup network, programs, install scripts', () => {
+    const f = behaviourFindings({
+      observer: 'gvisor-trace/1',
+      installScripts: { packages: ['evil-dep'], exec: ['sh -c node postinstall.js'], network: ['collect.evil.example:443'], decoys: ['.npmrc'] },
+      startup: { lookups: ['telemetry.example.com'], decoys: ['.env (working directory)'], writes: ['/home/histor/.bashrc'] },
+      calls: { tools: 3, network: ['api.vendor.example:443'], decoys: ['.ssh/id_rsa', '.aws/credentials'], exec: ['curl -s https://x'] },
+    }, '1.2.3');
+    expect(f.map(x => [x.code, x.severity])).toEqual([
+      ['HISTOR_PACKAGE_READS_SECRETS', 'high'], ['HISTOR_PACKAGE_PERSISTENCE', 'high'], ['HISTOR_PACKAGE_READS_SECRETS', 'high'],
+      ['HISTOR_PACKAGE_STARTUP_NETWORK', 'medium'], ['HISTOR_PACKAGE_STARTS_PROGRAMS', 'low'], ['HISTOR_PACKAGE_INSTALL_BEHAVIOUR', 'medium']]);
+    expect(f.every(x => x.advisory)).toBe(true);
+    expect(f[0]!.message).toMatch(/opened decoy credentials its install scripts: \.npmrc/);
+    expect(f[2]!.message).toMatch(/when its tools were called: \.ssh\/id_rsa, \.aws\/credentials/);
+    expect(behaviourFindings({ startup: { decoys: ['.env (working directory)'] }, calls: { network: ['api.vendor.example:443'] } }, '1')).toEqual([]);
+    expect(behaviourFindings(undefined, '1')).toEqual([]);
+  });
+
+  it('reads the package out of every common launcher', () => {
+    const cases: Array<[string, string[], string | undefined]> = [
+      ['npx', ['-y', '@playwright/mcp@latest'], 'npm:@playwright/mcp'],
+      ['npx.cmd', ['--yes', 'firecrawl-mcp'], 'npm:firecrawl-mcp'],
+      ['npx', ['-y', '-p', '@scope/pkg', 'pkg-bin', '--flag'], 'npm:@scope/pkg'],
+      ['npx', ['--package=@scope/pkg@1.0.0', 'bin'], 'npm:@scope/pkg'],
+      ['/usr/local/bin/bunx', ['some-mcp'], 'npm:some-mcp'],
+      ['npm', ['exec', '--yes', '--', 'mcp-remote', 'https://x.example.com'], 'npm:mcp-remote'],
+      ['pnpm', ['dlx', '@a/b'], 'npm:@a/b'],
+      ['uvx', ['--python', '3.12', 'mcp-server-time'], 'pypi:mcp-server-time'],
+      ['uvx', ['--from', 'awslabs.aws-documentation-mcp-server@latest', 'awslabs.aws-documentation-mcp-server'], 'pypi:awslabs-aws-documentation-mcp-server'],
+      ['uv', ['tool', 'run', 'mcp_server_git[extra]>=1'], 'pypi:mcp-server-git'],
+      ['pipx', ['run', 'Some.Pkg'], 'pypi:some-pkg'],
+      ['npx', ['-y', 'github:owner/repo'], undefined],
+      ['npx', ['-y', './local-dir'], undefined],
+      ['uvx', ['--from', 'git+https://github.com/o/r', 'x'], undefined],
+      ['uvx', ['--index-url', 'https://pypi.corp.example.com/simple', 'x'], undefined],
+      ['npx', ['-y', 'Not_Lowercase'], undefined],
+      ['python', ['-m', 'mcp_server_time'], undefined],
+      ['docker', ['run', '-i', 'mcp/time'], undefined],
+    ];
+    for (const [cmd, args, want] of cases) expect(historPackage(cmd, args).package, `${cmd} ${args.join(' ')}`).toBe(want);
   });
 
   it('a HISTOR outage is reported, never a block', async () => {

@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { RESULT_POLICIES, type ResultPolicy } from './result-screen.js';
 import { createHash, createPublicKey } from 'node:crypto';
 import { createInterface } from 'node:readline/promises';
 import { join } from 'node:path';
@@ -13,11 +14,13 @@ import type { McpServerRef, WardenLogger, WardenPolicy } from './types.js';
 export interface WrapOptions {
   mode: 'wrap' | 'pins'; action?: string; id?: string; command?: string; args: string[];
   stateDir: string; policy: WardenPolicy; feed?: string; feedKey?: string; verdictLog?: string; auditOnly: boolean;
+  /** What happens to a tool result whose text reads as instructions to the model (result-screen.ts). */
+  results: ResultPolicy;
 }
 export async function parseWrapArgs(argv: string[]): Promise<WrapOptions> {
   const mode = argv.shift();
   if (mode !== 'wrap' && mode !== 'pins') throw new Error('Usage: warden-mcp wrap [flags] -- command [args] | pins status|approve|revoke --id ID');
-  const opts: WrapOptions = { mode, args: [], stateDir: defaultStateDir(), policy: asPolicy(undefined), auditOnly: false };
+  const opts: WrapOptions = { mode, args: [], stateDir: defaultStateDir(), policy: asPolicy(undefined), auditOnly: false, results: 'warn' };
   if (mode === 'pins') {
     opts.action = argv.shift();
     if (!['status', 'approve', 'revoke'].includes(opts.action ?? '')) throw new Error('pins requires status, approve or revoke');
@@ -29,7 +32,8 @@ export async function parseWrapArgs(argv: string[]): Promise<WrapOptions> {
     if (seen.has(flag)) throw new Error(`Duplicate flag ${flag}`);
     seen.add(flag);
     if (flag === '--audit-only' && mode === 'wrap') { opts.auditOnly = true; continue; }
-    const allowed = mode === 'wrap' ? ['--id', '--state-dir', '--policy', '--feed', '--feed-key', '--verdict-log'] : ['--id', '--state-dir', '--feed', '--feed-key'];
+    if (flag === '--require-approval' && mode === 'wrap') { continue; }
+    const allowed = mode === 'wrap' ? ['--id', '--state-dir', '--policy', '--feed', '--feed-key', '--verdict-log', '--results'] : ['--id', '--state-dir', '--feed', '--feed-key'];
     if (!allowed.includes(flag)) throw new Error(`Unknown flag ${flag}`);
     const value = argv.shift();
     if (!value || value.startsWith('--')) throw new Error(`Missing value for ${flag}`);
@@ -41,12 +45,15 @@ export async function parseWrapArgs(argv: string[]): Promise<WrapOptions> {
       case '--feed': opts.feed = value; break;
       case '--feed-key': opts.feedKey = value; break;
       case '--verdict-log': opts.verdictLog = value; break;
+      case '--results':
+        if (!(RESULT_POLICIES as readonly string[]).includes(value)) throw new Error('--results must be off, warn or block');
+        opts.results = value as ResultPolicy; break;
       case '--policy': {
         const raw = JSON.parse(await readFile(value, 'utf8'));
         // asPolicy preserves compatibility for MCP callers; CLI files must not silently repair bad types.
         if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('policy must be an object');
-        for (const key of Object.keys(raw)) if (!['blockAtSeverity', 'pinToolDefs', 'allowUnknownServers', 'sensitiveToolPatterns'].includes(key)) throw new Error(`Unknown policy field ${key}`);
-        for (const key of ['pinToolDefs', 'allowUnknownServers']) if (key in raw && typeof raw[key] !== 'boolean') throw new Error(`policy.${key} must be boolean`);
+        for (const key of Object.keys(raw)) if (!['blockAtSeverity', 'pinToolDefs', 'allowUnknownServers', 'sensitiveToolPatterns', 'requireApproval', 'capabilityBindings'].includes(key)) throw new Error(`Unknown policy field ${key}`);
+        for (const key of ['pinToolDefs', 'allowUnknownServers', 'requireApproval']) if (key in raw && typeof raw[key] !== 'boolean') throw new Error(`policy.${key} must be boolean`);
         if ('blockAtSeverity' in raw && typeof raw.blockAtSeverity !== 'string') throw new Error('policy.blockAtSeverity must be a severity');
         if ('sensitiveToolPatterns' in raw && (!Array.isArray(raw.sensitiveToolPatterns) || !raw.sensitiveToolPatterns.every((v: unknown) => typeof v === 'string'))) throw new Error('policy.sensitiveToolPatterns must be strings');
         opts.policy = asPolicy(raw); break;
@@ -54,6 +61,7 @@ export async function parseWrapArgs(argv: string[]): Promise<WrapOptions> {
     }
   }
   if (mode === 'wrap' && !opts.command) throw new Error('wrap requires -- command [args]');
+  if (seen.has('--require-approval')) opts.policy.requireApproval = true;
   if (mode === 'pins' && !opts.id) throw new Error('pins requires --id');
   if (opts.feed) {
     const url = new URL(opts.feed);
@@ -107,11 +115,11 @@ export async function runPins(opts: WrapOptions): Promise<void> {
       if (!tools) throw new Error('No reviewed tool snapshot available');
       const policy = asPolicy(current!.policy);
       // Re-approval removes only pin drift; the other gates still have to pass.
-      const warden = Warden.create({ policy, threatFeed: feed, store: { getPin: async () => undefined, putPin: async () => {} } });
+      const warden = Warden.create({ policy: { ...policy, requireApproval: false }, threatFeed: feed, store: { getPin: async () => undefined, putPin: async () => {} } });
       const verdict = await warden.vet(current!.server, tools);
       if (!verdict.allow) throw new Error(`Approval blocked: ${verdict.findings.map(f => f.code).join(', ')}`);
       await store.replace(id, pinRevision(previous), { serverId: id, tools, toolsHash: pinToolsHash(tools), toolsHashVersion: 2,
-        identityHash: serverIdentityHash(current!.server), toolNames: tools.map(t => t.name).sort(), approvedAt: new Date().toISOString() });
+        identityHash: serverIdentityHash(current!.server), toolNames: tools.map(t => t.name).sort(), approvedAt: new Date().toISOString(), approvalMode: 'operator' });
       await writeState(path, { ...current, revoked: false });
     }
   });

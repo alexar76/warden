@@ -2,14 +2,14 @@ import { describe, it, expect } from "vitest";
 import { foldForScan, FOLD_ID } from "../src/fold.js";
 
 /**
- * The fold is what makes the rule table language-independent against obfuscation:
- * it normalises the text a rule reads so the same instruction cannot be spelled
- * in a way a regex misses while a model still understands it. These cases are all
+ * The fold decodes common representations without choosing a language:
+ * it normalises the text a rule reads. This does not make lexical rules
+ * understand every language or every encoding. These cases are all
  * benign words — the point is the transformation, not any particular phrase.
  */
 describe("foldForScan", () => {
   it("has a stable identity", () => {
-    expect(FOLD_ID).toBe("nfkc+tags-decoded+invisible-stripped+mixed-script-confusables/1");
+    expect(FOLD_ID).toBe("escapes+entities+percent+base64/4x64k+nfkc+tags+invisible+confusables/2");
   });
 
   it("maps compatibility (fullwidth, ligature) forms to plain letters via NFKC", () => {

@@ -10,6 +10,7 @@ import { loadWrapFeed, wrapLogger, wrapServer, type WrapOptions } from './wrap-c
 import { observe, vetAndPin, observationPath, WardenBlock, type Observation } from './wrap-state.js';
 import { readState } from './state.js';
 import { listAllTools } from './tool-list.js';
+import { screenResult, annotateResult } from './result-screen.js';
 
 type Message = { jsonrpc: '2.0'; id?: string | number | null; method?: string; params?: Record<string, unknown>; result?: any; error?: unknown };
 function parse(body: string): Message {
@@ -49,7 +50,7 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
   // Every client request forwarded to the child, by id. A child response is delivered only
   // against one of these, once: a response to an id the client never sent to the child (its
   // tools/list, which this proxy answers) or already received is a forgery, not a reply.
-  const tracked = new Map<string | number | null, { kind: 'initialize' | 'call' | 'other'; generation: number }>();
+  const tracked = new Map<string | number | null, { kind: 'initialize' | 'call' | 'other'; generation: number; tool?: string }>();
   let activeChecks = 0;
   let stopTimer: NodeJS.Timeout | undefined, killTimer: NodeJS.Timeout | undefined;
 
@@ -165,7 +166,7 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
             const def = current.find(t => t.name === name);
             if (!opts.auditOnly && (quarantined || epoch !== generation || !def || !seen || pinToolsHash([def]) !== pinToolsHash([seen]))) throw new Error('tool blocked by WARDEN: definition changed since exposure');
             if (tracked.size >= 256 || tracked.has(msg.id)) throw new Error('Too many or duplicate pending MCP requests');
-            tracked.set(msg.id, { kind: 'call', generation });
+            tracked.set(msg.id, { kind: 'call', generation, tool: String(name) });
             childWrite(body);
           }
         } catch (e) { fail(msg, e instanceof Error ? e.message : String(e)); }
@@ -208,13 +209,27 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
           if (request.kind === 'call' && !opts.auditOnly && (quarantined || request.generation !== generation)) {
             fail(msg, 'tools changed, blocked by WARDEN; result withheld, execution may already have occurred'); return;
           }
+          if (request.kind === 'call' && opts.results !== 'off' && msg.result && typeof msg.result === 'object') {
+            // The result is new text every call, from wherever the tool reads: screen it as it passes.
+            const tool = request.tool ?? '';
+            const screen = await screenResult(server, tool, msg.result, opts.policy);
+            if (screen.flagged) {
+              if (screen.verdict) record(screen.verdict);
+              if (!opts.auditOnly) {
+                if (opts.results === 'block') {
+                  fail(msg, `tool result withheld by WARDEN: ${screen.complete ? 'it reads as instructions to the model' : 'inspection is incomplete'} (${screen.codes.join(', ')}); the tool already ran`); return;
+                }
+                send({ ...msg, result: annotateResult(msg.result, tool, screen.codes) }); return;
+              }
+            }
+          }
           if (request.kind === 'initialize' && msg.result && typeof msg.result === 'object') {
             msg.result.capabilities = { ...msg.result.capabilities, tools: { ...msg.result.capabilities?.tools, listChanged: true } };
             if (typeof msg.result.instructions === 'string') {
               const scan = new Warden({ policy: opts.policy, gates: [new StaticScanGate()] });
               const verdict = await scan.vet(server, [{ name: 'initialize.instructions', description: msg.result.instructions, inputSchema: { type: 'object' } }]);
               record(verdict);
-              if (!verdict.allow && !opts.auditOnly) delete msg.result.instructions;
+              if ((!verdict.allow || opts.policy.requireApproval) && !opts.auditOnly) delete msg.result.instructions;
             } else if (msg.result.instructions !== undefined && !opts.auditOnly) delete msg.result.instructions;
             send(msg); return;
           }

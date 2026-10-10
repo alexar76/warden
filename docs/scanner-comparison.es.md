@@ -2,7 +2,7 @@
 
 > 🌐 [English](scanner-comparison.md) · [Русский](scanner-comparison.ru.md) · **Español** · [Français](scanner-comparison.fr.md) · [中文](scanner-comparison.zh.md)
 
-El 9 de octubre de 2026 ejecutamos WARDEN y dos escáneres MCP de código abierto, mcp-audit y mcp-shield,
+El 9 de octubre de 2026 ejecutamos WARDEN y dos escáneres MCP de código abierto, mcp-audit y mcp-shield,[^snyk]
 sobre los mismos servidores. De cada uno queríamos dos números: cuántas herramientas envenenadas bloquea y
 cuántos servidores honestos bloquea por error. El segundo número decide si alguien puede dejar un escáner
 encendido.
@@ -171,17 +171,6 @@ con `deepseek-flash`, el modelo que usa HISTOR:
   parámetro y `rm -rf ~`. Funcionan en pareja.
 - **Costó poco.** Toda la medición fueron 816 solicitudes; según nuestra estimación, menos de un dólar.
 
-## Snyk Agent Scan
-
-Snyk Agent Scan, antes Invariant mcp-scan, es el escáner MCP más usado. Juzga las descripciones de
-herramientas en los servidores de Snyk y necesita un token de cuenta. El 9 de octubre de 2026 teníamos un
-token válido. El servicio respondió a nuestra primera solicitud con HTTP 429, «The public quota for this
-service has been exceeded». Esa cuota es compartida por todos los usuarios gratuitos, y ya estaba agotada
-cuando llegamos. El propio mensaje del escáner lo llama límite de uso diario. Nuestro banco de pruebas
-reintenta cada hora y va despacio cuando consigue pasar. Añadiremos la columna cuando haya terminado.
-
-Es una nota sobre el acceso, no sobre la detección. No hemos medido la detección de Snyk.
-
 ## Límites, y nuestro interés
 
 - **No somos neutrales.** Publicamos WARDEN, gratis y con licencia MIT. Escribimos los 23 ataques y los 55
@@ -216,3 +205,5 @@ npx -y @aimarket/warden@0.9.0 scan
 La [guía de scan](scan.es.md) cubre el archivo lock, la GitHub Action, los hooks de pre-commit y el
 clasificador. El [estudio de campo](mcp-survey.es.md) es el estudio anterior sobre en qué se equivocó WARDEN
 con 1 108 servidores públicos.
+
+[^snyk]: Snyk Agent Scan, el escáner MCP más usado, no está en la comparación. El 9 de octubre de 2026 su versión gratuita rechazó cada solicitud con HTTP 429, «The public quota for this service has been exceeded»: desde la primera solicitud, con las dos versiones de la CLI (0.6.8 y 0.5.17) y desde dos direcciones de red.
