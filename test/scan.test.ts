@@ -3,7 +3,7 @@ import { mkdtempSync, writeFileSync, readFileSync, existsSync, rmSync, readdirSy
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseScanArgs, runScan, exitCode, redactLaunch, redactUrl, historEndpoint, historPackage, behaviourFindings, looksSecret, UsageRequested, type ScanOptions } from '../src/scan.js';
+import { parseScanArgs, runScan, exitCode, redactLaunch, redactUrl, historEndpoint, historPackage, behaviourFindings, packageFindings, looksSecret, UsageRequested, type ScanOptions } from '../src/scan.js';
 import { toSarif, toMarkdown, toTable, mdCode, mdBlock } from '../src/scan-report.js';
 import { FilePinStore } from '../src/pin-store.js';
 import type { ConfiguredServer } from '../src/scan-config.js';
@@ -266,6 +266,27 @@ describe('scan: HISTOR, privacy first', () => {
     expect(f[2]!.message).toMatch(/when its tools were called: \.ssh\/id_rsa, \.aws\/credentials/);
     expect(behaviourFindings({ startup: { decoys: ['.env (working directory)'] }, calls: { network: ['api.vendor.example:443'] } }, '1')).toEqual([]);
     expect(behaviourFindings(undefined, '1')).toEqual([]);
+  });
+
+  it('says a package written for MCP SDK 1.x crashes on a fresh install, and what it was with mcp<2', () => {
+    const f = packageFindings({ match: 'not-observed', target: { lastStatus: 'exited', packageVersion: '0.12.0', packageSignals: { version: '0.12.0',
+      exit: { kind: 'sdk-incompatible' },
+      legacy: { version: '0.12.0', status: 'ok', toolCount: 3, tools: ['a', 'b', 'c'], supplied: { pins: ['mcp<2'] },
+        behaviour: { startup: { lookups: ['telemetry.example.com'] } } } } } });
+    expect(f.map(x => [x.code, x.severity, x.advisory])).toEqual([['HISTOR_PACKAGE_SDK_INCOMPATIBLE', 'medium', true], ['HISTOR_PACKAGE_STARTUP_NETWORK', 'medium', true]]);
+    expect(f[0]!.message).toMatch(/crashes on import for anyone installing it today.*With mcp<2 it starts and lists 3 tools\./);
+    expect(f[1]!.message).toMatch(/version 0\.12\.0 \(with mcp<2\) reached out at startup/);
+  });
+
+  it('names the key a package asks for, and where the placeholder went', () => {
+    const asking = packageFindings({ match: 'not-observed', target: { lastStatus: 'exited', packageSignals: { version: '1.2.0', exit: { kind: 'needs-config', env: ['HASDATA_API_KEY'] } } } });
+    expect(asking.map(x => [x.code, x.severity])).toEqual([['HISTOR_PACKAGE_NEEDS_CONFIG', 'info']]);
+    expect(asking[0]!.message).toMatch(/Linux under gVisor, no internet.*exited asking for HASDATA_API_KEY/);
+    const read = packageFindings({ match: 'same', target: { lastStatus: 'ok', packageSignals: { version: '1.2.0', supplied: { env: ['HASDATA_API_KEY'] },
+      behaviour: { calls: { tools: 2, envKeyDestinations: ['api.hasdata.com/scrape', 'collect.evil.example/k'] } } } } });
+    expect(read.map(x => x.code)).toEqual(['HISTOR_PACKAGE_KEY_SENT_TO', 'HISTOR_PACKAGE_NEEDS_CONFIG']);
+    expect(read[0]!.message).toMatch(/sent the placeholder key HISTOR gave it to: api\.hasdata\.com\/scrape, collect\.evil\.example\/k/);
+    expect(read.every(x => x.advisory)).toBe(true);
   });
 
   it('reads the package out of every common launcher', () => {

@@ -37,7 +37,16 @@ export interface HistorCheck {
     /** What the registry says about the version HISTOR observed, and what changed since the one before. */
     packageSignals?: { version?: string; previousVersion?: string; provenance?: boolean; publisher?: string | null; previousPublisher?: string; installScripts?: string[]; newDependencies?: string[]; flags?: string[];
       /** What the package did in HISTOR's gVisor sandbox, per phase. */
-      behaviour?: Record<string, PackageBehaviour | unknown> } };
+      behaviour?: Record<string, PackageBehaviour | unknown>;
+      /** Why the run exited before answering, read from what the package printed. */
+      exit?: { kind?: string; env?: string[]; args?: string[] };
+      /** The placeholders HISTOR started it with: variable names, start arguments, dependency pins. */
+      supplied?: { env?: string[]; args?: string[]; pins?: string[] };
+      /** Where it ran: the image digest and the runtime. */
+      conditions?: { image?: string; runtime?: string };
+      /** The same version run again with a legacy pin (mcp<2), beside the record and never its status. */
+      legacy?: { version?: string; status?: string; supplied?: { env?: string[]; args?: string[]; pins?: string[] }; toolCount?: number; tools?: string[];
+        patternMatches?: { block?: number; advise?: number }; behaviour?: Record<string, PackageBehaviour | unknown>; exit?: { kind?: string; env?: string[] } } } };
   /** The popular package this package's name imitates, for any package asked about. */
   packageLookalike?: { of?: string; weekly?: number; how?: string; ownWeekly?: number };
   observed?: { toolSetDigest?: string; subjectDigest?: string; toolCount?: number; firstPinned?: string; unchangedSince?: string; lastObserved?: string; observations?: number; changes?: number };
@@ -57,6 +66,8 @@ export interface PackageBehaviour {
   writes?: string[];
   packages?: string[];
   tools?: number;
+  /** Where a placeholder key HISTOR set was sent (host/path, as the trap recorded it). */
+  envKeyDestinations?: string[];
 }
 
 export interface HistorOptions {

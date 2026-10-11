@@ -1,6 +1,17 @@
 # Changelog
 
-## 0.13.0 — 2026-10-10 (unpublished)
+## 0.14.0 — unreleased
+
+`scan --histor` says why a package did not start in HISTOR's sandbox, and under which conditions every package finding was made.
+
+- `HISTOR_PACKAGE_SDK_INCOMPATIBLE` (medium, advisory): the version crashes on import for anyone installing it today — written for MCP SDK 1.x (`mcp.server.fastmcp`) with an unpinned `mcp` that now resolves to 2.x. When HISTOR also ran it with `mcp<2`, the finding says how many tools it listed then, and that run's sandbox behaviour is reported as `… (with mcp<2)`.
+- `HISTOR_PACKAGE_NEEDS_CONFIG` (info, advisory): the package exited asking for a named key or setting, or its tools were read with placeholders for them.
+- `HISTOR_PACKAGE_KEY_SENT_TO` (low, advisory): where the package sent the placeholder key HISTOR set — check that it is the service's own API.
+- Every sandbox finding names the conditions it comes from: Linux under gVisor, no internet, decoy secrets ([histor.modelmarket.dev/#conditions](https://histor.modelmarket.dev/#conditions)).
+- `HistorCheck.target.packageSignals` types `exit`, `supplied`, `conditions` and `legacy`.
+- **The semantic classifier reads a schema value by value.** It sent `inputSchema` (and every other structured member) as one string cut at 2,000 characters, so the end of a large schema was never inspected and `--classifier-blocks` called the tool incomplete. Of 251,413 real tools HISTOR has observed, 6,424 on 2,270 of 16,621 servers (13.7%) hit that cut. Each value now has its own field keyed by its path (`inputSchema.properties.note.description`, property names included) and up to 4,000 characters; a tool may use 32,000 characters and 600 fields in all (99.95% of those tools fit), and requests are packed by volume as well as count. A tool past the budget is still incomplete, never clean.
+
+## 0.13.0 — 2026-10-10
 
 - Semantic inspection distinguishes an ordinary imperative over user-provided input from an attempt to override assistant authority, including encoded text in any language. The frozen DeepSeek run blocks 8,244/8,244 synthetic attacks with 0/362 false blocks and no incomplete cases; these are corpus-specific measurements, not a universal guarantee.
 - Oversized tool results explicitly report `RESULT_INSPECTION_INCOMPLETE`; `--results block` withholds them and `warn` marks them uninspected.

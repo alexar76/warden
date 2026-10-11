@@ -381,9 +381,29 @@ export function packageFindings(answer: HistorCheck): WardenFinding[] {
   if (flags.includes('new-dependencies')) out.push({ gate: 'histor', severity: 'low', code: 'HISTOR_PACKAGE_NEW_DEPENDENCIES', advisory: true,
     message: `Version ${v} added dependencies ${pv} did not have: ${(sig?.newDependencies ?? []).slice(0, 8).map(d => displaySafe(String(d), 60)).join(', ')}.` });
   out.push(...behaviourFindings(sig?.behaviour, v));
+  const exit = sig?.exit && typeof sig.exit === 'object' ? sig.exit : undefined;
+  const status = answer.target?.lastStatus;
+  if (exit?.kind === 'sdk-incompatible') {
+    const legacy = sig?.legacy && typeof sig.legacy === 'object' ? sig.legacy : undefined;
+    const pinned = legacy?.status === 'ok'
+      ? ` With mcp<2 it starts and lists ${Number(legacy.toolCount ?? arr(legacy.tools).length)} tools${legacy.patternMatches?.block ? `, ${Number(legacy.patternMatches.block)} of them with block-tier WARDEN patterns` : ''}.`
+      : legacy ? ` With mcp<2 it still did not answer (${displaySafe(String(legacy.status ?? '?'), 30)}).` : '';
+    out.push({ gate: 'histor', severity: 'medium', code: 'HISTOR_PACKAGE_SDK_INCOMPATIBLE', advisory: true,
+      message: `Version ${v} crashes on import for anyone installing it today: it was written for MCP SDK 1.x (mcp.server.fastmcp) and its unpinned mcp dependency now resolves to 2.x. Hold mcp<2 in its environment or use a fixed release.${pinned}` });
+    if (legacy?.behaviour) out.push(...behaviourFindings(legacy.behaviour as Record<string, unknown>, `${v} (with mcp<2)`));
+  } else if (exit?.kind === 'needs-config' && status !== 'ok') {
+    const names = list(exit.env, 8, 64);
+    out.push({ gate: 'histor', severity: 'info', code: 'HISTOR_PACKAGE_NEEDS_CONFIG', advisory: true,
+      message: `In ${SANDBOX}, version ${v} exited asking for ${names || 'configuration it did not name'}${names ? ' — a key or setting your client config gives it' : ''}. HISTOR has not read its tools yet${names ? '; the next run sets a placeholder' : ''}.` });
+  }
+  const given = arr(sig?.supplied?.env);
+  if (given.length && status === 'ok') out.push({ gate: 'histor', severity: 'info', code: 'HISTOR_PACKAGE_NEEDS_CONFIG', advisory: true,
+    message: `HISTOR read version ${v}'s tools with placeholders for ${list(given, 8, 64)}: it does not start without them.` });
   return out;
 }
 
+/** The test conditions every package observation comes from (histor.modelmarket.dev/#conditions). */
+const SANDBOX = "HISTOR's sandbox (Linux under gVisor, no internet, decoy secrets)";
 const list = (xs: unknown, n = 6, len = 80) => (Array.isArray(xs) ? xs : []).filter((x): x is string => typeof x === 'string').slice(0, n).map(x => displaySafe(x, len)).join(', ');
 const arr = (xs: unknown) => (Array.isArray(xs) ? xs.filter((x): x is string => typeof x === 'string') : []);
 
@@ -402,16 +422,19 @@ export function behaviourFindings(behaviour: Record<string, unknown> | undefined
     const b = phase(key);
     const secrets = arr(b.decoys).filter(d => !d.startsWith('.env'));
     if (secrets.length) out.push({ gate: 'histor', severity: 'high', code: 'HISTOR_PACKAGE_READS_SECRETS', advisory: true,
-      message: `In HISTOR's sandbox, version ${version} opened decoy credentials ${names[key]}: ${list(secrets)}.` });
+      message: `In ${SANDBOX}, version ${version} opened decoy credentials ${names[key]}: ${list(secrets)}.` });
     if (arr(b.writes).length) out.push({ gate: 'histor', severity: 'high', code: 'HISTOR_PACKAGE_PERSISTENCE', advisory: true,
-      message: `In HISTOR's sandbox, version ${version} wrote ${names[key]} where it would outlive the session: ${list(b.writes)}.` });
+      message: `In ${SANDBOX}, version ${version} wrote ${names[key]} where it would outlive the session: ${list(b.writes)}.` });
   }
   const start = phase('startup');
   if (arr(start.network).length || arr(start.lookups).length) out.push({ gate: 'histor', severity: 'medium', code: 'HISTOR_PACKAGE_STARTUP_NETWORK', advisory: true,
-    message: `In HISTOR's sandbox, version ${version} reached out at startup, before any tool was called: ${list(arr(start.network).length ? start.network : start.lookups)}.` });
+    message: `In ${SANDBOX}, version ${version} reached out at startup, before any tool was called: ${list(arr(start.network).length ? start.network : start.lookups)}.` });
   const spawned = [...arr(start.exec), ...arr(phase('calls').exec)];
   if (spawned.length) out.push({ gate: 'histor', severity: 'low', code: 'HISTOR_PACKAGE_STARTS_PROGRAMS', advisory: true,
-    message: `In HISTOR's sandbox, version ${version} started programs: ${list(spawned, 6, 100)}.` });
+    message: `In ${SANDBOX}, version ${version} started programs: ${list(spawned, 6, 100)}.` });
+  const sent = [...new Set([...arr(start.envKeyDestinations), ...arr(phase('calls').envKeyDestinations)])];
+  if (sent.length) out.push({ gate: 'histor', severity: 'low', code: 'HISTOR_PACKAGE_KEY_SENT_TO', advisory: true,
+    message: `In ${SANDBOX}, version ${version} sent the placeholder key HISTOR gave it to: ${list(sent, 6, 120)}. Check that this is the service's own API.` });
   const scripts = phase('installScripts');
   if (arr(scripts.network).length || arr(scripts.lookups).length || arr(scripts.exec).length) out.push({ gate: 'histor', severity: 'medium', code: 'HISTOR_PACKAGE_INSTALL_BEHAVIOUR', advisory: true,
     message: `Installing version ${version} runs scripts (${list(scripts.packages, 4, 60)}) that ${arr(scripts.network).length || arr(scripts.lookups).length ? `reach ${list(arr(scripts.network).length ? scripts.network : scripts.lookups)}` : `start ${list(scripts.exec, 4, 100)}`} — before any check can run.` });

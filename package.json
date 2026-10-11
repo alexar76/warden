@@ -1,6 +1,6 @@
 {
   "name": "@aimarket/warden",
-  "version": "0.13.0",
+  "version": "0.14.0",
   "description": "WARDEN — MCP security firewall. Stdio wrap proxy, inspection tools and library. Vets definitions before model exposure. Zero runtime dependencies.",
   "type": "module",
   "license": "MIT",
@@ -15,7 +15,7 @@
     "url": "https://github.com/alexar76/warden/issues"
   },
   "bin": {
-    "warden-mcp": "./dist/mcp-server.js"
+    "warden-mcp": "dist/mcp-server.js"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
