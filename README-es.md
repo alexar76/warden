@@ -23,7 +23,7 @@
 
 > 🌐 [English](README.md) · [Русский](README-ru.md) · **Español** · [Français](README-fr.md) · [中文](README-zh.md) · [Glosario](https://github.com/alexar76/aicom/blob/main/docs/localization-glossary.md)
 
-> [Ciclo de control de calidad de WARDEN: MOMUS → AI-Factory → SKOPOS → agente de nodo compartido → despliegue](../momus/docs/quality-cycle.es.md).
+> [Ciclo de control de calidad de WARDEN: MOMUS → AI-Factory → SKOPOS → agente de nodo compartido → despliegue](https://github.com/alexar76/momus/blob/main/docs/quality-cycle.es.md).
 
 <!-- warden-try -->
 **Revisa todos los servidores MCP de tu máquina.** Sin cuenta, sin clave de API, sin modelo. El único tráfico de red va a los servidores de tu configuración.

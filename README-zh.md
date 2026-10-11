@@ -23,7 +23,7 @@
 
 > 🌐 [English](README.md) · [Русский](README-ru.md) · [Español](README-es.md) · [Français](README-fr.md) · **中文** · [术语表](https://github.com/alexar76/aicom/blob/main/docs/localization-glossary.md)
 
-> [WARDEN 质量检查周期：MOMUS → AI-Factory → SKOPOS → 共享节点智能体 → 部署](../momus/docs/quality-cycle.zh.md).
+> [WARDEN 质量检查周期：MOMUS → AI-Factory → SKOPOS → 共享节点智能体 → 部署](https://github.com/alexar76/momus/blob/main/docs/quality-cycle.zh.md).
 
 <!-- warden-try -->
 **检查你机器上的所有 MCP 服务器。** 无需账号、无需 API 密钥、不调用模型。唯一的网络流量是发往你配置中的服务器。

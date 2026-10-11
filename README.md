@@ -30,7 +30,7 @@
 
 > 🌐 **English** · [Русский](README-ru.md) · [Español](README-es.md) · [Français](README-fr.md) · [中文](README-zh.md) · [Glossary](https://github.com/alexar76/aicom/blob/main/docs/localization-glossary.md)
 
-> [WARDEN quality cycle: MOMUS → AI-Factory → SKOPOS → shared node agent → deployment](../momus/docs/quality-cycle.md).
+> [WARDEN quality cycle: MOMUS → AI-Factory → SKOPOS → shared node agent → deployment](https://github.com/alexar76/momus/blob/main/docs/quality-cycle.md).
 
 <!-- warden-try -->
 **Check every MCP server on your machine.** No account, no API key, no model. The only network traffic is to the servers in your config.

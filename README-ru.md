@@ -23,7 +23,7 @@
 
 > 🌐 [English](README.md) · **Русский** · [Español](README-es.md) · [Français](README-fr.md) · [中文](README-zh.md) · [Глоссарий](https://github.com/alexar76/aicom/blob/main/docs/localization-glossary.md)
 
-> [Цикл контроля качества WARDEN: MOMUS → AI-Factory → SKOPOS → общий нод-агент → деплой](../momus/docs/quality-cycle.ru.md).
+> [Цикл контроля качества WARDEN: MOMUS → AI-Factory → SKOPOS → общий нод-агент → деплой](https://github.com/alexar76/momus/blob/main/docs/quality-cycle.ru.md).
 
 <!-- warden-try -->
 **Проверьте все MCP-серверы на своей машине.** Без аккаунта, без API-ключа, без модели. Сетевой трафик идёт только к серверам из вашего конфига.

@@ -43,7 +43,8 @@ describe("packaging — the standalone claim", () => {
     // The canonicalizer is a documented subpath: other implementations verify
     // our RFC 8785 bytes against it without pulling the gate chain.
     expect(pkg.exports["./jcs"].import).toBe("./dist/jcs.js");
-    expect(pkg.bin["warden-mcp"]).toBe("./dist/mcp-server.js");
+    // npm publishes the bin without "./" (and warns when the source has it).
+    expect(pkg.bin["warden-mcp"]).toBe("dist/mcp-server.js");
   });
 
   it("exports the full enforcement surface from the entry point", () => {
