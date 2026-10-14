@@ -31,6 +31,7 @@ export const CODE_TEXT: Record<string, string> = {
   SERVER_UNDECLARED: 'Server came from a catalog, not from the operator',
   LOCK_MISSING: 'Server is not in the reviewed lock file',
   HISTOR_UNSEEN_TOOLSET: 'HISTOR never observed the tool set this server served',
+  HISTOR_DECLARED_TOOLSET: 'The publisher declares this tool set in its registry entry; HISTOR has not observed it',
   HISTOR_CLASSIFIER: "HISTOR's classifier reads a tool as directing the model",
   TOOL_DEF_CLASSIFIER: 'A model reads the tool as directing the model (opt-in classifier)',
   TOOL_DEF_CROSS_TOOL: "A tool's description directs how another tool is called",

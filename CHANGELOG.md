@@ -1,6 +1,13 @@
 # Changelog
 
-## 0.14.0 — unreleased
+## 0.15.0 — unreleased
+
+`scan --histor` tells a tool set that depends on the machine from one nobody has seen, and reports a set the publisher declares in its registry entry as the publisher's word.
+
+- **`HISTOR_UNSEEN_TOOLSET` for a package names local state as a cause.** A package's tools can depend on the machine: a launcher that hands stdio to a locally installed program lists that program's tools there, and only an "install me" tool in HISTOR's sandbox, which does not have the program; a real key can unlock tools a placeholder does not. The finding said the only causes were a version HISTOR had not reached or a package that is not the published one, which reads as tampering to someone whose runner is installed. It now gives that cause first, and the tool count on both sides (`3 tools, sha256-… (latest it ran: 0.1.4, 1 tool in its sandbox)`). Still advisory, still medium. Docs: the five `scan` guides, which also lose a phrase that was written twice.
+- **`HISTOR_DECLARED_TOOLSET` (low, advisory): a set the publisher declares.** A publisher can name the tool sets its server lists under conditions HISTOR does not have, by MTL/1 digest, in the `server.json` it publishes to the official MCP registry (`_meta` → `io.modelcontextprotocol.registry/publisher-provided` → `dev.modelmarket.histor/tool-sets`; [HISTOR API guide](https://github.com/alexar76/histor/blob/main/docs/api.md#declaring-tool-sets-publishers)). When HISTOR's `/check` answer carries `declared` for the very digest this machine got, WARDEN reports it as the publisher's word, with its version, date and condition, instead of `HISTOR_UNSEEN_TOOLSET`; info when HISTOR holds no set of its own (`not-observed`). A declaration of another digest changes nothing. The digest a publisher needs is `mtlDigest` in `scan --json`. `HistorCheck.declared` and `HistorSummary.declared` are typed.
+
+## 0.14.0 — 2026-10-11
 
 `scan --histor` says why a package did not start in HISTOR's sandbox, and under which conditions every package finding was made.
 

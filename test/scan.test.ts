@@ -7,6 +7,7 @@ import { parseScanArgs, runScan, exitCode, redactLaunch, redactUrl, historEndpoi
 import { toSarif, toMarkdown, toTable, mdCode, mdBlock } from '../src/scan-report.js';
 import { FilePinStore } from '../src/pin-store.js';
 import type { ConfiguredServer } from '../src/scan-config.js';
+import { mtlToolSetDigest } from '../src/mtl.js';
 
 const fixture = fileURLToPath(new URL('./fixtures/wrap-server.mjs', import.meta.url));
 const dirs: string[] = [];
@@ -231,6 +232,50 @@ describe('scan: HISTOR, privacy first', () => {
     expect(report.historWatch).toBeUndefined(); // the answers carried no target id
     expect(s.corp!.histor).toEqual({ notSent: 'a private registry' });
     expect(s.local!.histor!.notSent).toMatch(/package manager/);
+  });
+
+  it('names local state as a cause when a package gives this machine a set HISTOR never saw', async () => {
+    // A launcher: in the sandbox it lists one "install me" tool; with its runner installed, the runner's tools.
+    const dir = tmp(), cfg = join(dir, 'c.json');
+    writeFileSync(cfg, JSON.stringify({ mcpServers: { launcher: { command: 'npx', args: ['-y', '@acme/launcher'] } } }));
+    const historFetch = (async () => new Response(JSON.stringify({ match: 'different', note: 'never seen',
+      target: { packageVersion: '0.1.4' }, observed: { toolCount: 1 } }), { status: 200, headers: { 'content-type': 'application/json' } })) as typeof fetch;
+    const report = await runScan(await parseScanArgs([cfg, '--histor', '--state-dir', join(dir, 's')], {}), { fetch: async () => ({ tools }), historFetch });
+    const s = byKey(report).launcher!;
+    const f = s.findings.find(x => x.code === 'HISTOR_UNSEEN_TOOLSET')!;
+    expect(f).toMatchObject({ advisory: true, severity: 'medium' });
+    expect(f.message).toMatch(new RegExp(`gave you \\(${tools.length} tools?, sha256-.*latest it ran: 0\\.1\\.4, 1 tool in its sandbox\\)`));
+    expect(f.message).toMatch(/what this machine has and the sandbox has not \(a program it hands over to, a real key or setting\)/);
+    expect(s.allow).toBe(true);
+  });
+
+  it('reports a set the publisher declares in its registry entry as its word, at lower severity', async () => {
+    const dir = tmp(), cfg = join(dir, 'c.json');
+    writeFileSync(cfg, JSON.stringify({ mcpServers: {
+      launcher: { command: 'npx', args: ['-y', '@acme/launcher'] },
+      exits: { command: 'npx', args: ['-y', '@acme/exits'] },
+      other: { command: 'npx', args: ['-y', '@acme/other'] },
+    } }));
+    const digest = mtlToolSetDigest(tools);
+    const historFetch = (async (_url: unknown, init?: { body?: string }) => {
+      const pkg = String(JSON.parse(String(init?.body)).package);
+      const declared = { toolSetDigest: pkg === 'npm:@acme/other' ? 'sha256-' + 'B'.repeat(43) + '=' : digest,
+        toolCount: tools.length, when: 'the runner‮ is installed', registryVersion: '0.1.5', firstDeclared: '2026-10-14T09:00:00Z' };
+      return new Response(JSON.stringify({ match: pkg === 'npm:@acme/exits' ? 'not-observed' : 'different', note: 'n', declared,
+        target: { packageVersion: '0.1.5' }, observed: { toolCount: 1 } }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }) as typeof fetch;
+    const report = await runScan(await parseScanArgs([cfg, '--histor', '--state-dir', join(dir, 's')], {}), { fetch: async () => ({ tools }), historFetch });
+    const by = byKey(report);
+    const codes = (k: string) => by[k]!.findings.filter(f => f.gate === 'histor').map(f => [f.code, f.severity]);
+    expect(codes('launcher')).toEqual([['HISTOR_DECLARED_TOOLSET', 'low']]);
+    expect(codes('exits')).toEqual([['HISTOR_DECLARED_TOOLSET', 'info']]);
+    // A declaration of some other set says nothing about the one this machine got.
+    expect(codes('other')).toEqual([['HISTOR_UNSEEN_TOOLSET', 'medium']]);
+    const msg = by.launcher!.findings.find(f => f.code === 'HISTOR_DECLARED_TOOLSET')!.message;
+    expect(msg).toMatch(/publisher declares it in the registry entry of version 0\.1\.5 \(since 2026-10-14\), for when "the runner.* is installed"\. That is the publisher's word, not an observation/);
+    expect(msg).not.toContain('‮');
+    expect(by.launcher!.histor!.declared).toMatchObject({ registryVersion: '0.1.5', since: '2026-10-14' });
+    expect(by.other!.histor!.declared).toBeUndefined();
   });
 
   it('turns HISTOR\'s package knowledge into advisory findings: look-alike names and the marks of a stolen token', async () => {

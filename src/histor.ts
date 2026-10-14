@@ -12,7 +12,8 @@
  * `different` (you were served something the log never saw: a targeted
  * definition, or a change the crawl has not reached yet), `previously-observed`
  * (a set the log saw earlier: stale or rolled back), or that the server is not
- * listed / not observed.
+ * listed / not observed. When the set is one the publisher declares in its
+ * registry entry, the answer says so in `declared`.
  */
 export const DEFAULT_HISTOR_URL = 'https://histor.modelmarket.dev';
 export const HISTOR_RESPONSE_BYTES = 256 * 1024;
@@ -50,6 +51,13 @@ export interface HistorCheck {
   /** The popular package this package's name imitates, for any package asked about. */
   packageLookalike?: { of?: string; weekly?: number; how?: string; ownWeekly?: number };
   observed?: { toolSetDigest?: string; subjectDigest?: string; toolCount?: number; firstPinned?: string; unchangedSince?: string; lastObserved?: string; observations?: number; changes?: number };
+  /**
+   * The publisher's declaration of the set you sent, read from its registry entry (server.json
+   * `_meta` → publisher-provided → `dev.modelmarket.histor/tool-sets`): a set it lists under
+   * conditions HISTOR does not have, such as a launcher's tools where its program is installed.
+   * The publisher's word, never an observation; `match` stays what HISTOR observed.
+   */
+  declared?: { toolSetDigest?: string; toolCount?: number; when?: string; registryVersion?: string; firstDeclared?: string; lastDeclared?: string };
   seenBefore?: unknown;
   patternScan?: unknown;
   classifier?: unknown;

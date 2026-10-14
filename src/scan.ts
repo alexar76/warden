@@ -57,6 +57,8 @@ export interface HistorSummary {
   page?: string;
   unchangedSince?: string;
   changes?: number;
+  /** The publisher declares the set you got in its registry entry (HISTOR did not observe it). */
+  declared?: { when?: string; registryVersion?: string; since?: string };
   error?: string;
   notSent?: string;
 }
@@ -406,6 +408,7 @@ export function packageFindings(answer: HistorCheck): WardenFinding[] {
 const SANDBOX = "HISTOR's sandbox (Linux under gVisor, no internet, decoy secrets)";
 const list = (xs: unknown, n = 6, len = 80) => (Array.isArray(xs) ? xs : []).filter((x): x is string => typeof x === 'string').slice(0, n).map(x => displaySafe(x, len)).join(', ');
 const arr = (xs: unknown) => (Array.isArray(xs) ? xs.filter((x): x is string => typeof x === 'string') : []);
+const tally = (n: number) => `${n} tool${n === 1 ? '' : 's'}`;
 
 /**
  * What the package did in HISTOR's sandbox (gVisor's own trace, decoy credentials, canary tool
@@ -572,12 +575,26 @@ export async function runScan(opts: ScanOptions, deps: ScanDeps = {}): Promise<S
             { fetchImpl: deps.historFetch, userAgent: `warden-scan/${version}` });
           const seenVersion = typeof answer.target?.packageVersion === 'string' ? displaySafe(answer.target.packageVersion, 64) : undefined;
           const targetId = typeof answer.target?.id === 'string' && /^[0-9a-f]{16}$/.test(answer.target.id) ? answer.target.id : undefined;
+          // Only a declaration of this very set counts: the digest is compared here, not taken on HISTOR's word.
+          const declared = mtlDigest && answer.declared?.toolSetDigest === mtlDigest ? answer.declared : undefined;
+          const declaredWhen = typeof declared?.when === 'string' && declared.when ? displaySafe(declared.when, 200) : undefined;
+          const declaredVersion = typeof declared?.registryVersion === 'string' ? displaySafe(declared.registryVersion, 64) : undefined;
+          const declaredSince = typeof declared?.firstDeclared === 'string' ? displaySafe(declared.firstDeclared.slice(0, 10), 10) : undefined;
           histor = { ...(target.package ? { package: target.package } : {}), ...(seenVersion ? { packageVersion: seenVersion } : {}), ...(targetId ? { targetId } : {}),
             match: String(answer.match), note: typeof answer.note === 'string' ? displaySafe(answer.note, 400) : undefined,
-            page: answer.target?.page, unchangedSince: answer.observed?.unchangedSince, changes: answer.observed?.changes };
-          if (answer.match === 'different') findings.push({ gate: 'histor', severity: 'medium', code: 'HISTOR_UNSEEN_TOOLSET', advisory: true,
+            page: answer.target?.page, unchangedSince: answer.observed?.unchangedSince, changes: answer.observed?.changes,
+            ...(declared ? { declared: { ...(declaredWhen ? { when: declaredWhen } : {}), ...(declaredVersion ? { registryVersion: declaredVersion } : {}), ...(declaredSince ? { since: declaredSince } : {}) } } : {}) };
+          // A package's tool set can depend on this machine: a launcher that hands stdio to a locally installed
+          // program lists that program's tools here and only an "install me" tool in the sandbox; a real key can
+          // unlock tools a placeholder does not. So the counts on both sides are given, and tampering is one cause of three.
+          const sandboxCount = typeof answer.observed?.toolCount === 'number' ? answer.observed.toolCount : undefined;
+          const ran = [seenVersion ? `latest it ran: ${seenVersion}` : '', sandboxCount !== undefined ? `${tally(sandboxCount)} in its sandbox` : ''].filter(Boolean).join(', ');
+          // A set the publisher declares is no longer unseen by everyone: it says what it is, at lower severity.
+          if (declared && (answer.match === 'different' || answer.match === 'not-observed')) findings.push({ gate: 'histor', severity: answer.match === 'different' ? 'low' : 'info', code: 'HISTOR_DECLARED_TOOLSET', advisory: true,
+            message: `HISTOR has not observed the tool set ${target.package ? 'this package gave you' : 'this server served you'} (${tally(fetched.tools.length)}, ${mtlDigest}), but its publisher declares it in the registry entry${declaredVersion ? ` of version ${declaredVersion}` : ''}${declaredSince ? ` (since ${declaredSince})` : ''}${declaredWhen ? `, for when "${declaredWhen}"` : ''}. That is the publisher's word, not an observation; WARDEN's own checks still read every tool.` });
+          else if (answer.match === 'different') findings.push({ gate: 'histor', severity: 'medium', code: 'HISTOR_UNSEEN_TOOLSET', advisory: true,
             message: target.package
-              ? `HISTOR has never observed the tool set this package gave you (${mtlDigest}) in any version it ran${seenVersion ? ` (latest it ran: ${seenVersion})` : ''}. Either you run a version HISTOR has not reached yet, or the package on this machine is not the one published.`
+              ? `HISTOR has never observed the tool set this package gave you (${tally(fetched.tools.length)}, ${mtlDigest}) in any version it ran${ran ? ` (${ran})` : ''}. Either the package lists tools according to what this machine has and the sandbox has not (a program it hands over to, a real key or setting), or you run a version HISTOR has not reached yet, or the package on this machine is not the one published. Read the tools before approving them.`
               : `HISTOR has never observed the tool set this server served you (${mtlDigest}). Either it changed after the last crawl, or it serves you something it does not serve the public crawler.` });
           if (target.package) findings.push(...packageFindings(answer));
           if (answer.match === 'previously-observed') findings.push({ gate: 'histor', severity: 'low', code: 'HISTOR_OLDER_TOOLSET', advisory: true,
