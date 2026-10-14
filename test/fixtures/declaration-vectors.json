@@ -1,0 +1,407 @@
+{
+ "source": "histor/histor/declared.py (url_refusal, parse_file, _when), 2026-10-14",
+ "urls": [
+  {
+   "url": "https://auten.ai/.well-known/mcp-tool-sets.json",
+   "server": "ai.auten/mcp",
+   "refusal": null
+  },
+  {
+   "url": "https://docs.auten.ai/sets.json",
+   "server": "ai.auten/mcp",
+   "refusal": null
+  },
+  {
+   "url": "https://AUTEN.ai/sets.json",
+   "server": "ai.auten/mcp",
+   "refusal": null
+  },
+  {
+   "url": "https://auten.ai./sets.json",
+   "server": "ai.auten/mcp",
+   "refusal": null
+  },
+  {
+   "url": "https://auten.ai:443/sets.json",
+   "server": "ai.auten/mcp",
+   "refusal": null
+  },
+  {
+   "url": "https://auten.ai:8443/sets.json",
+   "server": "ai.auten/mcp",
+   "refusal": "\"url\" must use the default https port"
+  },
+  {
+   "url": "https://notauten.ai/sets.json",
+   "server": "ai.auten/mcp",
+   "refusal": "\"url\" must be on auten.ai or a subdomain, the domain the registry verified for ai.auten"
+  },
+  {
+   "url": "https://auten.ai.evil.com/sets.json",
+   "server": "ai.auten/mcp",
+   "refusal": "\"url\" must be on auten.ai or a subdomain, the domain the registry verified for ai.auten"
+  },
+  {
+   "url": "https://evil.example/sets.json",
+   "server": "ai.auten/mcp",
+   "refusal": "\"url\" must be on auten.ai or a subdomain, the domain the registry verified for ai.auten"
+  },
+  {
+   "url": "http://auten.ai/sets.json",
+   "server": "ai.auten/mcp",
+   "refusal": "\"url\" must be https"
+  },
+  {
+   "url": "https://user:pw@auten.ai/sets.json",
+   "server": "ai.auten/mcp",
+   "refusal": "\"url\" must not carry credentials"
+  },
+  {
+   "url": "ftp://auten.ai/sets.json",
+   "server": "ai.auten/mcp",
+   "refusal": "\"url\" must be https"
+  },
+  {
+   "url": "not a url",
+   "server": "ai.auten/mcp",
+   "refusal": "\"url\" must be https"
+  },
+  {
+   "url": "https://mcp.example.com/sets.json",
+   "server": "com.example.mcp/server",
+   "refusal": null
+  },
+  {
+   "url": "https://example.com/sets.json",
+   "server": "com.example.mcp/server",
+   "refusal": "\"url\" must be on mcp.example.com or a subdomain, the domain the registry verified for com.example.mcp"
+  },
+  {
+   "url": "https://alexar76.github.io/sets.json",
+   "server": "io.github.alexar76/warden",
+   "refusal": null
+  },
+  {
+   "url": "https://raw.githubusercontent.com/alexar76/warden/main/sets.json",
+   "server": "io.github.alexar76/warden",
+   "refusal": null
+  },
+  {
+   "url": "https://raw.githubusercontent.com/AlexAR76/warden/main/sets.json",
+   "server": "io.github.alexar76/warden",
+   "refusal": null
+  },
+  {
+   "url": "https://gist.githubusercontent.com/alexar76/abc/raw/sets.json",
+   "server": "io.github.alexar76/warden",
+   "refusal": null
+  },
+  {
+   "url": "https://raw.githubusercontent.com/mallory/warden/main/sets.json",
+   "server": "io.github.alexar76/warden",
+   "refusal": "\"url\" must be on alexar76.github.io or under /alexar76/ on raw.githubusercontent.com, the account the registry verified"
+  },
+  {
+   "url": "https://github.io/sets.json",
+   "server": "io.github.alexar76/warden",
+   "refusal": "\"url\" must be on alexar76.github.io or under /alexar76/ on raw.githubusercontent.com, the account the registry verified"
+  },
+  {
+   "url": "https://mallory.github.io/sets.json",
+   "server": "io.github.alexar76/warden",
+   "refusal": "\"url\" must be on alexar76.github.io or under /alexar76/ on raw.githubusercontent.com, the account the registry verified"
+  },
+  {
+   "url": "https://localhost/sets.json",
+   "server": "localhost/x",
+   "refusal": "the server name has no domain HISTOR can bind the file to"
+  }
+ ],
+ "files": [
+  {
+   "text": "{\"mtl\": \"1\", \"sets\": [{\"digest\": \"sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\", \"count\": 3, \"when\": \"runner 1.4, macOS\"}]}",
+   "sets": [
+    {
+     "digest": "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+     "count": 3,
+     "when": "runner 1.4, macOS"
+    }
+   ],
+   "ignored": []
+  },
+  {
+   "text": "{\"mtl\": \"1\", \"sets\": [{\"digest\": \"sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"bad\"}, {\"digest\": \"sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=\", \"count\": true}, {\"digest\": \"sha256-BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=\", \"count\": -1}, \"x\", {\"digest\": \"sha256-BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=\", \"count\": 0}]}",
+   "sets": [
+    {
+     "digest": "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=",
+     "count": 0
+    }
+   ],
+   "ignored": [
+    "sets[1]: digest is not an MTL/1 tool-set digest (sha256-<base64>)",
+    "sets[2]: the same digest twice",
+    "sets[3]: count must be an integer from 0 to 5000",
+    "sets[4]: count must be an integer from 0 to 5000",
+    "sets[5]: not an object"
+   ]
+  },
+  {
+   "text": "{\"mtl\": \"1\", \"sets\": []}",
+   "sets": [],
+   "ignored": []
+  },
+  {
+   "text": "{\"mtl\": \"1\", \"sets\": [{\"digest\": \"sha256-0000AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0001AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0002AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0003AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0004AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0005AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0006AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0007AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0008AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0009AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0010AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0011AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0012AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0013AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0014AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0015AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0016AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0017AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0018AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0019AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0020AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0021AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0022AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0023AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0024AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0025AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0026AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0027AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0028AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0029AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0030AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0031AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0032AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0033AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0034AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0035AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0036AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0037AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0038AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0039AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0040AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0041AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0042AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0043AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0044AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0045AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0046AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0047AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0048AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0049AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0050AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0051AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0052AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0053AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0054AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0055AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0056AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0057AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0058AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0059AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0060AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0061AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0062AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0063AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0064AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}, {\"digest\": \"sha256-0065AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}]}",
+   "sets": [
+    {
+     "digest": "sha256-0000AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0001AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0002AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0003AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0004AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0005AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0006AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0007AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0008AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0009AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0010AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0011AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0012AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0013AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0014AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0015AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0016AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0017AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0018AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0019AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0020AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0021AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0022AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0023AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0024AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0025AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0026AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0027AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0028AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0029AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0030AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0031AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0032AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0033AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0034AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0035AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0036AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0037AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0038AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0039AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0040AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0041AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0042AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0043AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0044AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0045AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0046AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0047AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0048AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0049AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0050AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0051AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0052AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0053AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0054AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0055AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0056AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0057AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0058AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0059AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0060AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0061AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0062AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    {
+     "digest": "sha256-0063AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    }
+   ],
+   "ignored": [
+    "sets[64:]: more than 64 sets"
+   ]
+  },
+  {
+   "text": "{\"mtl\": \"1\", \"sets\": [{\"digest\": \"bad\"}]}",
+   "error": "sets[0]: digest is not an MTL/1 tool-set digest (sha256-<base64>)"
+  },
+  {
+   "text": "{\"mtl\": \"2\", \"sets\": [{\"digest\": \"sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}]}",
+   "error": "\"mtl\" must be \"1\""
+  },
+  {
+   "text": "{\"mtl\": \"1\"}",
+   "error": "\"sets\" must be a non-empty list"
+  },
+  {
+   "text": "[1, 2]",
+   "error": "the file is not a JSON object"
+  },
+  {
+   "text": "not json",
+   "error": "the file is not JSON"
+  }
+ ],
+ "whens": [
+  {
+   "input": "runner 1.4, macOS",
+   "output": "runner 1.4, macOS"
+  },
+  {
+   "input": "the runner​ is\n installed‮",
+   "output": "the runner is installed"
+  },
+  {
+   "input": "\t  spaced \r\n out  ",
+   "output": "spaced out"
+  },
+  {
+   "input": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "output": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  },
+  {
+   "input": "",
+   "output": null
+  },
+  {
+   "input": "⁦hidden⁩ text",
+   "output": "hidden text"
+  },
+  {
+   "input": 42,
+   "output": null
+  }
+ ]
+}

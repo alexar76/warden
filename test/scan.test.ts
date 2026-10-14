@@ -255,12 +255,14 @@ describe('scan: HISTOR, privacy first', () => {
       launcher: { command: 'npx', args: ['-y', '@acme/launcher'] },
       exits: { command: 'npx', args: ['-y', '@acme/exits'] },
       other: { command: 'npx', args: ['-y', '@acme/other'] },
+      filed: { command: 'npx', args: ['-y', '@acme/filed'] },
     } }));
     const digest = mtlToolSetDigest(tools);
     const historFetch = (async (_url: unknown, init?: { body?: string }) => {
       const pkg = String(JSON.parse(String(init?.body)).package);
       const declared = { toolSetDigest: pkg === 'npm:@acme/other' ? 'sha256-' + 'B'.repeat(43) + '=' : digest,
-        toolCount: tools.length, when: 'the runner‮ is installed', registryVersion: '0.1.5', firstDeclared: '2026-10-14T09:00:00Z' };
+        toolCount: tools.length, when: 'the runner\u202e is installed', registryVersion: '0.1.5', firstDeclared: '2026-10-14T09:00:00Z',
+        ...(pkg === 'npm:@acme/filed' ? { source: 'url', url: 'https://acme.dev/.well-known/mcp-tool-sets.json' } : { source: 'registry' }) };
       return new Response(JSON.stringify({ match: pkg === 'npm:@acme/exits' ? 'not-observed' : 'different', note: 'n', declared,
         target: { packageVersion: '0.1.5' }, observed: { toolCount: 1 } }), { status: 200, headers: { 'content-type': 'application/json' } });
     }) as typeof fetch;
@@ -276,6 +278,12 @@ describe('scan: HISTOR, privacy first', () => {
     expect(msg).not.toContain('‮');
     expect(by.launcher!.histor!.declared).toMatchObject({ registryVersion: '0.1.5', since: '2026-10-14' });
     expect(by.other!.histor!.declared).toBeUndefined();
+    // From the file on the publisher's domain the registry entry points at: the finding says so.
+    expect(codes('filed')).toEqual([['HISTOR_DECLARED_TOOLSET', 'low']]);
+    expect(by.filed!.findings.find(f => f.code === 'HISTOR_DECLARED_TOOLSET')!.message)
+      .toMatch(/declares it in the declaration file its registry entry points at \(https:\/\/acme\.dev\/\.well-known\/mcp-tool-sets\.json\) \(since 2026-10-14\)/);
+    expect(by.filed!.histor!.declared).toMatchObject({ source: 'url', url: 'https://acme.dev/.well-known/mcp-tool-sets.json' });
+    expect(by.launcher!.histor!.declared).toMatchObject({ source: 'registry' });
   });
 
   it('turns HISTOR\'s package knowledge into advisory findings: look-alike names and the marks of a stolen token', async () => {

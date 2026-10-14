@@ -57,7 +57,9 @@ export interface HistorCheck {
    * conditions HISTOR does not have, such as a launcher's tools where its program is installed.
    * The publisher's word, never an observation; `match` stays what HISTOR observed.
    */
-  declared?: { toolSetDigest?: string; toolCount?: number; when?: string; registryVersion?: string; firstDeclared?: string; lastDeclared?: string };
+  declared?: { toolSetDigest?: string; toolCount?: number; when?: string; registryVersion?: string; firstDeclared?: string; lastDeclared?: string;
+    /** `registry`: in the server.json itself; `url`: in the declaration file it points at, on the publisher's domain. */
+    source?: string; url?: string };
   seenBefore?: unknown;
   patternScan?: unknown;
   classifier?: unknown;

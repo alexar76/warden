@@ -146,6 +146,22 @@ The set you got may be one the server's publisher declares in its registry entry
 
 HISTOR answers never block. An outage is reported and the scan continues.
 
+## For publishers: declare your server's tool sets
+
+HISTOR can only record the tools your server lists in its sandbox. If it lists others where something the sandbox lacks is installed — a launcher's runner, one per operating system, a real key — declare those sets, and the people who get them see `HISTOR_DECLARED_TOOLSET` (low) instead of `HISTOR_UNSEEN_TOOLSET` (medium). On a machine that gets the set:
+
+```bash
+npx -y @aimarket/warden declare --when "runner 1.4, macOS" --out mcp-tool-sets.json -- npx -y @acme/launcher
+```
+
+WARDEN starts the server the way a client would, digests its `tools/list` (MTL/1) and adds the set to `mcp-tool-sets.json`, keeping the sets already there and replacing the same digest. Repeat on each operating system and runner version. Then:
+
+1. Publish the file on the domain the registry verified for your server's namespace — `ai.acme/launcher` → `acme.ai` or a subdomain; `io.github.<user>/…` → `<user>.github.io` or your raw GitHub files — for example at `https://acme.ai/.well-known/mcp-tool-sets.json`.
+2. Point your registry entry at it, once: `npx -y @aimarket/warden declare --server-json --link <url>` prints the `_meta` block for `server.json`; publish that version to the registry.
+3. Check it: `npx -y @aimarket/warden declare --check <url> --name ai.acme/launcher` reads the file the way HISTOR will and says what HISTOR takes from it.
+
+After that, a runner release needs only `declare --out` and the file uploaded again: HISTOR reads it every hour. A set you remove from the file is withdrawn; a file HISTOR cannot read keeps what it declared. Without a file, `--server-json` with the server after `--` puts the set in the entry itself, up to 8 sets. The rules HISTOR applies: [declaring tool sets](https://github.com/alexar76/histor/blob/main/docs/api.md#declaring-tool-sets-publishers). A declaration is the publisher's word, not an observation: WARDEN still runs every check on the tools it gets.
+
 ## The optional classifier
 
 WARDEN's rules are offline and deterministic, and they miss what no rule names: a paraphrase, an instruction in another language. `--classifier-url` and `--classifier-model` add a second opinion from a model you choose, through any OpenAI-compatible endpoint: a local Ollama, vLLM or LM Studio, or a hosted API.

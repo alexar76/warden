@@ -8,7 +8,7 @@
   <a href="https://glama.ai/mcp/servers/alexar76/warden"><img src="https://glama.ai/mcp/servers/alexar76/warden/badges/score.svg" alt="warden MCP server" /></a>
   <a href="https://warden.modelmarket.dev/"><img src="https://img.shields.io/npm/v/@aimarket/warden?color=cb3837&label=npm" alt="version npm" /></a>
   <img src="docs/badges/deps.svg" alt="Zéro dépendance d'exécution" />
-  <img src="docs/badges/tests.svg" alt="433 tests au vert" />
+  <img src="docs/badges/tests.svg" alt="443 tests au vert" />
   <img src="docs/badges/node.svg" alt="Node >= 20" />
   <a href="LICENSE"><img src="docs/badges/license.svg" alt="Licence : MIT" /></a>
 </p>
@@ -29,11 +29,11 @@
 **Vérifiez tous les serveurs MCP de votre machine.** Pas de compte, pas de clé d’API, pas de modèle. Le seul trafic réseau va vers les serveurs de votre configuration.
 
 ```bash
-npx -y @aimarket/warden@0.15.0 scan
+npx -y @aimarket/warden@0.16.0 scan
 ```
 
 ```text
-WARDEN scan 0.15.0 · ruleset 11 sha256-RDXs+TaQoehA… · block at high
+WARDEN scan 0.16.0 · ruleset 11 sha256-RDXs+TaQoehA… · block at high
   read .mcp.json (claude-code, 3 servers)
 
   ✓ allow   notes       claude-code    1 tool · score 0.90
@@ -86,14 +86,14 @@ placer devant votre propre hôte MCP sans adopter d'agent.
   "mcpServers": {
     "filesystem": {
       "command": "npx",
-      "args": ["-y", "@aimarket/warden@0.15.0", "wrap", "--id", "filesystem", "--",
+      "args": ["-y", "@aimarket/warden@0.16.0", "wrap", "--id", "filesystem", "--",
                "npx", "-y", "@modelcontextprotocol/server-filesystem", "/Users/me/docs"]
     }
   }
 }
 ```
 
-Spécifiez toujours `--id` : sans cet identifiant, modifier les arguments crée une nouvelle identité et un premier contact. Un ID stable transforme un changement de commande ou de chemin en `SERVER_IDENTITY_DRIFT`. Le processus enfant hérite de l’environnement, exclu de l’identité. `npm install -g @aimarket/warden@0.15.0` puis `warden-mcp` évitent les démarrages à froid répétés de `npx`.
+Spécifiez toujours `--id` : sans cet identifiant, modifier les arguments crée une nouvelle identité et un premier contact. Un ID stable transforme un changement de commande ou de chemin en `SERVER_IDENTITY_DRIFT`. Le processus enfant hérite de l’environnement, exclu de l’identité. `npm install -g @aimarket/warden@0.16.0` puis `warden-mcp` évitent les démarrages à froid répétés de `npx`.
 
 Par défaut, **tout le serveur** est bloqué dès la gravité high, les définitions sont épinglées et les serveurs déclarés sont autorisés. Aucun mode partiel. La première vérification réussie crée une empreinte TOFU persistante. Tout changement ultérieur, même bénin, exige une approbation humaine. Avec `{"pinToolDefs":false}` explicitement, les changements sains sont notifiés après vérification. Une notification sans modification passe aussi après vérification.
 
@@ -118,10 +118,12 @@ Claude Desktop sur macOS : `~/Library/Logs/Claude/mcp-server-<nom>.log`. Cursor 
 ## Analyser tous les serveurs que démarrent vos clients
 
 ```bash
-npx -y @aimarket/warden@0.15.0 scan
+npx -y @aimarket/warden@0.16.0 scan
 ```
 
-Lit les configurations MCP de Claude Code, Claude Desktop, Cursor, VS Code et Windsurf, se connecte à chaque serveur qu’elles démarrent et vérifie les définitions d’outils avant qu’un modèle ne les voie. Affiche un tableau, du JSON, du SARIF ou du Markdown, et sort avec 1 quand un serveur est bloqué ; `--no-launch` ne démarre rien. Dans un dépôt, `warden.lock.json` transforme un changement de définitions en diff relisible, et la CI échoue sur un serveur nouveau ou modifié. Existe aussi en GitHub Action (`uses: alexar76/warden@v0.15.0`), en hooks pre-commit et en plugin Claude Code (`/plugin marketplace add alexar76/warden`). `--histor` demande au journal public HISTOR si un serveur vous sert ce qu’il sert à tout le monde ; pour un serveur distant il envoie l’endpoint et un condensé, pour un serveur stdio lancé depuis npm ou PyPI le nom du paquet (`npm:<nom>`, `pypi:<nom>`, qu’HISTOR exécute dans un bac à sable gVisor) et un condensé — jamais le texte des outils. Un classificateur optionnel (`--classifier-url`, `--classifier-model`) ajoute la lecture d'un modèle que vous choisissez, local ou hébergé, pour ce qu'aucune règle ne nomme. Voir le [guide de scan](docs/scan.fr.md). Comment il se compare à deux autres scanners sur les mêmes serveurs : [comparaison de scanners](docs/scanner-comparison.fr.md).
+Lit les configurations MCP de Claude Code, Claude Desktop, Cursor, VS Code et Windsurf, se connecte à chaque serveur qu’elles démarrent et vérifie les définitions d’outils avant qu’un modèle ne les voie. Affiche un tableau, du JSON, du SARIF ou du Markdown, et sort avec 1 quand un serveur est bloqué ; `--no-launch` ne démarre rien. Dans un dépôt, `warden.lock.json` transforme un changement de définitions en diff relisible, et la CI échoue sur un serveur nouveau ou modifié. Existe aussi en GitHub Action (`uses: alexar76/warden@v0.16.0`), en hooks pre-commit et en plugin Claude Code (`/plugin marketplace add alexar76/warden`). `--histor` demande au journal public HISTOR si un serveur vous sert ce qu’il sert à tout le monde ; pour un serveur distant il envoie l’endpoint et un condensé, pour un serveur stdio lancé depuis npm ou PyPI le nom du paquet (`npm:<nom>`, `pypi:<nom>`, qu’HISTOR exécute dans un bac à sable gVisor) et un condensé — jamais le texte des outils. Un classificateur optionnel (`--classifier-url`, `--classifier-model`) ajoute la lecture d'un modèle que vous choisissez, local ou hébergé, pour ce qu'aucune règle ne nomme. Voir le [guide de scan](docs/scan.fr.md). Comment il se compare à deux autres scanners sur les mêmes serveurs : [comparaison de scanners](docs/scanner-comparison.fr.md).
+
+**Pour l’éditeur d’un serveur.** Si votre serveur liste d’autres outils là où est installé ce que le bac à sable d’HISTOR n’a pas — le runner d’un lanceur, un par système —, `npx -y @aimarket/warden@0.16.0 declare --out mcp-tool-sets.json -- <votre serveur>` écrit ces ensembles dans un fichier que vous publiez sur votre propre domaine, et ceux qui les reçoivent voient la déclaration de l’éditeur au lieu d’un ensemble inconnu. Voir le [guide de scan](docs/scan.fr.md).
 
 ## Ce que WARDEN ne fait pas
 
@@ -340,7 +342,7 @@ transactions et la façon de les vérifier :
 ## Développement
 
 ```bash
-npm install && npm run build && npm test   # 433 tests
+npm install && npm run build && npm test   # 443 tests
 ```
 
 `test/packaging.test.ts` est ce qui tient l'accroche honnête : il échoue si une dépendance d'exécution

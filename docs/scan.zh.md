@@ -146,6 +146,22 @@ repos:
 
 HISTOR 的回答从不阻止。HISTOR 没有响应时会在报告中注明，扫描继续进行。
 
+## 面向发布者：声明你的服务器的工具集
+
+HISTOR 只能记录你的服务器在其沙箱中列出的工具。如果在安装了沙箱所没有的东西的地方——启动器的运行器、每个操作系统各一个、真实的密钥——它列出的是别的工具，就声明这些工具集，拿到它们的人看到的将是 `HISTOR_DECLARED_TOOLSET`（low），而不是 `HISTOR_UNSEEN_TOOLSET`（medium）。在能拿到该工具集的机器上：
+
+```bash
+npx -y @aimarket/warden declare --when "runner 1.4, macOS" --out mcp-tool-sets.json -- npx -y @acme/launcher
+```
+
+WARDEN 会像客户端一样启动服务器，计算其 `tools/list` 的摘要（MTL/1），并把该工具集加入 `mcp-tool-sets.json`，保留已有的工具集并替换相同的摘要。在每个操作系统和每个运行器版本上重复。然后：
+
+1. 把文件发布到注册表为你的服务器命名空间验证过的域名上——`ai.acme/launcher` → `acme.ai` 或其子域名；`io.github.<user>/…` → `<user>.github.io` 或你在 GitHub 上的 raw 文件——例如 `https://acme.ai/.well-known/mcp-tool-sets.json`。
+2. 让注册表条目指向它，只需一次：`npx -y @aimarket/warden declare --server-json --link <url>` 打印 `server.json` 的 `_meta` 块；把这个版本发布到注册表。
+3. 检查：`npx -y @aimarket/warden declare --check <url> --name ai.acme/launcher` 按 HISTOR 的方式读取文件，并说明 HISTOR 会从中采用什么。
+
+此后，发布新的运行器只需要 `declare --out` 并重新上传文件：HISTOR 每小时读取一次。从文件中删去的工具集会被撤回；HISTOR 无法读取的文件会保留其声明。不使用文件时，`--server-json` 加上 `--` 之后的服务器会把工具集直接放进条目，最多 8 个。HISTOR 采用的规则：[声明工具集](https://github.com/alexar76/histor/blob/main/docs/api.zh.md)。声明是发布者的说法，不是观测：WARDEN 仍会对拿到的工具执行全部检查。
+
 ## 可选的分类器
 
 WARDEN 的规则离线、确定性地运行，也会漏掉任何规则都没提到的内容：改写的说法、另一种语言的指令。`--classifier-url` 和 `--classifier-model` 通过任意 OpenAI 兼容端点，加入你所选模型的第二意见：本地的 Ollama、vLLM 或 LM Studio，或托管 API。

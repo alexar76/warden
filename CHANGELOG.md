@@ -1,6 +1,13 @@
 # Changelog
 
-## 0.15.0 — unreleased
+## 0.16.0 — unreleased
+
+For a server's publisher: declare the tool sets your server lists where HISTOR's sandbox cannot see them, in a file on your own domain that changes with every runner release.
+
+- **`warden-mcp declare`.** On a machine that gets the set, `declare --when "runner 1.4, macOS" --out mcp-tool-sets.json -- <command>` starts the server the way a client would, digests its `tools/list` (MTL/1) and adds the set to a declaration file — created if missing, other sets kept, the same digest replaced, at most 64. `--url` reads a remote server instead. `--server-json [--link URL]` prints the `_meta` block for the registry entry (sets inline, at most 8, and/or the file's address). `--check URL --name SERVER` reads a published file the way HISTOR will: the domain the registry verified for the server's namespace (or a subdomain; `<user>.github.io` and the account's raw files for `io.github.<user>`), https on the default port, no redirects, at most 64 KiB; `--check FILE` checks a local file. The rules are HISTOR's: `test/fixtures/declaration-vectors.json`, produced by HISTOR's own implementation, holds the URL, file and condition cases both must answer alike.
+- **`HISTOR_DECLARED_TOOLSET` says where the declaration is**: in the registry entry, or in the declaration file it points at (with its address). `HistorCheck.declared` and `HistorSummary.declared` carry `source` and `url`.
+
+## 0.15.0 — 2026-10-14
 
 `scan --histor` tells a tool set that depends on the machine from one nobody has seen, and reports a set the publisher declares in its registry entry as the publisher's word.
 

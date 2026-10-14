@@ -146,6 +146,22 @@ Si el conjunto que recibiste es uno que el editor del servidor declara en su ent
 
 Las respuestas de HISTOR nunca bloquean. Si HISTOR no responde, se informa y el análisis continúa.
 
+## Para editores: declara los conjuntos de herramientas de tu servidor
+
+HISTOR solo puede registrar las herramientas que tu servidor lista en su sandbox. Si lista otras donde está instalado algo que el sandbox no tiene —el runner de un lanzador, uno por sistema operativo, una clave real—, declara esos conjuntos, y quienes los reciben verán `HISTOR_DECLARED_TOOLSET` (low) en lugar de `HISTOR_UNSEEN_TOOLSET` (medium). En una máquina que recibe el conjunto:
+
+```bash
+npx -y @aimarket/warden declare --when "runner 1.4, macOS" --out mcp-tool-sets.json -- npx -y @acme/launcher
+```
+
+WARDEN arranca el servidor como lo haría un cliente, calcula el digest de su `tools/list` (MTL/1) y añade el conjunto a `mcp-tool-sets.json`, conservando los que ya había y reemplazando el mismo digest. Repítelo en cada sistema operativo y versión del runner. Después:
+
+1. Publica el archivo en el dominio que el registro verificó para el espacio de nombres de tu servidor —`ai.acme/launcher` → `acme.ai` o un subdominio; `io.github.<user>/…` → `<user>.github.io` o tus archivos raw de GitHub—, por ejemplo en `https://acme.ai/.well-known/mcp-tool-sets.json`.
+2. Apunta a él desde tu entrada del registro, una vez: `npx -y @aimarket/warden declare --server-json --link <url>` imprime el bloque `_meta` para `server.json`; publica esa versión en el registro.
+3. Compruébalo: `npx -y @aimarket/warden declare --check <url> --name ai.acme/launcher` lee el archivo como lo leerá HISTOR y dice qué tomará de él.
+
+A partir de ahí, una nueva versión del runner solo necesita `declare --out` y volver a subir el archivo: HISTOR lo lee cada hora. Un conjunto que quitas del archivo se retira; un archivo que HISTOR no puede leer conserva lo que declaró. Sin archivo, `--server-json` con el servidor después de `--` pone el conjunto en la propia entrada, hasta 8 conjuntos. Las reglas que aplica HISTOR: [declarar conjuntos](https://github.com/alexar76/histor/blob/main/docs/api.es.md). Una declaración es la palabra del editor, no una observación: WARDEN sigue ejecutando todas las comprobaciones sobre las herramientas que recibe.
+
 ## El clasificador opcional
 
 Las reglas de WARDEN funcionan sin conexión y de forma determinista, y no ven lo que ninguna regla nombra: una paráfrasis, una instrucción en otro idioma. `--classifier-url` y `--classifier-model` añaden una segunda opinión de un modelo que tú eliges, mediante cualquier endpoint compatible con OpenAI: Ollama, vLLM o LM Studio en local, o una API alojada.
