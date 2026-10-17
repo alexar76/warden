@@ -44,7 +44,7 @@ WARDEN scan 0.16.0 · ruleset 11 sha256-RDXs+TaQoehA… · block at high
 Details: warden-mcp scan --json, or --markdown FILE. To review a changed server: warden-mcp scan --lock warden.lock.json --update-lock.
 ```
 
-Рядом с двумя другими открытыми сканерами на одних и тех же серверах: на отложенной половине MCPTox (бенчмарк AAAI 2026; правила WARDEN писались по другой половине) WARDEN блокирует 171 отравленный инструмент из 218, mcp-audit — 25, mcp-shield — 41; на 986 публичных серверах WARDEN блокирует 3, они — 33 и 343. [Методика и все цифры](docs/scanner-comparison.ru.md) · [руководство по scan](docs/scan.ru.md).
+Рядом с четырьмя другими открытыми сканерами на одних и тех же серверах, каждый в контейнере gVisor без сети: на отложенной половине MCPTox (бенчмарк AAAI 2026; правила WARDEN писались по другой половине) WARDEN блокирует 171 отравленный инструмент из 218, остальные — от 8 до 41. На 986 публичных серверах WARDEN блокирует 3, на 14 933 пакетах npm и PyPI — 369; mcp-shield — 343 и 5 354. [Методика и все цифры](docs/scanner-comparison.ru.md) · [руководство по scan](docs/scan.ru.md).
 <!-- /warden-try -->
 
 > [Изменения безопасности 0.7.0 и миграция](docs/security-hardening.ru.md): `vetLaunch`, durable pins, anti-rollback, ruleset v6, runtime revalidation.
@@ -319,7 +319,7 @@ WARDEN — агент ERC-8004 [`96684` в сети Base](https://8004scan.io/ag
 | [Проверка конфигов](docs/scan.ru.md) | `scan`, лок-файл, GitHub Action, хуки pre-commit, плагин Claude Code и HISTOR |
 | [Руководство по интеграции](docs/integration.ru.md) | Как встроить WARDEN в свой MCP-хост, выбор политики и что записывать |
 | [Полевой обзор: 1 108 публичных MCP-серверов](docs/mcp-survey.ru.md) | Что WARDEN решил на настоящих чужих определениях инструментов — 50 серверов заблокировано, 4 подтверждено, и шесть способов, которыми остальные оказались ошибкой |
-| [Сравнение сканеров](docs/scanner-comparison.ru.md) | WARDEN, mcp-audit и mcp-shield на одних и тех же серверах и на бенчмарке MCPTox, со всеми разметками и стендом |
+| [Сравнение сканеров](docs/scanner-comparison.ru.md) | WARDEN, mcp-audit, mcp-shield, truecopy и mcpsentry на одних и тех же серверах, на 14 933 пакетах npm и PyPI и на бенчмарке MCPTox, со всеми разметками, манифестом и стендом |
 | [Glama / Docker](docs/GLAMA.md) | stdio MCP, health check, Build steps / CMD |
 | [Security](SECURITY.md) | Как сообщать об обходе файрвола |
 | [Contributing](CONTRIBUTING.md) | Правило нулевых зависимостей, PR на таблицу правил |

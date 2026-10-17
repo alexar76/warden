@@ -53,6 +53,23 @@ describe("MCP tool definitions (TDQS surface)", () => {
     expect(scan.description).toContain("vet_mcp_server");
     expect(scan.description).toContain("list_scan_rules");
   });
+
+  it("gives each approval tool its own description and a typed output", () => {
+    const trio = ["status_mcp_server", "approve_mcp_server", "revoke_mcp_server"].map(
+      (n) => MCP_TOOLS.find((t) => t.name === n)!,
+    );
+    // Each description opens by saying what that tool does, not what a sibling returns.
+    const firstSentences = trio.map((t) => t.description.split(/\.\s/)[0]!);
+    expect(new Set(firstSentences).size).toBe(3);
+    expect(firstSentences[0]).toMatch(/^Read /);
+    expect(firstSentences[1]).toMatch(/^Store /);
+    expect(firstSentences[2]).toMatch(/^Delete /);
+    for (const t of trio) {
+      const out = t.outputSchema as { required?: string[]; properties?: Record<string, { description?: string }> };
+      expect(out.required?.length, t.name).toBeGreaterThan(0);
+      for (const key of out.required!) expect(out.properties?.[key]?.description, `${t.name}.${key}`).toBeTruthy();
+    }
+  });
 });
 
 describe("MCP tool handlers", () => {

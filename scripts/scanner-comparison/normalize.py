@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Normalize WARDEN / mcp-audit / mcp-shield outputs to {server: {scanner: {status, block, warn, codes}}}.
+"""Normalize WARDEN / mcp-audit / mcp-shield / truecopy / mcpsentry outputs to {server: {scanner: {status, block, warn, codes}}}.
 
 block = the scanner's own high-or-worse verdict on the tool definitions; warn = any finding about
 the tool definitions at all. Config-level findings caused by the replay harness (absolute node path,
 /tmp paths, file permissions, first-scan baselines) are excluded for every scanner.
-usage: normalize.py RAWDIR OUT.json   (RAWDIR holds warden-*.json, mcp-audit/*.json, mcp-shield/*.txt)
+usage: normalize.py RAWDIR OUT.json   (RAWDIR holds warden-*.json, mcp-audit/*.json, mcp-shield/*.txt,
+                                       truecopy/*.txt, mcpsentry/*.txt)
 """
 import json, os, re, sys, glob
 raw, out = sys.argv[1], sys.argv[2]
@@ -41,5 +42,23 @@ for p in glob.glob(os.path.join(raw, 'mcp-shield', '*.txt')):
     levels = [lvl.upper() for _, lvl, _ in entries]
     issues = sorted({m for _, _, block in entries for m in re.findall(r'– ([^:\n]+):', block)})
     put(key, 'mcp-shield', status='scanned', block=any(l in ('HIGH', 'CRITICAL') for l in levels), warn=bool(entries), codes=issues)
+
+# truecopy-mcp withholds every tool without a lock; the reason it names is the verdict. It has one
+# tier for tool definitions (any finding withholds the tool as `poisoned`), so block and flag agree.
+for p in glob.glob(os.path.join(raw, 'truecopy', '*.txt')):
+    key = os.path.basename(p)[:-4]; out_, _, err = open(p).read().partition('--STDERR--')
+    if '"id":2,"result"' not in out_.replace(' ', ''):
+        put(key, 'truecopy', status='error', block=False, warn=False, codes=[]); continue
+    poisoned = sorted(set(re.findall(r'^\[truecopy\] dropped (.+) \(poisoned\)$', err, re.M)))
+    put(key, 'truecopy', status='scanned', block=bool(poisoned), warn=bool(poisoned), codes=['poisoned'] if poisoned else [])
+
+# mcpsentry prints one `SEVERITY  MCP-00N  tool` line per finding; high and critical are its blocking tiers.
+FINDING = re.compile(r'^\s*(CRITICAL|HIGH|MEDIUM|LOW)\s+(MCP-\d+)\s+\S', re.M)
+for p in glob.glob(os.path.join(raw, 'mcpsentry', '*.txt')):
+    key = os.path.basename(p)[:-4]; text = open(p).read().split('--STDERR--')[0]
+    if 'tool(s) discovered' not in text:
+        put(key, 'mcpsentry', status='error', block=False, warn=False, codes=[]); continue
+    f = FINDING.findall(text)
+    put(key, 'mcpsentry', status='scanned', block=any(sev in ('CRITICAL', 'HIGH') for sev, _ in f), warn=bool(f), codes=sorted({f'{r}:{sev}' for sev, r in f}))
 json.dump(res, open(out, 'w'), indent=1, ensure_ascii=False)
 print('servers', len(res))

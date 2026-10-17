@@ -44,7 +44,7 @@ WARDEN scan 0.16.0 · ruleset 11 sha256-RDXs+TaQoehA… · block at high
 Details: warden-mcp scan --json, or --markdown FILE. To review a changed server: warden-mcp scan --lock warden.lock.json --update-lock.
 ```
 
-与另外两款开源扫描器在同一批服务器上对比：在 MCPTox（AAAI 2026 基准）的留出一半上（WARDEN 的规则只依据另一半编写），WARDEN 阻止了 218 个投毒工具中的 171 个，mcp-audit 25 个，mcp-shield 41 个；在 986 台公开服务器上，WARDEN 阻止了 3 台，它们分别阻止 33 台和 343 台。[方法与全部数字](docs/scanner-comparison.zh.md) · [scan 指南](docs/scan.zh.md)。
+与另外四款开源扫描器在同一批服务器上对比，每款都在无网络的 gVisor 容器中运行：在 MCPTox（AAAI 2026 基准）的留出一半上（WARDEN 的规则只依据另一半编写），WARDEN 阻止了 218 个投毒工具中的 171 个，其余扫描器阻止 8 到 41 个。在 986 台公开服务器上 WARDEN 阻止 3 台，在 14,933 个 npm 和 PyPI 包上阻止 369 个；mcp-shield 分别阻止 343 台和 5,354 个。[方法与全部数字](docs/scanner-comparison.zh.md) · [scan 指南](docs/scan.zh.md)。
 <!-- /warden-try -->
 
 > [0.7.0 安全更新与迁移](docs/security-hardening.zh.md): `vetLaunch`, durable pins, anti-rollback, ruleset v6, runtime revalidation.
@@ -299,7 +299,7 @@ WARDEN 是 [Base 上的 `96684` 号](https://8004scan.io/agents/base/96684) ERC-
 | [扫描你的配置](docs/scan.zh.md) | `scan`、lock 文件、GitHub Action、pre-commit 钩子、Claude Code 插件和 HISTOR |
 | [集成指南](docs/integration.zh.md) | 如何把 WARDEN 接入自己的 MCP 宿主、策略取舍，以及应当留档什么 |
 | [实地普查：1 108 个公开 MCP 服务器](docs/mcp-survey.zh.md) | WARDEN 在真实的第三方工具定义上判了什么——拦截 50 个服务器，4 项成立，其余判错的六种方式 |
-| [扫描器对比](docs/scanner-comparison.zh.md) | WARDEN、mcp-audit 与 mcp-shield 在同一批服务器和 MCPTox 基准上的结果，附全部判定和测试工具 |
+| [扫描器对比](docs/scanner-comparison.zh.md) | WARDEN、mcp-audit、mcp-shield、truecopy 与 mcpsentry 在同一批服务器、14,933 个 npm 和 PyPI 包以及 MCPTox 基准上的结果，附全部判定、清单和测试工具 |
 | [Glama / Docker](docs/GLAMA.md) | stdio MCP、健康检查、Build steps / CMD |
 | [Security](SECURITY.md) | 如何报告防火墙绕过 |
 | [Contributing](CONTRIBUTING.md) | 零依赖规则、规则表 PR |

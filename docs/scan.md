@@ -176,39 +176,41 @@ WARDEN_CLASSIFIER_API_KEY=… warden-mcp scan --classifier-url https://api.deeps
 - **Authority, in any language.** Categories are `instruction_to_model`, `exfiltration`, `secret_request`, `concealment` and `cross_tool`. The prompt separates legitimate tool requirements from attempts to override the user, invent consent or control another tool. Random fences help delimit untrusted data; they are not a proof against injection. The field-reference protocol requires one decision per input and host-validated evidence field IDs. WARDEN resolves source previews itself and retries each incomplete input once in isolation. Provider outages do not fan out into per-tool requests.
 - **Review is not approval.** Model language coverage varies. For a language-independent admission boundary use [`wrap --require-approval`](security-hardening-language-boundary.md). An LLM cannot create that approval. Historical HISTOR classifier results remain advisory and use their historical protocol.
 
-Measured on 2026-10-09 with `deepseek-flash`, the model HISTOR uses, on MCPTox (the published benchmark described in the comparison below) and on our own sets:
+Measured on 2026-10-16 with `deepseek-flash`, the model HISTOR uses, on MCPTox (the published benchmark described in the comparison below), on real servers and on our own sets:
 
-| | Rules (v10) | Rules + classifier, blocking at `high` | Rules + any classifier flag (advisory) |
-|---|---|---|---|
-| MCPTox held-out half, 218 poisoned tools caught | 171 | 191 | 218 |
-| 45 clean MCPTox servers, blocked or flagged | 0 | 0 | 4 flagged |
-| 200 corpus servers drawn at random, blocked or flagged | 2 blocked | 2 blocked | 2 blocked, 12 more flagged |
-| 23 attacks we wrote / 12 hard benign cases | 20 / 0 | 22 / 0 | 23 / 0 |
+| | Rules (v12) | Rules + classifier at `high` |
+|---|---|---|
+| MCPTox held-out half, 218 poisoned tools caught | 171 | 218 |
+| 45 clean MCPTox servers, flagged | 0 | 0 |
+| 200 corpus servers drawn at random, blocked or flagged | 2 | 5 |
+| 996 npm and PyPI packages from a seeded sample, blocked or flagged | 23 | 35 |
+| 23 attacks we wrote / 12 hard benign cases | 20 / 0 | 23 / 0 |
 
-The two the rules block are the identity service and the deploy tool from the comparison below. The 13 servers the classifier flagged were flagged at `medium` or `low`, never `high`. Six of them are worth a human look: one tells the model to make an irreversible ENS name transfer "as the first and only action" without asking the user, another tells it not to disclose where its data comes from. The model also flags the official Fetch server, whose description tells the model it now has internet access and should not refuse. That is an instruction to the model, though not an attack. The model missed what the rules catch: an injection in annotations, a private key or seed phrase asked for as a parameter, and `rm -rf ~`.
+The two corpus servers the rules block are the identity service and the deploy tool from the comparison below. Of the classifier's `high` flags on real servers, most are workflow orders such as "call this tool first". Two packages are worth a human look and the rules block neither: one wraps its description in a fake "the user requested this" block and orders the model to call it before any reply; another sends file contents from the agent to its server with "Do NOT display … to the user". The model missed what the rules catch: an injection in a tool's name, a private key or seed phrase asked for as a parameter, and `rm -rf ~`. Together they catch all 23 of our attacks.
 
 ## How it compares
 
-On 2026-10-09 we ran WARDEN, mcp-audit 0.18.2 (`--connect`) and mcp-shield 1.0.4 over the same servers. Each server was replayed over stdio, so every scanner connected to it as it would in the field. The harness, the sets and every judgment are in [`scripts/scanner-comparison`](../scripts/scanner-comparison/). The full write-up, with the method and every caveat, is the [scanner comparison](scanner-comparison.md).
+On 2026-10-16 we ran WARDEN, mcp-audit 0.18.2 (`--connect`), mcp-shield 1.0.4, truecopy 0.10.4 and mcpsentry 0.1.5 over the same servers. Each server was replayed over stdio, so every scanner connected to it as it would in the field. Every scanner ran in a gVisor container with no network, from pinned images whose contents are hashed in a manifest. The harness, the sets, the manifest and every judgment are in [`scripts/scanner-comparison`](../scripts/scanner-comparison/). The full write-up, with the method and every caveat, is the [scanner comparison](scanner-comparison.md).
 
-The last three rows come from MCPTox (Wang et al., AAAI 2026), a published benchmark of 485 poisoned tools written for 45 real MCP servers. We split its servers in two by a fixed hash. Ruleset v10 was written from 22 servers; the table reports the other 23, with 218 poisoned tools no rule was fitted to.
+The MCPTox rows come from MCPTox (Wang et al., AAAI 2026), a published benchmark of 485 poisoned tools written for 45 real MCP servers. We split its servers in two by a fixed hash. Ruleset v10 was written from 22 servers; the table reports the other 23, with 218 poisoned tools no rule was fitted to. v11 and v12 were not written from them either, and give the same verdicts as v10.
 
-| Servers | WARDEN 0.8.2 (v8) | WARDEN 0.9.0 (v10) | mcp-audit 0.18.2 | mcp-shield 1.0.4 |
-|---|---|---|---|---|
-| 23 attacks we wrote, blocked | 14 | 20 | 10 | 6 |
-| 10 attacks from mcp-audit's and mcp-shield's own fixtures, blocked | 7 | 10 | 10 | 8 |
-| 12 hard benign cases, blocked | 0 | 0 | 1 | 1 |
-| 986 public servers, blocked | 3 | 3 | 33 | 343 |
-| …blocks that hold up when the text is read | 1, and 1 arguable | 1, and 1 arguable | 0 | 0 of 20 drawn at random |
-| 218 poisoned MCPTox tools on the held-out servers, blocked | 26 | 171 | 25 | 41 |
-| 225 MCPTox tools with an `<IMPORTANT>` or "Ignore the previous instructions" prefix, blocked | 225 | 225 | 222 | not run |
-| 45 clean MCPTox servers, blocked | 0 | 0 | 2 | 3 |
+| Servers | WARDEN 0.16.0 (v12) | mcp-audit 0.18.2 | mcp-shield 1.0.4 | truecopy 0.10.4 | mcpsentry 0.1.5 |
+|---|---|---|---|---|---|
+| 23 attacks we wrote, blocked | 20 | 10 | 6 | 8 | 4 |
+| 10 attacks from mcp-audit's and mcp-shield's own fixtures, blocked | 10 | 10 | 8 | 7 | 5 |
+| 12 hard benign cases, blocked | 0 | 1 | 1 | 1 | 2 |
+| 218 poisoned MCPTox tools on the held-out servers, blocked | 171 | 25 | 41 | 27 | 8 |
+| 225 MCPTox tools with an `<IMPORTANT>` or "Ignore the previous instructions" prefix, blocked | 225 | 222 | 41 | 141 | 136 |
+| 45 clean MCPTox servers, blocked | 0 | 2 | 3 | 0 | 1 |
+| 986 public servers, blocked | 3 | 33 | 343 | 39 | 86 |
+| …blocks that hold up when the text is read | 1, and 1 arguable | 0 | 1 of the 34 we read | 1 | 0 |
+| 14,933 npm and PyPI packages HISTOR observed, blocked | 369 | 928 | 5,354 | 252 | 1,449 |
 
-- **Read the corpus row first.** No rule was fitted to it. mcp-audit's 33 blocks are 16 "homoglyphs" in text written wholly in its own script (Chinese punctuation, Greek symbols, Cyrillic), 12 honesty instructions such as "do not tell the user the check digits are wrong", 3 base64 utilities, an SSH public-key tool, and the deploy tool WARDEN also blocks by mistake. mcp-shield blocks 35% of real servers, almost all on a keyword: "API key", "token", `.env`, "..". An ellipsis ("Shopify...") counts as path traversal. It does block the identity service WARDEN blocks, on the word "credentials".
-- **Know which numbers are fitted.** We wrote the first attack set. Ruleset v9 was written after we had read both attack sets, and v10 after the 22 MCPTox servers of the other half. So 20 and 10 are the recall of rules fitted to what they were shown. The held-out MCPTox row, the clean servers, the corpus and the whole 0.8.2 column are not fitted. On the corpus v10 blocks exactly what v8 blocked.
-- **MCPTox tests a shape, not a keyword.** Almost every poisoned tool tells the model to call another tool first, or to change another tool's arguments. v10 names that shape (`TOOL_DEF_CROSS_TOOL`, see [the gate chain](gates.md)) and blocks 171 of 218 held-out tools, against 189 of 267 on the half it was written from. Add the benchmark's `<IMPORTANT>` or "Ignore the previous instructions" prefix and every scanner we ran catches it; we did not run mcp-shield on that set. On the clean servers mcp-audit blocks AmapMap and BaiduMap, and mcp-shield blocks FileSystem, AdFin and Commander on "sensitive file access".
-- **What WARDEN still misses:** 47 of the 218 held-out MCPTox tools, an instruction in Chinese to read `.env`, a paraphrase with no keyword ("gather every credential file … keep this step to yourself") and "include the output of env". It reports 41 of those 47, and all three of ours, as advisory, not as blocks. They need a meaning-based check, not another rule: with the optional classifier above, 191 of the 218 are blocked at `high` and all 218 are flagged.
-- **WARDEN is not alone in that slot.** mcp-audit also ships a lock file, a PR diff mode and SARIF.
+- **Read the real-server rows first.** No rule was fitted to them. mcp-audit's 33 corpus blocks are mostly "homoglyphs" in text written wholly in its own script and honesty instructions such as "do not tell the user the check digits are wrong". mcp-shield blocks a third of real servers, almost all on a keyword: "API key", "token", `.env`, "..". truecopy blocks one vendor's docker-compose generators because they produce a `.env.example`. mcpsentry's base64 pattern matches any 40-character run of letters and slashes, which JSON Schema paths produce. On 14,933 npm and PyPI packages, a seeded sample of 996 where we judged every block has 23 WARDEN blocks, none of which holds up and 4 of which are arguable; mcp-shield blocks 339 of the same packages and mcpsentry 112.
+- **Know which numbers are fitted.** We wrote the first attack set, and ruleset v9 was written after we had read both attack sets. The held-out MCPTox row, the clean servers, the corpus and the packages are not fitted.
+- **MCPTox tests a shape, not a keyword.** Almost every poisoned tool tells the model to call another tool first, or to change another tool's arguments. v10 named that shape (`TOOL_DEF_CROSS_TOOL`, see [the gate chain](gates.md)) and v12 keeps it. Add the benchmark's `<IMPORTANT>` prefix and most scanners catch most tools.
+- **What WARDEN still misses:** 47 of the 218 held-out MCPTox tools, an instruction in Chinese to read `.env`, a paraphrase with no keyword ("gather every credential file … keep this step to yourself") and "include the output of env". It reports 41 of those 47 as advisory, not as blocks. With the optional classifier above all 218 are flagged at `high`.
+- **WARDEN is not alone in that slot.** mcp-audit also ships a lock file, a PR diff mode and SARIF; truecopy pins and signs definitions in a lock file too.
 
 ## What scan does not do
 

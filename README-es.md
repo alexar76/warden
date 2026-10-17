@@ -44,7 +44,7 @@ WARDEN scan 0.16.0 · ruleset 11 sha256-RDXs+TaQoehA… · block at high
 Details: warden-mcp scan --json, or --markdown FILE. To review a changed server: warden-mcp scan --lock warden.lock.json --update-lock.
 ```
 
-Frente a otros dos escáneres de código abierto sobre los mismos servidores: en la mitad reservada de MCPTox (un benchmark de AAAI 2026; las reglas de WARDEN se escribieron con la otra mitad) WARDEN bloquea 171 de 218 herramientas envenenadas, mcp-audit 25 y mcp-shield 41; en 986 servidores públicos WARDEN bloquea 3, ellos 33 y 343. [Método y todas las cifras](docs/scanner-comparison.es.md) · [guía de scan](docs/scan.es.md).
+Frente a otros cuatro escáneres de código abierto sobre los mismos servidores, cada uno en un contenedor gVisor sin red: en la mitad reservada de MCPTox (un benchmark de AAAI 2026; las reglas de WARDEN se escribieron con la otra mitad) WARDEN bloquea 171 de 218 herramientas envenenadas, los demás entre 8 y 41. En 986 servidores públicos WARDEN bloquea 3 y en 14 933 paquetes de npm y PyPI, 369; mcp-shield bloquea 343 y 5354. [Método y todas las cifras](docs/scanner-comparison.es.md) · [guía de scan](docs/scan.es.md).
 <!-- /warden-try -->
 
 > [Seguridad y migración de 0.7.0](docs/security-hardening.es.md): `vetLaunch`, durable pins, anti-rollback, ruleset v6, runtime revalidation.
@@ -317,7 +317,7 @@ comprobarlas: [Identidades ERC-8004](https://github.com/alexar76/aicom/blob/main
 | [Analiza tus configuraciones](docs/scan.es.md) | `scan`, el archivo lock, la GitHub Action, los hooks de pre-commit, el plugin de Claude Code y HISTOR |
 | [Guía de integración](docs/integration.es.md) | Cómo conectar WARDEN a tu propio host MCP, elecciones de política y qué registrar |
 | [Estudio de campo: 1 108 servidores MCP públicos](docs/mcp-survey.es.md) | Qué decidió WARDEN sobre definiciones de herramienta reales de terceros — 50 servidores bloqueados, 4 sustentados, y las seis formas en que el resto se equivocó |
-| [Comparación de escáneres](docs/scanner-comparison.es.md) | WARDEN, mcp-audit y mcp-shield sobre los mismos servidores y sobre el benchmark MCPTox, con cada juicio y el banco de pruebas |
+| [Comparación de escáneres](docs/scanner-comparison.es.md) | WARDEN, mcp-audit, mcp-shield, truecopy y mcpsentry sobre los mismos servidores, sobre 14 933 paquetes de npm y PyPI y sobre el benchmark MCPTox, con cada juicio, el manifiesto y el banco de pruebas |
 | [Glama / Docker](docs/GLAMA.md) | MCP stdio, health check, Build steps / CMD |
 | [Security](SECURITY.md) | Cómo informar de un bypass del cortafuegos |
 | [Contributing](CONTRIBUTING.md) | Regla de cero dependencias, PRs de la tabla de reglas |

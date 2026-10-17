@@ -1,8 +1,10 @@
 # Scanner comparison harness
 
-The scripts behind the comparison in [`docs/scan.md`](../../docs/scan.md#how-it-compares): WARDEN,
-[mcp-audit](https://github.com/adudley78/mcp-audit) and [mcp-shield](https://github.com/riseandignite/mcp-shield)
-run over the same MCP servers, through the same protocol, one server at a time.
+The scripts behind the [scanner comparison](../../docs/scanner-comparison.md): WARDEN,
+[mcp-audit](https://github.com/adudley78/mcp-audit), [mcp-shield](https://github.com/riseandignite/mcp-shield)
+and, since 2026-10-16, [truecopy](https://github.com/askalf/truecopy) and
+[mcpsentry](https://github.com/Roshan6335/mcpsentry) run over the same MCP servers, through the same protocol,
+one server at a time.
 
 Every server is replayed by [`replay.mjs`](replay.mjs), a stdio MCP server that answers `initialize`
 and `tools/list` from a JSON file and nothing else. Each scanner therefore connects to it exactly as it
@@ -13,7 +15,8 @@ would to a real server, and none of them is handed text it would not see in the 
 | `labelled` | 23 attacks and 12 hard benign cases, in [`build_sets.py`](build_sets.py) | written by WARDEN's authors |
 | `independent` | the 6 exploit fixtures mcp-audit ships and the vulnerable demo server mcp-shield ships, fetched at pinned commits | written by those scanners' authors |
 | `mcptox` | 485 poisoned tools on 45 real servers from MCPTox, split in half by server; see below | written by the benchmark's authors |
-| `corpus` | the 986 public servers of [`docs/data/mcp-corpus-2026-10-01.jsonl.gz`](../../docs/data/) | every block judged by reading the text, in [`results/judgments-2026-10-09.json`](results/judgments-2026-10-09.json) |
+| `corpus` | the 986 public servers of [`docs/data/mcp-corpus-2026-10-01.jsonl.gz`](../../docs/data/) | every block judged by reading the text, in [`results/judgments-2026-10-16.json`](results/judgments-2026-10-16.json) |
+| `packages` | tool lists HISTOR has already observed for npm and PyPI stdio servers, read from its public API by [`build_histor_packages.py`](build_histor_packages.py) | unlabelled; every block in a seeded 1 000-package sample judged by reading the text |
 
 ## Run
 
@@ -21,10 +24,28 @@ would to a real server, and none of them is handed text it would not see in the 
 python3 build_sets.py /tmp/cmp                       # writes the three replay configs
 node warden_gates.mjs <warden package dir> /tmp/cmp/labelled-config.json /tmp/raw-labelled/warden-0.8.2.json
 warden-mcp scan /tmp/cmp/labelled-config.json --json-file /tmp/raw-labelled/warden-0.9.0.json
-python3 run_competitors.py /tmp/cmp/labelled-config.json /tmp/raw-labelled     # mcp-audit 0.18.2, mcp-shield 1.0.4
+python3 run_competitors.py /tmp/cmp/labelled-config.json /tmp/raw-labelled     # mcp-audit 0.18.2, mcp-shield 1.0.4, truecopy 0.10.4, mcpsentry 0.1.5
 python3 normalize.py /tmp/raw-labelled /tmp/res/labelled.json                   # same for independent, corpus
-python3 summarize.py /tmp/cmp /tmp/res results/judgments-2026-10-09.json results/2026-10-09.json
+python3 summarize.py /tmp/cmp /tmp/res results/judgments-2026-10-16.json results/2026-10-16.json [PACKAGES_DIR]
 ```
+
+**Where the third-party scanners ran.** On 2026-10-09 on a workstation, each run with its own temporary
+`HOME`. On 2026-10-16 in a container built from [`Dockerfile.competitors`](Dockerfile.competitors) (the four
+scanners at the versions above, from npm and PyPI) and run under gVisor (`--runtime=runsc`) with no network,
+3 CPUs, 2 GB, a read-only root and one bind mount holding the replay sets and the raw outputs:
+`run_competitors.py … --installed` calls the installed binaries instead of uvx/npx. WARDEN ran in the same way from
+[`Dockerfile.warden`](Dockerfile.warden). The scripts that drove both servers are in [`hosts/`](hosts/), and
+[`assemble_hosts.py`](assemble_hosts.py) merges their raw outputs with a record of where each verdict was computed and
+what was retried; [`results/README.md`](results/README.md) is the run's log.
+
+**truecopy** has no command that connects to a server and only scans, so it runs as its `truecopy-mcp`
+proxy with no lock; the harness sends `initialize` and `tools/list` through it, and every tool the proxy
+withholds as `poisoned` is a block (it has one tier for tool definitions, so block and flag agree).
+**mcpsentry** runs as `mcpsentry scan <command>`; a `HIGH` or `CRITICAL` finding is a block.
+
+**Judgments** carry a `scanners` field from 2026-10-16 on: the judgment was made by reading what those
+scanners matched, and `summarize.py` counts it only for them. Judgments without it (2026-10-09) read the
+whole server and count for every scanner.
 
 `warden_gates.mjs` runs the gate chain of any installed release, so 0.8.2 (ruleset v8, before `scan`
 existed) is measured on the same sets; on 2026-10-09 it gave the same verdicts as the 0.9.0 `scan`
@@ -75,5 +96,5 @@ endpoint, 816 requests. `summarize_mcptox.py` reads those outputs next to the ru
 - WARDEN's authors wrote the labelled set, and ruleset v9 was written after both attack sets were
   read. Its recall there is the recall of rules fitted to what they were shown. The 0.8.2 column is
   the measurement before that; the corpus column is the one no rule was fitted to.
-- The corpus is remote servers from the official registry. Stdio servers from npm and PyPI, where
-  most published poisoning examples live, are not in it.
+- The corpus is remote servers from the official registry. The `packages` set adds stdio servers from npm
+  and PyPI, as HISTOR observed them; it is unlabelled, so it measures blocks by mistake, not recall.

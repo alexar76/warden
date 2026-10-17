@@ -1,0 +1,17 @@
+# The third-party scanners of the 2026-10-16 comparison, at exactly the measured versions, from
+# their official registries. Built with network; run with none:
+#   docker build -f Dockerfile.competitors -t warden-cmp:20261016 .
+#   docker run --rm --runtime=runsc --network none --cpus 2 --memory 2g --memory-swap 2g \
+#     --pids-limit 512 --read-only --tmpfs /tmp:size=512m -v WORKDIR:/work warden-cmp:20261016 \
+#     python3 /work/harness/run_competitors.py /work/sets/<set>-config.json /work/raw/<set> --installed
+# WARDEN itself is not in this image.
+FROM node:22-alpine
+LABEL warden-cmp=20261016
+RUN apk add --no-cache python3
+RUN python3 -m venv /opt/venv && /opt/venv/bin/pip install --no-cache-dir 'mcp-audit-scanner[mcp]==0.18.2'
+# truecopy pulls its detection engine @askalf/redstamp from that project's GitHub release tarball.
+RUN npm install -g --ignore-scripts mcp-shield@1.0.4 @askalf/truecopy@0.10.4 @roshan6335/mcpsentry@0.1.5 \
+ && npm cache clean --force
+ENV PATH=/opt/venv/bin:$PATH HOME=/tmp NO_COLOR=1
+USER node
+WORKDIR /work

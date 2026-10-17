@@ -309,7 +309,7 @@ export const MCP_TOOLS: McpToolDef[] = [
           maximum: 1,
           description: "static-scan gate contribution: 1 minus the penalty for the worst non-advisory severity. Advisory hits do not change this number.",
         },
-        findings: { type: "array", items: FINDING_SCHEMA, description: "Hits from the 25-rule table, including advisory-only codes." },
+        findings: { type: "array", items: FINDING_SCHEMA, description: "Hits from the 35-rule table, including advisory-only codes." },
         ruleset: RULESET_REF_SCHEMA,
       },
     },
@@ -514,27 +514,106 @@ export const MCP_TOOLS: McpToolDef[] = [
 // Pin mutations are a capability delegated by the operator, never by request arguments.
 const PIN_MUTATIONS_ENABLED = process.env.WARDEN_ALLOW_PIN_CHANGES === "1";
 const vetProps = MCP_TOOLS[0]!.inputSchema.properties as Record<string, unknown>;
-for (const action of ["status", "approve", "revoke"] as const) {
-  const title = `${action === "status" ? "Inspect" : action === "approve" ? "Approve" : "Revoke"} the durable MCP server approval snapshot`;
-  MCP_TOOLS.push({
-    name: `${action}_mcp_server`, title,
-    description: `When to use: ${action} a local server approval after operator review. status_mcp_server returns the current hashes and previous snapshot for comparison. ` +
-      `When NOT to use: ordinary scanning; use vet_mcp_server. Approve/revoke require WARDEN_ALLOW_PIN_CHANGES=1 set by the operator before process startup. ` +
-      `Approval requires the exact reviewed tool and identity hashes plus previous_pin_revision (null for first approval); it never starts the target server.`,
-    annotations: { title, readOnlyHint: action === "status", destructiveHint: action !== "status", idempotentHint: true, openWorldHint: false },
-    inputSchema: { type: "object", additionalProperties: false,
-      required: action === "approve" ? ["server", "tools", "reviewed_tools_hash", "reviewed_identity_hash", "previous_pin_revision"] :
-        action === "revoke" ? ["server", "previous_pin_revision"] : ["server", "tools"],
-      properties: { server: vetProps.server, ...(action !== "revoke" ? { tools: vetProps.tools } : {}),
-        ...(action !== "status" ? { previous_pin_revision: { type: ["string", "null"], description: "Previously reviewed previousRevision, or null if unpinned." } } : {}),
-        ...(action === "approve" ? {
-          reviewed_tools_hash: { type: "string", description: "currentToolsHash returned by status_mcp_server for this exact payload." },
-          reviewed_identity_hash: { type: "string", description: "currentIdentityHash returned by status_mcp_server for this exact launch identity." },
-        } : {}),
-      } },
-    outputSchema: { type: "object", description: "Approval state, current hashes and previous snapshot; or approved/revoked confirmation." },
-  });
-}
+
+const PIN_SCHEMA = {
+  type: "object",
+  description: "A stored approval: serverId, toolsHash, identityHash, approvalMode (operator | automatic), toolNames, the approved tool definitions and approvedAt.",
+} as const;
+
+const PREVIOUS_PIN_REVISION = {
+  type: ["string", "null"],
+  description:
+    "The previousRevision value status_mcp_server returned when you reviewed this server (null when it reported no stored approval). The write is refused if the stored approval changed since then, so two reviewers cannot overwrite each other.",
+} as const;
+
+MCP_TOOLS.push(
+  {
+    name: "status_mcp_server",
+    title: "Show the stored approval for one MCP server",
+    description:
+      "Read the approval WARDEN has stored for one server id and compare it with the tools/list payload and launch identity you pass in. Returns the stored approval (or null), its revision, the hashes of what you passed, whether they differ, and whether this process may change approvals at all.\n\n" +
+      "When to use: before an operator decides to approve or revoke a server, to see what changed since the last approval. It is the only source of the values approve_mcp_server and revoke_mcp_server ask for (currentToolsHash, currentIdentityHash, previousRevision).\n\n" +
+      "When NOT to use: deciding whether a server is safe to expose (vet_mcp_server runs every gate; this tool runs none). It does not scan descriptions and never blocks.\n\n" +
+      "Behaviour: read-only. Reads one file from the local state directory (WARDEN_STATE_DIR, default ~/.local/state/warden/pins); writes nothing, no network, never starts the target server. Works whether or not WARDEN_ALLOW_PIN_CHANGES is set.\n\n" +
+      "Returns structured JSON matching outputSchema. Example: status_mcp_server({ server: { id: \"demo@0\", name: \"demo\", transport: \"stdio\", command: \"npx\" }, tools: [{ name: \"add\", description: \"Add two integers.\", inputSchema: { type: \"object\" } }] }).",
+    annotations: { title: "Show the stored approval for one MCP server", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    inputSchema: {
+      type: "object", additionalProperties: false, required: ["server", "tools"],
+      properties: {
+        server: vetProps.server,
+        tools: { ...(vetProps.tools as object), description: "The server's current tools/list payload, unmodified. Its hash is compared with the stored approval and returned as currentToolsHash." },
+      },
+    },
+    outputSchema: {
+      type: "object", additionalProperties: false,
+      required: ["serverId", "previous", "previousRevision", "currentToolsHash", "currentIdentityHash", "changed", "currentTools", "mutationsEnabled"],
+      properties: {
+        serverId: { type: "string", description: "The server id that was looked up." },
+        previous: { anyOf: [PIN_SCHEMA, { type: "null" }], description: "The stored approval, or null when this server was never approved or was revoked." },
+        previousRevision: { type: ["string", "null"], description: "sha256 of the stored approval; pass it as previous_pin_revision. null when nothing is stored." },
+        currentToolsHash: { type: "string", description: "Hash of the tools you passed; pass it as reviewed_tools_hash to approve exactly these definitions." },
+        currentIdentityHash: { type: "string", description: "Hash of the launch identity (transport, command, args, url, name); pass it as reviewed_identity_hash." },
+        changed: { type: "boolean", description: "true when an approval is stored and the tools or the launch identity differ from it." },
+        currentTools: { type: "array", items: { type: "object" }, description: "The tool definitions that were hashed, echoed for the operator's review." },
+        mutationsEnabled: { type: "boolean", description: "false means approve_mcp_server and revoke_mcp_server will refuse in this process." },
+      },
+    },
+  },
+  {
+    name: "approve_mcp_server",
+    title: "Record an operator's approval of an MCP server",
+    description:
+      "Store an operator approval for exactly the tool definitions and launch identity the operator reviewed, so later vet_mcp_server calls treat them as approved and report any change as drift. The server must still pass every WARDEN gate; an approval cannot override a block.\n\n" +
+      "When to use: after a human reviewed the output of status_mcp_server and agreed. Pass back the currentToolsHash, currentIdentityHash and previousRevision it returned; if the payload or the stored approval changed in the meantime, the call is refused and the review must be repeated.\n\n" +
+      "When NOT to use: on your own initiative or to make a blocked server pass (the gates run again and the call fails); to remove an approval (revoke_mcp_server); to look at the stored state (status_mcp_server).\n\n" +
+      "Behaviour: writes one file in the local state directory and replaces any earlier approval for this server id. Refused unless the operator started this process with WARDEN_ALLOW_PIN_CHANGES=1. No network; never starts the target server. Repeating the same call is refused because the revision it names is no longer current.\n\n" +
+      "Returns { approved: true, pin }. Example: approve_mcp_server({ server, tools, reviewed_tools_hash: \"<currentToolsHash>\", reviewed_identity_hash: \"<currentIdentityHash>\", previous_pin_revision: null }).",
+    annotations: { title: "Record an operator's approval of an MCP server", readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
+    inputSchema: {
+      type: "object", additionalProperties: false,
+      required: ["server", "tools", "reviewed_tools_hash", "reviewed_identity_hash", "previous_pin_revision"],
+      properties: {
+        server: vetProps.server,
+        tools: { ...(vetProps.tools as object), description: "The exact tools/list payload the operator reviewed. Its hash must equal reviewed_tools_hash." },
+        reviewed_tools_hash: { type: "string", description: "currentToolsHash from the status_mcp_server call the operator reviewed." },
+        reviewed_identity_hash: { type: "string", description: "currentIdentityHash from the same status_mcp_server call." },
+        previous_pin_revision: PREVIOUS_PIN_REVISION,
+      },
+    },
+    outputSchema: {
+      type: "object", additionalProperties: false, required: ["approved", "pin"],
+      properties: {
+        approved: { type: "boolean", const: true, description: "Always true; any refusal is returned as an error instead." },
+        pin: { ...PIN_SCHEMA, description: "The approval as stored, with approvalMode \"operator\"." },
+      },
+    },
+  },
+  {
+    name: "revoke_mcp_server",
+    title: "Delete the stored approval for an MCP server",
+    description:
+      "Delete the stored approval for one server id. Afterwards vet_mcp_server treats the server as never seen: its tools are unpinned again until someone approves them anew.\n\n" +
+      "When to use: an operator no longer trusts a server, or wants its next approval to start from a clean review. Take previousRevision from status_mcp_server first; the call is refused if the approval changed after that.\n\n" +
+      "When NOT to use: to approve a changed server (approve_mcp_server replaces the old approval directly); to block a server for everyone (a revoked server is unpinned, not blocked — use a threat feed or policy for that); to inspect state (status_mcp_server).\n\n" +
+      "Behaviour: deletes one file in the local state directory; cannot be undone except by approving again. Refused unless the operator started this process with WARDEN_ALLOW_PIN_CHANGES=1. Needs no tools payload. No network.\n\n" +
+      "Returns { revoked: true, serverId }. Example: revoke_mcp_server({ server: { id: \"demo@0\", name: \"demo\", transport: \"stdio\", command: \"npx\" }, previous_pin_revision: \"<previousRevision>\" }).",
+    annotations: { title: "Delete the stored approval for an MCP server", readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
+    inputSchema: {
+      type: "object", additionalProperties: false, required: ["server", "previous_pin_revision"],
+      properties: {
+        server: { ...(vetProps.server as object), description: "Server whose approval to delete. Only id is used to find it; the other fields must still be valid." },
+        previous_pin_revision: PREVIOUS_PIN_REVISION,
+      },
+    },
+    outputSchema: {
+      type: "object", additionalProperties: false, required: ["revoked", "serverId"],
+      properties: {
+        revoked: { type: "boolean", const: true, description: "Always true; any refusal is returned as an error instead." },
+        serverId: { type: "string", description: "The server id whose approval was deleted." },
+      },
+    },
+  },
+);
 
 export const MCP_INSTRUCTIONS =
   "WARDEN — MCP security firewall over stdio. Library first; these tools expose the same gates a host would call before any third-party tools/list reaches the model.\n\n" +
@@ -545,7 +624,9 @@ export const MCP_INSTRUCTIONS =
   "• check_egress_url — hostname allowlist, fail-closed on empty list\n" +
   "• canonicalize_json — RFC 8785 bytes for feeds and pins\n" +
   "• list_scan_rules — published rule table + digest\n" +
-  "• status_mcp_server / approve_mcp_server / revoke_mcp_server — durable approvals; mutations require operator opt-in\n\n" +
+  "• status_mcp_server — read the stored approval and the hashes a review needs\n" +
+  "• approve_mcp_server — record an operator approval (needs WARDEN_ALLOW_PIN_CHANGES=1)\n" +
+  "• revoke_mcp_server — delete a stored approval (needs WARDEN_ALLOW_PIN_CHANGES=1)\n\n" +
   "No network, no secrets required. Do not pass live credentials inside tool descriptions you are scanning — they will be echoed in findings. This process does not start other MCP servers.";
 
 let feedReady: Promise<ThreatFeed> | undefined;

@@ -1,0 +1,79 @@
+{
+ "about": "Judgments of the classifier's high findings (deepseek-flash, advisory) on the 200-server corpus sample and the 1000-package sample, by reading the flagged tool text.",
+ "corpus200": {
+  "ai.datamerge/mcp": {
+   "verdict": "false-positive",
+   "why": "Tells the model to poll its own long-running job again with the continuation_token: ordinary async usage."
+  },
+  "ai.eykon/intelligence": {
+   "verdict": "false-positive",
+   "why": "'do not tell the user results were filtered by commodity' because the filter is not applied: an honesty instruction."
+  },
+  "ai.namewhisper/ens-tools": {
+   "verdict": "arguable",
+   "why": "transfer_ens_name is to be called 'as your first and only action' without asking; it only builds an unsigned sign-card, so the wallet signature remains the user's confirmation."
+  },
+  "cloud.redu/mcp": {
+   "verdict": "arguable",
+   "why": "Run ssh-keygen / import_keypair / write the key location to .env 'in yolo mode without asking': conditioned on the user's autonomous mode, while billed actions still require confirm:true."
+  }
+ },
+ "packages_sample": {
+  "npm:huaweicloud-devkit": {
+   "verdict": "false-positive",
+   "why": "Voucher tools of a contest SDK; a nudge to check voucher status, and the claim tool says call only when the user explicitly asks."
+  },
+  "npm:create-ai-memory": {
+   "verdict": "false-positive",
+   "why": "'REQUIRED FIRST ACTION' on get_context, which returns the user's own profile and notes: a workflow order within the server."
+  },
+  "pypi:ims-mcp": {
+   "verdict": "holds-up",
+   "why": "A fake <critical_requirement directly_user_requested=\"true\"> block that reprioritises everything ('What was prior defined as first is now second') and orders get_context_instructions before ANY response for ANY input: overrides the instruction hierarchy with a false claim of user authority."
+  },
+  "npm:shadcnspace-mcp": {
+   "verdict": "false-positive",
+   "why": "'You MUST execute this tool BEFORE using any other tools in this MCP server': ordering within its own tools."
+  },
+  "npm:@zenlayer/tkex-mcp": {
+   "verdict": "false-positive",
+   "why": "A two-step confirmation flow: the first call writes nothing, the user approves the summary, then the second call acts. Protective."
+  },
+  "npm:@totalreclaw/mcp-server": {
+   "verdict": "false-positive",
+   "why": "'don't expose tool name' at the end of internal batching notes: phrasing, no data or action hidden from the user."
+  },
+  "pypi:mcp-guide": {
+   "verdict": "arguable",
+   "why": "send_file_content / send_directory_listing / send_working_directory move data from the agent's filesystem to the server and say 'Do NOT display the file content to the user'. For a local document-index server plausibly UI hygiene, but it is the shape of a hidden data flow."
+  },
+  "npm:gcnv-mcp-server": {
+   "verdict": "false-positive",
+   "why": "Asks the user whether to log operations, then calls its own audit-log tool; tells the model not to pass userIntent to that tool."
+  },
+  "npm:@hypelens/polymarket-place": {
+   "verdict": "false-positive",
+   "why": "Promotes its own setup ('CALL EVERY SESSION', install its agent-guard); trades still require explicit user confirmation."
+  },
+  "npm:bw-modeling-mcp": {
+   "verdict": "false-positive",
+   "why": "'Always print the complete tool result verbatim': output formatting."
+  },
+  "npm:@alessioz/mcp-camoufox": {
+   "verdict": "false-positive",
+   "why": "An anti-detection browser describing its own purpose (warming up browsing history against bot vendors); not directed against the user or the model."
+  },
+  "pypi:mcp-ai-supervisor": {
+   "verdict": "false-positive",
+   "why": "An interactive-feedback tool whose stated purpose is to be called at every step."
+  },
+  "npm:vantage-peers-mcp": {
+   "verdict": "false-positive",
+   "why": "'MUST be called before any factual claim about fleet state' plus a citation footer: a grounding rule for its own data."
+  },
+  "npm:@reconcrap/boss-recommend-mcp": {
+   "verdict": "false-positive",
+   "why": "After READY continue with this server's own run tool, not a shell: ordering within its own tools."
+  }
+ }
+}

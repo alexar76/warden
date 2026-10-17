@@ -1,0 +1,16 @@
+2026-10-16T13:23:05Z start corpus
+mcp-audit: all 986 done (7837s)
+truecopy: all 986 done (2528s)
+mcpsentry: all 986 done (2494s)
+mcp-shield: all 986 done (5914s)
+2026-10-16T18:36:39Z start packages-a competitors cpus=3 
+2026-10-16T18:57:53Z done packages-a competitors exit=143
+2026-10-16T18:58:06Z start packages-a competitors cpus=3  workers=2/4/3/12
+2026-10-17T14:44:02Z done packages-a competitors exit=0
+2026-10-17T14:44:02Z start packages-a warden cpus=3  workers=2/4/3/12
+2026-10-17T15:23:36Z done packages-a warden exit=1
+2026-10-17T15:23:36Z start packages-xhost competitors cpus=3  workers=2/4/3/12
+2026-10-17T15:50:09Z done packages-xhost competitors exit=0
+2026-10-17T15:50:09Z start packages-xhost warden cpus=3  workers=2/4/3/12
+2026-10-17T15:51:16Z done packages-xhost warden exit=1
+2026-10-17T15:51:16Z CHAIN-DONE packages-a:competitors:3 packages-a:warden:3 packages-xhost:competitors:3 packages-xhost:warden:3

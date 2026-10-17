@@ -1,0 +1,46 @@
+2026-10-16T13:28:58Z start labelled competitors cpus=4
+2026-10-16T13:31:55Z done labelled competitors exit=0
+2026-10-16T13:31:55Z start independent competitors cpus=4
+2026-10-16T13:32:57Z done independent competitors exit=0
+2026-10-16T13:32:57Z start labelled warden cpus=4
+2026-10-16T13:33:02Z done labelled warden exit=1
+2026-10-16T13:33:02Z start independent warden cpus=4
+2026-10-16T13:33:04Z done independent warden exit=1
+2026-10-16T13:33:04Z start corpus warden cpus=4
+2026-10-16T13:34:52Z done corpus warden exit=1
+2026-10-16T13:35:06Z start mcptox-served warden cpus=4
+2026-10-16T13:35:59Z done mcptox-served warden exit=1
+2026-10-16T13:35:59Z start mcptox-decorated warden cpus=4
+2026-10-16T13:36:23Z done mcptox-decorated warden exit=1
+2026-10-16T13:36:23Z start mcptox-clean warden cpus=4
+2026-10-16T13:36:29Z done mcptox-clean warden exit=0
+2026-10-16T13:36:29Z start corpus competitors cpus=4
+2026-10-16T15:24:54Z done corpus competitors exit=0
+2026-10-16T15:25:17Z start mcptox-served competitors cpus=4
+2026-10-16T16:02:24Z done mcptox-served competitors exit=0
+2026-10-16T16:02:24Z start mcptox-decorated competitors cpus=4
+2026-10-16T17:17:57Z done mcptox-decorated competitors exit=0
+2026-10-16T17:17:58Z start mcptox-clean competitors cpus=2 --cpu-shares 256
+2026-10-16T17:22:59Z done mcptox-clean competitors exit=0
+2026-10-16T17:23:00Z start packages-b competitors cpus=2 --cpu-shares 256
+2026-10-17T04:44:44Z done packages-b competitors exit=143
+2026-10-17T04:45:16Z start packages-b resume cpus=2 --cpu-shares 256 workers=6/8/8/32
+2026-10-17T15:18:25Z done packages-b resume exit=0
+2026-10-17T15:18:25Z start packages-b warden cpus=2 --cpu-shares 256 workers=6/8/8/32
+2026-10-17T15:44:48Z done packages-b warden exit=1
+2026-10-17T15:44:49Z start packages-xhost competitors cpus=2 --cpu-shares 256 workers=6/8/8/32
+2026-10-17T15:53:10Z done packages-xhost competitors exit=0
+2026-10-17T15:53:10Z start packages-xhost warden cpus=2 --cpu-shares 256 workers=6/8/8/32
+2026-10-17T15:53:27Z done packages-xhost warden exit=1
+2026-10-17T15:53:27Z CHAIN-DONE packages-b:resume:2 packages-b:warden:2 packages-xhost:competitors:2 packages-xhost:warden:2
+2026-10-17T15:53:27Z start retry corpus cpus=2 --cpu-shares 256
+2026-10-17T15:59:01Z done retry corpus exit=0
+2026-10-17T15:59:01Z start retry mcptox-decorated cpus=2 --cpu-shares 256
+2026-10-17T16:03:00Z done retry mcptox-decorated exit=0
+2026-10-17T16:03:00Z ALL-DONE attested
+2026-10-17T16:07:23Z start cross-retry packages-a cpus=2 --cpu-shares 256
+2026-10-17T16:39:41Z done cross-retry packages-a exit=0
+2026-10-17T16:39:41Z CROSS-RETRY-DONE packages-a
+2026-10-17T16:39:49Z start retry packages-b cpus=2 --cpu-shares 256
+2026-10-17T16:40:41Z done retry packages-b exit=0
+2026-10-17T16:40:41Z RETRY-B-DONE

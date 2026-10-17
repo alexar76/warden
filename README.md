@@ -51,7 +51,7 @@ WARDEN scan 0.16.0 · ruleset 11 sha256-RDXs+TaQoehA… · block at high
 Details: warden-mcp scan --json, or --markdown FILE. To review a changed server: warden-mcp scan --lock warden.lock.json --update-lock.
 ```
 
-Against two other open-source scanners on the same servers: on the held-out half of MCPTox (an AAAI 2026 benchmark; WARDEN's rules were written from the other half) WARDEN blocks 171 of 218 poisoned tools, mcp-audit 25, mcp-shield 41; on 986 public servers it blocks 3, they block 33 and 343. [Method and every number](docs/scanner-comparison.md) · [scan guide](docs/scan.md).
+Against four other open-source scanners on the same servers, each in a gVisor container with no network: on the held-out half of MCPTox (an AAAI 2026 benchmark; WARDEN's rules were written from the other half) WARDEN blocks 171 of 218 poisoned tools, the others 8 to 41. On 986 public servers it blocks 3 and on 14,933 npm and PyPI packages 369; mcp-shield blocks 343 and 5,354. [Method and every number](docs/scanner-comparison.md) · [scan guide](docs/scan.md).
 <!-- /warden-try -->
 
 > [0.7.0 security changes and migration](docs/security-hardening.md): `vetLaunch`, durable pins, anti-rollback, ruleset v6, runtime revalidation.
@@ -325,7 +325,7 @@ check them: [ERC-8004 identities](https://github.com/alexar76/aicom/blob/main/do
 | [Scan your configs](docs/scan.md) | `scan`, the lock file, the GitHub Action, pre-commit hooks, the Claude Code plugin and HISTOR |
 | [Integration guide](docs/integration.md) | Wiring WARDEN into your own MCP host, policy choices, and what to record |
 | [Field survey: 1 108 public MCP servers](docs/mcp-survey.md) | What WARDEN decided on real third-party tool definitions — 50 servers blocked, 4 substantiated, and the six ways the rest were wrong |
-| [Scanner comparison](docs/scanner-comparison.md) | WARDEN, mcp-audit and mcp-shield on the same servers and on the MCPTox benchmark, with every judgment and the harness |
+| [Scanner comparison](docs/scanner-comparison.md) | WARDEN, mcp-audit, mcp-shield, truecopy and mcpsentry on the same servers, on 14,933 npm and PyPI packages and on the MCPTox benchmark, with every judgment, the manifest and the harness |
 | [Glama / Docker](docs/GLAMA.md) | stdio MCP server, health check, admin Build steps / CMD |
 | [MCP registries](docs/REGISTRIES.md) | Official Registry, Smithery, mcp.so / Pulse |
 | [Security](SECURITY.md) | How to report a firewall bypass |
