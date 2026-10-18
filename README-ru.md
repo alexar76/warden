@@ -8,7 +8,7 @@
   <a href="https://glama.ai/mcp/servers/alexar76/warden"><img src="https://glama.ai/mcp/servers/alexar76/warden/badges/score.svg" alt="warden MCP server" /></a>
   <a href="https://warden.modelmarket.dev/"><img src="https://img.shields.io/npm/v/@aimarket/warden?color=cb3837&label=npm" alt="npm version" /></a>
   <img src="docs/badges/deps.svg" alt="Zero runtime dependencies" />
-  <img src="docs/badges/tests.svg" alt="468 tests passing" />
+  <img src="docs/badges/tests.svg" alt="523 tests passing" />
   <img src="docs/badges/node.svg" alt="Node >= 20" />
   <a href="LICENSE"><img src="docs/badges/license.svg" alt="License: MIT" /></a>
 </p>
@@ -29,11 +29,11 @@
 **Проверьте все MCP-серверы на своей машине.** Без аккаунта, без API-ключа, без модели. Сетевой трафик идёт только к серверам из вашего конфига.
 
 ```bash
-npx -y @aimarket/warden@0.16.0 scan
+npx -y @aimarket/warden@0.17.0 scan
 ```
 
 ```text
-WARDEN scan 0.16.0 · ruleset 11 sha256-RDXs+TaQoehA… · block at high
+WARDEN scan 0.17.0 · ruleset 11 sha256-RDXs+TaQoehA… · block at high
   read .mcp.json (claude-code, 3 servers)
 
   ✓ allow   notes       claude-code    1 tool · score 0.90
@@ -90,7 +90,7 @@ MCP-сервер добавляет другие `node:` builtins (`fs`, `path`,
   "mcpServers": {
     "filesystem": {
       "command": "npx",
-      "args": ["-y", "@aimarket/warden@0.16.0", "wrap", "--id", "filesystem", "--",
+      "args": ["-y", "@aimarket/warden@0.17.0", "wrap", "--id", "filesystem", "--",
                "npx", "-y", "@modelcontextprotocol/server-filesystem", "/Users/me/docs"]
     }
   }
@@ -99,7 +99,7 @@ MCP-сервер добавляет другие `node:` builtins (`fs`, `path`,
 
 Для обязательного утверждения первого контакта добавьте к `wrap` флаг `--require-approval`. Определения не попадут модели до `warden-mcp pins approve --id filesystem` в терминале оператора. Любое изменение полей или идентичности запуска требует нового утверждения; автоматические и старые pins не подходят. Подробнее: [граница допуска, не зависящая от языка](docs/security-hardening-language-boundary.md).
 
-Всегда задавайте `--id`: без него изменение аргументов создаёт новую идентичность и новый первый контакт. Со стабильным ID смена команды или пути даёт `SERVER_IDENTITY_DRIFT`. Дочерний процесс наследует окружение; оно не входит в идентичность. Чтобы избежать холодного старта `npx`, установите глобально: `npm install -g @aimarket/warden@0.16.0`, затем команда `warden-mcp`.
+Всегда задавайте `--id`: без него изменение аргументов создаёт новую идентичность и новый первый контакт. Со стабильным ID смена команды или пути даёт `SERVER_IDENTITY_DRIFT`. Дочерний процесс наследует окружение; оно не входит в идентичность. Чтобы избежать холодного старта `npx`, установите глобально: `npm install -g @aimarket/warden@0.17.0`, затем команда `warden-mcp`.
 
 По умолчанию блокируется **весь сервер** при находке high, определения закрепляются пинами, объявленные оператором серверы разрешены. Частичного режима нет. Первая успешная проверка создаёт постоянный TOFU-пин. Любые последующие изменения, даже безопасные, требуют ручного одобрения. При явной политике `{"pinToolDefs":false}` уведомления о безопасных изменениях проходят после проверки. Уведомление без изменения списка также проходит после проверки.
 
@@ -124,12 +124,12 @@ warden-mcp pins revoke --id filesystem
 ## Проверить все серверы, которые запускают ваши клиенты
 
 ```bash
-npx -y @aimarket/warden@0.16.0 scan
+npx -y @aimarket/warden@0.17.0 scan
 ```
 
-Читает MCP-конфиги Claude Code, Claude Desktop, Cursor, VS Code и Windsurf, подключается к каждому серверу из них и проверяет определения инструментов до того, как их увидит модель. Выводит таблицу, JSON, SARIF или Markdown и завершается с кодом 1, если сервер заблокирован; `--no-launch` ничего не запускает. В репозитории `warden.lock.json` превращает изменение определений инструментов в дифф для ревью, а CI падает на новом или изменённом сервере. Есть GitHub Action (`uses: alexar76/warden@v0.16.0`), хуки pre-commit и плагин Claude Code (`/plugin marketplace add alexar76/warden`). `--histor` спрашивает публичный журнал HISTOR, отдаёт ли сервер вам то же, что всем; для удалённого сервера уходят адрес и дайджест, для stdio-сервера из npm или PyPI — имя пакета (`npm:<имя>`, `pypi:<имя>`; HISTOR запускает такие пакеты в песочнице gVisor) и дайджест, текст инструментов — никогда. Опциональный классификатор (`--classifier-url`, `--classifier-model`) добавляет прочтение модели, которую выбираете вы, локальной или облачной, — для того, что не называет ни одно правило. Подробно — в [руководстве по scan](docs/scan.ru.md). Как он выглядит рядом с двумя другими сканерами на одних и тех же серверах: [сравнение сканеров](docs/scanner-comparison.ru.md).
+Читает MCP-конфиги Claude Code, Claude Desktop, Cursor, VS Code и Windsurf, подключается к каждому серверу из них и проверяет определения инструментов до того, как их увидит модель. Выводит таблицу, JSON, SARIF или Markdown и завершается с кодом 1, если сервер заблокирован; `--no-launch` ничего не запускает. В репозитории `warden.lock.json` превращает изменение определений инструментов в дифф для ревью, а CI падает на новом или изменённом сервере. Есть GitHub Action (`uses: alexar76/warden@v0.17.0`), хуки pre-commit и плагин Claude Code (`/plugin marketplace add alexar76/warden`). `--histor` спрашивает публичный журнал HISTOR, отдаёт ли сервер вам то же, что всем; для удалённого сервера уходят адрес и дайджест, для stdio-сервера из npm или PyPI — имя пакета (`npm:<имя>`, `pypi:<имя>`; HISTOR запускает такие пакеты в песочнице gVisor) и дайджест, текст инструментов — никогда. Опциональный классификатор (`--classifier-url`, `--classifier-model`) добавляет прочтение модели, которую выбираете вы, локальной или облачной, — для того, что не называет ни одно правило. Подробно — в [руководстве по scan](docs/scan.ru.md). Как он выглядит рядом с двумя другими сканерами на одних и тех же серверах: [сравнение сканеров](docs/scanner-comparison.ru.md).
 
-**Для издателя сервера.** Если ваш сервер отдаёт другие инструменты там, где установлено то, чего нет в песочнице HISTOR, — раннер запускателя, по одному на ОС, — `npx -y @aimarket/warden@0.16.0 declare --out mcp-tool-sets.json -- <ваш сервер>` записывает эти наборы в файл, который вы публикуете на своём домене, и те, кто их получает, видят заявление издателя, а не незнакомый набор. Подробно — в [руководстве по scan](docs/scan.ru.md).
+**Для издателя сервера.** Если ваш сервер отдаёт другие инструменты там, где установлено то, чего нет в песочнице HISTOR, — раннер запускателя, по одному на ОС, — `npx -y @aimarket/warden@0.17.0 declare --out mcp-tool-sets.json -- <ваш сервер>` записывает эти наборы в файл, который вы публикуете на своём домене, и те, кто их получает, видят заявление издателя, а не незнакомый набор. Подробно — в [руководстве по scan](docs/scan.ru.md).
 
 ## Чего WARDEN не делает
 
@@ -348,7 +348,7 @@ WARDEN — агент ERC-8004 [`96684` в сети Base](https://8004scan.io/ag
 ## Разработка
 
 ```bash
-npm install && npm run build && npm test   # 468 тестов
+npm install && npm run build && npm test   # 523 тестов
 ```
 
 `test/packaging.test.ts` — то, что удерживает заголовок честным: он падает, если появляется
