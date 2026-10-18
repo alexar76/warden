@@ -9,6 +9,7 @@
 - Resolve contacts only through explicit `contactTools`, structured name/email records and unambiguous full names; discard implicit contact authority from older state.
 - Record MCP JSON-RPC and tool errors as outside text; withhold responses when tracking fails, and deny pre-tool checks on corrupt state.
 - Static ruleset v14 narrows `keyStaysLocal`: remote storage is not local custody. This changes the ruleset identity without claiming new corpus or MCPTox measurements.
+- Pin Auten's follow-up with paired synthetic tool fixtures: a saved login name remains allowed, while a signing key supplied by value remains blocked even with the same local-use assurance. Cover advisory thresholds, both tools on one server, and a separate private-key request. No scanner rule changes or new benchmark runs.
 - Existing AgentDojo results and policy artifacts remain unchanged and describe pre-audit builds. Only local regression tests validate this follow-up.
 
 
