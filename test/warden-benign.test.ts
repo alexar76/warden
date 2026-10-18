@@ -252,25 +252,30 @@ describe("exfil detection is anchored on an external destination", () => {
 describe("ruleset is versioned and digestible", () => {
   it("exposes a stable digest over the rule table", () => {
     const rs = staticScanRuleset();
-    expect(rs.version).toBe("12");
+    expect(rs.version).toBe("14");
     // If this fails you changed a rule: bump STATIC_SCAN_RULESET_VERSION and
     // update the value here. A scan result is only comparable within one digest.
-    expect(rs.digest).toBe("sha256-3E1lfPR+y6rFZtWN+L9Nkc1SVirrXTWxfEVNXQn4W4I=");
+    expect(rs.digest).toBe("sha256-Ps+KyX1jruNmz69+7LwCV4DfJuCVO81JcGOGFPc+yEs=");
     // The fold is part of the ruleset identity: the same regexes over folded and
     // unfolded text are different scans, so the digest covers it too.
     expect(rs.fold).toBe("escapes+entities+percent+base64/4x64k+nfkc+tags+invisible+confusables/2");
     expect(rs.rules.every((r) => typeof r.raw === "boolean")).toBe(true);
-    expect(rs.rules.length).toBe(35);
-    // v5 added TOOL_DEF_SECRET_EXFIL as an advisory pair rule; v9 added six blocking rules, v10 three.
-    expect(rs.rules.filter((r) => r.tier === "block").length).toBe(24);
+    expect(rs.rules.length).toBe(36);
+    // v5 added TOOL_DEF_SECRET_EXFIL as an advisory pair rule; v9 added six blocking rules, v10 three, v13 one.
+    expect(rs.rules.filter((r) => r.tier === "block").length).toBe(25);
     expect(rs.rules.filter((r) => r.tier === "advise").length).toBe(11);
     // A rule's guards are part of the table, so the digest changes when a guard
     // is added even if every regex stays byte-identical. v5 added the navigation
     // and autonomy guards and the secret-exfil pair guard.
-    expect(rs.rules.filter((r) => r.guards.length > 0).length).toBe(24);
+    expect(rs.rules.filter((r) => r.guards.length > 0).length).toBe(25);
     // v3: every rule declares its surfaces, and the tool name is scanned by the
     // phrase and hidden-payload rules but by none of the noun-keyed ones.
-    expect(rs.rules.every((r) => r.surfaces.includes("description") && r.surfaces.includes("inputSchema"))).toBe(true);
+    // One exception since v13: the rule for key material taken BY VALUE reads argument descriptions only,
+    // because in tool descriptions the same words are how key-handling tools describe themselves (six honest
+    // servers blocked on the 2026-10-01 corpus, none from argument descriptions).
+    const argumentOnly = rs.rules.filter((r) => r.surfaces.join() === "inputSchema");
+    expect(argumentOnly.map((r) => r.guards.includes("keyReference"))).toEqual([true]);
+    expect(rs.rules.filter((r) => !argumentOnly.includes(r)).every((r) => r.surfaces.includes("description") && r.surfaces.includes("inputSchema"))).toBe(true);
     expect(rs.rules.filter((r) => r.surfaces.includes("name")).length).toBe(24);
     const nounCodes = new Set(
       rs.rules.filter((r) => !r.surfaces.includes("name")).map((r) => r.code),

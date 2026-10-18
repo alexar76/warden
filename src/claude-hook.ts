@@ -1,3 +1,4 @@
+import { flowPre, flowPost, flowPrompt } from './flow-guard.js';
 import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { mkdir, readdir, stat, unlink } from 'node:fs/promises';
@@ -27,7 +28,8 @@ import { displaySafe } from './sanitize.js';
  * which asks the user instead).
  */
 export const SESSION_TTL_MS = 14 * 24 * 3600 * 1000;
-const STDIN_BYTES = 1_048_576;
+// A PostToolUse input carries the whole tool result (a large file read); too small a cap would skip fingerprinting it.
+const STDIN_BYTES = 16 * 1_048_576;
 
 export interface SessionVerdicts {
   version: 1;
@@ -147,33 +149,51 @@ export function decide(toolName: string, verdicts: SessionVerdicts | undefined, 
   return undefined;
 }
 
+/** The stricter of two decisions: deny beats ask beats none. */
+export function stricter(a: PreToolDecision | undefined, b: PreToolDecision | undefined): PreToolDecision | undefined {
+  if (!a) return b;
+  if (!b) return a;
+  return b.permissionDecision === 'deny' && a.permissionDecision !== 'deny' ? b : a;
+}
+
 export async function preToolUse(input: Record<string, unknown>, env: NodeJS.ProcessEnv = process.env): Promise<object | undefined> {
   const toolName = typeof input.tool_name === 'string' ? input.tool_name : '';
-  if (!toolName.startsWith('mcp__')) return undefined;
-  const sessionId = typeof input.session_id === 'string' ? input.session_id : '';
-  const stateDir = env.WARDEN_STATE_DIR || defaultStateDir();
-  let verdicts: SessionVerdicts | undefined;
-  try { verdicts = sessionId ? await readState<SessionVerdicts>(sessionPath(stateDir, sessionId)) : undefined; } catch { verdicts = undefined; }
-  if (verdicts && verdicts.version !== 1) verdicts = undefined;
-  const decision = decide(toolName, verdicts, env.WARDEN_HOOK_STRICT === '1');
+  let decision: PreToolDecision | undefined;
+  if (toolName.startsWith('mcp__')) {
+    const sessionId = typeof input.session_id === 'string' ? input.session_id : '';
+    const stateDir = env.WARDEN_STATE_DIR || defaultStateDir();
+    let verdicts: SessionVerdicts | undefined;
+    try { verdicts = sessionId ? await readState<SessionVerdicts>(sessionPath(stateDir, sessionId)) : undefined; } catch { verdicts = undefined; }
+    if (verdicts && verdicts.version !== 1) verdicts = undefined;
+    decision = decide(toolName, verdicts, env.WARDEN_HOOK_STRICT === '1');
+  }
+  decision = stricter(decision, flowPre(input, env));
   return decision ? { hookSpecificOutput: { hookEventName: 'PreToolUse', ...decision } } : undefined;
+}
+
+/** Records what a tool's result brought into the session (outside text, private data) for the flow guard. */
+export async function postToolUse(input: Record<string, unknown>, env: NodeJS.ProcessEnv = process.env): Promise<object | undefined> {
+  const out = flowPost(input, env);
+  if (!out) return undefined;
+  return { ...(out.systemMessage ? { systemMessage: out.systemMessage } : {}), ...(out.additionalContext ? { hookSpecificOutput: { hookEventName: 'PostToolUse', additionalContext: out.additionalContext } } : {}) };
 }
 
 /** `warden-mcp hook session-start|pre-tool-use` reads the hook JSON on stdin. */
 export async function runHookCli(argv: string[]): Promise<number> {
   const event = argv[0];
-  if (event !== 'session-start' && event !== 'pre-tool-use') {
-    process.stderr.write('Usage: warden-mcp hook session-start|pre-tool-use  (Claude Code hook; reads the hook JSON on stdin)\n');
+  if (event !== 'session-start' && event !== 'pre-tool-use' && event !== 'post-tool-use' && event !== 'user-prompt-submit') {
+    process.stderr.write('Usage: warden-mcp hook session-start|pre-tool-use|post-tool-use|user-prompt-submit  (Claude Code hook; reads the hook JSON on stdin)\n');
     return 2;
   }
   try {
     const input = await readStdinJson();
-    const out = event === 'session-start' ? await sessionStart(input) : await preToolUse(input);
+    if (event === 'user-prompt-submit') { flowPrompt(input); return 0; }
+    const out = event === 'session-start' ? await sessionStart(input) : event === 'pre-tool-use' ? await preToolUse(input) : await postToolUse(input);
     if (out) process.stdout.write(JSON.stringify(out) + '\n');
     return 0;
   } catch (err) {
-    // A failing hook must not break the session: report on stderr, exit 0, no decision.
     process.stderr.write(`warden hook ${event}: ${displaySafe(err instanceof Error ? err.message : String(err), 500)}\n`);
+    if (event === 'pre-tool-use') process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: 'WARDEN could not safely check this call. Repair the hook state before retrying.' } }) + '\n');
     return 0;
   }
 }

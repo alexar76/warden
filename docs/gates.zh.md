@@ -2,6 +2,8 @@
 
 > 🌐 [English](gates.md) · [Русский](gates.ru.md) · [Español](gates.es.md) · [Français](gates.fr.md) · **中文**
 
+**Ruleset v14（尚未发布）：** `keyStaysLocal` 不再把服务器存储视为本地保管。以下 v13 的语料/MCPTox 数字为历史结果；v14 只进行了本地回归测试，没有新基准。
+
 > [0.7.0 安全更新与迁移](security-hardening.zh.md).
 
 `Warden.vet(server, tools)` 会按顺序跑完一条门控链，并返回单一裁定。本页就是完整的判定过程：每个门控看什么、
@@ -44,7 +46,7 @@ const SEVERITY_RANK = { info: 0, low: 1, medium: 2, high: 3, critical: 4 };
 
 ## static-scan
 
-对工具公布的每个字段做本地正则扫描：`name`、`description` 与 `inputSchema`，以及自 v6 起的 `title`、`outputSchema`、`annotations` 和扩展元数据（服务器发来的其他一切内容，base64 图片图标除外）。规则集 **v10** 共 35 条规则：24 条 `block`，11 条 `advise`，其中 24 条带有上下文 **guard**——一项具名检查，用于判断某次命中是否真是该规则要找的东西。参见[实地普查](mcp-survey.zh.md)，即校准 v4 的 1 108 台服务器实测。
+对工具公布的每个字段做本地正则扫描：`name`、`description` 与 `inputSchema`，以及自 v6 起的 `title`、`outputSchema`、`annotations` 和扩展元数据（服务器发来的其他一切内容，base64 图片图标除外）。规则集 **v14** 共 36 条规则：25 条 `block`，11 条 `advise`，其中 25 条带有上下文 **guard**——一项具名检查，用于判断某次命中是否真是该规则要找的东西。参见[实地普查](mcp-survey.zh.md)，即校准 v4 的 1 108 台服务器实测。
 
 **v5：任何规则读取文本之前，先对文本做归一化。** NFKC 把全角字母、连字和其他兼容形式变成普通字母；单词内部的不可见字符被删除；Unicode 标签区块（ASCII 的不可见副本，能藏下一整句话）被解码；在拉丁字母与西里尔或希腊字母混写的单词里，形近字母被换成拉丁字母，而整词只用一种文字写成的单词保持不变。于是，无论周围文本是什么语言，英文规则都不能再被全角字母、词内零宽空格、标签字符或西里尔字母 `о` 绕过。归一化以 `fold` 的形式与规则一起发布，并计入 digest。两条隐藏载荷规则读取**原始**文本（`raw: true`）。
 
@@ -60,7 +62,18 @@ v5 还消除了三类实测误报：“send the user to https://…”（引导�
 
 **v10** 针对 MCPTox（Wang et al.，AAAI 2026）编写：45 台真实服务器上的 485 个投毒工具，按三种攻击模板生成。在写下任何规则之前，先用固定哈希把它的服务器分成两半；规则只来自前一半，后一半是测量结果（[scan 指南](scan.zh.md#对比)）。几乎每个 MCPTox 工具都是同一种形态：它的文本绑定到**另一个**工具的调用上。新代码 `TOOL_DEF_CROSS_TOOL` 在以下情况下阻止：某句话提到另一个工具的调用（“when using `X`”“before running `X`”“any query to `X`”“before any …”），并在同一句中改写该调用的输入（modify、replace、append …），或在这一句或下一句中要求先调用第三个工具；以及一个没有输入的工具只要求调用另一个工具。锚点是另一个工具的标识符，在任何语言中都写法相同。工具自己的名称和参数永远不算“另一个工具”，因此 “use `get_video` to check status before calling this tool” 和 “call `refresh` first, then this tool” 都会通过：它们把工具当作手段来提及。guard 现在会收到工具本身，规则由此知道它自己的标识符。v10 还会阻止声称优先于用户的定义。在留出的那一半上，v10 阻止了 218 个投毒工具中的 171 个，而 0.8.2 只阻止 26 个；它没有阻止 MCPTox 的 45 台干净服务器中的任何一台，在已提交的语料上阻止的仍是同样的 3 台，8 月遗留的 41 台中阻止 1 台。它的两条跨工具规则不作用于工具名称：它们读取的是关于另一个工具调用的句子。测试：`test/ruleset-v10.test.ts`。
 
-每条规则都声明自己在这七个**面**中的哪些上运行，35 条里有 24 条包含名称。不包含名称的代码中，有四个是以**名词**为
+**v13** 来自扫描器对比文章的一位读者：一个**接收**密钥的工具（“the signing key, hex”）和一个使用已保存密钥的工具（“the name of a saved login”）的区别，恰恰在参数自己的描述里。
+新的 `TOOL_DEF_SECRET_REQUEST` 规则读取参数描述，捕捉**按值**索要密钥材料、而 private key 和 seed phrase 规则没有写到的说法：签名密钥或钱包密钥、密钥对、恢复短语或秘密短语。
+它只会增加发现。描述是作者写的文本，所以它从不为其他规则的命中开脱；它的 guard `keyReference` 只收窄这条规则自己的报告：引用不算（密钥的 id、名称、路径或公钥部分，
+名为 `*_name` 或 `*_id` 的参数，工具自己创建的密钥，作为计数单位的密钥）。它是唯一不读工具描述的规则：在那里，同样的词是密钥类工具对自己的描述（“rotate my signing key”），
+在已提交的语料上它们阻止了六台诚实的服务器；在参数描述里一台也没有。
+
+编写它时发现了一个自 v4（2026-08-24，加入该 guard 时）起所有规则集都有的漏洞。`identifierFragment` 把 “Send me your private key.” 末尾的句号当作标识符的一部分而丢弃发现：这句话会放行，而去掉句号的同样词句会被阻止。
+v13 把单词边缘的句点或连字符当作标点。这暴露了此前被同一个句号掩盖的四句诚实文本（“a challenge message to sign with the wallet's private key”“signed by the new credential's private key”
+“You keep the private key.”“messages from one signing key”）；guard `keyStaysLocal` 放过用于签名或由用户保留的密钥，除非同一分句里有任何东西把它移走（“sign it and paste the private key” 仍会被阻止）。
+在已提交的语料上，v13 阻止 4 台服务器，v12 是 3 台，且一台都没丢：新增的是一个托管构建器，它的参数接收一个新铸币密钥对的 64 字节私钥。在 MCPTox 上没有任何变化：留出一半的 218 个投毒工具中阻止 171 个，与 v12 相同（测量结果完全复现），45 台干净服务器一台都没阻止；MCPTox 的工具改写的是其他工具的调用，而不是索要密钥。测试：`test/ruleset-v13.test.ts`。
+
+每条规则都声明自己在这七个**面**中的哪些上运行，36 条里有 24 条包含名称。不包含名称的代码中，有四个是以**名词**为
 锚的规则（`TOOL_DEF_SECRET_REQUEST`、`TOOL_DEF_CREDENTIAL_PARAM`、`TOOL_DEF_ENV_REFERENCE`、`TOOL_DEF_SECRET_EXFIL`）：名称是标识
 符，`api_key` 和 `private_key` 是标识符里再普通不过的组成部分，而拒绝 `sign_with_private_key` 等于把 v1 的
 校准错误换个面重犯一次。以**短语**为锚的规则需要空白字符，因此根本无法匹配 `snake_case`；而两条隐藏载荷规则

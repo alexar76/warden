@@ -65,10 +65,10 @@ describe('ruleset v10: what it leaves alone (field-corpus sentences)', () => {
 });
 
 describe('ruleset identity', () => {
-  it('is version 12 with 35 rules, 24 of them blocking', () => {
+  it('is version 14 with 36 rules, 25 of them blocking (v13 added one; see ruleset-v13.test.ts)', () => {
     const rs = staticScanRuleset();
-    expect(rs.version).toBe('12');
-    expect(rs.rules.length).toBe(35);
-    expect(rs.rules.filter(r => r.tier === 'block').length).toBe(24);
+    expect(rs.version).toBe('14');
+    expect(rs.rules.length).toBe(36);
+    expect(rs.rules.filter(r => r.tier === 'block').length).toBe(25);
   });
 });

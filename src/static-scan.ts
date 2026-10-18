@@ -128,7 +128,9 @@ type GuardName =
   | "placeholderAddress"
   | "contextExfil"
   | "crossTool"
-  | "zeroArgCall";
+  | "zeroArgCall"
+  | "keyReference"
+  | "keyStaysLocal";
 
 // Imperative instructions aimed at the model — the classic injection tells.
 const INJECTION_PATTERNS: SignaturePattern[] = [
@@ -250,9 +252,19 @@ const SECRET_PATTERNS: SignaturePattern[] = [
   // schema template shared by 377 tools should not read as "this server is
   // maximally compromised" — and with the polarity guard, the template that
   // caused it ("do not … include private key material") no longer matches at all.
-  { re: /\bprivate[_\s-]?key\b/i, code: "TOOL_DEF_SECRET_REQUEST", severity: "high", tier: "block", surfaces: PROSE, guards: ["polarity", "detection", "identifierFragment", "keyValue", "outputEnumLabel"] },
+  { re: /\bprivate[_\s-]?key\b/i, code: "TOOL_DEF_SECRET_REQUEST", severity: "high", tier: "block", surfaces: PROSE, guards: ["polarity", "detection", "identifierFragment", "keyValue", "outputEnumLabel", "keyStaysLocal"] },
   { re: /\bseed[_\s-]?phrase\b|\bmnemonic\b/i, code: "TOOL_DEF_SECRET_REQUEST", severity: "high", tier: "block", surfaces: PROSE, guards: ["polarity", "mention", "detection", "identifierFragment"] },
   { re: /~\/\.ssh|\bid_rsa\b|\.ssh\/[\w.-]+/i, code: "TOOL_DEF_SECRET_REQUEST", severity: "high", tier: "block", surfaces: PROSE, guards: ["polarity", "publicKeyPath"] },
+  // v13. An ARGUMENT that takes key material by value, in words the private-key and seed-phrase rules do not
+  // spell: a signing key, a wallet key, a key pair, a recovery phrase. The one rule that skips the tool's
+  // description: there the same words are what key-handling tools say about themselves ("rotate my signing
+  // key", "returns the public key of the signing key pair"), and on the 2026-10-01 corpus they blocked six
+  // honest servers; in argument descriptions, none. Suggested by a reader of the scanner
+  // comparison: the argument's own description is where a tool that takes the key ("the signing key, hex")
+  // differs from one that uses a stored key ("the name of a saved login"). It only ADDS findings: the
+  // description is the author's text, so it never excuses a match another rule made, and a reference to a key
+  // (its id, name, path or the public half) is not the key.
+  { re: /\b(?:signing|wallet)\s+(?:private\s+|secret\s+)?key\b|\bkey[\s-]?pair\b|\b(?:secret\s+)?recovery\s+(?:phrase|words)\b|\bsecret\s+phrase\b/i, code: "TOOL_DEF_SECRET_REQUEST", severity: "high", tier: "block", surfaces: ["inputSchema"], guards: ["polarity", "detection", "identifierFragment", "keyReference", "keyStaysLocal"] },
   // Advisory: these are ordinary parameter names and ordinary setup prose.
   { re: /\bapi[_\s-]?key\b/i, code: "TOOL_DEF_CREDENTIAL_PARAM", severity: "low", tier: "advise", surfaces: PROSE },
   { re: /\bcredentials?\b|\baccess[_\s-]?token\b|\bbearer\s+token\b/i, code: "TOOL_DEF_CREDENTIAL_PARAM", severity: "low", tier: "advise", surfaces: PROSE },
@@ -545,6 +557,64 @@ function inFlagSequence(text: string, i: number): boolean {
 }
 
 const GUARDS: Record<GuardName, Guard> = {
+  /**
+   * v13. The key that SIGNS, or that the user keeps, is not a key the tool asks for. Exposed when v13 stopped
+   * reading a full stop as part of an identifier: "a challenge message to sign with the wallet's private
+   * key", "signed by the new credential's private key", "You keep the private key." — authors explaining
+   * that the key stays with the user. Kept when anything moves the key: an onward verb after the signing
+   * word or after the key ("sign it and paste the private key", "… private key, then send it") is a request.
+   */
+  keyStaysLocal(m, text) {
+    const start = m.index, end = start + m[0].length;
+    const { before, after } = clauseAround(text, start, end);
+    // Storage or signing on a server is not evidence that the caller retains the key.
+    if (/\b(?:server|remote|database|upload|cloud)\b/i.test(before + after)) return null;
+    if (ONWARD_VERB.test(after) || /\b(?:provide|give|enter|type|submit|pass|supply|reveal|export|disclose)\b/i.test(after)) return null;
+    const sign = /\b(?:sign(?:s|ed|ing)?|signature)\b(?![\s\S]*\bsign(?:s|ed|ing)?\b)/i.exec(before);
+    if (sign) {
+      const rest = before.slice(sign.index + sign[0].length);
+      if (/\b(?:with|by|using)\b/i.test(rest) && !ONWARD_VERB.test(rest) && !/\b(?:provide|give|enter|type|submit|pass|supply|reveal|export|disclose)\b/i.test(rest)) {
+        return "the key signs (an instrument of a signature made locally), it is not sent";
+      }
+    }
+    if (/\b(?:you|users?|the\s+caller)\s+(?:keep|keeps|hold|holds|retain|retains)\s+(?:the\s+|your\s+|their\s+)?$/i.test(before) || /^\s*(?:stays|remains|is\s+kept|is\s+held)\s+(?:locally\b|with\s+(?:you|the\s+user|the\s+caller)\b|on\s+your\s+(?:machine|device)\b)/i.test(after)) {
+      return "the key stays with the user";
+    }
+    return null;
+  },
+  /**
+   * v13. A key REFERRED TO is not a key passed by value: "the signing key ID", "name of the key pair",
+   * "path to the wallet key file", "public half of the key pair". The tool resolves the reference itself
+   * and the key never reaches the model, which is the shape a careful tool author writes.
+   */
+  keyReference(m, text) {
+    const start = m.index, end = start + m[0].length;
+    const after = text.slice(end, end + 32);
+    const before = text.slice(Math.max(0, start - 40), start);
+    const REF = /(?:ids?|identifiers?|names?|labels?|alias(?:es)?|handles?|fingerprints?|references?|refs?|uris?|arns?|paths?|files?|slots?|indexe?s?|numbers?)/.source;
+    if (new RegExp(`^[\\s_'"’-]{0,3}${REF}\\b`, "i").test(after)) {
+      return "a reference to the key (its id, name, path …), not the key itself";
+    }
+    if (/\b(?:id|identifier|name|label|alias|handle|fingerprint|path|location|reference|public(?:\s+half)?)\s+(?:of|to|for)\s+(?:the\s+|a\s+|an\s+|your\s+)?(?:stored\s+|saved\s+)?$/i.test(before) || /\bpublic\s+$/i.test(before)) {
+      return "a reference to the key (its id, name, path …) or its public half, not the key itself";
+    }
+    // A key as the unit of a count: "at most this many messages from one signing key".
+    if (/\b(?:per|each|every|from\s+(?:one|a\s+single|the\s+same))\s+$/i.test(before)) {
+      return "the key as a unit of counting, not a key being passed";
+    }
+    // The tool making one is not the tool taking one: "auto-create a keypair".
+    if (/\b(?:auto-?)?(?:create[sd]?|creating|generate[sd]?|generating|provision(?:s|ed|ing)?|rotate[sd]?|rotating)\s+(?:a\s+|an\s+|the\s+|new\s+)*$/i.test(before)) {
+      return "the tool creates the key, it does not take one";
+    }
+    // The argument this text describes: its NAME says whether it holds the key or points at one
+    // (`keypair_name: "The SSH keypair the instance was created with"`).
+    const prop = /"([\w.-]{1,64})"\s*:\s*\{[^{}]*$/.exec(text.slice(Math.max(0, start - 600), start));
+    if (prop && new RegExp(`(?:^|[_.-]|[a-z](?=[A-Z]))${REF}$`, "i").test(prop[1]!) && !/(?:secret|private|seed|mnemonic|bytes|hex)/i.test(prop[1]!)) {
+      return `the argument "${prop[1]}" names a reference to the key, not the key`;
+    }
+    return null;
+  },
+
   /** A credential noun inside a refusal is a promise, not a request. */
   polarity(m, text) {
     // The cue can sit INSIDE the match when the rule spans a verb and a noun:
@@ -806,6 +876,11 @@ const GUARDS: Record<GuardName, Guard> = {
     while (a > 0 && /[\w.-]/.test(text[a - 1]!)) a--;
     let b = end;
     while (b < text.length && /[\w.-]/.test(text[b]!)) b++;
+    // v13: a dot or hyphen at the edge of the run is punctuation, not part of a name. Until v12 the full
+    // stop in "Send me your private key." made "key." a longer identifier and dropped the finding: the
+    // same sentence without its period blocked.
+    while (b > end && /[.-]/.test(text[b - 1]!)) b--;
+    while (a < start && /[.-]/.test(text[a]!)) a++;
     const token = text.slice(a, b);
     if (token.length === m[0].length) return null;
     if (!/[-.]/.test(token)) return null;
@@ -1039,7 +1114,7 @@ function hasExternalAddress(text: string): boolean {
 // asking the user for ids" (`autonomy`, which also stops exempting any "without asking
 // the user" whose object is consent), and "the key is read from the MCP connection's
 // X-API-Key header" (`ownAuthHeader`).
-export const STATIC_SCAN_RULESET_VERSION = "12";
+export const STATIC_SCAN_RULESET_VERSION = "14";
 
 const SEVERITY_RANK: Record<Severity, number> = {
   info: 0,

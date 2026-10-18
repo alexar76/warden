@@ -11,6 +11,7 @@ import { observe, vetAndPin, observationPath, WardenBlock, type Observation } fr
 import { readState } from './state.js';
 import { listAllTools } from './tool-list.js';
 import { screenResult, annotateResult } from './result-screen.js';
+import { flowPre, flowPost } from './flow-guard.js';
 
 type Message = { jsonrpc: '2.0'; id?: string | number | null; method?: string; params?: Record<string, unknown>; result?: any; error?: unknown };
 function parse(body: string): Message {
@@ -50,7 +51,11 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
   // Every client request forwarded to the child, by id. A child response is delivered only
   // against one of these, once: a response to an id the client never sent to the child (its
   // tools/list, which this proxy answers) or already received is a forgery, not a reply.
-  const tracked = new Map<string | number | null, { kind: 'initialize' | 'call' | 'other'; generation: number; tool?: string }>();
+  const tracked = new Map<string | number | null, { kind: 'initialize' | 'call' | 'other'; generation: number; tool?: string; args?: Record<string, unknown> }>();
+  // Flow guard (--flow NAME). Every server a client wraps shares one session — by default the client's
+  // process, which started them all — so outside text read through one server taints a send through another.
+  const flowSession = opts.flow ? (process.env.WARDEN_FLOW_SESSION || `wrap-${process.ppid}`) : '';
+  const flowTool = (tool: string) => `mcp__${opts.flow}__${tool}`;
   let activeChecks = 0;
   let stopTimer: NodeJS.Timeout | undefined, killTimer: NodeJS.Timeout | undefined;
 
@@ -166,7 +171,14 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
             const def = current.find(t => t.name === name);
             if (!opts.auditOnly && (quarantined || epoch !== generation || !def || !seen || pinToolsHash([def]) !== pinToolsHash([seen]))) throw new Error('tool blocked by WARDEN: definition changed since exposure');
             if (tracked.size >= 256 || tracked.has(msg.id)) throw new Error('Too many or duplicate pending MCP requests');
-            tracked.set(msg.id, { kind: 'call', generation, tool: String(name) });
+            const args = msg.params?.arguments && typeof msg.params.arguments === 'object' && !Array.isArray(msg.params.arguments) ? msg.params.arguments as Record<string, unknown> : {};
+            if (opts.flow) {
+              const d = flowPre({ session_id: flowSession, cwd: process.cwd(), tool_name: flowTool(String(name)), tool_input: args });
+              // An MCP client has no one to ask from here: a call the guard would ask about is refused, with its reason.
+              if (d && !opts.auditOnly) throw new Error(`${d.permissionDecisionReason}${d.permissionDecision === 'ask' ? ' Refused: wrap cannot ask you; name the destination in the flow policy (allowedDestinations) or make the call yourself.' : ''}`);
+              if (d) log.warn(`flow guard would ${d.permissionDecision} ${flowTool(String(name))}`);
+            }
+            tracked.set(msg.id, { kind: 'call', generation, tool: String(name), args });
             childWrite(body);
           }
         } catch (e) { fail(msg, e instanceof Error ? e.message : String(e)); }
@@ -206,6 +218,14 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
         if (!request) { log.warn(`dropped a child response to request ${displaySafe(JSON.stringify(msg.id), 80)}, which the client did not send to it or already received`); return; }
         {
           tracked.delete(msg.id);
+          if (opts.flow && request.kind === 'call' && (msg.result !== undefined || msg.error !== undefined)) {
+            // Record what the result brought into the session (outside text, private data) before anything else.
+            try { flowPost({ session_id: flowSession, cwd: process.cwd(), tool_name: flowTool(request.tool ?? ''), tool_input: request.args ?? {}, tool_response: msg.error !== undefined ? { error: msg.error } : msg.result, ...(msg.error !== undefined ? { tool_error: msg.error } : {}) }); }
+            catch (e) {
+              log.warn(`flow guard could not record a result: ${e instanceof Error ? e.message : String(e)}`);
+              if (!opts.auditOnly) { fail(msg, 'WARDEN flow guard could not record this response; withheld to avoid untracked outside text'); return; }
+            }
+          }
           if (request.kind === 'call' && !opts.auditOnly && (quarantined || request.generation !== generation)) {
             fail(msg, 'tools changed, blocked by WARDEN; result withheld, execution may already have occurred'); return;
           }

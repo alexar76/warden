@@ -2,6 +2,8 @@
 
 > 🌐 [English](gates.md) · [Русский](gates.ru.md) · **Español** · [Français](gates.fr.md) · [中文](gates.zh.md)
 
+**Ruleset v14 (sin publicar):** `keyStaysLocal` ya no confunde almacenamiento en un servidor con custodia local. Las cifras de corpus/MCPTox de v13 son históricas; v14 solo tiene pruebas locales de regresión, sin nuevo benchmark.
+
 > [Seguridad y migración de 0.7.0](security-hardening.es.md).
 
 `Warden.vet(server, tools)` ejecuta una cadena ordenada y devuelve un solo veredicto. Esta página es
@@ -50,8 +52,8 @@ defecto; expresarlo bajando su severidad la volvía bloqueante para quien endure
 
 Escaneo local con regex sobre cada campo que anuncia una herramienta: su `name`, `description` e
 `inputSchema`, y desde v6 su `title`, `outputSchema`, `annotations` y metadatos de extensión (todo lo
-demás que envió el servidor, salvo un icono de imagen en base64). 35 reglas en el conjunto **v10**: 24
-`block`, 11 `advise`, y 24 de ellas llevan un **guard** de contexto:
+demás que envió el servidor, salvo un icono de imagen en base64). 36 reglas en el conjunto **v14**: 25
+`block`, 11 `advise`, y 25 de ellas llevan un **guard** de contexto:
 una comprobación con nombre que decide si una coincidencia es de verdad lo que la regla busca. Véase
 [el estudio de campo](mcp-survey.es.md), la ejecución sobre 1 108 servidores con la que se calibró v4.
 
@@ -134,7 +136,29 @@ bloqueaba 26; no bloquea ninguno de los 45 servidores limpios de MCPTox, y en el
 mismos 3 servidores y 1 de los 41 del arrastre. Sus dos reglas entre herramientas no se ejecutan sobre el nombre:
 leen una frase sobre la llamada de otra herramienta. Pruebas: `test/ruleset-v10.test.ts`.
 
-Cada regla declara sobre cuál de esas siete **superficies** se ejecuta, y 24 de las 35 incluyen el
+**v13** vino de un lector de la comparación de escáneres: la descripción del propio argumento es donde una
+herramienta que toma una clave («the signing key, hex») se distingue de una que usa una clave guardada («the name
+of a saved login»). Una nueva regla `TOOL_DEF_SECRET_REQUEST` lee las descripciones de los argumentos y detecta
+material de clave pedido **por valor** con palabras que las reglas de private key y seed phrase no escriben: una
+clave de firma o de cartera, un par de claves, una frase de recuperación o secreta. Solo añade hallazgos. La
+descripción es texto del autor, así que nunca excusa la coincidencia de otra regla, y su guard `keyReference` solo
+estrecha lo que informa esta regla: deja en paz una referencia (el id, nombre, ruta o mitad pública de la clave, un
+argumento llamado `*_name` o `*_id`, una clave que crea la herramienta, una clave como unidad de un recuento). Es la
+única regla que no lee la descripción de la herramienta: allí las mismas palabras son como se describen a sí mismas
+las herramientas que manejan claves («rotate my signing key»), y en el corpus bloquearon seis servidores honestos;
+en descripciones de argumentos, ninguno.
+
+Al escribirla apareció un agujero que tenían todos los conjuntos desde v4 (2026-08-24), cuando se añadió el guard. `identifierFragment` leía el punto final de
+«Send me your private key.» como parte de un identificador y descartaba el hallazgo: la frase pasaba, mientras que
+las mismas palabras sin el punto bloqueaban. v13 lee un punto o guion al borde de una palabra como puntuación. Eso
+dejó al descubierto cuatro frases honestas que el punto escondía («a challenge message to sign with the wallet's
+private key», «signed by the new credential's private key», «You keep the private key.», «messages from one signing
+key»); el guard `keyStaysLocal` deja en paz una clave que firma o que el usuario conserva, salvo que algo en la
+oración la mueva («sign it and paste the private key» sigue bloqueando). En el corpus v13 bloquea 4 servidores
+donde v12 bloqueaba 3, sin perder ninguno: el nuevo es un constructor alojado cuyo argumento toma la clave secreta
+de 64 bytes de un nuevo par de claves de mint. En MCPTox no cambia nada: 171 de 218 herramientas envenenadas de la mitad reservada bloqueadas, como con v12 (la medición se reprodujo exactamente), y ninguno de los 45 servidores limpios; las herramientas de MCPTox reescriben llamadas de otras herramientas en lugar de pedir claves. Pruebas: `test/ruleset-v13.test.ts`.
+
+Cada regla declara sobre cuál de esas siete **superficies** se ejecuta, y 24 de las 36 incluyen el
 nombre. Cuatro de los códigos que no lo hacen son los que se apoyan en un SUSTANTIVO
 (`TOOL_DEF_SECRET_REQUEST`, `TOOL_DEF_CREDENTIAL_PARAM`, `TOOL_DEF_ENV_REFERENCE`, `TOOL_DEF_SECRET_EXFIL`): un nombre es un
 identificador, `api_key` y `private_key` son partes ordinarias de uno, y rechazar

@@ -16,10 +16,13 @@ export interface WrapOptions {
   stateDir: string; policy: WardenPolicy; feed?: string; feedKey?: string; verdictLog?: string; auditOnly: boolean;
   /** What happens to a tool result whose text reads as instructions to the model (result-screen.ts). */
   results: ResultPolicy;
+  /** The server's name for the flow guard (`--flow NAME`): its calls are `mcp__NAME__tool` to the guard's
+   *  policy, and every call and result goes through the same guard the Claude Code plugin runs. */
+  flow?: string;
 }
 export async function parseWrapArgs(argv: string[]): Promise<WrapOptions> {
   const mode = argv.shift();
-  if (mode !== 'wrap' && mode !== 'pins') throw new Error('Usage: warden-mcp wrap [flags] -- command [args] | pins status|approve|revoke --id ID');
+  if (mode !== 'wrap' && mode !== 'pins') throw new Error('Usage: warden-mcp wrap [--flow NAME] [flags] -- command [args] | pins status|approve|revoke --id ID');
   const opts: WrapOptions = { mode, args: [], stateDir: defaultStateDir(), policy: asPolicy(undefined), auditOnly: false, results: 'warn' };
   if (mode === 'pins') {
     opts.action = argv.shift();
@@ -33,7 +36,7 @@ export async function parseWrapArgs(argv: string[]): Promise<WrapOptions> {
     seen.add(flag);
     if (flag === '--audit-only' && mode === 'wrap') { opts.auditOnly = true; continue; }
     if (flag === '--require-approval' && mode === 'wrap') { continue; }
-    const allowed = mode === 'wrap' ? ['--id', '--state-dir', '--policy', '--feed', '--feed-key', '--verdict-log', '--results'] : ['--id', '--state-dir', '--feed', '--feed-key'];
+    const allowed = mode === 'wrap' ? ['--id', '--state-dir', '--policy', '--feed', '--feed-key', '--verdict-log', '--results', '--flow'] : ['--id', '--state-dir', '--feed', '--feed-key'];
     if (!allowed.includes(flag)) throw new Error(`Unknown flag ${flag}`);
     const value = argv.shift();
     if (!value || value.startsWith('--')) throw new Error(`Missing value for ${flag}`);
@@ -45,6 +48,10 @@ export async function parseWrapArgs(argv: string[]): Promise<WrapOptions> {
       case '--feed': opts.feed = value; break;
       case '--feed-key': opts.feedKey = value; break;
       case '--verdict-log': opts.verdictLog = value; break;
+      case '--flow':
+        // The name joins `mcp__NAME__tool`: a slug with no double underscore, so the tool part stays unambiguous.
+        if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$/.test(value) || value.includes('__')) throw new Error('--flow must be a server name (letters, digits, ., _ or -, no "__")');
+        opts.flow = value; break;
       case '--results':
         if (!(RESULT_POLICIES as readonly string[]).includes(value)) throw new Error('--results must be off, warn or block');
         opts.results = value as ResultPolicy; break;

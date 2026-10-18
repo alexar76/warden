@@ -1,0 +1,275 @@
+{
+  "mode": "deny",
+  "_comment": "Operator labels for AgentDojo v1.2.2 tools, assigned once from each tool's description (as an operator would): private = the user's data; untrusted = text others can write; outbound = reaches or acts on someone else; destructive = changes or deletes the user's state. destinationArgs = the arguments naming who or what a call is aimed at. Channel and user names in Slack are created by other people, so they are outside text too (a first run labelled them private only and a channel name carried the injection). The model run (2026-10-18) found two destinations labelled too strictly: share_file listed the file as a destination (who receives it is the e-mail), and reschedule_calendar_event listed the event (it reaches the event's participants, which it cannot change, so it keeps its destination).",
+  "labels": {
+    "get_iban": [
+      "private"
+    ],
+    "send_money": [
+      "outbound"
+    ],
+    "schedule_transaction": [
+      "outbound"
+    ],
+    "update_scheduled_transaction": [
+      "outbound"
+    ],
+    "get_balance": [
+      "private"
+    ],
+    "get_most_recent_transactions": [
+      "private",
+      "untrusted"
+    ],
+    "get_scheduled_transactions": [
+      "private",
+      "untrusted"
+    ],
+    "read_file": [
+      "private",
+      "untrusted"
+    ],
+    "get_user_info": [
+      "private"
+    ],
+    "update_password": [
+      "destructive"
+    ],
+    "update_user_info": [
+      "destructive"
+    ],
+    "get_channels": [
+      "private",
+      "untrusted"
+    ],
+    "add_user_to_channel": [
+      "outbound"
+    ],
+    "read_channel_messages": [
+      "private",
+      "untrusted"
+    ],
+    "read_inbox": [
+      "private",
+      "untrusted"
+    ],
+    "send_direct_message": [
+      "outbound"
+    ],
+    "send_channel_message": [
+      "outbound"
+    ],
+    "get_users_in_channel": [
+      "private",
+      "untrusted"
+    ],
+    "invite_user_to_slack": [
+      "outbound"
+    ],
+    "remove_user_from_slack": [
+      "destructive"
+    ],
+    "get_webpage": [
+      "untrusted",
+      "outbound"
+    ],
+    "post_webpage": [
+      "outbound"
+    ],
+    "get_user_information": [
+      "private"
+    ],
+    "get_all_hotels_in_city": [],
+    "get_hotels_prices": [],
+    "get_rating_reviews_for_hotels": [
+      "untrusted"
+    ],
+    "get_hotels_address": [],
+    "get_all_restaurants_in_city": [],
+    "get_cuisine_type_for_restaurants": [],
+    "get_restaurants_address": [],
+    "get_rating_reviews_for_restaurants": [
+      "untrusted"
+    ],
+    "get_dietary_restrictions_for_all_restaurants": [],
+    "get_contact_information_for_restaurants": [],
+    "get_price_for_restaurants": [],
+    "check_restaurant_opening_hours": [],
+    "get_all_car_rental_companies_in_city": [],
+    "get_car_types_available": [],
+    "get_rating_reviews_for_car_rental": [
+      "untrusted"
+    ],
+    "get_car_fuel_options": [],
+    "get_car_rental_address": [],
+    "get_car_price_per_day": [],
+    "reserve_hotel": [
+      "outbound"
+    ],
+    "reserve_car_rental": [
+      "outbound"
+    ],
+    "reserve_restaurant": [
+      "outbound"
+    ],
+    "get_flight_information": [],
+    "send_email": [
+      "outbound"
+    ],
+    "delete_email": [
+      "destructive"
+    ],
+    "get_unread_emails": [
+      "private",
+      "untrusted"
+    ],
+    "get_sent_emails": [
+      "private"
+    ],
+    "get_received_emails": [
+      "private",
+      "untrusted"
+    ],
+    "get_draft_emails": [
+      "private"
+    ],
+    "search_emails": [
+      "private",
+      "untrusted"
+    ],
+    "search_contacts_by_name": [
+      "private"
+    ],
+    "search_contacts_by_email": [
+      "private"
+    ],
+    "get_current_day": [],
+    "search_calendar_events": [
+      "private",
+      "untrusted"
+    ],
+    "get_day_calendar_events": [
+      "private",
+      "untrusted"
+    ],
+    "create_calendar_event": [
+      "outbound"
+    ],
+    "cancel_calendar_event": [
+      "destructive"
+    ],
+    "reschedule_calendar_event": [
+      "outbound"
+    ],
+    "add_calendar_event_participants": [
+      "outbound"
+    ],
+    "append_to_file": [
+      "destructive"
+    ],
+    "search_files_by_filename": [
+      "private",
+      "untrusted"
+    ],
+    "create_file": [],
+    "delete_file": [
+      "destructive"
+    ],
+    "get_file_by_id": [
+      "private",
+      "untrusted"
+    ],
+    "list_files": [
+      "private",
+      "untrusted"
+    ],
+    "share_file": [
+      "outbound"
+    ],
+    "search_files": [
+      "private",
+      "untrusted"
+    ]
+  },
+  "destinationArgs": {
+    "send_money": [
+      "recipient"
+    ],
+    "schedule_transaction": [
+      "recipient"
+    ],
+    "update_scheduled_transaction": [
+      "recipient"
+    ],
+    "update_password": [
+      "password"
+    ],
+    "update_user_info": [
+      "first_name",
+      "last_name",
+      "street",
+      "city"
+    ],
+    "add_user_to_channel": [
+      "user",
+      "channel"
+    ],
+    "send_direct_message": [
+      "recipient"
+    ],
+    "send_channel_message": [
+      "channel"
+    ],
+    "invite_user_to_slack": [
+      "user",
+      "user_email"
+    ],
+    "remove_user_from_slack": [
+      "user"
+    ],
+    "get_webpage": [
+      "url"
+    ],
+    "post_webpage": [
+      "url"
+    ],
+    "reserve_hotel": [
+      "hotel"
+    ],
+    "reserve_car_rental": [
+      "company"
+    ],
+    "reserve_restaurant": [
+      "restaurant"
+    ],
+    "send_email": [
+      "recipients",
+      "cc",
+      "bcc"
+    ],
+    "delete_email": [
+      "email_id"
+    ],
+    "create_calendar_event": [
+      "participants"
+    ],
+    "cancel_calendar_event": [
+      "event_id"
+    ],
+    "reschedule_calendar_event": [
+      "participants"
+    ],
+    "add_calendar_event_participants": [
+      "participants"
+    ],
+    "append_to_file": [
+      "file_id"
+    ],
+    "delete_file": [
+      "file_id"
+    ],
+    "share_file": [
+      "email"
+    ]
+  }
+}

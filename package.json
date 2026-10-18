@@ -44,7 +44,8 @@
     "CHANGELOG.md",
     "LICENSE",
     "docs/security-hardening*.md",
-    "docs/gates*.md"
+    "docs/gates*.md",
+    "docs/flow-guard*.md"
   ],
   "engines": {
     "node": ">=20"
@@ -52,7 +53,7 @@
   "sideEffects": false,
   "scripts": {
     "mcp": "node dist/mcp-server.js",
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && node scripts/sync-flow-guard.mjs",
     "prepare": "npm run build",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",

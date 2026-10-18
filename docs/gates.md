@@ -2,6 +2,8 @@
 
 > 🌐 **English** · [Русский](gates.ru.md) · [Español](gates.es.md) · [Français](gates.fr.md) · [中文](gates.zh.md)
 
+**Ruleset v14 (unreleased, audit fix):** `keyStaysLocal` no longer treats storage on a server as local custody. All corpus/MCPTox numbers quoted for v13 below are historical; v14 has only local regression validation, with no new benchmark.
+
 > [0.7.0 security changes and migration](security-hardening.md).
 
 `Warden.vet(server, tools)` runs an ordered chain and returns one verdict. This page is the whole
@@ -51,8 +53,8 @@ the threshold.
 
 Local regex scan over every field a tool advertises: its `name`, `description` and `inputSchema`,
 and since v6 its `title`, `outputSchema`, `annotations` and extension metadata (everything else the
-server sent, a base64 image icon excepted). 35 rules in ruleset **v10**: 24 `block`, 11 `advise`, and
-24 of them carry a context **guard** — a named
+server sent, a base64 image icon excepted). 36 rules in ruleset **v14**: 25 `block`, 11 `advise`, and
+25 of them carry a context **guard** — a named
 check that decides whether a match is really the thing the rule is looking for. See
 [the field survey](mcp-survey.md) for the 1 108-server run that calibrated v4.
 
@@ -131,7 +133,28 @@ blocks none of MCPTox's 45 clean servers, the same 3 servers of the committed co
 servers. Its two cross-tool rules do not run on the tool name: they read a sentence about another tool's call.
 Tests: `test/ruleset-v10.test.ts`.
 
-Every rule declares which of those seven **surfaces** it runs on, and 24 of the 35 include the name.
+**v13** came from a reader of the scanner comparison: the argument's own description is where a tool that takes a
+key ("the signing key, hex") differs from one that uses a stored key ("the name of a saved login"). A new
+`TOOL_DEF_SECRET_REQUEST` rule reads argument descriptions and catches key material asked for **by value** in words
+the private-key and seed-phrase rules do not spell: a signing or wallet key, a key pair, a recovery or secret
+phrase. It only adds findings. The description is the author's text, so it never excuses another rule's match,
+and its guard `keyReference` only narrows what this rule reports: a reference is left alone (the key's id, name,
+path or public half, an argument named `*_name` or `*_id`, a key the tool creates, a key as the unit of a count).
+It is the one rule that skips the tool's description: there the same words are how key-handling tools describe
+themselves ("rotate my signing key"), and on the committed corpus they blocked six honest servers; in argument
+descriptions, none.
+
+Writing it found a hole every ruleset had since v4 (2026-08-24), when the guard was added. `identifierFragment` read the full stop in "Send me your
+private key." as part of an identifier and dropped the finding: the sentence passed, while the same words without
+the period blocked. v13 reads a dot or hyphen at the edge of a word as punctuation. That exposed four honest
+sentences the period had been hiding ("a challenge message to sign with the wallet's private key", "signed by the
+new credential's private key", "You keep the private key.", "messages from one signing key"); the guard
+`keyStaysLocal` leaves alone a key that signs or that the user keeps, unless anything in the clause moves it
+("sign it and paste the private key" still blocks). On the committed corpus v13 blocks 4 servers where v12
+blocked 3, losing none: the new one is a hosted builder whose argument takes the 64-byte secret key of a new mint
+key pair. On MCPTox it changes nothing: 171 of 218 held-out poisoned tools blocked, as with v12 (the measurement reproduced exactly), and none of the 45 clean servers; MCPTox's tools rewrite other tools' calls rather than ask for keys. Tests: `test/ruleset-v13.test.ts`.
+
+Every rule declares which of those seven **surfaces** it runs on, and 24 of the 36 include the name.
 Four of the codes that do not are the noun-keyed ones (`TOOL_DEF_SECRET_REQUEST`,
 `TOOL_DEF_CREDENTIAL_PARAM`, `TOOL_DEF_ENV_REFERENCE`, `TOOL_DEF_SECRET_EXFIL`): a name is an identifier, `api_key` and
 `private_key` are ordinary parts of one, and refusing `sign_with_private_key` would be the ruleset
