@@ -755,6 +755,7 @@ function appendFp(path, fps) {
 }
 function log(paths, entry) {
     try {
+        mkdirSync(paths.dir, { recursive: true, mode: 0o700 });
         appendFileSync(paths.log, JSON.stringify({ at: new Date().toISOString(), ...entry }) + '\n', { mode: 0o600 });
     }
     catch { /* best effort */ }
@@ -765,18 +766,85 @@ function definitionTaint(dir, sessionId) {
     try {
         const v = JSON.parse(readFileSync(join(dir, 'claude-code', 'sessions', `${sessionKey(sessionId)}.json`), 'utf8'));
         const bad = (v.servers || []).find(s => s.allow === false || s.status === 'error' || (s.blockedTools && s.blockedTools.length));
-        return bad ? `MCP server "${String(bad.key).slice(0, 64)}" definitions` : undefined;
+        return bad ? `MCP server "${safeToolName(String(bad.key))}" definitions` : undefined;
     }
     catch {
         return undefined;
     }
 }
 function sourcesText(s, extra) {
-    const list = [...(extra ? [extra] : []), ...s.untrusted.map(u => u.src)];
-    const uniq = [...new Set(list)].slice(0, 3).map(x => x.length > 80 ? x.slice(0, 77) + '...' : x);
+    // Tool identity establishes which result was read, not which result supplied a destination.
+    // Do not echo source URLs (which can carry credentials) or arbitrary result text into the dialog.
+    const list = [...(extra ? [extra] : []), ...s.untrusted.map(u => safeToolName(u.tool))];
+    const uniq = [...new Set(list)].slice(-3);
     return uniq.join(', ') || 'outside text';
 }
-export function flowPre(input, env = process.env) {
+function safeToolName(name) {
+    return /^[A-Za-z0-9_.:-]{1,100}$/.test(name) && !secretPattern([name]) ? name : '[unrecognized tool name]';
+}
+/** A short destination preview, never the outgoing message, shell program or credential value. */
+function targetSummary(toolName, input, policy, sensitivePayload) {
+    const configured = Object.entries(policy.destinationArgs).find(([glob]) => globMatch(glob, toolName))?.[1];
+    const names = configured ? new Set(configured.map(n => n.toLowerCase())) : DEST_ARG_NAMES;
+    const targets = [];
+    let omitted = false;
+    const add = (field, value, depth = 0) => {
+        if (targets.length >= 4) {
+            omitted = true;
+            return;
+        }
+        if (depth > 4) {
+            targets.push(`${field}=[nested target omitted]`);
+            return;
+        }
+        if (Array.isArray(value)) {
+            for (const v of value) {
+                add(field, v, depth + 1);
+                if (omitted)
+                    break;
+            }
+            return;
+        }
+        if (value && typeof value === 'object') {
+            for (const v of Object.values(value)) {
+                add(field, v, depth + 1);
+                if (omitted)
+                    break;
+            }
+            return;
+        }
+        if (typeof value !== 'string' && typeof value !== 'number')
+            return;
+        const raw = String(value);
+        // The main check already loaded the fingerprint stores. Do not reload them per recipient.
+        if (sensitivePayload || raw.length > 200 || secretPattern(candidates([raw])) || piiTokens(raw).length) {
+            targets.push(`${field}=[redacted]`);
+            return;
+        }
+        let preview = raw;
+        if (/^https?:\/\//i.test(raw)) {
+            try {
+                preview = new URL(raw).origin + ' (URL path/query omitted)';
+            }
+            catch {
+                preview = '[unrecognized URL]';
+            }
+        }
+        else if (!/^[#@A-Za-z0-9_.+:/-]{1,100}$/.test(raw)) {
+            // Attacker-authored prose, control characters, bidi and markup are not dialog instructions.
+            preview = '[target text omitted]';
+        }
+        targets.push(`${field}=${JSON.stringify(preview)}`);
+    };
+    for (const [key, value] of Object.entries(input)) {
+        if (names.has(key.toLowerCase()))
+            add(safeToolName(key), value);
+        if (omitted)
+            break;
+    }
+    return targets.length ? targets.join(', ') + (omitted ? '; additional targets omitted — review full call' : '') : 'not identified in destination arguments; review full call';
+}
+export function flowPre(input, env = process.env, presentation = 'hook') {
     const policy = loadPolicy(env);
     if (policy.mode === 'off')
         return undefined;
@@ -793,11 +861,16 @@ export function flowPre(input, env = process.env) {
     const defTaint = definitionTaint(dir, sessionId);
     const tainted = state.untrusted.length > 0 || !!defTaint;
     let decision;
+    let reason;
+    let sensitivePayload = false;
     if (c.protectedTouch) {
+        reason = 'protected_settings';
+        sensitivePayload = true;
         decision = { permissionDecision: tainted ? 'deny' : 'ask', permissionDecisionReason: `WARDEN flow guard: this call would change WARDEN's policy or Claude Code's hook/MCP settings${tainted ? ` after the session read outside text (${sourcesText(state, defTaint)})` : ''}.` };
     }
     else if (tainted && (c.labels.has('outbound') || toolName.startsWith('mcp__'))) {
         const leak = checkLeak(paths, toolInput, state.intent);
+        sensitivePayload = !!(leak.secret || leak.private || leak.pii);
         const dests = destinations(toolName, toolInput, policy, c.hosts);
         const targetKnown = hasDestinationArgument(toolName, toolInput, policy);
         const allowedHosts = targetKnown && dests.length > 0 && dests.every(d => allowedDestination(d, policy.allowedDestinations));
@@ -806,32 +879,44 @@ export function flowPre(input, env = process.env) {
         if (c.opaqueShell && c.secret)
             leak.secret = 'credential file referenced by shell code';
         if (leak.secret) {
+            reason = 'secret';
             decision = { permissionDecision: 'deny', permissionDecisionReason: `WARDEN flow guard: this call carries a secret (${leak.secret}) after the session read outside text (${sourcesText(state, defTaint)}). Denied.` };
         }
         else if (c.opaqueShell) {
+            reason = 'opaque_shell';
             decision = { permissionDecision: policy.mode === 'deny' ? 'deny' : 'ask', permissionDecisionReason: 'WARDEN flow guard: after outside text, shell code outside the literal read-only subset requires approval. Named or allowed hosts do not authorize shell programs, hooks, redirections or file uploads.' };
         }
         else if (leak.pii) {
+            reason = 'personal_data';
             // Card, passport, account or phone numbers read this session: even to a destination the user named,
             // unless the user typed the value. Which of the user's numbers to send is what an injection would pick.
-            decision = { permissionDecision: policy.mode === 'deny' ? 'deny' : 'ask', permissionDecisionReason: `WARDEN flow guard: this call carries an account, card, passport or phone number the session read (${state.private.slice(-2).map(p => p.src).join(', ') || 'your data'}), after it read outside text (${sourcesText(state, defTaint)}). Check what is being sent.` };
+            decision = { permissionDecision: policy.mode === 'deny' ? 'deny' : 'ask', permissionDecisionReason: `WARDEN flow guard: an argument matches a personal-data fingerprint recorded during this session, after outside text (${sourcesText(state, defTaint)}). The matching source was not retained. Check what is being sent.` };
         }
         else if (leak.private && !userNamed) {
-            decision = { permissionDecision: policy.mode === 'deny' ? 'deny' : 'ask', permissionDecisionReason: `WARDEN flow guard: this call carries text the session read from your files (${state.private.slice(-2).map(p => p.src).join(', ') || 'local files'}), after it read outside text (${sourcesText(state, defTaint)}), to a destination you did not name. Check what is being sent.` };
+            reason = 'private_text';
+            decision = { permissionDecision: policy.mode === 'deny' ? 'deny' : 'ask', permissionDecisionReason: `WARDEN flow guard: an argument matches a private-text fingerprint recorded during this session, after outside text (${sourcesText(state, defTaint)}), and the destination is not confirmed as user-named. The matching source was not retained. Check what is being sent.` };
         }
         else if (c.labels.has('outbound') && !allowedHosts && !userNamed) {
+            reason = 'unnamed_destination';
             // Not only leaks: an outbound call acts with the user's authority (a message, a payment, an invite),
             // which an injection wants as much as their data. So it does not wait for a private read.
-            const to = c.hosts.length ? ` to ${c.hosts.slice(0, 3).join(', ')}` : '';
-            const what = state.private.length > 0 || state.full ? 'and your files; this call can send data out or act for you' : '; this call can act for you or send data out';
-            decision = { permissionDecision: policy.mode === 'deny' ? 'deny' : 'ask', permissionDecisionReason: `WARDEN flow guard: the session read outside text (${sourcesText(state, defTaint)}) ${what}${to}, to a destination you did not name. Allow it only if you expected it.`.replace(') ;', ');') };
+            const what = state.private.length > 0 || state.full ? 'and private data; this call can send data out or act for you' : '; this call can act for you or send data out';
+            decision = { permissionDecision: policy.mode === 'deny' ? 'deny' : 'ask', permissionDecisionReason: `WARDEN flow guard: the session read outside text (${sourcesText(state, defTaint)}) ${what}. A destination is missing or not confirmed by your recorded messages or destination policy; addresses and links in content also count. Its origin is not tracked. Allow only if this action and destination match your request.`.replace(') ;', ');') };
         }
     }
     if (!decision && tainted && c.labels.has('destructive') && !namedByUser(destinations(toolName, toolInput, policy, c.hosts), state.intent, state.intentRaw, state.resolvedVersion === 2 ? state.resolved : undefined) && !(destinations(toolName, toolInput, policy, c.hosts).length === 0 && keepsDestination(toolName, toolInput, policy))) {
+        reason = 'destructive_action';
         decision = { permissionDecision: policy.mode === 'deny' ? 'deny' : 'ask', permissionDecisionReason: `WARDEN flow guard: the session read outside text (${sourcesText(state, defTaint)}); this call changes or deletes things outside the project. Allow it only if you expected it.` };
     }
-    if (decision)
-        log(paths, { event: 'pre', tool: toolName, decision: decision.permissionDecision, mode: policy.mode, labels: [...c.labels] });
+    if (decision) {
+        decision.permissionDecisionReason = `Action: ${safeToolName(toolName)}. Targets: ${targetSummary(toolName, toolInput, policy, sensitivePayload)}.\n${decision.permissionDecisionReason}`;
+        // These are guard decisions, not proof a dialog was shown or a human clicked it. Never infer
+        // approval from PostToolUse: execution can also follow automatic client permissions.
+        const disposition = policy.mode === 'audit' || presentation === 'audit' ? 'audit_only'
+            : decision.permissionDecision === 'deny' || presentation === 'refuse' ? 'refused' : 'approval_requested';
+        log(paths, { event: 'pre', tool: safeToolName(toolName), decision: decision.permissionDecision, reason, disposition,
+            approvalOutcome: 'unknown', mode: policy.mode, labels: [...c.labels] });
+    }
     if (policy.mode === 'audit')
         return undefined;
     return decision;

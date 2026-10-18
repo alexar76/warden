@@ -2,6 +2,12 @@
 
 > 🌐 [English](flow-guard.md) · [Русский](flow-guard.ru.md) · **Español** · [Français](flow-guard.fr.md) · [中文](flow-guard.zh.md)
 
+## Explicaciones de permisos (código aún no publicado)
+
+La pregunta muestra la herramienta, hasta cuatro destinos y el motivo. Omite cuerpos de mensajes, código shell, credenciales/rutas/parámetros de URL y valores sensibles reconocidos. El origen de cada destino no se rastrea; una coincidencia de huella tampoco identifica un archivo concreto. Ya no se atribuye a los últimos archivos leídos. Revise la llamada completa en el cliente.
+
+Las entradas locales `event: "pre"` incluyen `reason` y `disposition` (`approval_requested`, `refused`, `audit_only`), sin valores de destino ni contenido de argumentos. `approvalOutcome` permanece `unknown`: ni emitir una pregunta ni recibir después un resultado demuestra aprobación humana. No hay una tasa de aprobaciones medida; los 39 de 97 históricos cuentan tareas con alguna pregunta. Solo se ejecutaron pruebas locales, sin nuevos benchmarks ni mediciones de fatiga. [Detalles](flow-guard.md#what-an-approval-request-explains).
+
 ## Comportamiento tras la auditoría del 2026-10-18
 
 La guardia comprueba llamadas después de recibir texto externo; no es un sandbox ni una garantía universal. Las etiquetas del operador y los argumentos admitidos siguen siendo límites de confianza.

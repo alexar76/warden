@@ -173,7 +173,7 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
             if (tracked.size >= 256 || tracked.has(msg.id)) throw new Error('Too many or duplicate pending MCP requests');
             const args = msg.params?.arguments && typeof msg.params.arguments === 'object' && !Array.isArray(msg.params.arguments) ? msg.params.arguments as Record<string, unknown> : {};
             if (opts.flow) {
-              const d = flowPre({ session_id: flowSession, cwd: process.cwd(), tool_name: flowTool(String(name)), tool_input: args });
+              const d = flowPre({ session_id: flowSession, cwd: process.cwd(), tool_name: flowTool(String(name)), tool_input: args }, process.env, opts.auditOnly ? 'audit' : 'refuse');
               // An MCP client has no one to ask from here: a call the guard would ask about is refused, with its reason.
               if (d && !opts.auditOnly) throw new Error(`${d.permissionDecisionReason}${d.permissionDecision === 'ask' ? ' Refused: wrap cannot ask you; name the destination in the flow policy (allowedDestinations) or make the call yourself.' : ''}`);
               if (d) log.warn(`flow guard would ${d.permissionDecision} ${flowTool(String(name))}`);

@@ -31,6 +31,18 @@ For the proxy, use `node dist/mcp-server.js wrap --flow mail -- node mail-server
 
 **Historical measurements below:** all retained AgentDojo tables, charts and costs describe the pre-audit implementations through commit `2328be980`. They are not measurements of this hardened implementation or ruleset v14. No new model, replay or corpus benchmark was run for the audit fixes; only local regression tests. A reference-solution replay is one fixed attack path, not an adaptive worst case. The older policy and result artifacts are preserved unchanged.
 
+## What an approval request explains
+
+The unreleased source now prefixes a decision with the proposed tool and destination arguments, for example `Action: mcp__slack__send_message. Targets: channel="#general".` The reason says that the session read outside text and that the destination is not confirmed by the recorded user messages or destination policy. Naming `mcp__slack__list_channels` as outside-text context does **not** establish that it supplied the channel: destination provenance is not tracked.
+
+The preview shows at most four targets. It omits outgoing message bodies and shell code, strips URL credentials, paths and queries, and redacts recognized sensitive values or targets when the payload has a private-data match. Unrecognized text is omitted rather than rendered as an instruction. The preview is incomplete by design; inspect the client's full call before approving.
+
+For private-text or personal-data fingerprint matches, the prompt states that the matching source was not retained. The fingerprint stores pool observations across the session, so listing the last files read would be unsupported attribution.
+
+Local `claude-code/flow/<session-hash>.log` decision entries (`event: "pre"`) contain `reason` and `disposition`: `approval_requested`, `refused`, or `audit_only`. These entries do not contain target values, message bodies or raw matching text. A proxy refusal is not counted as a displayed question; audit mode is not enforcement. `approvalOutcome` is explicitly `unknown`, including after a successful tool result. Current integrations do not report a verified human approval/denial event, so these logs cannot measure a human approval rate or prove a prompt was displayed. Historical log entries without these fields must not be classified as approvals.
+
+The historical 39 of 97 replay tasks needing an ask is a task-level measurement, not a percentage of calls or human approvals. These explanation and logging changes have local regression coverage only; they have not been evaluated for approval fatigue or task utility with users or new model runs.
+
 ## Measured on AgentDojo
 
 [AgentDojo](https://github.com/ethz-spylab/agentdojo) (ETH Zürich) is a benchmark for prompt injections against

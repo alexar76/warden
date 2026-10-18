@@ -2,6 +2,12 @@
 
 > 🌐 [English](flow-guard.md) · [Русский](flow-guard.ru.md) · [Español](flow-guard.es.md) · [Français](flow-guard.fr.md) · **中文**
 
+## 权限请求说明（尚未发布的源码）
+
+请求现在显示工具、最多四个目标和原因。预览不包含消息正文、shell 代码、URL 的凭据/路径/查询参数以及识别出的敏感值。尚未跟踪每个目标的来源；指纹匹配也不能确定具体源文件，因此不再把最近读取的文件当作匹配来源。请在客户端检查完整调用。
+
+本地 `event: "pre"` 日志新增 `reason` 和 `disposition`（`approval_requested`、`refused`、`audit_only`），不记录目标值或参数内容。`approvalOutcome` 保持 `unknown`：发出请求或随后收到工具结果，都不能证明有人确认。目前没有人工批准率；历史数据中的 39/97 是至少触发一次请求的任务比例。仅运行本地测试，未新增基准测试或测量确认疲劳。[详情](flow-guard.md#what-an-approval-request-explains)。
+
 ## 2026-10-18 审计后的行为
 
 守卫在会话接收外部文本后检查工具调用。它是额外的防护层，不是沙箱，也不是绝对安全保证；工具标签及支持的参数仍属于信任边界。

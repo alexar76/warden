@@ -2,6 +2,12 @@
 
 > 🌐 [English](flow-guard.md) · [Русский](flow-guard.ru.md) · [Español](flow-guard.es.md) · **Français** · [中文](flow-guard.zh.md)
 
+## Explication des demandes (sources non encore publiées)
+
+La demande indique l’outil, jusqu’à quatre destinations et le motif. Elle omet le corps des messages, le code shell, les identifiants/chemins/paramètres des URL et les valeurs sensibles reconnues. L’origine de chaque destination n’est pas suivie ; une correspondance d’empreinte n’identifie pas non plus un fichier précis. Les derniers fichiers lus ne sont plus présentés comme sa source. Vérifiez l’appel complet dans le client.
+
+Les entrées locales `event: "pre"` incluent `reason` et `disposition` (`approval_requested`, `refused`, `audit_only`), sans valeurs de destination ni contenu des arguments. `approvalOutcome` reste `unknown` : ni une demande émise ni un résultat ultérieur ne prouvent une approbation humaine. Aucun taux d’approbation n’est mesuré ; les 39 tâches sur 97 historiques comptent celles ayant au moins une demande. Tests locaux uniquement, sans nouveau benchmark ni mesure de fatigue. [Détails](flow-guard.md#what-an-approval-request-explains).
+
 ## Comportement après l’audit du 2026-10-18
 
 La garde vérifie les appels après réception de texte externe. Ce n’est ni un sandbox ni une garantie universelle : les étiquettes de l’opérateur et les arguments pris en charge restent des frontières de confiance.

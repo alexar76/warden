@@ -2,6 +2,12 @@
 
 ## 0.17.0 — unreleased
 
+### Approval explanations (2026-10-18; local tests only)
+
+- Approval reasons now identify the proposed tool and bounded destination arguments, including channel names and nested recipients. Sensitive targets are redacted; URL credentials, paths and queries, message bodies and shell programs are not included in the preview. Unrecognized target text is omitted.
+- Fingerprint matches no longer cite the most recently read files as if they were the matching source. The prompt explicitly says that the source was not retained; destination provenance remains untracked. Outside-text context names the tools whose results were read.
+- Decision logs include a stable reason and distinguish `approval_requested`, `refused` and `audit_only`, including `wrap --flow`. `approvalOutcome` remains `unknown`: neither an emitted request nor a subsequent tool result proves a human approved. These changes do not relax decisions or establish reduced approval fatigue. No new model or corpus measurements.
+
 ### Security audit follow-up (2026-10-18; no new benchmark runs)
 
 - Gate opaque shell code even for named/allowed destinations; protect expanded and symlinked policy paths and Git hooks/config; reject recognized credential-file uploads.
