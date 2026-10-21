@@ -1,0 +1,227 @@
+{
+ "public_copy": {
+  "of": "manifest-2026-10-16.json",
+  "full_manifest_sha256": "aef85dae7838ef90f27937a061cb786fd621d11c00423496ef490ef623a36707",
+  "withheld": "hosts.*.address (the scan hosts' IP addresses); every other field is unchanged"
+ },
+ "written": "2026-10-16T14:06:02Z",
+ "note": "Hashes of the exact files the containers read. sets/ is read-only to the container user; per-file hashes are in manifest-files-2026-10-16.txt.gz.",
+ "sets": {
+  "corpus": {
+   "files": 987,
+   "tree_sha256": "1288e919eb0280f593e669041c88da6d57edcda2e26c5d0c52ea7557cc4e954e"
+  },
+  "independent": {
+   "files": 13,
+   "tree_sha256": "3616bac2259e12f84b35fa7dd85e51d64f74095c4f800c45838688a5f8e018f4"
+  },
+  "labelled": {
+   "files": 36,
+   "tree_sha256": "30198adc6882050c371e3ba244dafa234303c28ff10bb149d1388e5fe0ae66a7"
+  },
+  "mcptox-clean": {
+   "files": 46,
+   "tree_sha256": "866994b6a1814ef3988cb6ea7391c5450a7df999288f260797f8493680368531"
+  },
+  "mcptox-decorated": {
+   "files": 226,
+   "tree_sha256": "9e525ff6f32960a4b93773109d65d4539b66b02395dca4528897fd88f15479ec"
+  },
+  "mcptox-served": {
+   "files": 486,
+   "tree_sha256": "8337746846ba3ce7316106c692cfe6b3e4407a540021ee8245e8ad8cf47974e3"
+  },
+  "packages-a": {
+   "files": 4878,
+   "tree_sha256": "18380ecd6364167fdfb85b293c8a70b34a69aa13c1c41ed242da8ad8c3a44a4a"
+  },
+  "packages-b": {
+   "files": 10057,
+   "tree_sha256": "46357805aa11e9ceda3b5b3610ce5a405f4d0726522c3758e89865446a5f1bf4"
+  },
+  "packages-xhost": {
+   "files": 101,
+   "tree_sha256": "fb300b1f9af3d2114da7c30ee464adb5f17ba2729a98699750d3a23c5dcaa0c8"
+  }
+ },
+ "harness": {
+  "normalize.py": "ea8dee3dd137e61357881edd94ea18916e30b772e32297f62232a01ae7e21f25",
+  "replay.mjs": "301e62ac20557d93034edf719f3215623f778c309b5b462b9df9bd095d826853",
+  "run_competitors.py": "d6e93bebe833913abf3d478a01b63cb9c2df5faf1afafbf4cde9979ca9985fd2"
+ },
+ "competitor_image_pip_freeze": [
+  "annotated-doc==0.0.5",
+  "annotated-types==0.8.0",
+  "anyio==4.15.1",
+  "attrs==26.1.0",
+  "certifi==2026.7.22",
+  "cffi==2.1.1",
+  "charset-normalizer==3.5.2",
+  "click==8.5.0",
+  "cryptography==50.0.2",
+  "h11==0.16.0",
+  "httpcore==1.0.9",
+  "httpcore2==2.13.1",
+  "httpx==0.28.1",
+  "httpx2==2.13.1",
+  "idna==3.20",
+  "jsonschema==4.26.0",
+  "jsonschema-specifications==2025.9.1",
+  "markdown-it-py==4.2.0",
+  "mcp==2.3.0",
+  "mcp-audit-scanner==0.18.2",
+  "mcp-types==2.3.0",
+  "mdurl==0.1.2",
+  "opentelemetry-api==1.45.1",
+  "packaging==26.3",
+  "pillow==12.3.0",
+  "platformdirs==4.13.3",
+  "pycparser==3.11",
+  "pydantic==2.14.1",
+  "pydantic_core==2.50.1",
+  "Pygments==2.21.0",
+  "PyJWT==2.15.1",
+  "python-multipart==0.0.32",
+  "PyYAML==6.0.3",
+  "referencing==0.37.0",
+  "reportlab==5.0.1",
+  "rich==15.0.0",
+  "rpds-py==2026.9.1",
+  "shellingham==1.5.4",
+  "sse-starlette==3.5.0",
+  "starlette==1.8.0",
+  "truststore==0.10.5",
+  "typer==0.27.3",
+  "typing-inspection==0.4.4",
+  "typing_extensions==4.16.0",
+  "uvicorn==0.54.0",
+  "watchdog==6.0.0"
+ ],
+ "warden": {
+  "package": "@aimarket/warden 0.16.0",
+  "source_commit": "204290dcf54e2577f14007dc0d47dada5d922929",
+  "tarball": "aimarket-warden-0.16.0.tgz from `npm pack` in warden/",
+  "tarball_sha256": "ba1b2d798d5b822ea62d1de147bcb187e24905b09ce8491380741446e0225ffb",
+  "static_scan_ruleset": {
+   "version": "12",
+   "digest": "sha256-3E1lfPR+y6rFZtWN+L9Nkc1SVirrXTWxfEVNXQn4W4I="
+  },
+  "npm_published": {
+   "checked": "2026-10-17 (after the run)",
+   "result": "byte-identical: npm dist.integrity sha512-yqCH+aEJ…Ejdw== and dist.shasum 0fa25ac6… equal the measured tarball"
+  }
+ },
+ "images": {
+  "base": "node:22-alpine = node@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402",
+  "warden-cmp:20261016": {
+   "id": "sha256:99650ea2769970cc38905f7e7c546c3e7a3eaeaaf97ded0ff870c9259bd2ccd2",
+   "dockerfile": "Dockerfile.competitors",
+   "built_on": "PingBlip",
+   "copied_to": "attested by docker save | docker load; same id on both"
+  },
+  "warden-run:20261016": {
+   "id": "sha256:7525fbc0d2f424709867737d2ea7ca2742aada02f95e3fbd34133f3233cad415",
+   "dockerfile": "Dockerfile.warden",
+   "built_on": "PingBlip",
+   "copied_to": "attested by docker save | docker load; same id on both"
+  },
+  "node": "v22.23.3",
+  "python": "3.14.8 (alpine python3-3.14.8-r0)"
+ },
+ "tools": {
+  "mcp-audit-scanner": {
+   "version": "0.18.2",
+   "source": "PyPI",
+   "wheel": "mcp_audit_scanner-0.18.2-py3-none-any.whl",
+   "wheel_sha256": "131b0d33650e106aae26a56e7c367f3fb2b836f3d87a0742823758afbb39c650",
+   "installed_files_match_wheel": "265 of 266 (RECORD is rewritten by pip; INSTALLER and REQUESTED are added by pip)",
+   "latest_published": "0.21.0",
+   "dependencies_note": "resolved at build time; mcp==2.3.0 (MCP Python SDK 2.x), see competitor_image_pip_freeze"
+  },
+  "mcp-shield": {
+   "version": "1.0.4",
+   "source": "npm",
+   "integrity": "sha512-AHCzG16zoWVVOo1qrCXgQeXYWu/IqV44h0YMx2FzyydMZpsD9jGAR3JJr8zCFml6MHGi1CrWax0ytcdNiDyU/Q==",
+   "installed_files_match_tarball": "11 of 11",
+   "latest_published": "1.0.4"
+  },
+  "@askalf/truecopy": {
+   "version": "0.10.4",
+   "source": "npm",
+   "integrity": "sha512-fCas0nCVTOLt+m7bBzEITBLZRdgl8osYf3c/GsN3fq1PHWSPX0VwhRfx494o7AgdRqF9E9DCZ1ZKRY8kZ1qwsQ==",
+   "installed_files_match_tarball": "17 of 17",
+   "latest_published": "0.10.4"
+  },
+  "@askalf/redstamp": {
+   "version": "0.7.5",
+   "source": "GitHub release tarball named by truecopy's package.json (https://github.com/askalf/redstamp/releases/download/v0.7.5/askalf-redstamp-0.7.5.tgz)",
+   "sha256": "b97e2126c8e67ba73b1b6f0d6f5a045683d2d48e2f2cd4f07c341982bce7de39",
+   "integrity": "sha512-hXwLm1QfQPn6UnKiTNXNTYVLMzhIu+SxiCg/LrLqmsa/xpwlSS4V+GafRf6tV/Kzcvoo+fPGo2Bs8OAOqpcxmA==",
+   "installed_files_match_tarball": "19 of 19"
+  },
+  "@roshan6335/mcpsentry": {
+   "version": "0.1.5",
+   "source": "npm",
+   "integrity": "sha512-j/zBbF41kXUX83AN7F2oJaKmJsid1+/sVnQxf4k26g2KfnbzfgDMRFZcecbEudkbewRasHmFc/SzskbH7UqVOw==",
+   "installed_files_match_tarball": "17 of 17",
+   "latest_published": "0.1.5",
+   "note": "its --version prints 0.1.0 (hard-coded)"
+  }
+ },
+ "classifier": {
+  "model": "deepseek-flash",
+  "endpoint": "https://api.deepseek.com",
+  "reasoning_effort": "none",
+  "where": "workstation (the containers have no network)",
+  "build": "WARDEN dist at the same commit"
+ },
+ "hosts": {
+  "PingBlip": {
+   "address": "withheld in the public copy",
+   "cores": 6,
+   "ram_gb": 12,
+   "runsc": "release-20261005.0",
+   "shares_with": "the PingBlip game and HISTOR's package sandbox (3 slots)",
+   "cpus": 3
+  },
+  "attested": {
+   "address": "withheld in the public copy",
+   "cores": 6,
+   "ram_gb": 12,
+   "runsc": "release-20261005.0 (installed 2026-10-16 from the same pinned apt suite and key as PingBlip)",
+   "shares_with": "attestedmemory hub, GAIA, azimuth, lottery, playground, Metis court",
+   "cpus": 4
+  }
+ },
+ "container_flags": "--rm --runtime=runsc --network none --cpus N --memory 2g --memory-swap 2g --pids-limit 512 --read-only --tmpfs /tmp:size=512m -v /opt/warden-cmp/20261016:/work, user node (uid 1000)",
+ "histor_snapshot": {
+  "source": "https://histor.modelmarket.dev public API: GET /api/v1/servers?q=npm:|pypi:&state=pinned, then GET /api/v1/servers/{id}",
+  "what": "each package target's last observed tools/list, as HISTOR served it at fetch time (its crawl was running); toolSetDigest per target in packages-index-2026-10-16.json.gz",
+  "fetched_between": [
+   "2026-10-16T13:03:57Z",
+   "2026-10-16T13:57:22Z"
+  ],
+  "signed_tree_head_during_pull": {
+   "treeSize": 654662,
+   "rootHash": "e88603e52fa8e9547ea16c398955bee8bb3b8ba63a43f79bed096feec8959768",
+   "sthTimestamp": "2026-10-16T05:19:47Z"
+  },
+  "targets_listed": 14933,
+  "with_tools": 14933,
+  "nothing_queued_on_histor_sandboxes": true
+ },
+ "package_split": {
+  "rule": "packages-a (PingBlip) = int(sha256(target id), 16) % 3 == 0; packages-b (attested) = the rest; packages-xhost (both hosts) = the 100 targets with the smallest sha256(\"warden cross-host 2026-10-16|\" + target id)",
+  "counts": {
+   "packages-a": 4877,
+   "packages-b": 10056,
+   "packages-xhost": 100
+  },
+  "xhost": null
+ },
+ "package_judged_subset": {
+  "rule": "the seeded 1000-sample drawn in the morning (random.Random(\"warden scanner comparison packages 2026-10-16\") over that listing of 14 933), kept where the afternoon fetch served the same toolSetDigest",
+  "count": 996,
+  "excluded": 4
+ }
+}

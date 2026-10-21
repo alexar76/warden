@@ -4,7 +4,7 @@
 
 <!-- aicom-readme-badges -->
 <p align="center">
-  <a href="https://github.com/alexar76/warden/actions/workflows/ci.yml"><img src="docs/badges/ci.svg" alt="CI" /></a>
+  <a href="https://github.com/alexar76/warden/actions/workflows/ci.yml"><img src="https://github.com/alexar76/warden/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
   <a href="https://glama.ai/mcp/servers/alexar76/warden"><img src="https://glama.ai/mcp/servers/alexar76/warden/badges/score.svg" alt="warden MCP server" /></a>
   <a href="https://warden.modelmarket.dev/"><img src="https://img.shields.io/npm/v/@aimarket/warden?color=cb3837&label=npm" alt="npm version" /></a>
   <img src="docs/badges/deps.svg" alt="Zero runtime dependencies" />
@@ -65,7 +65,6 @@ Claude Desktop, Cursor, Glama и любой MCP-клиент со stdio. Клю�
 | Библиотека | `import { Warden } from "@aimarket/warden"` |
 | Glama / Docker (stdio) | [`Dockerfile`](Dockerfile), [`glama.json`](glama.json) |
 | Official MCP Registry | [`server.json`](server.json) → `io.github.alexar76/warden` |
-| Smithery | [`smithery.yaml`](smithery.yaml) |
 
 MCP-сервер сам сообщает вашему агенту, что делают его инструменты. Агент этому верит — и вот эта
 фраза и есть поверхность атаки. Описание инструмента — это текст промпта, который третья сторона

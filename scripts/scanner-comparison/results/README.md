@@ -14,6 +14,7 @@ Two runs are kept here. The write-up is [`docs/scanner-comparison.md`](../../../
 | File | What |
 |---|---|
 | `manifest-2026-10-16.json` | written before the runs: SHA-256 tree hash of every input set, the harness files, the WARDEN tarball, both image IDs and their base, each scanner's version, registry integrity and whether its installed files match the published package, the competitor image's full `pip freeze`, the hosts, the container flags, the HISTOR snapshot and the package split |
+| `manifest-2026-10-16.public.json` | the same manifest with the two scan hosts' IP addresses withheld; `public_copy.full_manifest_sha256` is the SHA-256 of the full file, which stays in the monorepo |
 | `manifest-files-2026-10-16.txt.gz` | SHA-256 of each of the 16,830 input files |
 | `packages-index-2026-10-16.json.gz` | the 14,933 HISTOR package targets: id, name, endpoint, version, `toolSetDigest`, and which host ran it |
 | `packages-judged-subset-2026-10-16.json` | the 996 packages in which every block was judged |

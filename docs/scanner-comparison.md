@@ -89,7 +89,7 @@ Every server was replayed over stdio by a small program that answers `initialize
 file and does nothing else. Each scanner connected to it as it would to a real server, one server per run, with
 its own empty `HOME`.
 
-- **Fixed inputs.** Before the runs we wrote a [manifest](../scripts/scanner-comparison/results/manifest-2026-10-16.json)
+- **Fixed inputs.** Before the runs we wrote a [manifest](../scripts/scanner-comparison/results/manifest-2026-10-16.public.json)
   with the SHA-256 of every input file: 16,830 files in nine sets. The replay files were read-only to
   the scanners.
 - **Fixed tools.** One image for the four other scanners, one for WARDEN, both on the same `node:22-alpine` base.

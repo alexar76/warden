@@ -11,10 +11,10 @@
 
 <!-- aicom-readme-badges -->
 <p align="center">
-  <a href="https://github.com/alexar76/warden/actions/workflows/ci.yml"><img src="https://raw.githubusercontent.com/alexar76/warden/refs/heads/main/docs/badges/ci.svg" alt="CI" /></a>
+  <a href="https://github.com/alexar76/warden/actions/workflows/ci.yml"><img src="https://github.com/alexar76/warden/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
   <a href="https://warden.modelmarket.dev/"><img src="https://raw.githubusercontent.com/alexar76/warden/refs/heads/main/docs/badges/deps.svg" alt="0 runtime deps" /></a>
   <a href="https://warden.modelmarket.dev/"><img src="https://img.shields.io/npm/v/@aimarket/warden.svg" alt="npm @aimarket/warden" /></a>
-  <img src="https://raw.githubusercontent.com/alexar76/warden/refs/heads/main/docs/badges/tests.svg" alt="96 tests passing" />
+  <img src="https://raw.githubusercontent.com/alexar76/warden/refs/heads/main/docs/badges/tests.svg" alt="tests passing" />
   <img src="https://raw.githubusercontent.com/alexar76/warden/refs/heads/main/docs/badges/node.svg" alt="node >=20" />
   <img src="https://raw.githubusercontent.com/alexar76/warden/refs/heads/main/docs/badges/warden.svg" alt="WARDEN MCP firewall" />
   <a href="https://github.com/alexar76/warden/blob/main/LICENSE"><img src="https://raw.githubusercontent.com/alexar76/warden/refs/heads/main/docs/badges/license.svg" alt="License: MIT" /></a>
@@ -72,7 +72,6 @@ Claude Desktop, Cursor, Glama, and any MCP client that speaks stdio. No API keys
 | Library | `import { Warden } from "@aimarket/warden"` |
 | Glama / Docker (stdio) | [`Dockerfile`](Dockerfile), [`glama.json`](glama.json) |
 | Official MCP Registry | [`server.json`](server.json) → `io.github.alexar76/warden` |
-| Smithery | [`smithery.yaml`](smithery.yaml) |
 
 An MCP server tells your agent what its tools do. The agent believes it — that sentence is the
 attack surface. A tool description is prompt text delivered by a third party straight into your
@@ -332,7 +331,7 @@ check them: [ERC-8004 identities](https://github.com/alexar76/aicom/blob/main/do
 | [Scanner comparison](docs/scanner-comparison.md) | WARDEN, mcp-audit, mcp-shield, truecopy and mcpsentry on the same servers, on 14,933 npm and PyPI packages and on the MCPTox benchmark, with every judgment, the manifest and the harness |
 | [Flow guard](docs/flow-guard.md) | The Claude Code plugin's runtime guard: outside text, private data, outbound calls; the AgentDojo measurement and its limits |
 | [Glama / Docker](docs/GLAMA.md) | stdio MCP server, health check, admin Build steps / CMD |
-| [MCP registries](docs/REGISTRIES.md) | Official Registry, Smithery, mcp.so / Pulse |
+| [MCP registries](docs/REGISTRIES.md) | Official Registry, mcp.so / Pulse |
 | [Security](SECURITY.md) | How to report a firewall bypass |
 | [Contributing](CONTRIBUTING.md) | Zero-dep rule, ruleset PRs |
 

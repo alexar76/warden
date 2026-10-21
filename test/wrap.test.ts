@@ -1,5 +1,5 @@
 import { fileURLToPath } from 'node:url';
-import { beforeAll, afterEach, describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect } from 'vitest';
 import { spawn, execFileSync, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { mkdtempSync, writeFileSync, readFileSync, existsSync, rmSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -12,7 +12,6 @@ import { flowPaths } from '../src/flow-guard.js';
 const root = resolve(fileURLToPath(new URL(".", import.meta.url)), '..');
 const bin = join(root, 'dist/mcp-server.js'), fixture = join(root, 'test/fixtures/wrap-server.mjs');
 const dirs: string[] = [], children: ChildProcessWithoutNullStreams[] = [];
-beforeAll(() => { execFileSync(process.execPath, ['node_modules/typescript/bin/tsc', '-p', 'tsconfig.json'], { cwd: root }); }, 30_000);
 afterEach(() => { for (const p of children.splice(0)) p.kill('SIGKILL'); for (const d of dirs.splice(0)) rmSync(d, { recursive: true, force: true }); });
 function state() { const d = mkdtempSync(join(tmpdir(), 'warden-wrap-')); dirs.push(d); return d; }
 function harness(options: { dir?: string; config?: any; flags?: string[]; lsp?: boolean; id?: string; args?: string[]; direct?: boolean; env?: Record<string, string> } = {}) {

@@ -94,7 +94,7 @@ Cada servidor se reprodujo por stdio con un pequeño programa que responde a `in
 archivo JSON y no hace nada más. Cada escáner se conectó a él como lo haría con un servidor real, un servidor por
 ejecución, con su propio `HOME` vacío.
 
-- **Entradas fijas.** Antes de las ejecuciones escribimos un [manifiesto](../scripts/scanner-comparison/results/manifest-2026-10-16.json)
+- **Entradas fijas.** Antes de las ejecuciones escribimos un [manifiesto](../scripts/scanner-comparison/results/manifest-2026-10-16.public.json)
   con el SHA-256 de cada archivo de entrada: 16 830 archivos en nueve conjuntos. Los archivos de reproducción eran
   de solo lectura para los escáneres.
 - **Herramientas fijas.** Una imagen para los otros cuatro escáneres y una para WARDEN, ambas sobre la misma base

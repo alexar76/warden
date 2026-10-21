@@ -84,7 +84,7 @@ mcp-shield：`HIGH Risk` 的工具。truecopy：被其代理以 `poisoned` 拦�
 每台服务器都通过 stdio 重放：一个小程序从 JSON 文件回答 `initialize` 和 `tools/list`，别的什么也不做。每款扫描器
 像连接真实服务器一样连接它，每次运行一台服务器，使用各自空的 `HOME`。
 
-- **固定的输入。** 运行前我们写了一份[清单](../scripts/scanner-comparison/results/manifest-2026-10-16.json)，记录每个
+- **固定的输入。** 运行前我们写了一份[清单](../scripts/scanner-comparison/results/manifest-2026-10-16.public.json)，记录每个
   输入文件的 SHA-256：九个数据集共 16,830 个文件。重放文件对扫描器只读。
 - **固定的工具。** 一个镜像用于另外四款扫描器，一个用于 WARDEN，两者基于同一个 `node:22-alpine`。扫描器按上述版本
   取自 npm 和 PyPI，安装后的每个文件都与已发布的包一致，pip 自己改写的安装记录除外。WARDEN 来自被测提交的

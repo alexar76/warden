@@ -94,7 +94,7 @@ Chaque serveur a été rejoué en stdio par un petit programme qui répond à `i
 fichier JSON et ne fait rien d’autre. Chaque scanner s’y est connecté comme à un vrai serveur, un serveur par
 exécution, avec son propre `HOME` vide.
 
-- **Entrées figées.** Avant les exécutions, nous avons écrit un [manifeste](../scripts/scanner-comparison/results/manifest-2026-10-16.json)
+- **Entrées figées.** Avant les exécutions, nous avons écrit un [manifeste](../scripts/scanner-comparison/results/manifest-2026-10-16.public.json)
   avec le SHA-256 de chaque fichier d’entrée : 16 830 fichiers dans neuf jeux. Les fichiers de rejeu étaient en
   lecture seule pour les scanners.
 - **Outils figés.** Une image pour les quatre autres scanners, une pour WARDEN, toutes deux sur la même base

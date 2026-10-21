@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterEach } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { mkdtempSync, writeFileSync, readFileSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -8,7 +8,6 @@ import { spawnSync, execFileSync } from 'node:child_process';
 const root = fileURLToPath(new URL('..', import.meta.url));
 const fixture = join(root, 'test/fixtures/wrap-server.mjs');
 const dirs: string[] = [];
-beforeAll(() => { execFileSync(process.execPath, ['node_modules/typescript/bin/tsc', '-p', 'tsconfig.json'], { cwd: root }); }, 30_000);
 afterEach(() => { for (const d of dirs.splice(0)) rmSync(d, { recursive: true, force: true }); });
 
 function runAction(project: string, inputs: Record<string, string>) {

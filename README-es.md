@@ -4,7 +4,7 @@
 
 <!-- aicom-readme-badges -->
 <p align="center">
-  <a href="https://github.com/alexar76/warden/actions/workflows/ci.yml"><img src="docs/badges/ci.svg" alt="CI" /></a>
+  <a href="https://github.com/alexar76/warden/actions/workflows/ci.yml"><img src="https://github.com/alexar76/warden/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
   <a href="https://glama.ai/mcp/servers/alexar76/warden"><img src="https://glama.ai/mcp/servers/alexar76/warden/badges/score.svg" alt="warden MCP server" /></a>
   <a href="https://warden.modelmarket.dev/"><img src="https://img.shields.io/npm/v/@aimarket/warden?color=cb3837&label=npm" alt="npm version" /></a>
   <img src="docs/badges/deps.svg" alt="Cero dependencias de ejecución" />
@@ -65,7 +65,6 @@ Claude Desktop, Cursor, Glama y cualquier cliente MCP con stdio. Sin claves.
 | Biblioteca | `import { Warden } from "@aimarket/warden"` |
 | Glama / Docker (stdio) | [`Dockerfile`](Dockerfile), [`glama.json`](glama.json) |
 | Official MCP Registry | [`server.json`](server.json) → `io.github.alexar76/warden` |
-| Smithery | [`smithery.yaml`](smithery.yaml) |
 
 Un servidor MCP le dice a tu agente qué hacen sus herramientas. El agente se lo cree — y esa frase
 es la superficie de ataque. La descripción de una herramienta es texto de prompt que un tercero
