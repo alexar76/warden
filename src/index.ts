@@ -39,6 +39,8 @@ export type { StaticScanRule, StaticScanRuleset } from "./static-scan.js";
 export type { ThreatFeedOptions } from "./threat-feed.js";
 export { silentLogger } from "./logger.js";
 export { displaySafe, DEFAULT_DISPLAY_MAX } from "./sanitize.js";
+export { diffToolDefinitions, formatDefinitionDiff, wordDiff } from "./review-diff.js";
+export type { DefinitionDiff, ToolChange, FieldChange, WordOp } from "./review-diff.js";
 export { wildcardMatch } from "./glob.js";
 export * from "./types.js";
 

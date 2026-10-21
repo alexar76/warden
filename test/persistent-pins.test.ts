@@ -14,6 +14,7 @@ function rpc(name: string, args: object, enabled = true): any {
 it('requires operator opt-in and exact reviewed payload, persists approval across real process restarts, then revokes', () => {
   const status = rpc('status_mcp_server', { server, tools }).structuredContent;
   expect(status.previous).toBeNull();
+  expect(status.changes).toBeNull();
   const approval = { server, tools, previous_pin_revision: null, reviewed_tools_hash: status.currentToolsHash,
     reviewed_identity_hash: status.currentIdentityHash };
   expect(rpc('approve_mcp_server', approval, false).isError).toBe(true);
@@ -25,6 +26,8 @@ it('requires operator opt-in and exact reviewed payload, persists approval acros
   expect(rpc('approve_mcp_server', approval).isError).toBe(true); // stale review
   const current = rpc('status_mcp_server', { server, tools: changed }).structuredContent;
   expect(current.changed).toBe(true);
+  expect([current.changes.changed, current.changes.added, current.changes.removed]).toEqual([1, 0, 0]);
+  expect(current.reviewText).toContain('description: Add [-two-]{+three+} integers.');
   expect(rpc('revoke_mcp_server', { server, previous_pin_revision: current.previousRevision }).structuredContent.revoked).toBe(true);
   expect(rpc('status_mcp_server', { server, tools }).structuredContent.previous).toBeNull();
 });

@@ -1,5 +1,7 @@
 import { FilePinStore, pinRevision } from "./pin-store.js";
 import { pinToolsHash, serverIdentityHash } from "./pinning.js";
+import { diffToolDefinitions, formatDefinitionDiff } from "./review-diff.js";
+import { displaySafe } from "./sanitize.js";
 /**
  * MCP tool surface for the WARDEN stdio server.
  *
@@ -531,8 +533,8 @@ MCP_TOOLS.push(
     name: "status_mcp_server",
     title: "Show the stored approval for one MCP server",
     description:
-      "Read the approval WARDEN has stored for one server id and compare it with the tools/list payload and launch identity you pass in. Returns the stored approval (or null), its revision, the hashes of what you passed, whether they differ, and whether this process may change approvals at all.\n\n" +
-      "When to use: before an operator decides to approve or revoke a server, to see what changed since the last approval. It is the only source of the values approve_mcp_server and revoke_mcp_server ask for (currentToolsHash, currentIdentityHash, previousRevision).\n\n" +
+      "Read the approval WARDEN has stored for one server id and compare it with the tools/list payload and launch identity you pass in. Returns the stored approval (or null), its revision, the hashes of what you passed, whether they differ, what changed field by field (words added and removed in descriptions, schema values before and after, changes made only of numbers marked), and whether this process may change approvals at all.\n\n" +
+      "When to use: before an operator decides to approve or revoke a server, to see what changed since the last approval; show the operator reviewText. It is the only source of the values approve_mcp_server and revoke_mcp_server ask for (currentToolsHash, currentIdentityHash, previousRevision).\n\n" +
       "When NOT to use: deciding whether a server is safe to expose (vet_mcp_server runs every gate; this tool runs none). It does not scan descriptions and never blocks.\n\n" +
       "Behaviour: read-only. Reads one file from the local state directory (WARDEN_STATE_DIR, default ~/.local/state/warden/pins); writes nothing, no network, never starts the target server. Works whether or not WARDEN_ALLOW_PIN_CHANGES is set.\n\n" +
       "Returns structured JSON matching outputSchema. Example: status_mcp_server({ server: { id: \"demo@0\", name: \"demo\", transport: \"stdio\", command: \"npx\" }, tools: [{ name: \"add\", description: \"Add two integers.\", inputSchema: { type: \"object\" } }] }).",
@@ -555,6 +557,18 @@ MCP_TOOLS.push(
         currentIdentityHash: { type: "string", description: "Hash of the launch identity (transport, command, args, url, name); pass it as reviewed_identity_hash." },
         changed: { type: "boolean", description: "true when an approval is stored and the tools or the launch identity differ from it." },
         currentTools: { type: "array", items: { type: "object" }, description: "The tool definitions that were hashed, echoed for the operator's review." },
+        changes: {
+          anyOf: [{
+            type: "object", required: ["added", "removed", "changed", "numbersOnly", "changes"],
+            properties: {
+              added: { type: "integer" }, removed: { type: "integer" }, changed: { type: "integer" },
+              numbersOnly: { type: "integer", description: "Changed tools whose every change is digits, separators or whitespace. Still a change: a number can be a limit." },
+              changes: { type: "array", items: { type: "object" }, description: "Per tool: kind (added | removed | changed) and, for a changed tool, every changed value with its path, before, after and, for text, a word diff." },
+            },
+          }, { type: "null" }],
+          description: "What changed since the stored approval, field by field; null when nothing is stored.",
+        },
+        reviewText: { type: "string", description: "The same changes as plain lines for a person: [-removed-] and {+added+} inside text, before → after for values." },
         mutationsEnabled: { type: "boolean", description: "false means approve_mcp_server and revoke_mcp_server will refuse in this process." },
       },
     },
@@ -798,7 +812,8 @@ async function managePin(name: string, args: Record<string, unknown>): Promise<o
   if (name === "status_mcp_server") {
     return { serverId: server.id, previous: previous ?? null, previousRevision: pinRevision(previous), currentToolsHash: toolsHash, currentIdentityHash: identityHash,
       changed: !!previous && (previous.toolsHash !== toolsHash || previous.identityHash !== identityHash),
-      currentTools: tools, mutationsEnabled: PIN_MUTATIONS_ENABLED };
+      currentTools: tools, mutationsEnabled: PIN_MUTATIONS_ENABLED,
+      ...review(previous?.tools, tools) };
   }
   if (args.reviewed_tools_hash !== toolsHash || args.reviewed_identity_hash !== identityHash) {
     throw new McpToolError("Payload differs from reviewed tool/identity hashes");
@@ -812,6 +827,13 @@ async function managePin(name: string, args: Record<string, unknown>): Promise<o
     toolNames: tools.map(t => t.name).sort(), approvedAt: new Date().toISOString() };
   await store.replace(server.id, args.previous_pin_revision as string | null, pin);
   return { approved: true, pin };
+}
+
+function review(approved: ToolDef[] | undefined, current: ToolDef[]): { changes: ReturnType<typeof diffToolDefinitions> | null; reviewText: string } {
+  if (!approved) return { changes: null, reviewText: "No stored approval: every tool below is new to this store." };
+  const diff = diffToolDefinitions(approved, current);
+  // A server's own text goes to a person's screen: escape control and bidi characters, as the CLI does.
+  return { changes: diff, reviewText: formatDefinitionDiff(diff).map(line => displaySafe(line, 20_000)).join("\n") };
 }
 
 async function staticScan(args: Record<string, unknown>): Promise<{

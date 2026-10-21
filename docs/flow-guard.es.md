@@ -19,7 +19,7 @@ La guardia comprueba llamadas después de recibir texto externo; no es un sandbo
 - Las huellas inspeccionan texto visible con decodificación limitada URL/base64/hex; no leen cualquier archivo al enviarlo ni cubren todas las codificaciones o herramientas. Se permiten normalmente las ediciones del proyecto; ejecutar código es otra decisión.
 - El proxy registra también errores JSON-RPC y de herramientas. Retiene una respuesta si no puede registrarla; un estado de sesión corrupto bloquea la comprobación.
 
-Cambios aún sin publicar: desde WARDEN, `npm ci && npm run build`, luego `node dist/mcp-server.js hook pre-tool-use`, con los hooks prompt/post también registrados. Los manifiestos conservan la versión anterior; no se afirma que npm `0.17.0` esté publicado. Política: `~/.local/state/warden/flow-policy.json` o `WARDEN_FLOW_POLICY`; modos `ask`, `deny`, `audit`, `off`. Véase el ejemplo vigente en [inglés](flow-guard.md).
+Publicado en npm `0.17.0`: `npx -y @aimarket/warden@0.18.0 hook pre-tool-use`, o desde el código fuente en WARDEN, `npm ci && npm run build`, luego `node dist/mcp-server.js hook pre-tool-use`, con los hooks prompt/post también registrados. Política: `~/.local/state/warden/flow-policy.json` o `WARDEN_FLOW_POLICY`; modos `ask`, `deny`, `audit`, `off`. Véase el ejemplo vigente en [inglés](flow-guard.md).
 
 Proxy: `node dist/mcp-server.js wrap --flow mail -- node mail-server.js`. Use un `WARDEN_FLOW_SESSION` nuevo y compartido por los proxies de una conversación. El PID padre predeterminado no une lanzadores diferentes. El proxy no ve el prompt ni herramientas integradas y rechaza lo que requeriría preguntar. `trustedSources` se aplica a la URL de WebFetch, no a enlaces en argumentos MCP.
 

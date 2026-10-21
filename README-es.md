@@ -29,11 +29,11 @@
 **Revisa todos los servidores MCP de tu máquina.** Sin cuenta, sin clave de API, sin modelo. El único tráfico de red va a los servidores de tu configuración.
 
 ```bash
-npx -y @aimarket/warden@0.17.0 scan
+npx -y @aimarket/warden@0.18.0 scan
 ```
 
 ```text
-WARDEN scan 0.17.0 · ruleset 11 sha256-RDXs+TaQoehA… · block at high
+WARDEN scan 0.18.0 · ruleset 11 sha256-RDXs+TaQoehA… · block at high
   read .mcp.json (claude-code, 3 servers)
 
   ✓ allow   notes       claude-code    1 tool · score 0.90
@@ -90,14 +90,14 @@ delante de tu propio host MCP sin adoptar un agente.
   "mcpServers": {
     "filesystem": {
       "command": "npx",
-      "args": ["-y", "@aimarket/warden@0.17.0", "wrap", "--id", "filesystem", "--",
+      "args": ["-y", "@aimarket/warden@0.18.0", "wrap", "--id", "filesystem", "--",
                "npx", "-y", "@modelcontextprotocol/server-filesystem", "/Users/me/docs"]
     }
   }
 }
 ```
 
-Especifique siempre `--id`: sin él, cambiar los argumentos crea otra identidad y otro primer contacto. Con un ID estable, cambiar el comando o una ruta produce `SERVER_IDENTITY_DRIFT`. El hijo hereda el entorno, excluido de la identidad. `npm install -g @aimarket/warden@0.17.0` y el comando `warden-mcp` evitan arranques fríos repetidos de `npx`.
+Especifique siempre `--id`: sin él, cambiar los argumentos crea otra identidad y otro primer contacto. Con un ID estable, cambiar el comando o una ruta produce `SERVER_IDENTITY_DRIFT`. El hijo hereda el entorno, excluido de la identidad. `npm install -g @aimarket/warden@0.18.0` y el comando `warden-mcp` evitan arranques fríos repetidos de `npx`.
 
 La política predeterminada bloquea **todo el servidor** desde gravedad high, fija definiciones y permite servidores declarados. No hay modo parcial. La primera comprobación correcta crea un pin TOFU persistente. Cualquier cambio posterior, incluso inocuo, exige aprobación humana. Con la política explícita `{"pinToolDefs":false}`, los cambios limpios se notifican tras verificarlos. Una notificación sin cambios también pasa tras verificarse.
 
@@ -107,7 +107,7 @@ warden-mcp pins approve --id filesystem
 warden-mcp pins revoke --id filesystem
 ```
 
-Ejecute los comandos de pins en una terminal: los tres exigen TTY en stdin. approve/revoke muestran las definiciones anteriores y nuevas y piden escribir acción e ID. La escritura compara tanto el candidato observado como el pin anterior. Revocar conserva una denegación hasta aprobar de nuevo. Si el cambio de identidad impidió arrancar, se muestra el comando nuevo con las definiciones **anteriores**; el próximo arranque verifica las nuevas. TTY es una barrera de interacción, no autenticación: un proceso local puede crear un PTY o editar el estado.
+Ejecute los comandos de pins en una terminal: los tres exigen TTY en stdin. approve/revoke muestran qué cambió campo por campo (palabras añadidas `{+…+}` y quitadas `[-…-]` en las descripciones; valores del esquema `antes → después`; un cambio solo de números se marca, nunca se omite: un número puede ser un límite), después las definiciones completas anteriores y nuevas, y piden escribir acción e ID. `status_mcp_server` devuelve lo mismo en `changes` y `reviewText`. La escritura compara tanto el candidato observado como el pin anterior. Revocar conserva una denegación hasta aprobar de nuevo. Si el cambio de identidad impidió arrancar, se muestra el comando nuevo con las definiciones **anteriores**; el próximo arranque verifica las nuevas. TTY es una barrera de interacción, no autenticación: un proceso local puede crear un PTY o editar el estado.
 
 Claude Desktop en macOS: `~/Library/Logs/Claude/mcp-server-<nombre>.log`. En Cursor: [View → Output → MCP Logs](https://prod.cursor.com/help/customization/mcp); los archivos de sesión están en `~/Library/Application Support/Cursor/logs/` (nombres variables según versión). Un bloqueo devuelve error JSON-RPC, nunca una lista vacía. Salidas: `2` para opciones/política inválidas, `3` para bloqueo de arranque, o el código del hijo. El error incluye códigos de reglas y `pins status`.
 
@@ -122,12 +122,12 @@ Claude Desktop en macOS: `~/Library/Logs/Claude/mcp-server-<nombre>.log`. En Cur
 ## Analiza todos los servidores que inician tus clientes
 
 ```bash
-npx -y @aimarket/warden@0.17.0 scan
+npx -y @aimarket/warden@0.18.0 scan
 ```
 
-Lee las configuraciones MCP de Claude Code, Claude Desktop, Cursor, VS Code y Windsurf, se conecta a cada servidor que inician y revisa las definiciones de herramientas antes de que un modelo las vea. Imprime una tabla, JSON, SARIF o Markdown, y sale con 1 cuando bloquea un servidor; `--no-launch` no inicia nada. En un repositorio, `warden.lock.json` convierte un cambio en las definiciones en un diff revisable, y la CI falla ante un servidor nuevo o modificado. También como GitHub Action (`uses: alexar76/warden@v0.17.0`), hooks de pre-commit y plugin de Claude Code (`/plugin marketplace add alexar76/warden`). `--histor` pregunta al registro público HISTOR si un servidor te sirve lo mismo que a todos; para un servidor remoto envía el endpoint y un digest; para un servidor stdio que arranca desde npm o PyPI, el nombre del paquete (`npm:<nombre>`, `pypi:<nombre>`, que HISTOR ejecuta en un sandbox gVisor) y un digest; nunca el texto de las herramientas. Un clasificador opcional (`--classifier-url`, `--classifier-model`) añade la lectura de un modelo que tú eliges, local o alojado, para lo que ninguna regla nombra. Consulta la [guía de scan](docs/scan.es.md). Cómo se compara con otros dos escáneres sobre los mismos servidores: [comparación de escáneres](docs/scanner-comparison.es.md).
+Lee las configuraciones MCP de Claude Code, Claude Desktop, Cursor, VS Code y Windsurf, se conecta a cada servidor que inician y revisa las definiciones de herramientas antes de que un modelo las vea. Imprime una tabla, JSON, SARIF o Markdown, y sale con 1 cuando bloquea un servidor; `--no-launch` no inicia nada. En un repositorio, `warden.lock.json` convierte un cambio en las definiciones en un diff revisable, y la CI falla ante un servidor nuevo o modificado. También como GitHub Action (`uses: alexar76/warden@v0.18.0`), hooks de pre-commit y plugin de Claude Code (`/plugin marketplace add alexar76/warden`). `--histor` pregunta al registro público HISTOR si un servidor te sirve lo mismo que a todos; para un servidor remoto envía el endpoint y un digest; para un servidor stdio que arranca desde npm o PyPI, el nombre del paquete (`npm:<nombre>`, `pypi:<nombre>`, que HISTOR ejecuta en un sandbox gVisor) y un digest; nunca el texto de las herramientas. Un clasificador opcional (`--classifier-url`, `--classifier-model`) añade la lectura de un modelo que tú eliges, local o alojado, para lo que ninguna regla nombra. Consulta la [guía de scan](docs/scan.es.md). Cómo se compara con otros dos escáneres sobre los mismos servidores: [comparación de escáneres](docs/scanner-comparison.es.md).
 
-**Para el editor de un servidor.** Si tu servidor lista otras herramientas donde está instalado algo que el sandbox de HISTOR no tiene —el runner de un lanzador, uno por sistema operativo—, `npx -y @aimarket/warden@0.17.0 declare --out mcp-tool-sets.json -- <tu servidor>` escribe esos conjuntos en un archivo que publicas en tu propio dominio, y quienes los reciben ven la declaración del editor en lugar de un conjunto desconocido. Consulta la [guía de scan](docs/scan.es.md).
+**Para el editor de un servidor.** Si tu servidor lista otras herramientas donde está instalado algo que el sandbox de HISTOR no tiene —el runner de un lanzador, uno por sistema operativo—, `npx -y @aimarket/warden@0.18.0 declare --out mcp-tool-sets.json -- <tu servidor>` escribe esos conjuntos en un archivo que publicas en tu propio dominio, y quienes los reciben ven la declaración del editor en lugar de un conjunto desconocido. Consulta la [guía de scan](docs/scan.es.md).
 
 ## Lo que WARDEN no hace
 

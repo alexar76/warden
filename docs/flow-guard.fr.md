@@ -19,7 +19,7 @@ La garde vérifie les appels après réception de texte externe. Ce n’est ni u
 - Les empreintes inspectent le texte visible avec un décodage URL/base64/hex limité. Elles ne lisent pas tout fichier à l’envoi et ne couvrent pas tous les encodages ou outils. Les modifications du projet restent généralement permises ; exécuter du code est une autre décision.
 - Le proxy enregistre aussi les erreurs JSON-RPC et d’outils, retient les réponses dont l’enregistrement échoue et bloque les vérifications si l’état existant est corrompu.
 
-Modifications non publiées : dans WARDEN, `npm ci && npm run build`, puis `node dist/mcp-server.js hook pre-tool-use`, avec les hooks prompt/post également enregistrés. Les manifestes portent encore la version précédente ; la publication npm `0.17.0` n’est pas affirmée. Politique : `~/.local/state/warden/flow-policy.json` ou `WARDEN_FLOW_POLICY` ; modes `ask`, `deny`, `audit`, `off`. Exemple actuel en [anglais](flow-guard.md).
+Publié dans npm `0.17.0` : `npx -y @aimarket/warden@0.18.0 hook pre-tool-use`, ou depuis les sources dans WARDEN, `npm ci && npm run build`, puis `node dist/mcp-server.js hook pre-tool-use`, avec les hooks prompt/post également enregistrés. Politique : `~/.local/state/warden/flow-policy.json` ou `WARDEN_FLOW_POLICY` ; modes `ask`, `deny`, `audit`, `off`. Exemple actuel en [anglais](flow-guard.md).
 
 Proxy : `node dist/mcp-server.js wrap --flow mail -- node mail-server.js`. Attribuez un nouveau `WARDEN_FLOW_SESSION` commun aux proxies d’une conversation. Le PID parent par défaut ne relie pas des lanceurs différents. Le proxy ne voit ni prompt ni outils intégrés et refuse les appels qui demanderaient confirmation. `trustedSources` s’applique à l’URL WebFetch, pas aux liens des arguments MCP.
 

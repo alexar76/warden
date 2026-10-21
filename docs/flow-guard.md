@@ -13,7 +13,7 @@ The flow guard adds checks at tool-call boundaries after a session receives outs
 - Secret fingerprints inspect visible argument text, with bounded URL/base64/hex decoding. They do not inspect arbitrary file contents at execution time, arbitrary encodings or every possible MCP schema. Short fragments, unknown tools and unsupported sources remain limitations. Internal project edits are generally allowed; executing their code is a separate decision.
 - The MCP proxy records JSON-RPC error text and tool-error results as outside text too. If recording fails, it withholds the response. Existing corrupt session state blocks pre-tool checks instead of becoming an empty session.
 
-Use the source checkout for these unreleased changes: `npm ci && npm run build`, then `node dist/mcp-server.js hook pre-tool-use`. Register the prompt and post hooks as well, or use the bundled Claude plugin. The package manifests still identify the previous release; this page does not claim that an npm `0.17.0` release exists.
+Released in npm `0.17.0`: `npx -y @aimarket/warden@0.18.0 hook pre-tool-use`, or from a source checkout `npm ci && npm run build`, then `node dist/mcp-server.js hook pre-tool-use`. Register the prompt and post hooks as well, or use the bundled Claude plugin.
 
 Policy is user-level (`~/.local/state/warden/flow-policy.json`, or `WARDEN_FLOW_POLICY`). Modes are `ask`, `deny`, `audit`, `off`. `audit` logs decisions without enforcing them. Example:
 

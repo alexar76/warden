@@ -1,6 +1,14 @@
 # Changelog
 
-## 0.17.0 — unreleased
+## 0.18.0 — unreleased
+
+Re-approval shows what changed, field by field.
+
+- **`pins status|approve|revoke` and `status_mcp_server` show a field-level diff** before the full definitions: every changed value with its path, the words added `{+…+}` and removed `[-…-]` inside descriptions, schema values `before → after`, which entries of a list such as `required` or `enum` came and went, and which tools were added or removed. A change made only of digits, separators or whitespace (a live counter, a date, a limit) is marked "numbers only" and still needs approval: a number can be a limit. `status_mcp_server` returns it as `changes` (structured) and `reviewText` (escaped lines); the library exports `diffToolDefinitions`, `formatDefinitionDiff` and `wordDiff`.
+- Why: in HISTOR's snapshot of 2026-10-20 (23,821 recorded changes over four weeks), 52% changed description text and 23% added or removed tools, while about one in eight changed nothing but numbers, whitespace or schema metadata. Two full JSON blobs per change made those look alike. The pin itself is unchanged: any change still needs a human, as before.
+- Long rewrites fall back to "common start and end, middle replaced" instead of a quadratic word diff; a review lists at most 200 changed values per tool and then points to the full definitions.
+
+## 0.17.0 — 2026-10-18
 
 ### Approval explanations (2026-10-18; local tests only)
 

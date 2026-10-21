@@ -29,11 +29,11 @@
 **检查你机器上的所有 MCP 服务器。** 无需账号、无需 API 密钥、不调用模型。唯一的网络流量是发往你配置中的服务器。
 
 ```bash
-npx -y @aimarket/warden@0.17.0 scan
+npx -y @aimarket/warden@0.18.0 scan
 ```
 
 ```text
-WARDEN scan 0.17.0 · ruleset 11 sha256-RDXs+TaQoehA… · block at high
+WARDEN scan 0.18.0 · ruleset 11 sha256-RDXs+TaQoehA… · block at high
   read .mcp.json (claude-code, 3 servers)
 
   ✓ allow   notes       claude-code    1 tool · score 0.90
@@ -86,14 +86,14 @@ WARDEN 在**该服务器的任何工具到达模型之前**审查它，并返回
   "mcpServers": {
     "filesystem": {
       "command": "npx",
-      "args": ["-y", "@aimarket/warden@0.17.0", "wrap", "--id", "filesystem", "--",
+      "args": ["-y", "@aimarket/warden@0.18.0", "wrap", "--id", "filesystem", "--",
                "npx", "-y", "@modelcontextprotocol/server-filesystem", "/Users/me/docs"]
     }
   }
 }
 ```
 
-始终指定 `--id`：否则修改命令参数会创建新身份并重新执行首次信任。稳定 ID 会把命令或路径变更识别为 `SERVER_IDENTITY_DRIFT`。子进程继承环境变量，身份哈希不包含环境。可运行 `npm install -g @aimarket/warden@0.17.0`，使用 `warden-mcp` 避免反复进行 `npx` 冷启动。
+始终指定 `--id`：否则修改命令参数会创建新身份并重新执行首次信任。稳定 ID 会把命令或路径变更识别为 `SERVER_IDENTITY_DRIFT`。子进程继承环境变量，身份哈希不包含环境。可运行 `npm install -g @aimarket/warden@0.18.0`，使用 `warden-mcp` 避免反复进行 `npx` 冷启动。
 
 默认策略在 high 级别阻止**整个服务器**，固定工具定义并允许操作者声明的服务器。没有部分放行模式。首次成功检查建立持久 TOFU 快照。此后任何变更，包括无害修改，都需要人工批准。只有显式设置 `{"pinToolDefs":false}` 时，通过检查的干净变更才自动通知客户端。未改变定义的通知也会在检查后转发。
 
@@ -103,7 +103,7 @@ warden-mcp pins approve --id filesystem
 warden-mcp pins revoke --id filesystem
 ```
 
-三条 pins 命令都要求 stdin 是 TTY。approve/revoke 展示旧、新定义并要求输入操作与 ID；写入前同时比较观察快照和先前 pin。撤销后保持拒绝，直到重新批准。若身份漂移阻止启动，审查展示新命令与**旧**工具快照；批准后仍会检查实际新定义。TTY 只是交互限制，不是身份认证：本地进程可以创建 PTY 或修改状态文件。
+三条 pins 命令都要求 stdin 是 TTY。approve/revoke 先逐字段展示变化（描述中新增 `{+…+}` 与删除 `[-…-]` 的词；模式取值 `旧 → 新`；仅数字的变化会标出但不会跳过：数字可能是限额），再展示完整的旧、新定义，并要求输入操作与 ID；`status_mcp_server` 在 `changes` 与 `reviewText` 中返回同样内容；写入前同时比较观察快照和先前 pin。撤销后保持拒绝，直到重新批准。若身份漂移阻止启动，审查展示新命令与**旧**工具快照；批准后仍会检查实际新定义。TTY 只是交互限制，不是身份认证：本地进程可以创建 PTY 或修改状态文件。
 
 macOS 上 Claude Desktop 日志：`~/Library/Logs/Claude/mcp-server-<名称>.log`。Cursor 中打开 [View → Output → MCP Logs](https://prod.cursor.com/help/customization/mcp)；会话日志位于 `~/Library/Application Support/Cursor/logs/`，具体名称随版本变化。阻止时返回 JSON-RPC 错误而非空列表。退出码：选项或策略错误为 `2`，启动被阻止为 `3`，其他情况使用子进程退出码。错误包含规则代码和 `pins status` 提示。
 
@@ -118,12 +118,12 @@ macOS 上 Claude Desktop 日志：`~/Library/Logs/Claude/mcp-server-<名称>.log
 ## 扫描客户端启动的所有服务器
 
 ```bash
-npx -y @aimarket/warden@0.17.0 scan
+npx -y @aimarket/warden@0.18.0 scan
 ```
 
-读取 Claude Code、Claude Desktop、Cursor、VS Code 和 Windsurf 的 MCP 配置，连接其中启动的每个服务器，并在模型看到工具定义之前对其进行审查。输出表格、JSON、SARIF 或 Markdown，有服务器被阻止时以 1 退出；`--no-launch` 不启动任何程序。在仓库中，`warden.lock.json` 把工具定义的改动变成可审查的 diff，CI 会在出现新的或改动过的服务器时失败。也提供 GitHub Action（`uses: alexar76/warden@v0.17.0`）、pre-commit 钩子和 Claude Code 插件（`/plugin marketplace add alexar76/warden`）。`--histor` 询问公开的 HISTOR 日志：服务器给你的是否与给所有人的相同；对远程服务器发送端点和摘要，对从 npm 或 PyPI 启动的 stdio 服务器发送软件包名（`npm:<名称>`、`pypi:<名称>`，HISTOR 会在 gVisor 沙箱中运行它）和摘要，从不发送工具文本。可选的分类器（`--classifier-url`、`--classifier-model`）会加入你所选模型（本地或托管）的判断，用于覆盖任何规则都没有提到的内容。详见 [scan 指南](docs/scan.zh.md)。与另外两款扫描器在同一批服务器上的对比，见[扫描器对比](docs/scanner-comparison.zh.md)。
+读取 Claude Code、Claude Desktop、Cursor、VS Code 和 Windsurf 的 MCP 配置，连接其中启动的每个服务器，并在模型看到工具定义之前对其进行审查。输出表格、JSON、SARIF 或 Markdown，有服务器被阻止时以 1 退出；`--no-launch` 不启动任何程序。在仓库中，`warden.lock.json` 把工具定义的改动变成可审查的 diff，CI 会在出现新的或改动过的服务器时失败。也提供 GitHub Action（`uses: alexar76/warden@v0.18.0`）、pre-commit 钩子和 Claude Code 插件（`/plugin marketplace add alexar76/warden`）。`--histor` 询问公开的 HISTOR 日志：服务器给你的是否与给所有人的相同；对远程服务器发送端点和摘要，对从 npm 或 PyPI 启动的 stdio 服务器发送软件包名（`npm:<名称>`、`pypi:<名称>`，HISTOR 会在 gVisor 沙箱中运行它）和摘要，从不发送工具文本。可选的分类器（`--classifier-url`、`--classifier-model`）会加入你所选模型（本地或托管）的判断，用于覆盖任何规则都没有提到的内容。详见 [scan 指南](docs/scan.zh.md)。与另外两款扫描器在同一批服务器上的对比，见[扫描器对比](docs/scanner-comparison.zh.md)。
 
-**面向服务器发布者。** 如果在安装了 HISTOR 沙箱所没有的东西（启动器的运行器、每个操作系统各一个）的地方，你的服务器列出的是别的工具，`npx -y @aimarket/warden@0.17.0 declare --out mcp-tool-sets.json -- <你的服务器>` 会把这些工具集写进一个文件，由你发布在自己的域名上；拿到这些工具集的人看到的将是发布者的声明，而不是陌生的工具集。参见 [scan 指南](docs/scan.zh.md)。
+**面向服务器发布者。** 如果在安装了 HISTOR 沙箱所没有的东西（启动器的运行器、每个操作系统各一个）的地方，你的服务器列出的是别的工具，`npx -y @aimarket/warden@0.18.0 declare --out mcp-tool-sets.json -- <你的服务器>` 会把这些工具集写进一个文件，由你发布在自己的域名上；拿到这些工具集的人看到的将是发布者的声明，而不是陌生的工具集。参见 [scan 指南](docs/scan.zh.md)。
 
 ## WARDEN 不做什么
 

@@ -5,6 +5,7 @@ import { readState, writeState, withStateLock } from './state.js';
 import { Warden, pinToolsHash, serverIdentityHash, displaySafe } from './index.js';
 import type { McpServerRef, ToolDef, WardenPolicy, WardenVerdict } from './types.js';
 import type { ThreatFeed } from './threat-feed.js';
+import { diffToolDefinitions, formatDefinitionDiff } from './review-diff.js';
 
 export interface Observation {
   server: McpServerRef;
@@ -59,6 +60,9 @@ export function describeReview(previous: Awaited<ReturnType<FilePinStore['getPin
     `Observed identity: ${current ? serverIdentityHash(current.server) : '(none)'}`,
     `Launch: ${current ? JSON.stringify(current.server) : '(none)'}`];
   if (current && !current.tools) lines.push('Launch was blocked; tool definitions below are the PREVIOUS snapshot, not fetched from the new command.');
+  // What changed, field by field, first; the full definitions follow for the record.
+  lines.push(...formatDefinitionDiff(diffToolDefinitions(oldTools, newTools)));
+  if (JSON.stringify(oldTools) !== JSON.stringify(newTools)) lines.push('Full definitions of the tools that differ:');
   for (const name of new Set([...oldTools, ...newTools].map(t => t.name))) {
     const old = oldTools.find(t => t.name === name), next = newTools.find(t => t.name === name);
     if (JSON.stringify(old) !== JSON.stringify(next)) {
