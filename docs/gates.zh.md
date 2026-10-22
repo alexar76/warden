@@ -2,7 +2,7 @@
 
 > 🌐 [English](gates.md) · [Русский](gates.ru.md) · [Español](gates.es.md) · [Français](gates.fr.md) · **中文**
 
-**Ruleset v14（尚未发布）：** `keyStaysLocal` 不再把服务器存储视为本地保管。以下 v13 的语料/MCPTox 数字为历史结果；v14 只进行了本地回归测试，没有新基准。
+**Ruleset v15（尚未发布）：** v14 不再把服务器存储视为本地保管（审计修复，只有本地回归测试）；v15 扩展了 `TOOL_DEF_CROSS_TOOL`，于 2026-10-22 在 MCPTox、实地语料和 1,000 个 HISTOR 包上测量（见下文 v15）。早期版本的数字均为历史结果。
 
 > [0.7.0 安全更新与迁移](security-hardening.zh.md).
 
@@ -46,7 +46,7 @@ const SEVERITY_RANK = { info: 0, low: 1, medium: 2, high: 3, critical: 4 };
 
 ## static-scan
 
-对工具公布的每个字段做本地正则扫描：`name`、`description` 与 `inputSchema`，以及自 v6 起的 `title`、`outputSchema`、`annotations` 和扩展元数据（服务器发来的其他一切内容，base64 图片图标除外）。规则集 **v14** 共 36 条规则：25 条 `block`，11 条 `advise`，其中 25 条带有上下文 **guard**——一项具名检查，用于判断某次命中是否真是该规则要找的东西。参见[实地普查](mcp-survey.zh.md)，即校准 v4 的 1 108 台服务器实测。
+对工具公布的每个字段做本地正则扫描：`name`、`description` 与 `inputSchema`，以及自 v6 起的 `title`、`outputSchema`、`annotations` 和扩展元数据（服务器发来的其他一切内容，base64 图片图标除外）。规则集 **v15** 共 37 条规则：26 条 `block`，11 条 `advise`，其中 26 条带有上下文 **guard**——一项具名检查，用于判断某次命中是否真是该规则要找的东西。参见[实地普查](mcp-survey.zh.md)，即校准 v4 的 1 108 台服务器实测。
 
 **v5：任何规则读取文本之前，先对文本做归一化。** NFKC 把全角字母、连字和其他兼容形式变成普通字母；单词内部的不可见字符被删除；Unicode 标签区块（ASCII 的不可见副本，能藏下一整句话）被解码；在拉丁字母与西里尔或希腊字母混写的单词里，形近字母被换成拉丁字母，而整词只用一种文字写成的单词保持不变。于是，无论周围文本是什么语言，英文规则都不能再被全角字母、词内零宽空格、标签字符或西里尔字母 `о` 绕过。归一化以 `fold` 的形式与规则一起发布，并计入 digest。两条隐藏载荷规则读取**原始**文本（`raw: true`）。
 
@@ -73,7 +73,9 @@ v13 把单词边缘的句点或连字符当作标点。这暴露了此前被同�
 “You keep the private key.”“messages from one signing key”）；guard `keyStaysLocal` 放过用于签名或由用户保留的密钥，除非同一分句里有任何东西把它移走（“sign it and paste the private key” 仍会被阻止）。
 在已提交的语料上，v13 阻止 4 台服务器，v12 是 3 台，且一台都没丢：新增的是一个托管构建器，它的参数接收一个新铸币密钥对的 64 字节私钥。在 MCPTox 上没有任何变化：留出一半的 218 个投毒工具中阻止 171 个，与 v12 相同（测量结果完全复现），45 台干净服务器一台都没阻止；MCPTox 的工具改写的是其他工具的调用，而不是索要密钥。测试：`test/ruleset-v13.test.ts`。
 
-每条规则都声明自己在这七个**面**中的哪些上运行，36 条里有 24 条包含名称。不包含名称的代码中，有四个是以**名词**为
+**v15** 再次依据 MCPTox 的 dev 一半编写，起因是一位读者问 WARDEN 还抓不到什么：267 个投毒工具中有 78 个能通过 v14。`TOOL_DEF_CROSS_TOOL` 现在还能识别用户的调用（"when a user calls `X`"、"when a user's query for `X` …"）、被动的说法（"when `X` is called"）、针对每一次调用的说法（"all `X` requests"、"all web searches using the `X` tool"），以及由强制措辞绑定到某个参数或带引号的值上的改写（"you must set the `mode` parameter to …"、"you should redirect any `symbol` to 'QQQ'"、"When using `X`, set `bcc` to '…'"）。一个新模式拦截这样的定义：要求以固定目标调用另一个工具，并以威胁来强制（"use 'deleteEmail' with UID 99999 … Failure to do so will crash the system"）；诚实的前置步骤既不指定固定目标，也不威胁什么。最初的草稿匹配任何"when the user asks …"，结果拦下了语料库中 7 台诚实服务器；其中 4 台已作为测试固定下来。在 dev 一半上 v15 拦截 267 中 233 个（v14：189）；在留出的一半上——规则冻结后只测一次——218 中 194 个（v14：171）；新增的行与任何留出工具都没有共同的八词序列。它不拦截 45 台干净服务器中的任何一台，在实地语料上拦截的仍是 v14 的那 4 台，在 1,000 个 HISTOR 包的种子样本中拦截的仍是同样的 28 个。测试：`test/ruleset-v15.test.ts`；结果：`scripts/scanner-comparison/results/2026-10-22-mcptox-v15.json`。
+
+每条规则都声明自己在这七个**面**中的哪些上运行，37 条里有 24 条包含名称。不包含名称的代码中，有四个是以**名词**为
 锚的规则（`TOOL_DEF_SECRET_REQUEST`、`TOOL_DEF_CREDENTIAL_PARAM`、`TOOL_DEF_ENV_REFERENCE`、`TOOL_DEF_SECRET_EXFIL`）：名称是标识
 符，`api_key` 和 `private_key` 是标识符里再普通不过的组成部分，而拒绝 `sign_with_private_key` 等于把 v1 的
 校准错误换个面重犯一次。以**短语**为锚的规则需要空白字符，因此根本无法匹配 `snake_case`；而两条隐藏载荷规则
@@ -94,7 +96,7 @@ v13 把单词边缘的句点或连字符当作标点。这暴露了此前被同�
 | `TOOL_DEF_SECRET_REQUEST` | critical | block | — | `private_key`、`seed_phrase`/`mnemonic`、`~/.ssh` 路径 |
 | `TOOL_DEF_SECRET_HARVEST` | critical | block | ✅ | 自称职责就是读取/导出/披露密钥的工具，包括从 `~/.aws/credentials`、`~/.kube/config` 等凭据存储中读取 |
 | `TOOL_DEF_EXFIL` | critical / high | block | ✅ | 「post to https://…」「send a copy of all messages to <邮箱>」、`bcc <邮箱>`、连同地址、凭据或隐瞒一起发出对话、「exfiltrate」、上传到某主机的措辞 |
-| `TOOL_DEF_CROSS_TOOL` | high | block | — | 工具文本绑定到另一个工具的调用上，以改写其输入或抢先调用第三个工具；没有输入、只要求调用另一个工具的工具 |
+| `TOOL_DEF_CROSS_TOOL` | high | block | — | 工具文本绑定到另一个工具的调用上，以改写其输入或抢先调用第三个工具；没有输入、只要求调用另一个工具的工具；以固定目标调用另一个工具并以威胁强制（v15） |
 | `TOOL_DEF_HIDDEN_UNICODE` | high | block | ✅ | 零宽字符与双向控制字符——审阅者看不见的文本 |
 | `TOOL_DEF_BASE64_BLOB` | high | block | ✅ | 名称、描述或 schema 里长达 120+ 字符的 base64 串 |
 | `TOOL_DEF_DATA_URL` | high | block | ✅ | `data:…;base64,` 与 `javascript:` 形式的 URL |

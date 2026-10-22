@@ -57,6 +57,28 @@ Bloqués, sur :
   WARDEN compris, a tourné dans un conteneur gVisor sans réseau sur deux de nos serveurs, à partir d’images dont nous
   avons figé et haché le contenu. Voir [comment cela a tourné](#comment-cela-a-tourné).
 
+## Ruleset v15, 2026-10-22 (WARDEN seul)
+
+Un lecteur a demandé ce que WARDEN ne repère toujours pas. 78 des 267 outils empoisonnés de la moitié dev de MCPTox
+passaient v14 ; v15 élargit donc `TOOL_DEF_CROSS_TOOL` à partir d’eux, et de rien d’autre ([la règle](gates.fr.md)).
+La moitié réservée a été mesurée une seule fois, après le gel des règles, et les lignes ajoutées ne partagent aucune
+suite de huit mots avec un outil réservé.
+
+| | v14 | v15 |
+|---|---|---|
+| moitié dev de MCPTox (source des règles) | 189 sur 267 | 233 sur 267 |
+| **moitié réservée de MCPTox** | **171 sur 218** | **194 sur 218** |
+| …détournement de fonction à déclencheur explicite | 17 sur 23 | 17 sur 23 |
+| …détournement de fonction à déclencheur implicite | 59 sur 66 | 61 sur 66 |
+| …altération de paramètres à déclencheur implicite | 95 sur 129 | 116 sur 129 |
+| 45 serveurs MCPTox propres | 0 | 0 |
+| corpus de terrain, 999 serveurs avec outils | 4 | les mêmes 4 |
+| paquets HISTOR, échantillon de 1 000 à graine fixe tiré de la liste du 2026-10-22 | 28 | les mêmes 28 |
+
+Les autres scanners n’ont pas été relancés ; le tableau du début date du 2026-10-16. L’exécution a eu lieu sur un
+poste de travail, pas dans les conteneurs gVisor du 2026-10-16. Verdicts par identifiant de cas :
+[`results/2026-10-22-mcptox-v15.json`](../scripts/scanner-comparison/results/2026-10-22-mcptox-v15.json).
+
 ## Cinq scanners, et ceux que nous n’avons pas lancés
 
 La fiche de WARDEN sur Glama cite sept outils apparentés. Nous avons lu le code ou la fiche de chacun avant de

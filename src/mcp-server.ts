@@ -82,6 +82,10 @@ async function entry(): Promise<void> {
     stdout.write("", () => process.exit(code));
     return;
   }
+  if (process.argv[2] === 'flow-labels') {
+    stdout.write((await import("./flow-guard.js")).flowLabelsReport());
+    return;
+  }
   if (process.argv[2] === 'scan' || process.argv[2] === 'hook') {
     const code = process.argv[2] === 'scan'
       ? await (await import("./scan-cli.js")).runScanCli(process.argv.slice(3))

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """The summary of an oracle.py run (the numbers the docs quote), from its full per-pair results.
 
-usage: summarize_oracle.py ORACLE.json[.gz] SUMMARY.json
-Stdlib only.
+usage: summarize_oracle.py ORACLE.json[.gz] SUMMARY.json [--ran-in TEXT]
+--ran-in says where the run happened (default: gVisor on our server, where the 2026-10 runs were made). Stdlib only.
 """
 from __future__ import annotations
 
@@ -32,12 +32,13 @@ def count(clean: list[dict], pairs: list[dict]) -> dict:
 
 def main() -> None:
     src, dst = Path(sys.argv[1]), Path(sys.argv[2])
+    ran_in = sys.argv[sys.argv.index("--ran-in") + 1] if "--ran-in" in sys.argv else "gVisor container, no network, on our server"
     raw = src.read_bytes()
     data = json.loads(gzip.decompress(raw) if src.suffix == ".gz" else raw)
     out = {
         "benchmark": data["benchmark"], "benchmark_version": data["benchmark_version"], "agentdojo_package": "0.1.35",
         "attack": data["attack"], "attacker": data["attacker"], "ask_counts_as": data["ask_counts_as"],
-        "ran_in": "gVisor container, no network, on our server; deterministic: no model involved", "variants": {},
+        "ran_in": f"{ran_in}; deterministic: no model involved", "variants": {},
     }
     for v, res in data["variants"].items():
         suites = {s: count(r["clean"], r["pairs_detail"]) for s, r in res["suites"].items()}

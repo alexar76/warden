@@ -1,0 +1,7 @@
+# The oracle image needs the compiled guard (dist/), which the package .dockerignore leaves out.
+node_modules
+coverage
+.git
+.github
+docs
+test

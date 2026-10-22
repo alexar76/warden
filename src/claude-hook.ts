@@ -1,4 +1,4 @@
-import { flowPre, flowPost, flowPrompt } from './flow-guard.js';
+import { flowPre, flowPost, flowPrompt, flowStop } from './flow-guard.js';
 import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { mkdir, readdir, stat, unlink } from 'node:fs/promises';
@@ -181,13 +181,14 @@ export async function postToolUse(input: Record<string, unknown>, env: NodeJS.Pr
 /** `warden-mcp hook session-start|pre-tool-use` reads the hook JSON on stdin. */
 export async function runHookCli(argv: string[]): Promise<number> {
   const event = argv[0];
-  if (event !== 'session-start' && event !== 'pre-tool-use' && event !== 'post-tool-use' && event !== 'user-prompt-submit') {
-    process.stderr.write('Usage: warden-mcp hook session-start|pre-tool-use|post-tool-use|user-prompt-submit  (Claude Code hook; reads the hook JSON on stdin)\n');
+  if (event !== 'session-start' && event !== 'pre-tool-use' && event !== 'post-tool-use' && event !== 'user-prompt-submit' && event !== 'stop') {
+    process.stderr.write('Usage: warden-mcp hook session-start|pre-tool-use|post-tool-use|user-prompt-submit|stop  (Claude Code hook; reads the hook JSON on stdin)\n');
     return 2;
   }
   try {
     const input = await readStdinJson();
     if (event === 'user-prompt-submit') { flowPrompt(input); return 0; }
+    if (event === 'stop') { const note = flowStop(input); if (note) process.stdout.write(JSON.stringify(note) + '\n'); return 0; }
     const out = event === 'session-start' ? await sessionStart(input) : event === 'pre-tool-use' ? await preToolUse(input) : await postToolUse(input);
     if (out) process.stdout.write(JSON.stringify(out) + '\n');
     return 0;

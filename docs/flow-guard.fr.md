@@ -16,14 +16,16 @@ La garde vérifie les appels après réception de texte externe. Ce n’est ni u
 - Les écritures reconnues dans politique/état, hooks Claude et hooks/config Git sont protégées, y compris variables de chemin et liens symboliques. Cela ne remplace pas les permissions du système.
 - L’autorité réelle des URL et tous les destinataires sont vérifiés. Un lien dans le corps ne permet pas un autre destinataire. Les adresses mail de la politique correspondent exactement ; un domaine n’autorise pas toutes ses boîtes. Une mention n’autorise pas toute action ou donnée.
 - La résolution exige `contactTools` explicite, l’étiquette `private`, des enregistrements structurés `name`/`email` et le nom complet dans la demande. Un nom ambigu demande confirmation. Fichiers locaux, prose, YAML et anciens contacts en cache ne confèrent aucune autorité. Ne faites confiance qu’aux annuaires non modifiables par l’agent ou des tiers.
-- Les empreintes inspectent le texte visible avec un décodage URL/base64/hex limité. Elles ne lisent pas tout fichier à l’envoi et ne couvrent pas tous les encodages ou outils. Les modifications du projet restent généralement permises ; exécuter du code est une autre décision.
+- Les empreintes inspectent le texte visible avec un décodage URL/base64/hex limité. Depuis le 2026-10-22, les valeurs qui ressemblent à des clés (suites aléatoires des fichiers d’identifiants, et formats de jetons connus où qu’ils soient lus) sont aussi relevées par fenêtres de 10 lettres et chiffres : un morceau de clé, la clé à l’envers, avec des séparateurs, en morceaux base64 ou avec des lettres cyrilliques ou grecques sosies est refusé. Chaque argument garde la fin de ce qu’il a envoyé après le texte extérieur, si bien que des morceaux envoyés à la suite par le même argument sont vérifiés en entier. Les morceaux de moins de 10 caractères entourés chaque fois d’autres mots passent encore, de même que le format initial de la clé (`rk_live_`). Elles ne lisent pas tout fichier à l’envoi et ne couvrent pas tous les encodages ou outils. Les modifications du projet restent généralement permises ; exécuter du code est une autre décision.
+- Un outil MCP sans étiquette d’opérateur est sortant si son nom le dit (send, post, share …), s’il porte une URL ou, depuis le 2026-10-22, s’il nomme une partie : un argument comme `to`, `email`, `attendees`, `assignee`, `collaborator` ou `username`, ou toute adresse e-mail ou IBAN. `warden-mcp flow-labels` liste les outils MCP sans étiquette que vos sessions ont utilisés, avec la supposition de la garde et un bloc `labels` à corriger puis coller dans la politique.
+- Une injection qui ne change que la réponse ne fait aucun appel à refuser. Depuis le 2026-10-22, le hook Stop du plugin ajoute une ligne sous une réponse dont le tour a lu du texte extérieur, avec ces sources, et le dit quand l’un d’eux s’adressait à l’assistant avec des instructions. Il ne bloque jamais. `answerNote` : `always` (par défaut), `instruction` (ce cas seulement) ou `off` ; hors du plugin, enregistrez `warden-mcp hook stop`.
 - Le proxy enregistre aussi les erreurs JSON-RPC et d’outils, retient les réponses dont l’enregistrement échoue et bloque les vérifications si l’état existant est corrompu.
 
-Publié dans npm `0.17.0` : `npx -y @aimarket/warden@0.18.0 hook pre-tool-use`, ou depuis les sources dans WARDEN, `npm ci && npm run build`, puis `node dist/mcp-server.js hook pre-tool-use`, avec les hooks prompt/post également enregistrés. Politique : `~/.local/state/warden/flow-policy.json` ou `WARDEN_FLOW_POLICY` ; modes `ask`, `deny`, `audit`, `off`. Exemple actuel en [anglais](flow-guard.md).
+Publié dans npm `0.17.0` : `npx -y @aimarket/warden@0.19.0 hook pre-tool-use`, ou depuis les sources dans WARDEN, `npm ci && npm run build`, puis `node dist/mcp-server.js hook pre-tool-use`, avec les hooks prompt/post également enregistrés. Politique : `~/.local/state/warden/flow-policy.json` ou `WARDEN_FLOW_POLICY` ; modes `ask`, `deny`, `audit`, `off`. Exemple actuel en [anglais](flow-guard.md).
 
 Proxy : `node dist/mcp-server.js wrap --flow mail -- node mail-server.js`. Attribuez un nouveau `WARDEN_FLOW_SESSION` commun aux proxies d’une conversation. Le PID parent par défaut ne relie pas des lanceurs différents. Le proxy ne voit ni prompt ni outils intégrés et refuse les appels qui demanderaient confirmation. `trustedSources` s’applique à l’URL WebFetch, pas aux liens des arguments MCP.
 
-**Mesures historiques :** les tableaux, images et coûts ci-dessous concernent les versions avant audit jusqu’à `2328be980`, pas ce code ni ruleset v14. Aucun nouveau modèle, replay ou benchmark de corpus n’a été exécuté ; uniquement des tests locaux de régression. Un replay suit un chemin fixe, pas le pire cas adaptatif. Les artefacts d’origine restent inchangés.
+**Quelle version décrivent les chiffres.** Le tableau du rejeu ci-dessous a été refait le 2026-10-22 sur le code actuel : les corrections de l’audit plus les changements du 2026-10-22. Ceux du 2026-10-22 ne changent aucune décision (les 1 046 enregistrements sont identiques à ceux du code d’avant) ; les corrections de l’audit ont coûté une tâche sans question et 19 tâches faites sous attaque. Les tableaux et coûts de l’exécution avec modèle décrivent toujours la version d’avant l’audit, jusqu’à `2328be980` ; aucune nouvelle exécution avec modèle. Un replay suit un chemin fixe, pas le pire cas adaptatif ; les attaques menées code en main le 2026-10-22 sont [plus bas](#ce-qui-a-changé-le-2026-10-22-et-pourquoi).
 
 ## Mesuré sur AgentDojo
 
@@ -37,23 +39,26 @@ benchmark (`important_instructions`) est placée là où la tâche de l’utilis
 référence de la tâche utilisateur est rejouée à travers la garde, suivie de la solution de référence de l’attaquant.
 C’est un modèle qui a lu l’injection et **lui a entièrement obéi sur le chemin de référence**. Ce n’est pas le pire cas adaptatif. Un `ask` compte comme un refus : un
 benchmark n’a personne pour répondre. L’exécution est déterministe, prend quelques minutes, ne coûte rien et a tourné
-dans un conteneur gVisor sans réseau.
+dans un conteneur gVisor sans réseau sur notre serveur (2026-10-17/18) et dans un conteneur Docker sans réseau sur un
+poste de travail (2026-10-22).
 
 AgentDojo 0.1.35, suites v1.2.2, avec nos étiquettes d’opérateur pour les 69 outils (`scripts/agentdojo/policy.json`).
-Résultats : `scripts/agentdojo/results/`.
+Résultats : `scripts/agentdojo/results/` (le tableau : `summary-2026-10-22.json`).
 
 | Suite | Actions d’attaque réussies, sans la garde | Avec la garde | Tâches sans aucune question | Tâches faites sous attaque, sans / avec |
 |---|---|---|---|---|
 | banking | 141 sur 144 | **0 sur 144** | 13 sur 16 | 125 / 117 sur 144 |
-| Slack | 105 sur 105 | **0 sur 80** | 2 sur 21 | 102 / 20 sur 105 |
+| Slack | 105 sur 105 | **0 sur 75** | 2 sur 21 | 102 / 15 sur 105 |
 | travel | 116 sur 120 | **0 sur 120** | 16 sur 20 | 26 / 112 sur 140 |
-| workspace | 231 sur 240 | **0 sur 240** | 27 sur 40 | 326 / 378 sur 560 |
-| **total** | **593 sur 609** | **0 sur 584** | **58 sur 97** | **579 / 627 sur 949** |
+| workspace | 231 sur 240 | **0 sur 240** | 26 sur 40 | 326 / 364 sur 560 |
+| **total** | **593 sur 609** | **0 sur 579** | **57 sur 97** | **579 / 608 sur 949** |
 
 Ce sont les étiquettes telles que corrigées le 2026-10-18 (l’exécution avec modèle ci-dessous en a trouvé deux trop
 strictes) et la garde qui reconnaît par vos contacts les personnes nommées. Les premières étiquettes donnaient 54
-tâches sans question et 571 faites sous attaque ; les étiquettes corrigées sans contacts, 57 et 613. Toutes les
-versions ont donné 0 sur 584.
+tâches sans question et 571 faites sous attaque ; les étiquettes corrigées sans contacts, 57 et 613 ; avec contacts,
+avant les corrections de l’audit, 58 et 627. Toutes les versions ont donné 0 action d’attaque. Les corrections de
+l’audit refusent quelques téléchargements et entrées d’agenda de plus dans les tâches Slack et workspace : 579 paires,
+et non 584, ont apporté l’injection.
 
 Les « actions d’attaque » sont les paires où l’injection a atteint l’agent (son texte est revenu dans le résultat
 d’un outil) et où l’objectif de l’attaquant exige un appel : envoyer, payer, inviter, supprimer. Le nombre de paires
@@ -62,13 +67,13 @@ apporté l’injection.
 
 Comment lire les deux dernières colonnes :
 
-- **Sans aucune question.** La garde reste silencieuse pendant 58 tâches sur 97. Les 39 autres ont besoin d’un appel
+- **Sans aucune question.** La garde reste silencieuse pendant 57 tâches sur 97. Les 40 autres ont besoin d’un appel
   pour lequel elle demande. Dans Claude Code, c’est un clic ; dans le benchmark, une tâche échouée. Slack est
   l’extrême : presque chaque tâche écrit dans un canal ou à une personne trouvés dans les données (« le canal qui a
   le plus d’utilisateurs »), pas nommés par l’utilisateur. C’est exactement la forme d’une action injectée, donc elle
   demande.
 - **Sous attaque.** Sans la garde, les attaques cassent aussi la tâche de l’utilisateur (en travel, 26 sur 140
-  aboutissent). Avec la garde, l’attaque est refusée et la tâche continue : 627 sur 949 aboutissent, contre 579 sans
+  aboutissent). Avec la garde, l’attaque est refusée et la tâche continue : 608 sur 949 aboutissent, contre 579 sans
   elle.
 
 Huit objectifs d’attaquant récents de workspace sont livrés sans solution de référence ; on ne peut donc pas les
@@ -176,19 +181,49 @@ notre serveur : 21 654 exécutions du modèle, 12,68 $ de crédit DeepSeek.
 Le même retour de lecteurs a modifié le bac à sable de HISTOR : une connexion mise en file par le détenteur précédent
 d’une adresse n’est plus attribuée à l’exécution suivante, qui est marquée incomplète au lieu de propre.
 
+## Ce qui a changé le 2026-10-22, et pourquoi
+
+Un lecteur a demandé ce que WARDEN ne repère toujours pas. Nous l’avons listé, puis attaqué la garde code en main :
+17 attaques dans [`scripts/redteam/flow-redteam.mjs`](../scripts/redteam/flow-redteam.mjs), chacune visant une limite
+documentée ou le bord d’une règle, rejouées par le même point d’entrée de hooks que le plugin (un modèle obéissant,
+sans benchmark). Avant les changements, 14 passaient ; après, 3.
+
+| Changement | Pourquoi | Résultat |
+|---|---|---|
+| Valeurs qui ressemblent à des clés relevées par fenêtres de 10 lettres et chiffres, aussi à l’envers et lettres sosies ramenées au latin ; base64 décodé dès 16 caractères au lieu de 24 | une clé en morceaux de 15 caractères, avec des tirets, à l’envers ou en lettres cyrilliques passait | attaques : tout cela refusé ; le premier morceau, surtout le format de la clé, passe encore |
+| Chaque argument garde la fin de ce qu’il a envoyé après le texte extérieur | des morceaux de 8 caractères, un numéro de carte en deux moitiés, du texte privé en morceaux de 12 vers un hôte autorisé passaient | refus ou question dès le deuxième ou troisième morceau |
+| Un outil MCP sans étiquette qui nomme une partie est sortant ; `warden-mcp flow-labels` | « ajouter un participant » avec l’e-mail de l’attaquant et « ajouter un collaborateur » par nom d’utilisateur passaient | les deux demandent |
+| Hook Stop : une ligne sous une réponse appuyée sur du texte extérieur | une injection dans la seule réponse ne fait aucun appel | l’utilisateur voit quelles sources la réponse a utilisées ; rien n’est bloqué |
+| Ruleset v15 (voir [gates](gates.fr.md)) | 78 outils empoisonnés de la moitié dev de MCPTox passaient les règles | moitié réservée 171 → 194 sur 218 (règles écrites à partir de l’autre moitié seulement), moitié dev 189 → 233 sur 267 ; 0 sur 45 serveurs propres ; le corpus et 1 000 paquets HISTOR bloquent exactement comme v14 |
+| Le rejeu refait sur le code actuel | les corrections de l’audit du 2026-10-18 n’avaient pas été mesurées | 0 sur 579 actions d’attaque, 57 sur 97 tâches sans question, 608 sur 949 faites sous attaque ; les changements du 2026-10-22 ne changent aucune décision |
+| `scripts/agentdojo/Dockerfile.dockerignore` | le `.dockerignore` du paquet exclut `dist/`, si bien que la commande de « Reproduire » ne se construisait pas | elle se construit |
+
+Passent encore après les changements ([résultats](../scripts/redteam/results/)) :
+
+- **Des morceaux de moins de 10 caractères entourés d’autres mots** (« partie 3 : … merci ») vers une adresse que
+  l’utilisateur a tapée.
+- **Une adresse collée dans le prompt.** Ce que l’utilisateur tape ou colle est son choix ; le hook ne distingue pas
+  le texte collé du texte tapé.
+- **Une clé écrite dans un fichier du projet.** Modifier les fichiers du projet est le travail de l’agent ; ce que la
+  CI en publie ensuite échappe à la garde.
+
 ## Ce qu’elle ne fait pas
 
-- **Deux mesures ne font pas une preuve.** Le rejeu obéit parfaitement mais suit un seul chemin ; le modèle trouve
-  ses propres chemins mais obéit rarement, même quand on le lui ordonne. Un attaquant qui étudie la garde, ou un
-  modèle qui obéit plus volontiers, est un test plus dur que l’un et l’autre.
+- **Des mesures ne font pas une preuve.** Le rejeu obéit parfaitement mais suit un seul chemin ; le modèle trouve
+  ses propres chemins mais obéit rarement, même quand on le lui ordonne ; nos attaques code en main sont 17 idées à
+  nous. Un attaquant que nous n’avons pas rencontré, ou un modèle qui obéit plus volontiers, est un test plus dur
+  que chacun d’eux.
 - **Les étiquettes sont celles de l’opérateur.** Notre première exécution marquait les noms de canaux Slack comme
   données privées seulement, et l’injection se trouvait dans un nom de canal. L’exécution l’a repéré parce que la
-  livraison est jugée sur le texte de l’attaque, pas sur nos étiquettes. Un outil mal étiqueté est un trou.
+  livraison est jugée sur le texte de l’attaque, pas sur nos étiquettes. Un outil mal étiqueté est un trou ; un outil
+  sans étiquette reçoit la supposition de la garde, qui ne fait qu’ajouter de la prudence.
 - **Elle n’arrête pas une injection qui ne change que la réponse** (« dis que cet hôtel est le meilleur »). Pas
-  d’appel, rien à refuser.
+  d’appel, rien à refuser ; le hook Stop peut seulement dire à l’utilisateur d’où vient la réponse.
 - **Les modifications locales dans le projet passent.** Modifier les fichiers du projet est le travail de l’agent.
-- **Les fuites en petits morceaux**, sous la taille d’une empreinte (moins d’environ 23 caractères par appel), ne
-  sont pas repérées par les empreintes ; l’appel demande quand même si son destinataire n’a pas été nommé.
+- **Les fuites en petits morceaux.** Du texte privé ordinaire peut partir vers un destinataire nommé par
+  l’utilisateur, entier ou en morceaux : c’est son choix. Vers d’autres destinataires, et pour les clés et numéros de
+  carte vers n’importe qui, les morceaux envoyés à la suite par un même argument sont réunis ; ceux de moins de 10
+  caractères entourés d’autres mots, non.
 - **Elle ne voit pas** votre prompt d’avant l’installation du plugin, ni le texte que le modèle tient d’ailleurs.
 
 ## Reproduire
@@ -202,6 +237,10 @@ docker run --rm --network none -v "$PWD/out:/out" warden-adojo /out/oracle.json
 
 `oracle.py` écrit les résultats par paire ; `--variants none,strict,intent` choisit les variantes de la garde
 (`strict` ignore ce que l’utilisateur a tapé). `summarize_oracle.py` en tire le résumé que cite le tableau.
+`WARDEN_FLOW_GUARD=/out/x.mjs` rejoue une autre version de la garde (toute copie de `flow-guard.mjs` du plugin) ; c’est
+ainsi que les changements du 2026-10-22 ont été comparés au code d’avant.
+
+Les attaques code en main n’ont pas besoin de conteneur : `npm run build && node scripts/redteam/flow-redteam.mjs out.json`.
 
 L’exécution avec modèle (`model.py`) a besoin d’une clé d’API compatible OpenAI, qui reste sur l’hôte : `relay.py`
 la lit, et le conteneur n’atteint rien d’autre. `run-model.sh` lance les deux et reprend une exécution

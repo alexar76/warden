@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "npx --yes @aimarket/warden@0.18.0 hook session-start",
+            "command": "npx --yes @aimarket/warden@0.19.0 hook session-start",
             "timeout": 180
           }
         ]
@@ -52,6 +52,17 @@
           {
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/flow-prompt.mjs\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/flow-stop.mjs\"",
             "timeout": 10
           }
         ]

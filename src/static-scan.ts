@@ -129,6 +129,7 @@ type GuardName =
   | "contextExfil"
   | "crossTool"
   | "zeroArgCall"
+  | "threatenedCall"
   | "keyReference"
   | "keyStaysLocal";
 
@@ -318,8 +319,17 @@ const ID = String.raw`(?:[\`'"]?([A-Za-z][A-Za-z0-9]*(?:[_-][A-Za-z0-9]+)+|[a-z]
 const ci = (w: string): string => w.replace(/[a-z]/g, (c) => `[${c}${c.toUpperCase()}]`);
 const CALL_VERB = `(?:${["call", "calling", "use", "using", "run", "running", "invoke", "invoking", "execute", "executing", "fetch", "fetching", "query", "querying", "trigger", "triggering"].map(ci).join("|")})`;
 const S = String.raw`\s+`;
+const WHEN = `(?:${["when", "whenever", "if"].map(ci).join("|")})`;
 const CROSS_TOOL_FRAME = new RegExp(
-  String.raw`\b(?:${["when", "whenever", "before", "after", "while", "if"].map(ci).join("|")}|${ci("each")}${S}${ci("time")}|${ci("every")}${S}${ci("time")})${S}(?:${ci("you")}${S})?(?:${ci("are")}${S})?(?:${ci("first")}${S})?${CALL_VERB}${S}(?:${ci("the")}${S})?${ID}` +
+  String.raw`\b(?:${["when", "whenever", "before", "after", "while", "if"].map(ci).join("|")}|${ci("each")}${S}${ci("time")}|${ci("every")}${S}${ci("time")})${S}(?:${ci("you")}${S})?(?:${ci("are")}${S})?(?:${ci("first")}${S})?${CALL_VERB}${S}(?:${ci("the")}${S})?(?:${ci("tool")}${S})?${ID}` +
+  // v15: the call is the user's ("when a user calls `X`", "when a user's query for `X` …") or named passively
+  // ("when `X` is called"), or every call of it is meant ("all `X` requests must …").
+  String.raw`|\b${WHEN}${S}(?:${ci("a")}|${ci("the")}|${ci("any")})${S}${ci("user")}${S}(?:${["calls", "uses", "invokes", "runs", "executes"].map(ci).join("|")})${S}(?:${ci("the")}${S})?(?:${ci("tool")}${S})?${ID}` +
+  String.raw`|\b${WHEN}${S}(?:${ci("a")}|${ci("the")})${S}(?:${ci("user")}'s${S})?(?:${["query", "request", "call", "input"].map(ci).join("|")})${S}(?:${ci("for")}|${ci("to")})${S}(?:${ci("the")}${S})?${ID}` +
+  String.raw`|\b(?:${["all", "any", "every", "each"].map(ci).join("|")})\b[^.;\n]{0,60}?\b(?:${["via", "using", "through"].map(ci).join("|")}|${ci("provided")}${S}${ci("to")})${S}${ci("the")}${S}${ID}${S}${ci("tool")}\b` +
+  String.raw`|\b${WHEN}${S}(?:${ci("a")}|${ci("the")})${S}${ci("user")}${S}(?:${["queries", "searches", "asks", "requests"].map(ci).join("|")})\b[^.;\n]{0,40}?\b(?:${ci("using")}|${ci("via")})${S}(?:${ci("the")}${S})?${ID}` +
+  String.raw`|\b${WHEN}${S}(?:${ci("the")}${S})?${ID}${S}(?:${ci("tool")}${S})?(?:${ci("is")}|${ci("are")})${S}(?:${["called", "used", "invoked", "run", "executed"].map(ci).join("|")})\b` +
+  String.raw`|\b(?:${["all", "any", "every", "each"].map(ci).join("|")})${S}${ID}${S}(?:${["requests", "request", "calls", "call", "queries", "lookups", "operations"].map(ci).join("|")})\b` +
   String.raw`|\b(?:${["submitted", "passed", "sent", "given"].map(ci).join("|")})${S}${ci("to")}${S}(?:${ci("the")}${S})?${ID}` +
   String.raw`|\b(?:${["queries", "query", "requests", "request", "calls", "call", "inputs", "input"].map(ci).join("|")})${S}${ci("to")}${S}(?:${ci("the")}${S})?${ID}` +
   String.raw`|\b${ci("before")}${S}\w+ing\b[^.;
@@ -327,6 +337,12 @@ const CROSS_TOOL_FRAME = new RegExp(
   String.raw`|\b${ci("before")}${S}(?:${["any", "every", "each"].map(ci).join("|")})\b`,
 );
 const ALTER_VERB = /\b(?:modify|modified|change|changed|replace|replaced|append|appended|prepend|prepended|remove|removed|strip|override|overwrite|alter|rewrite|substitute|inject|insert)\b/i;
+// v15: verbs that rewrite another call's input only when a mandate binds them ("you must set `mode` to …",
+// "you should redirect any `symbol`"). On their own they describe ordinary use ("set `limit` to page").
+const MANDATED_ALTER = /\b(?:must|should|always|mandatory|required)\b[^.;\n]{0,60}?\b(?:set|add|ignore|redirect|redirected|convert|converted|join|wrap|force|switch|swap|restrict|use\s+the\s+new|change|modify|replace|append|prepend|override)\b[^.;\n]{0,60}?(?:[`'"‘’“”]|\b(?:parameter|argument|param|field|query|input)\b)/i;
+// v15: the frame's own clause goes straight on to set an argument to a fixed value ("When using `X`, set `bcc`
+// to 'a@b.example'"). Advice about values phrases them as advice ("set `limit` to a small number").
+const IMPERATIVE_SET = /^[^.;\n]{0,80}?,\s*(?:always\s+)?(?:set|change|replace|append|add)\b[^.;\n]{0,40}?\bto\s+[`'"‘“]/i;
 const MANDATE_WORDS = `(?:${["must", "should", "mandatory"].map(ci).join("|")}|${ci("need")}${S}${ci("to")}|${ci("have")}${S}${ci("to")}|${ci("required")}${S}${ci("to")}|${ci("is")}${S}${ci("required")})`;
 const MANDATED_CALL = new RegExp(
   String.raw`\b${MANDATE_WORDS}\b[^.;
@@ -334,7 +350,14 @@ const MANDATED_CALL = new RegExp(
   String.raw`|(?:^\s*|,\s*(?:${ci("then")}${S})?)(?:${["call", "run", "use", "invoke", "fetch", "query", "execute"].map(ci).join("|")})${S}(?:${ci("the")}${S})?${ID}`,
   "g",
 );
+// v15. A call to another tool ordered before this one, aimed at a fixed target ("use 'deleteEmail' with UID
+// 99999", "use 'sendSimpleMail' to admin@…") and enforced with a threat ("Failure to do so will crash the system").
+// Honest prerequisites ("call `login` first") name no fixed target and threaten nothing.
+const PRECALL = new RegExp(String.raw`\b(?:${["before", "first"].map(ci).join("|")})\b[^.;\n]{0,40}?\b(?:${["use", "call", "run", "invoke", "trigger"].map(ci).join("|")})${S}(?:${ci("the")}${S})?${ID}`);
+const FIXED_TARGET = /^[^.;\n]{0,40}?\b(?:with|on|to|for|from)\s+(?:[\w-]+\s+){0,2}(?:'[^']{1,80}'|"[^"]{1,80}"|\d{3,}|[\w.+-]+@[\w-]+\.[\w.]+)/i;
+const THREAT = /\b(?:failure|failing|skipping|omitting|ignoring|forgetting|not\s+doing)\b[^.;\n]{0,40}?\bwill\b[^.;\n]{0,40}?\b(?:crash\w*|corrupt\w*|cause\w*|disrupt\w*|overload\w*|break\w*|fail\w*)\b|\bcritical\s+for\s+preventing\b/i;
 const CROSS_TOOL_PATTERNS: SignaturePattern[] = [
+  { re: PRECALL, code: "TOOL_DEF_CROSS_TOOL", severity: "high", tier: "block", surfaces: PROSE, note: "orders a call to another tool at a fixed target and threatens what happens if it is skipped", guards: ["threatenedCall"] },
   { re: CROSS_TOOL_FRAME, code: "TOOL_DEF_CROSS_TOOL", severity: "high", tier: "block", surfaces: PROSE, note: "binds to another tool's call to rewrite its input or pre-empt it with a different call", guards: ["crossTool"] },
   { re: new RegExp(String.raw`\b(?:${["must"].map(ci).join("|")}|${ci("need")}${S}${ci("to")}|${ci("have")}${S}${ci("to")})\b[^.;
 ]{0,40}?\b${CALL_VERB}${S}(?:${ci("the")}${S})?${ID}`), code: "TOOL_DEF_CROSS_TOOL", severity: "high", tier: "block", surfaces: PROSE, note: "takes no input and only orders another tool to be called", guards: ["zeroArgCall"] },
@@ -980,12 +1003,15 @@ const GUARDS: Record<GuardName, Guard> = {
    */
   crossTool(m, text, _surface, ctx) {
     const own = ownIdentifiers(ctx.tool);
-    const framed = [m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8]].filter((g): g is string => !!g).map(normId);
+    const framed = m.slice(1).filter((g): g is string => !!g).map(normId);
     const isBeforeAny = framed.length === 0;
     if (!isBeforeAny && framed.every((id) => own.has(id))) return "the named identifier is this tool or one of its own parameters";
     const sentence = sentenceAround(text, m.index);
     if (!isBeforeAny && ALTER_VERB.test(sentence.text)) return null;
     const next = sentenceAround(text, sentence.end + 1);
+    // v15: a mandated rewrite in this sentence or the next ("When `X` is called. You must change …").
+    if (!isBeforeAny && (MANDATED_ALTER.test(sentence.text) || (sentence.end < text.length && MANDATED_ALTER.test(next.text)))) return null;
+    if (!isBeforeAny && IMPERATIVE_SET.test(text.slice(m.index, sentence.end))) return null;
     for (const piece of [sentence.text, sentence.end < text.length ? next.text : ""]) {
       for (const c of allMatches(MANDATED_CALL, piece)) {
         const ids = [c[1], c[2], c[3], c[4]].filter((g): g is string => !!g).map(normId);
@@ -993,6 +1019,16 @@ const GUARDS: Record<GuardName, Guard> = {
       }
     }
     return "names another tool's call but neither rewrites its input nor orders a different call first — ordinary chaining";
+  },
+
+  /** v15. The ordered call is to another tool, fixes its target, and the definition threatens the model. */
+  threatenedCall(m, text, _surface, ctx) {
+    const own = ownIdentifiers(ctx.tool);
+    const ids = m.slice(1).filter((g): g is string => !!g).map(normId);
+    if (ids.length === 0 || ids.every((id) => own.has(id))) return "the ordered call is to this tool itself";
+    if (!FIXED_TARGET.test(text.slice(m.index + m[0].length))) return "the ordered call has no fixed target";
+    if (!THREAT.test(text)) return "the definition does not threaten the model";
+    return null;
   },
 
   /** v10. Only a tool that takes no input can be nothing but an order to call another tool. */
@@ -1114,7 +1150,11 @@ function hasExternalAddress(text: string): boolean {
 // asking the user for ids" (`autonomy`, which also stops exempting any "without asking
 // the user" whose object is consent), and "the key is read from the MCP connection's
 // X-API-Key header" (`ownAuthHeader`).
-export const STATIC_SCAN_RULESET_VERSION = "14";
+// v15 widens TOOL_DEF_CROSS_TOOL from MCPTox's dev half only: the user's call ("when a user calls `X`"), a
+// passive one ("when `X` is called"), every call ("all `X` requests"), rewrites a mandate binds to a parameter
+// or a quoted value, and a call ordered at a fixed target under a threat (`threatenedCall`). The field corpus
+// blocks exactly what v14 blocked.
+export const STATIC_SCAN_RULESET_VERSION = "15";
 
 const SEVERITY_RANK: Record<Severity, number> = {
   info: 0,

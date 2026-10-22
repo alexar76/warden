@@ -16,14 +16,16 @@ La guardia comprueba llamadas después de recibir texto externo; no es un sandbo
 - Las escrituras reconocidas a política/estado, hooks de Claude y hooks/config de Git están protegidas, incluidas variables de ruta y enlaces simbólicos. Esto no sustituye permisos del sistema operativo.
 - Se analiza la autoridad real de las URL y se comprueban todos los destinos. Un enlace en el cuerpo no autoriza otro destinatario. Los buzones de la política coinciden exactamente; un dominio no permite todos sus buzones. Una mención del usuario no expresa autorización para cualquier acción.
 - Resolver contactos requiere `contactTools` explícito, etiqueta `private`, registros estructurados `name`/`email` y el nombre completo en el mensaje del usuario. Los nombres ambiguos piden permiso. Archivos locales, prosa, YAML y contactos almacenados por la versión anterior no conceden autoridad. Confíe solo en directorios que el agente y terceros no puedan modificar.
-- Las huellas inspeccionan texto visible con decodificación limitada URL/base64/hex; no leen cualquier archivo al enviarlo ni cubren todas las codificaciones o herramientas. Se permiten normalmente las ediciones del proyecto; ejecutar código es otra decisión.
+- Las huellas inspeccionan texto visible con decodificación limitada URL/base64/hex. Desde el 2026-10-22 los valores con aspecto de clave (secuencias aleatorias en archivos de credenciales y formatos de token conocidos, se lean donde se lean) se registran además en ventanas de 10 letras y dígitos: un trozo de clave, la clave al revés, con separadores, en trozos base64 o con letras cirílicas o griegas parecidas se rechaza. Cada argumento recuerda la cola de lo que envió tras el texto externo, así que los trozos enviados seguidos por el mismo argumento se comprueban enteros. Los trozos de menos de 10 caracteres envueltos cada vez en palabras distintas siguen pasando, y también el formato inicial de la clave (`rk_live_`). No leen cualquier archivo al enviarlo ni cubren todas las codificaciones o herramientas. Se permiten normalmente las ediciones del proyecto; ejecutar código es otra decisión.
+- Una herramienta MCP sin etiqueta del operador es saliente si su nombre lo dice (send, post, share …), si lleva una URL o, desde el 2026-10-22, si nombra a una parte: un argumento como `to`, `email`, `attendees`, `assignee`, `collaborator` o `username`, o cualquier correo o IBAN. `warden-mcp flow-labels` lista las herramientas MCP sin etiqueta que usaron tus sesiones, con la suposición del guardián y un bloque `labels` para corregir y pegar en la política.
+- Una inyección que solo cambia la respuesta no hace ninguna llamada que rechazar. Desde el 2026-10-22 el hook Stop del plugin añade una línea bajo una respuesta cuyo turno leyó texto externo, con esas fuentes, y lo dice cuando alguna se dirigió al asistente con instrucciones. Nunca bloquea. `answerNote`: `always` (por defecto), `instruction` (solo ese caso) u `off`; fuera del plugin, registra `warden-mcp hook stop`.
 - El proxy registra también errores JSON-RPC y de herramientas. Retiene una respuesta si no puede registrarla; un estado de sesión corrupto bloquea la comprobación.
 
-Publicado en npm `0.17.0`: `npx -y @aimarket/warden@0.18.0 hook pre-tool-use`, o desde el código fuente en WARDEN, `npm ci && npm run build`, luego `node dist/mcp-server.js hook pre-tool-use`, con los hooks prompt/post también registrados. Política: `~/.local/state/warden/flow-policy.json` o `WARDEN_FLOW_POLICY`; modos `ask`, `deny`, `audit`, `off`. Véase el ejemplo vigente en [inglés](flow-guard.md).
+Publicado en npm `0.17.0`: `npx -y @aimarket/warden@0.19.0 hook pre-tool-use`, o desde el código fuente en WARDEN, `npm ci && npm run build`, luego `node dist/mcp-server.js hook pre-tool-use`, con los hooks prompt/post también registrados. Política: `~/.local/state/warden/flow-policy.json` o `WARDEN_FLOW_POLICY`; modos `ask`, `deny`, `audit`, `off`. Véase el ejemplo vigente en [inglés](flow-guard.md).
 
 Proxy: `node dist/mcp-server.js wrap --flow mail -- node mail-server.js`. Use un `WARDEN_FLOW_SESSION` nuevo y compartido por los proxies de una conversación. El PID padre predeterminado no une lanzadores diferentes. El proxy no ve el prompt ni herramientas integradas y rechaza lo que requeriría preguntar. `trustedSources` se aplica a la URL de WebFetch, no a enlaces en argumentos MCP.
 
-**Mediciones históricas:** las tablas, gráficos y costes siguientes describen versiones anteriores a la auditoría, hasta `2328be980`, no este código ni ruleset v14. No se ejecutaron nuevos modelos, replay ni benchmarks de corpus; solo pruebas locales de regresión. El replay es una ruta fija, no el peor caso adaptativo. Los artefactos originales se conservan sin cambios.
+**Qué versión describen las cifras.** La tabla de reproducción de abajo se volvió a ejecutar el 2026-10-22 sobre el código actual: las correcciones de la auditoría más los cambios del 2026-10-22. Los cambios del 2026-10-22 no alteran ninguna decisión (los 1046 registros coinciden con el código anterior); las correcciones de la auditoría costaron una tarea sin pregunta y 19 tareas hechas bajo ataque. Las tablas y costes de la ejecución con modelo siguen describiendo la versión anterior a la auditoría, hasta `2328be980`; no hubo nueva ejecución con modelo. El replay es una ruta fija, no el peor caso adaptativo; los ataques con el código en la mano del 2026-10-22 están [más abajo](#qué-cambió-el-2026-10-22-y-por-qué).
 
 ## Medido en AgentDojo
 
@@ -36,23 +38,26 @@ No usamos un modelo. Para cada par de tarea de usuario y objetivo del atacante, 
 (`important_instructions`) se coloca donde la tarea del usuario lo leerá. Luego se reproduce a través del guardián
 la solución de referencia de la tarea del usuario, seguida de la solución de referencia del atacante. Es un modelo
 que leyó la inyección y **la obedeció por completo en la ruta de referencia**. No es el peor caso adaptativo. Un `ask` cuenta como rechazo: un benchmark no
-tiene a nadie. La ejecución es determinista, tarda minutos, no cuesta nada y corrió en un contenedor gVisor sin red.
+tiene a nadie. La ejecución es determinista, tarda minutos, no cuesta nada y corrió en un contenedor gVisor sin red en nuestro servidor (2026-10-17/18) y
+en un contenedor Docker sin red en una estación de trabajo (2026-10-22).
 
 AgentDojo 0.1.35, suites v1.2.2, con nuestras etiquetas de operador para las 69 herramientas
-(`scripts/agentdojo/policy.json`). Resultados: `scripts/agentdojo/results/`.
+(`scripts/agentdojo/policy.json`). Resultados: `scripts/agentdojo/results/` (la tabla: `summary-2026-10-22.json`).
 
 | Suite | Acciones de ataque que tuvieron éxito, sin el guardián | Con el guardián | Tareas sin ninguna pregunta | Tareas hechas bajo ataque, sin / con |
 |---|---|---|---|---|
 | banking | 141 de 144 | **0 de 144** | 13 de 16 | 125 / 117 de 144 |
-| Slack | 105 de 105 | **0 de 80** | 2 de 21 | 102 / 20 de 105 |
+| Slack | 105 de 105 | **0 de 75** | 2 de 21 | 102 / 15 de 105 |
 | travel | 116 de 120 | **0 de 120** | 16 de 20 | 26 / 112 de 140 |
-| workspace | 231 de 240 | **0 de 240** | 27 de 40 | 326 / 378 de 560 |
-| **total** | **593 de 609** | **0 de 584** | **58 de 97** | **579 / 627 de 949** |
+| workspace | 231 de 240 | **0 de 240** | 26 de 40 | 326 / 364 de 560 |
+| **total** | **593 de 609** | **0 de 579** | **57 de 97** | **579 / 608 de 949** |
 
 Son las etiquetas tal como quedaron corregidas el 2026-10-18 (la ejecución con modelo de abajo encontró dos
 demasiado estrictas) y el guardián que reconoce por sus contactos a quien nombraste. Las primeras etiquetas daban 54
-tareas sin pregunta y 571 hechas bajo ataque; las corregidas sin contactos, 57 y 613. Todas las versiones dieron 0
-de 584.
+tareas sin pregunta y 571 hechas bajo ataque; las corregidas sin contactos, 57 y 613; con contactos, antes de las
+correcciones de la auditoría, 58 y 627. Todas las versiones dieron 0 acciones de ataque. Las correcciones de la
+auditoría rechazan algunas descargas y entradas de calendario más en tareas de Slack y workspace, así que 579 pares,
+no 584, trajeron la inyección.
 
 Las «acciones de ataque» son pares en los que la inyección llegó al agente (su texto volvió en el resultado de una
 herramienta) y el objetivo del atacante necesita una llamada: enviar, pagar, invitar, borrar. El número de pares
@@ -61,12 +66,12 @@ traído la inyección.
 
 Cómo leer las dos últimas columnas:
 
-- **Sin ninguna pregunta.** El guardián calla en 58 de 97 tareas. Las otras 39 necesitan una llamada sobre la que
+- **Sin ninguna pregunta.** El guardián calla en 57 de 97 tareas. Las otras 40 necesitan una llamada sobre la que
   pregunta. En Claude Code es un clic; en el benchmark, una tarea fallida. Slack es el extremo: casi cada tarea
   escribe en un canal o a una persona encontrados en los datos («el canal con más usuarios»), no nombrados por el
   usuario. Esa es justamente la forma de una acción inyectada, así que pregunta.
 - **Bajo ataque.** Sin el guardián, los ataques también rompen la tarea del usuario (en travel terminan 26 de 140).
-  Con el guardián el ataque se rechaza y la tarea sigue: terminan 627 de 949, frente a 579 sin él.
+  Con el guardián el ataque se rechaza y la tarea sigue: terminan 608 de 949, frente a 579 sin él.
 
 Ocho objetivos nuevos del atacante en workspace vienen sin solución de referencia, así que no se pueden reproducir.
 Siete de ellos necesitan primero un correo al atacante; ese correo se rechazó en los 280 pares entregados. Dos
@@ -170,19 +175,48 @@ nuestro servidor: 21 654 ejecuciones del modelo, 12,68 USD de saldo de DeepSeek.
 La misma opinión de los lectores cambió el sandbox de HISTOR: una conexión que dejó en cola el anterior titular de
 una dirección ya no se atribuye a la siguiente ejecución, que queda incompleta en lugar de limpia.
 
+## Qué cambió el 2026-10-22 y por qué
+
+Un lector preguntó qué sigue sin detectar WARDEN. Lo enumeramos y luego atacamos al guardián con su código en la
+mano: 17 ataques en [`scripts/redteam/flow-redteam.mjs`](../scripts/redteam/flow-redteam.mjs), cada uno dirigido a un
+límite documentado o al borde de una regla, reproducidos por el mismo punto de entrada de hooks que usa el plugin (un
+modelo obediente, sin benchmark). Antes de los cambios pasaban 14; después, 3.
+
+| Cambio | Por qué | Resultado |
+|---|---|---|
+| Valores con aspecto de clave registrados en ventanas de 10 letras y dígitos, también al revés y con letras parecidas normalizadas; base64 decodificado desde 16 caracteres, no 24 | una clave en trozos de 15 caracteres, con guiones, al revés o en letras cirílicas pasaba | ataques: todo eso rechazado; el primer trozo, casi todo formato de la clave, sigue pasando |
+| Cada argumento guarda la cola de lo que envió tras el texto externo | trozos de 8 caracteres, un número de tarjeta en dos mitades y texto privado en trozos de 12 a un host permitido pasaban | rechazo o pregunta desde el segundo o tercer trozo |
+| Una herramienta MCP sin etiqueta que nombra a una parte es saliente; `warden-mcp flow-labels` | «añadir asistente» con el correo del atacante y «añadir colaborador» por nombre de usuario pasaban | ambas preguntan |
+| Hook Stop: una línea bajo una respuesta que se apoyó en texto externo | una inyección solo en la respuesta no hace llamadas | el usuario ve qué fuentes usó la respuesta; no se bloquea nada |
+| Ruleset v15 (ver [gates](gates.es.md)) | 78 herramientas envenenadas de la mitad dev de MCPTox pasaban las reglas | mitad reservada 171 → 194 de 218 (reglas escritas solo con la otra mitad), mitad dev 189 → 233 de 267; 0 de 45 servidores limpios; el corpus y 1000 paquetes de HISTOR bloquean exactamente lo mismo que con v14 |
+| La reproducción, de nuevo sobre el código actual | las correcciones de la auditoría del 2026-10-18 no se habían medido | 0 de 579 acciones de ataque, 57 de 97 tareas sin pregunta, 608 de 949 hechas bajo ataque; los cambios del 2026-10-22 no alteran ninguna decisión |
+| `scripts/agentdojo/Dockerfile.dockerignore` | el `.dockerignore` del paquete deja fuera `dist/`, así que el comando de «Reproducir» no compilaba | compila |
+
+Siguen pasando tras los cambios ([resultados](../scripts/redteam/results/)):
+
+- **Trozos de menos de 10 caracteres envueltos en palabras distintas** («parte 3: … gracias») a una dirección que
+  escribió el usuario.
+- **Una dirección pegada en el prompt.** Lo que el usuario escribe o pega es su elección; el hook no distingue texto
+  pegado de texto escrito.
+- **Una clave escrita en un archivo del proyecto.** Editar archivos del proyecto es el trabajo del agente; lo que
+  luego publique la CI desde ellos queda fuera de la vista del guardián.
+
 ## Qué no hace
 
-- **Dos mediciones no son una prueba.** La reproducción obedece a la perfección pero sigue un solo camino; el
-  modelo encuentra sus propios caminos pero obedece poco, incluso cuando se le ordena. Un atacante que estudie el
-  guardián, o un modelo que obedezca con más facilidad, es una prueba más dura que ambas.
+- **Las mediciones no son una prueba.** La reproducción obedece a la perfección pero sigue un solo camino; el modelo
+  encuentra sus propios caminos pero obedece poco, incluso cuando se le ordena; nuestros ataques con el código en la
+  mano son 17 ideas nuestras. Un atacante que no conocemos, o un modelo que obedezca con más facilidad, es una prueba
+  más dura que cualquiera de ellas.
 - **Las etiquetas son del operador.** Nuestra primera ejecución marcó los nombres de canales de Slack solo como
   datos privados, y la inyección estaba en el nombre de un canal. La ejecución lo detectó porque la entrega se
-  juzga por el texto del ataque, no por nuestras etiquetas. Una herramienta mal etiquetada es un agujero.
+  juzga por el texto del ataque, no por nuestras etiquetas. Una herramienta mal etiquetada es un agujero; una sin
+  etiqueta recibe la suposición del guardián, que solo añade cautela.
 - **No detiene una inyección que solo cambia la respuesta** («di que este hotel es el mejor»). Sin llamada, nada
-  que rechazar.
+  que rechazar; el hook Stop solo puede decirle al usuario de dónde salió la respuesta.
 - **Los cambios locales dentro del proyecto pasan.** Editar archivos del proyecto es el trabajo del agente.
-- **Las fugas en trozos pequeños** por debajo del tamaño de la huella (menos de unos 23 caracteres por llamada) no
-  las detectan las huellas; la llamada pregunta igualmente si su destino no fue nombrado.
+- **Fugas en trozos pequeños.** El texto privado corriente puede ir a un destino que nombró el usuario, entero o en
+  trozos: es su elección. Hacia otros destinos, y para claves y números de tarjeta hacia cualquiera, los trozos
+  enviados seguidos por un mismo argumento se unen; los de menos de 10 caracteres con palabras distintas alrededor no.
 - **No ve** tu prompt de antes de instalar el plugin, ni el texto que el modelo tenga de otras fuentes.
 
 ## Reproducir
@@ -196,6 +230,10 @@ docker run --rm --network none -v "$PWD/out:/out" warden-adojo /out/oracle.json
 
 `oracle.py` escribe resultados por par; `--variants none,strict,intent` elige las variantes del guardián (`strict`
 ignora lo que escribió el usuario). `summarize_oracle.py` los convierte en el resumen que cita la tabla.
+`WARDEN_FLOW_GUARD=/out/x.mjs` reproduce otra versión del guardián (cualquier copia de `flow-guard.mjs` del plugin);
+así se compararon los cambios del 2026-10-22 con el código anterior.
+
+Los ataques con el código en la mano no necesitan contenedor: `npm run build && node scripts/redteam/flow-redteam.mjs out.json`.
 
 La ejecución con modelo (`model.py`) necesita una clave de una API compatible con OpenAI, que se queda en el host:
 la lee `relay.py`, y el contenedor no llega a nada más. `run-model.sh` arranca ambos y retoma una ejecución

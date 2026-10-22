@@ -3,10 +3,11 @@
  * field by field, for the re-approval review.
  *
  * A pin is a hash: it says THAT something changed. A reviewer needs WHAT changed. Over four weeks
- * of HISTOR's log (snapshot 2026-10-20, 23,821 changes), 52% changed the words of a tool or
- * parameter description and 23% added or removed tools, while about one change in eight touched
- * nothing but digits or whitespace (live counters written into descriptions). A review that shows
- * two full JSON blobs for each of those trains people to approve without reading. This module
+ * of HISTOR's log (snapshot 2026-10-20, 23,821 changes), 59.5% changed a tool's description
+ * (45.1% by more than digits) and 30.8% added or removed tools, while 13.4% touched nothing but
+ * digits, separators or whitespace (live counters, prices and limits written into definitions).
+ * A review that shows two full JSON blobs for each of those trains people to approve without
+ * reading. This module
  * shows the path of every changed value, the words added and removed in text, and marks a change
  * made only of numbers. It marks; it never approves: a changed limit is also a number.
  */

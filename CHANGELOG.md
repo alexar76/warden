@@ -1,11 +1,21 @@
 # Changelog
 
-## 0.18.0 — unreleased
+## 0.19.0 — 2026-10-22
+
+What the flow guard and the rules still missed, closed where it could be, and measured. A reader asked what WARDEN still does not catch; [the flow guard doc](docs/flow-guard.md#what-changed-on-2026-10-22-and-why) has the list and what is still delivered.
+
+- **Keys sent in pieces or disguised.** Key-like values (random-looking runs in credential files, well-known token formats anywhere) are also fingerprinted in 10-character windows of their letters and digits, read forwards and backwards, with Cyrillic and Greek look-alike letters folded; base64 is decoded from 16 characters, not 24. Each argument keeps the tail of what it sent after outside text, so pieces sent back to back through one argument are checked whole, including card and account numbers. A key's leading format (`rk_live_`) never counts as a piece of it.
+- **Unlabeled MCP tools that reach a party are outbound**: an argument such as `to`, `email`, `attendees`, `assignee`, `collaborator` or `username`, or any e-mail address or IBAN. `warden-mcp flow-labels` lists the unlabeled tools sessions used, with the guard's guess and a `labels` block to correct.
+- **Stop hook** (`warden-mcp hook stop`, registered by the plugin): one line under an answer whose turn read outside text, naming the sources, and saying so when any of it addressed the assistant with instructions. Never blocks; policy `answerNote`: `always` (default), `instruction`, `off`.
+- **Ruleset v15** widens `TOOL_DEF_CROSS_TOOL` from MCPTox's dev half: the user's call, a passive call, every call, rewrites a mandate binds to a parameter or quoted value, and a call ordered at a fixed target under a threat. Held-out half 171 → 194 of 218; 0 of 45 clean servers; the field corpus and a 1,000-package HISTOR sample block exactly what v14 blocked.
+- **Measured:** the AgentDojo replay re-run on the current code (0 of 579 attack actions, 57 of 97 tasks with no question, 608 of 949 done under attack; the changes above alter no decision, so the drop from 58 and 627 is the 2026-10-18 audit fixes); 17 code-aware attacks in `scripts/redteam/flow-redteam.mjs`, 14 delivered before and 3 after. `scripts/agentdojo/Dockerfile.dockerignore` makes the documented reproduce command build again; `summarize_oracle.py --ran-in` records where a run happened.
+
+## 0.18.0 — 2026-10-21
 
 Re-approval shows what changed, field by field.
 
 - **`pins status|approve|revoke` and `status_mcp_server` show a field-level diff** before the full definitions: every changed value with its path, the words added `{+…+}` and removed `[-…-]` inside descriptions, schema values `before → after`, which entries of a list such as `required` or `enum` came and went, and which tools were added or removed. A change made only of digits, separators or whitespace (a live counter, a date, a limit) is marked "numbers only" and still needs approval: a number can be a limit. `status_mcp_server` returns it as `changes` (structured) and `reviewText` (escaped lines); the library exports `diffToolDefinitions`, `formatDefinitionDiff` and `wordDiff`.
-- Why: in HISTOR's snapshot of 2026-10-20 (23,821 recorded changes over four weeks), 52% changed description text and 23% added or removed tools, while about one in eight changed nothing but numbers, whitespace or schema metadata. Two full JSON blobs per change made those look alike. The pin itself is unchanged: any change still needs a human, as before.
+- Why: in HISTOR's snapshot of 2026-10-20 (23,821 recorded changes over four weeks), 59.5% changed a tool's description (45.1% by more than digits and whitespace) and 30.8% added or removed tools, while 13.4% changed nothing but digits, separators or whitespace. Two full JSON blobs per change made those look alike. (This entry first said 52% and 23%; a recount of `changes.jsonl.gz` could not reproduce either. The counting script is in [the release post](https://modelmarket.dev/blog/mcp-servers-edit-the-instructions-your-agent-reads-warden-018-shows-which-words-changed/).) The pin itself is unchanged: any change still needs a human, as before.
 - Long rewrites fall back to "common start and end, middle replaced" instead of a quadratic word diff; a review lists at most 200 changed values per tool and then points to the full definitions.
 
 ## 0.17.0 — 2026-10-18

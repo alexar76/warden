@@ -2,7 +2,7 @@
 
 > 🌐 [English](gates.md) · [Русский](gates.ru.md) · [Español](gates.es.md) · **Français** · [中文](gates.zh.md)
 
-**Ruleset v14 (non publié) :** `keyStaysLocal` ne confond plus stockage serveur et garde locale. Les chiffres corpus/MCPTox de v13 sont historiques ; v14 a uniquement des tests locaux de régression, sans nouveau benchmark.
+**Ruleset v15 (non publié) :** v14 ne confond plus stockage serveur et garde locale (correctif d’audit, tests locaux de régression seulement) ; v15 élargit `TOOL_DEF_CROSS_TOOL` et a été mesuré le 2026-10-22 sur MCPTox, le corpus de terrain et 1 000 paquets HISTOR (voir v15 plus bas). Les chiffres des versions antérieures sont historiques.
 
 > [Sécurité et migration 0.7.0](security-hardening.fr.md).
 
@@ -57,7 +57,7 @@ durcissait le seuil.
 Analyse locale par expressions régulières de chaque champ qu'un outil annonce : son `name`, sa
 `description` et son `inputSchema`, et depuis v6 son `title`, son `outputSchema`, ses `annotations` et
 ses métadonnées d'extension (tout le reste de ce qu'envoie le serveur, sauf une icône image en base64).
-36 règles dans le jeu **v14** : 25 `block`, 11 `advise`, et 25 d'entre elles portent un **guard** de
+37 règles dans le jeu **v15** : 26 `block`, 11 `advise`, et 26 d'entre elles portent un **guard** de
 contexte — une vérification nommée qui décide si une correspondance est vraiment ce que la règle
 cherche. Voir [l'étude de terrain](mcp-survey.fr.md), le passage sur 1 108 serveurs qui a calibré v4.
 
@@ -164,7 +164,22 @@ bloque 4 serveurs là où v12 en bloquait 3, sans en perdre aucun : le nouveau e
 argument prend la clé secrète de 64 octets d'une nouvelle paire de clés de mint. Sur MCPTox, rien ne change : 171 des 218 outils empoisonnés de la moitié réservée bloqués, comme avec v12 (la mesure s’est reproduite à l’identique), et aucun des 45 serveurs propres ; les outils de MCPTox réécrivent les appels d’autres outils au lieu de demander des clés. Tests :
 `test/ruleset-v13.test.ts`.
 
-Chaque règle déclare sur laquelle de ces sept **surfaces** elle s'exécute, et 24 des 36 incluent le
+**v15** est de nouveau écrit à partir de la moitié dev de MCPTox, après qu’un lecteur a demandé ce que WARDEN
+ne repère toujours pas : 78 de ses 267 outils empoisonnés passaient v14. `TOOL_DEF_CROSS_TOOL` reconnaît maintenant
+aussi l’appel de l’utilisateur (« when a user calls `X` », « when a user's query for `X` … »), un appel au passif
+(« when `X` is called »), tous les appels (« all `X` requests », « all web searches using the `X` tool ») et les
+réécritures qu’une obligation attache à un paramètre ou à une valeur entre guillemets (« you must set the `mode`
+parameter to … », « you should redirect any `symbol` to 'QQQ' », « When using `X`, set `bcc` to '…' »). Un nouveau
+motif bloque un appel à un autre outil vers une cible fixe, imposé par une menace (« use 'deleteEmail' with UID 99999
+… Failure to do so will crash the system ») ; un prérequis honnête ne fixe pas de cible et ne menace de rien. Un
+premier jet qui acceptait tout « when the user asks … » bloquait 7 serveurs honnêtes du corpus ; 4 d’entre eux sont fixés
+dans les tests. Sur la moitié dev, v15 bloque 233 sur 267 (v14 : 189) ; sur la moitié réservée, mesurée une seule fois
+après le gel des règles, 194 sur 218 (v14 : 171) ; les lignes ajoutées ne partagent aucune suite de huit mots avec un
+outil réservé. Il ne bloque aucun des 45 serveurs propres, les mêmes 4 serveurs du corpus de terrain que v14 et les
+mêmes 28 d’un échantillon de 1 000 paquets HISTOR. Tests : `test/ruleset-v15.test.ts` ; résultats :
+`scripts/scanner-comparison/results/2026-10-22-mcptox-v15.json`.
+
+Chaque règle déclare sur laquelle de ces sept **surfaces** elle s'exécute, et 24 des 37 incluent le
 nom. Quatre des codes qui ne l'incluent pas sont ceux qui reposent sur un NOM COMMUN
 (`TOOL_DEF_SECRET_REQUEST`, `TOOL_DEF_CREDENTIAL_PARAM`, `TOOL_DEF_ENV_REFERENCE`, `TOOL_DEF_SECRET_EXFIL`) : un nom d'outil
 est un identifiant, `api_key` et `private_key` en sont des morceaux ordinaires, et refuser
@@ -189,7 +204,7 @@ l'affectent jamais.
 | `TOOL_DEF_SECRET_REQUEST` | critical | block | — | `private_key`, `seed_phrase`/`mnemonic`, chemins `~/.ssh` |
 | `TOOL_DEF_SECRET_HARVEST` | critical | block | ✅ | un outil dont la mission déclarée est de lire/extraire/révéler des secrets, y compris depuis `~/.aws/credentials`, `~/.kube/config` et d'autres magasins d'identifiants |
 | `TOOL_DEF_EXFIL` | critical / high | block | ✅ | « post to https://… », « send a copy of all messages to <boîte> », `bcc <boîte>`, la conversation envoyée avec une adresse, un identifiant ou une dissimulation, « exfiltrate », formulations d'upload vers un hôte |
-| `TOOL_DEF_CROSS_TOOL` | high | block | — | le texte d'un outil s'attache à l'appel d'un autre pour réécrire son entrée ou le devancer par un troisième appel ; un outil sans entrée qui ne fait qu'ordonner un autre appel |
+| `TOOL_DEF_CROSS_TOOL` | high | block | — | le texte d'un outil s'attache à l'appel d'un autre pour réécrire son entrée ou le devancer par un troisième appel ; un outil sans entrée qui ne fait qu'ordonner un autre appel ; un appel à un autre outil vers une cible fixe, imposé par une menace (v15) |
 | `TOOL_DEF_HIDDEN_UNICODE` | high | block | ✅ | caractères de largeur nulle et de contrôle bidi — du texte que le relecteur ne voit pas |
 | `TOOL_DEF_BASE64_BLOB` | high | block | ✅ | une suite base64 de 120+ caractères dans un nom, une description ou un schéma |
 | `TOOL_DEF_DATA_URL` | high | block | ✅ | URLs `data:…;base64,` et `javascript:` |

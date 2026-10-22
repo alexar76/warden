@@ -2,7 +2,7 @@
 
 > 🌐 **English** · [Русский](gates.ru.md) · [Español](gates.es.md) · [Français](gates.fr.md) · [中文](gates.zh.md)
 
-**Ruleset v14 (unreleased, audit fix):** `keyStaysLocal` no longer treats storage on a server as local custody. All corpus/MCPTox numbers quoted for v13 below are historical; v14 has only local regression validation, with no new benchmark.
+**Ruleset v15 (unreleased):** v14 stopped treating storage on a server as local custody (audit fix, local regression tests only); v15 widens `TOOL_DEF_CROSS_TOOL`, measured on 2026-10-22 on MCPTox, the field corpus and 1,000 HISTOR packages (see v15 below). Numbers quoted for earlier versions are historical.
 
 > [0.7.0 security changes and migration](security-hardening.md).
 
@@ -53,8 +53,8 @@ the threshold.
 
 Local regex scan over every field a tool advertises: its `name`, `description` and `inputSchema`,
 and since v6 its `title`, `outputSchema`, `annotations` and extension metadata (everything else the
-server sent, a base64 image icon excepted). 36 rules in ruleset **v14**: 25 `block`, 11 `advise`, and
-25 of them carry a context **guard** — a named
+server sent, a base64 image icon excepted). 37 rules in ruleset **v15**: 26 `block`, 11 `advise`, and
+26 of them carry a context **guard** — a named
 check that decides whether a match is really the thing the rule is looking for. See
 [the field survey](mcp-survey.md) for the 1 108-server run that calibrated v4.
 
@@ -154,7 +154,21 @@ new credential's private key", "You keep the private key.", "messages from one s
 blocked 3, losing none: the new one is a hosted builder whose argument takes the 64-byte secret key of a new mint
 key pair. On MCPTox it changes nothing: 171 of 218 held-out poisoned tools blocked, as with v12 (the measurement reproduced exactly), and none of the 45 clean servers; MCPTox's tools rewrite other tools' calls rather than ask for keys. Tests: `test/ruleset-v13.test.ts`.
 
-Every rule declares which of those seven **surfaces** it runs on, and 24 of the 36 include the name.
+**v15** is written from MCPTox's dev half again, after a reader asked what WARDEN still misses: 78 of its 267
+poisoned tools passed v14. `TOOL_DEF_CROSS_TOOL` now also recognises the user's call ("when a user calls `X`",
+"when a user's query for `X` …"), a passive one ("when `X` is called"), every call ("all `X` requests", "all web
+searches using the `X` tool"), and rewrites a mandate binds to a parameter or a quoted value ("you must set the
+`mode` parameter to …", "you should redirect any `symbol` to 'QQQ'", "When using `X`, set `bcc` to '…'"). A new
+pattern blocks a call to another tool ordered at a fixed target and enforced with a threat ("use 'deleteEmail' with
+UID 99999 … Failure to do so will crash the system"); an honest prerequisite names no fixed target and threatens
+nothing. A first draft that matched any "when the user asks …" blocked 7 honest servers of the corpus; four of
+them are pinned as tests. On the dev half v15 blocks 233 of 267 (v14: 189); on the held-out half, measured once after the
+rules were frozen, 194 of 218 (v14: 171); the added lines share no eight-word sequence with any held-out tool. It
+blocks none of the 45 clean servers, the same 4 servers of the field corpus as v14 and the same 28 of a seeded
+1,000-package HISTOR sample. Tests: `test/ruleset-v15.test.ts`; results:
+`scripts/scanner-comparison/results/2026-10-22-mcptox-v15.json`.
+
+Every rule declares which of those seven **surfaces** it runs on, and 24 of the 37 include the name.
 Four of the codes that do not are the noun-keyed ones (`TOOL_DEF_SECRET_REQUEST`,
 `TOOL_DEF_CREDENTIAL_PARAM`, `TOOL_DEF_ENV_REFERENCE`, `TOOL_DEF_SECRET_EXFIL`): a name is an identifier, `api_key` and
 `private_key` are ordinary parts of one, and refusing `sign_with_private_key` would be the ruleset
@@ -177,7 +191,7 @@ Gate score is `1 − penalty(worst blocking severity)`; advisory hits never affe
 | `TOOL_DEF_SECRET_REQUEST` | critical | block | — | `private_key`, `seed_phrase`/`mnemonic`, `~/.ssh` paths |
 | `TOOL_DEF_SECRET_HARVEST` | critical | block | ✅ | a tool whose stated job is to read/dump/reveal secrets, including from `~/.aws/credentials`, `~/.kube/config` and other credential stores |
 | `TOOL_DEF_EXFIL` | critical / high | block | ✅ | "post to https://…", "send a copy of all messages to <mailbox>", `bcc <mailbox>`, the conversation sent out with an address, credential or concealment, "exfiltrate", upload-to-host phrasing |
-| `TOOL_DEF_CROSS_TOOL` | high | block | — | a tool's text binding to another tool's call to rewrite its input or pre-empt it with a third call; a no-input tool that only orders another call |
+| `TOOL_DEF_CROSS_TOOL` | high | block | — | a tool's text binding to another tool's call to rewrite its input or pre-empt it with a third call; a no-input tool that only orders another call; a call to another tool at a fixed target, enforced with a threat (v15) |
 | `TOOL_DEF_HIDDEN_UNICODE` | high | block | ✅ | zero-width, bidi control and isolate characters, and the Unicode-tag block — text the reviewer cannot see |
 | `TOOL_DEF_BASE64_BLOB` | high | block | ✅ | a 120+ character base64 run in a name, description or schema |
 | `TOOL_DEF_DATA_URL` | high | block | ✅ | `data:…;base64,` and `javascript:` URLs |

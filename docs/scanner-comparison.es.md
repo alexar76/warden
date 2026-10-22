@@ -57,6 +57,28 @@ Bloqueados, de:
   WARDEN incluido, corrió en un contenedor gVisor sin red en dos de nuestros servidores, desde imágenes cuyo
   contenido fijamos y resumimos con hashes. Véase [cómo se ejecutó](#cómo-se-ejecutó).
 
+## Ruleset v15, 2026-10-22 (solo WARDEN)
+
+Un lector preguntó qué sigue sin detectar WARDEN. 78 de las 267 herramientas envenenadas de la mitad dev de MCPTox
+pasaban v14, así que v15 amplía `TOOL_DEF_CROSS_TOOL` a partir de ellas y de nada más ([la regla](gates.es.md)). La
+mitad reservada se midió una sola vez, tras congelar las reglas, y las líneas añadidas no comparten ninguna
+secuencia de ocho palabras con ninguna herramienta reservada.
+
+| | v14 | v15 |
+|---|---|---|
+| mitad dev de MCPTox (de la que salen las reglas) | 189 de 267 | 233 de 267 |
+| **mitad reservada de MCPTox** | **171 de 218** | **194 de 218** |
+| …secuestro de función con disparador explícito | 17 de 23 | 17 de 23 |
+| …secuestro de función con disparador implícito | 59 de 66 | 61 de 66 |
+| …manipulación de parámetros con disparador implícito | 95 de 129 | 116 de 129 |
+| 45 servidores limpios de MCPTox | 0 | 0 |
+| corpus de campo, 999 servidores con herramientas | 4 | los mismos 4 |
+| paquetes de HISTOR, muestra con semilla de 1000 del listado del 2026-10-22 | 28 | los mismos 28 |
+
+Los otros escáneres no se volvieron a ejecutar; la tabla del principio es del 2026-10-16. Se ejecutó en una
+estación de trabajo, no en los contenedores gVisor del 2026-10-16. Veredictos por id de caso:
+[`results/2026-10-22-mcptox-v15.json`](../scripts/scanner-comparison/results/2026-10-22-mcptox-v15.json).
+
 ## Cinco escáneres, y los que no ejecutamos
 
 La ficha de WARDEN en Glama nombra siete herramientas relacionadas. Antes de decidir leímos el código o la ficha de
