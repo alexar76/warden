@@ -14,14 +14,14 @@ const bin = join(root, 'dist/mcp-server.js'), fixture = join(root, 'test/fixture
 const dirs: string[] = [], children: ChildProcessWithoutNullStreams[] = [];
 afterEach(() => { for (const p of children.splice(0)) p.kill('SIGKILL'); for (const d of dirs.splice(0)) rmSync(d, { recursive: true, force: true }); });
 function state() { const d = mkdtempSync(join(tmpdir(), 'warden-wrap-')); dirs.push(d); return d; }
-function harness(options: { dir?: string; config?: any; flags?: string[]; lsp?: boolean; id?: string; args?: string[]; direct?: boolean; env?: Record<string, string> } = {}) {
+function harness(options: { dir?: string; config?: any; flags?: string[]; lsp?: boolean; id?: string; args?: string[]; direct?: boolean; env?: Record<string, string>; elicit?: (m: any) => any } = {}) {
   const dir = options.dir ?? state(), cfg = join(dir, 'fixture.json');
   if (options.config || !existsSync(cfg)) writeFileSync(cfg, JSON.stringify(options.config ?? {}));
   const args = options.args ?? ['wrap', '--id', options.id ?? 'fixture', '--state-dir', dir, ...(options.flags ?? []), '--', process.execPath, fixture];
   const p = spawn(process.execPath, options.direct ? [fixture] : [bin, ...args], { env: { ...process.env, WARDEN_FIXTURE_CONFIG: cfg, WARDEN_FIXTURE_PID: join(dir, 'pid'), ...(options.env ?? {}) }, stdio: 'pipe' });
   children.push(p);
   let stderr = '', n = 0;
-  const messages: any[] = [], raws: string[] = [], pending = new Map<any, (m: any) => void>();
+  const messages: any[] = [], raws: string[] = [], asked: any[] = [], pending = new Map<any, (m: any) => void>();
   const frames = new WrapFrames(options.lsp ? 'lsp' : 'ndjson');
   const send = (msg: any) => {
     const b = JSON.stringify(msg);
@@ -33,6 +33,7 @@ function harness(options: { dir?: string; config?: any; flags?: string[]; lsp?: 
       const m = JSON.parse(raw); messages.push(m); raws.push(raw);
       if (m.method === 'roots/list') send({ jsonrpc: '2.0', id: m.id, result: { roots: [] } });
       if (m.method === 'sampling/createMessage') send({ jsonrpc: '2.0', id: m.id, result: { model: 'fixture' } });
+      if (m.method === 'elicitation/create') { asked.push(m); const reply = options.elicit?.(m); if (reply) send({ jsonrpc: '2.0', id: m.id, ...reply }); }
       if (!m.method) { pending.get(m.id)?.(m); pending.delete(m.id); }
     }
   });
@@ -42,9 +43,9 @@ function harness(options: { dir?: string; config?: any; flags?: string[]; lsp?: 
     pending.set(id, m => { clearTimeout(timer); res(m); });
     send({ jsonrpc: '2.0', id, method, ...(params === undefined ? {} : { params }) });
   });
-  return { p, dir, cfg, request, send, messages, raws, exited, stderr: () => stderr,
+  return { p, dir, cfg, request, send, messages, raws, asked, exited, stderr: () => stderr,
     change: (value: any) => writeFileSync(cfg, JSON.stringify({ ...JSON.parse(readFileSync(cfg, 'utf8')), ...value })),
-    init: () => request('initialize', { protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 'test', version: '1' } }),
+    init: (capabilities: any = {}) => request('initialize', { protocolVersion: '2025-06-18', capabilities, clientInfo: { name: 'test', version: '1' } }),
     stop: async () => { p.stdin.end(); return exited; } };
 }
 async function until(fn: () => boolean, timeout = 4000) { const start = Date.now(); while (!fn()) { if (Date.now() - start > timeout) throw new Error('Condition timed out'); await new Promise(r => setTimeout(r, 10)); } }
@@ -298,6 +299,96 @@ describe('wrap proxy', () => {
     const pin = await new FilePinStore(join(dir, 'pins')).getPin('fixture'); expect(pin?.tools).toHaveLength(1);
     expect(readdirSync(join(dir, 'pins'))).toHaveLength(1);
   });
+  describe('sensitive tools (policy.sensitiveToolPatterns)', () => {
+    const tools = [{ name: 'notes', description: 'Read notes.', inputSchema: { type: 'object' } },
+      { name: 'delete_file', description: 'Delete a file.', inputSchema: { type: 'object', properties: { path: { type: 'string' } } } }];
+    const accept = (run: boolean) => () => ({ result: { action: 'accept', content: { run } } });
+    function setup(o: { elicit?: (m: any) => any; flags?: string[]; patterns?: string[] } = {}) {
+      const dir = state(), calls = join(dir, 'calls.jsonl'), policy = join(dir, 'policy.json');
+      // Upper case on purpose: patterns match tool names case-insensitively.
+      writeFileSync(policy, JSON.stringify({ sensitiveToolPatterns: o.patterns ?? ['*DELETE*'] }));
+      const h = harness({ dir, flags: ['--policy', policy, ...(o.flags ?? [])], config: { tools, callsFile: calls }, elicit: o.elicit });
+      return { h, sent: () => existsSync(calls) ? readFileSync(calls, 'utf8') : '' };
+    }
+    it('refuses a sensitive call the client cannot be asked about; the server never receives it', async () => {
+      const { h, sent } = setup();
+      await ready(h);
+      const refused = await h.request('tools/call', { name: 'delete_file', arguments: { path: 'never-sent' } });
+      expect(refused.error.message).toContain('policy.sensitiveToolPatterns');
+      expect(refused.error.message).toContain('no MCP elicitation form');
+      expect(refused.error.message).toContain('it was not run');
+      expect(sent()).not.toContain('never-sent');
+      expect((await h.request('tools/call', { name: 'notes' })).result).toBeDefined();
+      expect(h.asked).toHaveLength(0);
+      await h.stop();
+    });
+    it('asks through the client form; only a ticked, accepted answer lets that one call through', async () => {
+      let reply: () => any = accept(true);
+      const { h, sent } = setup({ elicit: () => reply() });
+      await h.init({ elicitation: {} }); await h.request('tools/list');
+      expect((await h.request('tools/call', { name: 'delete_file', arguments: { path: 'approved-path' } })).result).toBeDefined();
+      expect(h.asked).toHaveLength(1);
+      expect(h.asked[0].params.message).toContain('delete_file');
+      expect(h.asked[0].params.message).toContain('approved-path');
+      expect(h.asked[0].params.requestedSchema.properties.run).toMatchObject({ type: 'boolean', default: false });
+      const answers: Array<[string, () => any]> = [['path-unticked', accept(false)], ['path-declined', () => ({ result: { action: 'decline' } })],
+        ['path-cancelled', () => ({ result: { action: 'cancel' } })], ['path-client-error', () => ({ error: { code: -32601, message: 'unsupported' } })]];
+      for (const [path, answer] of answers) {
+        reply = answer;
+        const refused = await h.request('tools/call', { name: 'delete_file', arguments: { path } });
+        expect(refused.error.message).toContain('delete_file was not run');
+        expect(sent()).not.toContain(path);
+      }
+      expect(sent().match(/delete_file/g)).toHaveLength(1);
+      expect((await h.request('tools/call', { name: 'notes' })).result).toBeDefined();
+      expect(h.asked).toHaveLength(5);
+      await h.stop();
+    });
+    it('a client that offers only URL elicitation, or --ask refuse, is never asked', async () => {
+      const urlOnly = setup({ elicit: accept(true) });
+      await urlOnly.h.init({ elicitation: { url: {} } }); await urlOnly.h.request('tools/list');
+      expect((await urlOnly.h.request('tools/call', { name: 'delete_file', arguments: { path: 'url-only' } })).error.message).toContain('it was not run');
+      const refuse = setup({ elicit: accept(true), flags: ['--ask', 'refuse'] });
+      await refuse.h.init({ elicitation: {} }); await refuse.h.request('tools/list');
+      expect((await refuse.h.request('tools/call', { name: 'delete_file', arguments: { path: 'refuse-mode' } })).error.message).toContain('--ask refuse');
+      expect(urlOnly.h.asked.length + refuse.h.asked.length).toBe(0);
+      expect(urlOnly.sent() + refuse.sent()).not.toContain('delete_file');
+      await Promise.all([urlOnly.h.stop(), refuse.h.stop()]);
+    });
+    it('audit-only forwards the call and logs that it would ask', async () => {
+      const { h, sent } = setup({ flags: ['--audit-only'] });
+      await ready(h);
+      expect((await h.request('tools/call', { name: 'delete_file', arguments: { path: 'audited' } })).result).toBeDefined();
+      expect(sent()).toContain('audited');
+      expect(h.stderr()).toContain('would ask a person before delete_file runs');
+      await h.stop();
+    });
+    it('a call the client cancels while the person decides is never sent and gets no reply; a late yes changes nothing', async () => {
+      const { h, sent } = setup({ elicit: () => undefined });
+      await h.init({ elicitation: {} }); await h.request('tools/list');
+      h.send({ jsonrpc: '2.0', id: 'wait-1', method: 'tools/call', params: { name: 'delete_file', arguments: { path: 'cancel-me' } } });
+      await until(() => h.asked.length === 1);
+      h.send({ jsonrpc: '2.0', method: 'notifications/cancelled', params: { requestId: 'wait-1', reason: 'client timeout' } });
+      await until(() => h.messages.some(m => m.method === 'notifications/cancelled' && m.params.requestId === h.asked[0].id));
+      h.send({ jsonrpc: '2.0', id: h.asked[0].id, result: { action: 'accept', content: { run: true } } });
+      expect((await h.request('ping')).result).toBeDefined();
+      expect(h.messages.some(m => m.id === 'wait-1')).toBe(false);
+      expect(sent()).not.toContain('cancel-me');
+      await h.stop();
+    });
+    it('definitions that change while the person decides block the approved call', async () => {
+      let question: any;
+      const { h, sent } = setup({ elicit: m => { question = m; return undefined; } });
+      await h.init({ elicitation: {} }); await h.request('tools/list');
+      const call = h.request('tools/call', { name: 'delete_file', arguments: { path: 'changed-meanwhile' } });
+      await until(() => !!question);
+      await h.request('fixture/change', { tools: [tools[0], { ...tools[1], description: 'Delete a file and its backups.' }] });
+      h.send({ jsonrpc: '2.0', id: question.id, result: { action: 'accept', content: { run: true } } });
+      expect((await call).error.message).toContain('changed while waiting for approval');
+      expect(sent()).not.toContain('changed-meanwhile');
+      await h.stop();
+    });
+  });
   describe('flow guard (--flow)', () => {
     const mail = [{ name: 'read_inbox', description: 'Read the inbox.', inputSchema: { type: 'object' } },
       { name: 'send_email', description: 'Send an e-mail.', inputSchema: { type: 'object', properties: { to: { type: 'string' } } } }];
@@ -333,6 +424,24 @@ describe('wrap proxy', () => {
       await ready(other);
       expect((await other.request('tools/call', { name: 'send_email', arguments: { to: 'x@y.example' } })).error?.message).toContain('WARDEN flow guard');
       await Promise.all([h.stop(), other.stop()]);
+    });
+    it('asks through the client form when the client offers one, and records the answer', async () => {
+      const dir = state(), calls = join(dir, 'calls.jsonl'), env = flowEnv(dir);
+      let run = false;
+      const h = harness({ dir, flags: ['--flow', 'mail'], env, config: { tools: mail, callsFile: calls, callText: injected }, elicit: () => ({ result: { action: 'accept', content: { run } } }) });
+      await h.init({ elicitation: {} }); await h.request('tools/list');
+      await h.request('tools/call', { name: 'read_inbox', arguments: {} });
+      const refused = await h.request('tools/call', { name: 'send_email', arguments: { to: 'mallory@evil.example' } });
+      expect(refused.error?.message).toContain('it was not approved');
+      expect(h.asked.at(-1).params.message).toContain('WARDEN flow guard');
+      expect(readFileSync(calls, 'utf8')).not.toContain('mallory@evil.example');
+      run = true;
+      expect((await h.request('tools/call', { name: 'send_email', arguments: { to: 'carol@example.org' } })).result).toBeDefined();
+      expect(readFileSync(calls, 'utf8')).toContain('carol@example.org');
+      const log = readFileSync(flowPaths(env.WARDEN_STATE_DIR, env.WARDEN_FLOW_SESSION).log, 'utf8').trim().split('\n').map(line => JSON.parse(line));
+      expect(log.filter(e => e.event === 'pre').map(e => e.disposition)).toEqual(['approval_requested', 'approval_requested']);
+      expect(log.filter(e => e.event === 'approval').map(e => e.approvalOutcome)).toEqual(['declined', 'approved']);
+      await h.stop();
     });
     it('audit-only logs what the guard would do and forwards the call; without --flow nothing changes', async () => {
       const dir = state(), env = flowEnv(dir);

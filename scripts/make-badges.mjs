@@ -61,8 +61,9 @@ function badge(label, value, color) {
 `;
 }
 
+// No CI badge here: a committed "CI: passing" stays green over failing builds. The README shows the live
+// GitHub Actions badge instead (a98177ea1).
 const badges = {
-  "ci.svg": ["CI", "passing", "#4c1"],
   "tests.svg": ["tests", `${tests} passing`, "#4c1"],
   "deps.svg": ["dependencies", depCount === 0 ? "0" : String(depCount), depCount === 0 ? "#4c1" : "#dfb317"],
   "node.svg": ["node", pkg.engines.node, "#4c1"],

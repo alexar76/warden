@@ -130,6 +130,8 @@ type GuardName =
   | "crossTool"
   | "zeroArgCall"
   | "threatenedCall"
+  | "zeroArgOrder"
+  | "zeroArgRewrite"
   | "keyReference"
   | "keyStaysLocal";
 
@@ -356,7 +358,23 @@ const MANDATED_CALL = new RegExp(
 const PRECALL = new RegExp(String.raw`\b(?:${["before", "first"].map(ci).join("|")})\b[^.;\n]{0,40}?\b(?:${["use", "call", "run", "invoke", "trigger"].map(ci).join("|")})${S}(?:${ci("the")}${S})?${ID}`);
 const FIXED_TARGET = /^[^.;\n]{0,40}?\b(?:with|on|to|for|from)\s+(?:[\w-]+\s+){0,2}(?:'[^']{1,80}'|"[^"]{1,80}"|\d{3,}|[\w.+-]+@[\w-]+\.[\w.]+)/i;
 const THREAT = /\b(?:failure|failing|skipping|omitting|ignoring|forgetting|not\s+doing)\b[^.;\n]{0,40}?\bwill\b[^.;\n]{0,40}?\b(?:crash\w*|corrupt\w*|cause\w*|disrupt\w*|overload\w*|break\w*|fail\w*)\b|\bcritical\s+for\s+preventing\b/i;
+// v16. A tool that takes no input has nothing of its own to do with another tool's call. When its text orders such a
+// call aimed at a fixed value ("request `company_overview` on 'META'", "Invoke `open_nodes` for 'Artificial
+// Intelligence'"), cuts into another call ("Before calling `X`, trigger `Y`"), or orders a parameter rewritten to a
+// fixed value ("you must change the address to '…'"), it exists to steer the model. A tool with input keeps the v15
+// rules: there such sentences can describe how it is used.
+const ZERO_ARG_ORDER = new RegExp(String.raw`\b(?:${["call", "calls", "calling", "invoke", "invokes", "run", "runs", "trigger", "triggers", "use", "uses", "using", "request", "perform", "scan", "search", "retrieve", "query", "fetch", "via"].map(ci).join("|")})${S}(?:[\w-]+${S}){0,4}?(?:${ci("the")}${S})?${ID}`);
+// A fixed value the ordered call is aimed at: quoted, a list, a long number or an address after with/on/for/from.
+// "to …" says what the call is for ("use `x` to answer …"), not where it is aimed.
+const ZERO_ARG_TARGET = /^[^.;\n]{0,40}?\b(?:with|on|for|from)\b[^.;\n]{0,25}?(?:'[^'\n<{]{1,80}'|"[^"\n<{]{1,80}"|\[\s*['"]|\b\d{3,}\b|[\w.+-]+@[\w-]+\.[\w.]+)/i;
+// The order cuts in: it comes first, unasked, or as a must. "To read X, use `y` with '…'" is how-to, not an order.
+const PRE_EMPT = /\b(?:first|before|automatically|always|must|requires?|required|needs? to|have to|mandatory)\b/i;
+// Frames that bind to another tool's call as it happens; "passed to `x`" says where data goes, nothing more.
+const CALL_FRAME_START = /^(?:when|whenever|before|after|while|if|each\s+time|every\s+time)\b/i;
+const ZERO_ARG_REWRITE = /\b(?:must|should|always|mandatory|required)\b[^.;\n]{0,60}?\b(?:change|modify|replace|set|append|prepend|add|redirect|update|override|use\s+the\s+new)\b[^.;\n]{0,80}?(?:'[^'\n]{1,80}'|"[^"\n]{1,80}"|`[^`\n]{1,80}`)/i;
 const CROSS_TOOL_PATTERNS: SignaturePattern[] = [
+  { re: ZERO_ARG_ORDER, code: "TOOL_DEF_CROSS_TOOL", severity: "high", tier: "block", surfaces: PROSE, note: "takes no input and orders another tool's call at a fixed value or inside another call", guards: ["zeroArgOrder"] },
+  { re: ZERO_ARG_REWRITE, code: "TOOL_DEF_CROSS_TOOL", severity: "high", tier: "block", surfaces: ["description", "inputSchema"], note: "takes no input and orders a parameter rewritten to a fixed value", guards: ["zeroArgRewrite"] },
   { re: PRECALL, code: "TOOL_DEF_CROSS_TOOL", severity: "high", tier: "block", surfaces: PROSE, note: "orders a call to another tool at a fixed target and threatens what happens if it is skipped", guards: ["threatenedCall"] },
   { re: CROSS_TOOL_FRAME, code: "TOOL_DEF_CROSS_TOOL", severity: "high", tier: "block", surfaces: PROSE, note: "binds to another tool's call to rewrite its input or pre-empt it with a different call", guards: ["crossTool"] },
   { re: new RegExp(String.raw`\b(?:${["must"].map(ci).join("|")}|${ci("need")}${S}${ci("to")}|${ci("have")}${S}${ci("to")})\b[^.;
@@ -1031,6 +1049,29 @@ const GUARDS: Record<GuardName, Guard> = {
     return null;
   },
 
+  /** v16. A no-input tool orders another tool's call at a fixed value, or inside a call it names to another tool. */
+  zeroArgOrder(m, text, _surface, ctx) {
+    const props = (ctx.tool.inputSchema as { properties?: Record<string, unknown> } | undefined)?.properties ?? {};
+    if (Object.keys(props).length > 0) return "the tool takes input of its own";
+    const own = ownNamesAndFields(ctx.tool);
+    const ids = m.slice(1).filter((g): g is string => !!g).map(normId).filter((id) => !own.has(id));
+    if (ids.length === 0) return "the named identifier is this tool, its input or its output";
+    const sentence = sentenceAround(text, m.index);
+    if (ZERO_ARG_TARGET.test(text.slice(m.index + m[0].length)) && PRE_EMPT.test(sentence.text)) return null;
+    for (const f of allMatches(new RegExp(CROSS_TOOL_FRAME.source, "g"), sentence.text)) {
+      if (!CALL_FRAME_START.test(f[0])) continue;
+      const framed = f.slice(1).filter((g): g is string => !!g).map(normId);
+      if (framed.some((id) => !own.has(id) && !ids.includes(id))) return null;
+    }
+    return "no fixed value and no other tool's call to cut into";
+  },
+
+  /** v16. A no-input tool orders a parameter rewritten to a fixed value. */
+  zeroArgRewrite(_m, _text, _surface, ctx) {
+    const props = (ctx.tool.inputSchema as { properties?: Record<string, unknown> } | undefined)?.properties ?? {};
+    return Object.keys(props).length > 0 ? "the tool takes input of its own" : null;
+  },
+
   /** v10. Only a tool that takes no input can be nothing but an order to call another tool. */
   zeroArgCall(m, _text, _surface, ctx) {
     const props = (ctx.tool.inputSchema as { properties?: Record<string, unknown> } | undefined)?.properties ?? {};
@@ -1154,7 +1195,10 @@ function hasExternalAddress(text: string): boolean {
 // passive one ("when `X` is called"), every call ("all `X` requests"), rewrites a mandate binds to a parameter
 // or a quoted value, and a call ordered at a fixed target under a threat (`threatenedCall`). The field corpus
 // blocks exactly what v14 blocked.
-export const STATIC_SCAN_RULESET_VERSION = "15";
+// v16 adds two TOOL_DEF_CROSS_TOOL patterns for tools that take no input, again from MCPTox's dev half: an order to
+// call another tool at a fixed value or inside another tool's call (`zeroArgOrder`; the tool's own output fields are
+// not other tools), and an order to rewrite a parameter to a fixed value (`zeroArgRewrite`).
+export const STATIC_SCAN_RULESET_VERSION = "16";
 
 const SEVERITY_RANK: Record<Severity, number> = {
   info: 0,
@@ -1412,6 +1456,20 @@ function normId(id: string): string {
 function ownIdentifiers(tool: ToolDef): Set<string> {
   const props = (tool.inputSchema as { properties?: Record<string, unknown> } | undefined)?.properties ?? {};
   return new Set([normId(tool.name ?? ""), ...Object.keys(props).map(normId)]);
+}
+
+/** v16. The tool's own name, parameters and the fields of its own output: none of them is another tool. */
+function ownNamesAndFields(tool: ToolDef): Set<string> {
+  const out = ownIdentifiers(tool);
+  const fields = (schema: unknown, depth = 0): void => {
+    if (!schema || typeof schema !== "object" || depth > 4) return;
+    const s = schema as { properties?: Record<string, unknown>; items?: unknown; anyOf?: unknown[]; oneOf?: unknown[] };
+    for (const [k, v] of Object.entries(s.properties ?? {})) { out.add(normId(k)); fields(v, depth + 1); }
+    fields(s.items, depth + 1);
+    for (const v of [...(s.anyOf ?? []), ...(s.oneOf ?? [])]) fields(v, depth + 1);
+  };
+  fields((tool as { outputSchema?: unknown }).outputSchema);
+  return out;
 }
 
 /**

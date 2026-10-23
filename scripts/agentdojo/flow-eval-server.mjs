@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// JSONL bridge for the AgentDojo harness: one request per line, {"event":"pre|post|prompt","input":{...hook input}},
+// JSONL bridge for the AgentDojo harness: one request per line, {"event":"pre|post|prompt|stop","input":{...hook input}},
 // one reply per line, {"out": <hook output JSON or null>}. Runs the same compiled guard the plugin runs.
 import { createInterface } from 'node:readline';
 import { pathToFileURL } from 'node:url';

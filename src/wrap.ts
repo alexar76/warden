@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { appendFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { constants } from 'node:os';
-import { Warden, FilePinStore, pinToolsHash, displaySafe, StaticScanGate } from './index.js';
+import { Warden, FilePinStore, pinToolsHash, displaySafe, StaticScanGate, isSensitiveTool } from './index.js';
 import type { ToolDef, WardenVerdict } from './types.js';
 import { WrapFrames, readFrames } from './wrap-wire.js';
 import { loadWrapFeed, wrapLogger, wrapServer, type WrapOptions } from './wrap-cli.js';
@@ -11,9 +11,14 @@ import { observe, vetAndPin, observationPath, WardenBlock, type Observation } fr
 import { readState } from './state.js';
 import { listAllTools } from './tool-list.js';
 import { screenResult, annotateResult } from './result-screen.js';
-import { flowPre, flowPost } from './flow-guard.js';
+import { flowPre, flowPost, flowApproval } from './flow-guard.js';
 
 type Message = { jsonrpc: '2.0'; id?: string | number | null; method?: string; params?: Record<string, unknown>; result?: any; error?: unknown };
+// How long a call waits for a person to answer the approval form before it is refused.
+const ASK_TIMEOUT_MS = 5 * 60_000;
+type Answer = 'approved' | 'declined' | 'cancelled' | 'timeout' | 'closed' | 'error';
+/** The client cancelled a call before it was sent on: it gets no reply (MCP cancellation). */
+class CallCancelled extends Error {}
 function parse(body: string): Message {
   const msg = JSON.parse(body);
   if (!msg || Array.isArray(msg) || msg.jsonrpc !== '2.0' ||
@@ -57,6 +62,12 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
   const flowSession = opts.flow ? (process.env.WARDEN_FLOW_SESSION || `wrap-${process.ppid}`) : '';
   const flowTool = (tool: string) => `mcp__${opts.flow}__${tool}`;
   let activeChecks = 0;
+  // What the client said it can do in its initialize request: `elicitation` is how this proxy asks a person.
+  let clientCapabilities: Record<string, unknown> = {};
+  // Questions this proxy put to the client (elicitation/create), by their reserved ids, and the calls that are not
+  // sent on yet, by the client's ids: a cancelled one must never reach the child.
+  const questions = new Map<string, { resolve: (answer: Answer) => void; timer: NodeJS.Timeout }>();
+  const waiting = new Map<string | number | null, { cancelled: boolean; question?: string }>();
   let stopTimer: NodeJS.Timeout | undefined, killTimer: NodeJS.Timeout | undefined;
 
   return new Promise<number>(resolve => {
@@ -66,6 +77,8 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
       clearTimeout(stopTimer); clearTimeout(killTimer);
       for (const p of pending.values()) { clearTimeout(p.timer); p.reject(new Error('MCP child exited')); }
       pending.clear();
+      for (const q of questions.values()) { clearTimeout(q.timer); q.resolve('closed'); }
+      questions.clear();
       process.stdin.pause();
       process.removeListener('SIGTERM', signalStop); process.removeListener('SIGINT', signalStop);
       resolve(code);
@@ -92,6 +105,32 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
     const fail = (msg: Message, message: string, code = -32602) => {
       if (msg.id !== undefined) send({ jsonrpc: '2.0', id: msg.id, error: { code, message: displaySafe(message, 8192) } });
     };
+    // The form is MCP elicitation. Since 2025-11-25 a client may offer only `url` mode; an empty object still means form.
+    const canAsk = () => {
+      const e = clientCapabilities.elicitation;
+      return opts.ask === 'elicit' && !!e && typeof e === 'object' && !Array.isArray(e) && (Object.keys(e).length === 0 || 'form' in e);
+    };
+    const cannotAsk = () => opts.ask === 'refuse' ? ' (--ask refuse)' : ' (this client offers no MCP elicitation form)';
+    const withdraw = (id: string, reason: string) => send({ jsonrpc: '2.0', method: 'notifications/cancelled', params: { requestId: id, reason } });
+    const answer = (id: string, outcome: Answer) => {
+      const q = questions.get(id);
+      if (!q) return;
+      questions.delete(id); clearTimeout(q.timer); q.resolve(outcome);
+    };
+    // One question per call. The checkbox defaults to off, so a client that accepts forms with their defaults
+    // (no person looking) cannot approve anything.
+    const askPerson = (callId: string | number | null, tool: string, args: Record<string, unknown>, reasons: string[]) => new Promise<Answer>(resolveAnswer => {
+      const id = `${prefix}ask:${seq++}`;
+      const timer = setTimeout(() => { answer(id, 'timeout'); withdraw(id, 'no answer within 5 minutes'); }, ASK_TIMEOUT_MS);
+      questions.set(id, { resolve: resolveAnswer, timer });
+      const wait = waiting.get(callId);
+      if (wait) wait.question = id;
+      send({ jsonrpc: '2.0', id, method: 'elicitation/create', params: {
+        message: `WARDEN asks before ${displaySafe(tool, 200)} on ${displaySafe(server.id, 200)} runs.\n${reasons.join('\n')}\n` +
+          `Arguments: ${displaySafe(JSON.stringify(args), 1500)}\nTick "Run it" and accept to let this one call through; anything else refuses it.`,
+        requestedSchema: { type: 'object', required: ['run'], properties: {
+          run: { type: 'boolean', title: 'Run it', description: `Run ${displaySafe(tool, 200)} once, with the arguments shown`, default: false } } } } });
+    });
     const childWrite = (body: string) => {
       if (!child || closing || finished || child.stdin.destroyed) throw new Error('MCP child unavailable');
       if (!child.stdin.write(body + '\n')) {
@@ -144,13 +183,32 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
     const fromClient = async (body: string) => {
       if (refuseBatch(body)) return;
       const msg = parse(body);
-      if (typeof msg.id === 'string' && msg.id.startsWith(prefix)) { fail(msg, 'Reserved proxy request ID'); return; }
+      if (typeof msg.id === 'string' && msg.id.startsWith(prefix)) {
+        // The client's answer to a question this proxy asked. A late one (after a timeout) is dropped.
+        if (msg.method === undefined) {
+          const r = msg.result as { action?: unknown; content?: { run?: unknown } } | undefined;
+          answer(msg.id, msg.error !== undefined ? 'error' : r?.action === 'accept' && r.content?.run === true ? 'approved' : r?.action === 'cancel' ? 'cancelled' : 'declined');
+          return;
+        }
+        fail(msg, 'Reserved proxy request ID'); return;
+      }
       if (blockedLaunch) {
         fail(msg, blockReason, -32000);
         if (msg.method === 'initialize') finish(3);
         return;
       }
       if (closing) return;
+      if (msg.method === 'initialize' && msg.params?.capabilities && typeof msg.params.capabilities === 'object') clientCapabilities = msg.params.capabilities as Record<string, unknown>;
+      if (msg.method === 'notifications/cancelled') {
+        // A call still being checked, or waiting for a person, was never sent on: stop it here.
+        const requestId = msg.params?.requestId;
+        const wait = typeof requestId === 'string' || typeof requestId === 'number' ? waiting.get(requestId) : undefined;
+        if (wait) {
+          wait.cancelled = true;
+          if (wait.question && questions.has(wait.question)) { answer(wait.question, 'cancelled'); withdraw(wait.question, 'the client cancelled the call'); }
+          return;
+        }
+      }
       if (msg.method === 'tools/list' || msg.method === 'tools/call') {
         if (msg.id === undefined) return; // These are requests, never notifications.
         if (activeChecks >= 256) { fail(msg, 'Too many pending MCP requests'); return; }
@@ -166,22 +224,45 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
             const seen = visible.find(t => t.name === name);
             // A failed check is retried here; a refusal or a change waits for the client to re-list.
             if (!opts.auditOnly && ((quarantined && quarantineKind !== 'error') || !seen)) throw new Error(blockReason || 'tool blocked by WARDEN');
-            const epoch = generation;
-            const current = await check();
-            const def = current.find(t => t.name === name);
-            if (!opts.auditOnly && (quarantined || epoch !== generation || !def || !seen || pinToolsHash([def]) !== pinToolsHash([seen]))) throw new Error('tool blocked by WARDEN: definition changed since exposure');
-            if (tracked.size >= 256 || tracked.has(msg.id)) throw new Error('Too many or duplicate pending MCP requests');
-            const args = msg.params?.arguments && typeof msg.params.arguments === 'object' && !Array.isArray(msg.params.arguments) ? msg.params.arguments as Record<string, unknown> : {};
-            if (opts.flow) {
-              const d = flowPre({ session_id: flowSession, cwd: process.cwd(), tool_name: flowTool(String(name)), tool_input: args }, process.env, opts.auditOnly ? 'audit' : 'refuse');
-              // An MCP client has no one to ask from here: a call the guard would ask about is refused, with its reason.
-              if (d && !opts.auditOnly) throw new Error(`${d.permissionDecisionReason}${d.permissionDecision === 'ask' ? ' Refused: wrap cannot ask you; name the destination in the flow policy (allowedDestinations) or make the call yourself.' : ''}`);
-              if (d) log.warn(`flow guard would ${d.permissionDecision} ${flowTool(String(name))}`);
-            }
-            tracked.set(msg.id, { kind: 'call', generation, tool: String(name), args });
-            childWrite(body);
+            if (tracked.size >= 256 || tracked.has(msg.id) || waiting.has(msg.id)) throw new Error('Too many or duplicate pending MCP requests');
+            const wait: { cancelled: boolean; question?: string } = { cancelled: false };
+            waiting.set(msg.id, wait);
+            try {
+              const epoch = generation;
+              const current = await check();
+              const def = current.find(t => t.name === name);
+              if (!opts.auditOnly && (quarantined || epoch !== generation || !def || !seen || pinToolsHash([def]) !== pinToolsHash([seen]))) throw new Error('tool blocked by WARDEN: definition changed since exposure');
+              if (tracked.size >= 256 || tracked.has(msg.id)) throw new Error('Too many or duplicate pending MCP requests');
+              const tool = String(name);
+              const args = msg.params?.arguments && typeof msg.params.arguments === 'object' && !Array.isArray(msg.params.arguments) ? msg.params.arguments as Record<string, unknown> : {};
+              // A call that needs a person's yes: a tool the operator marked sensitive, or a send the flow guard asks about.
+              const reasons: string[] = [];
+              if (isSensitiveTool(tool, opts.policy)) reasons.push(`${displaySafe(tool, 200)} matches policy.sensitiveToolPatterns: every call to it needs a person's approval.`);
+              let flowAsked = false;
+              if (opts.flow) {
+                const d = flowPre({ session_id: flowSession, cwd: process.cwd(), tool_name: flowTool(tool), tool_input: args }, process.env, opts.auditOnly ? 'audit' : canAsk() ? 'elicit' : 'refuse');
+                if (d && !opts.auditOnly) {
+                  if (d.permissionDecision === 'deny' || !canAsk()) throw new Error(`${d.permissionDecisionReason}${d.permissionDecision === 'ask' ? ` Refused: wrap cannot ask you${cannotAsk()}; name the destination in the flow policy (allowedDestinations) or make the call yourself.` : ''}`);
+                  reasons.push(d.permissionDecisionReason); flowAsked = true;
+                }
+                if (d && opts.auditOnly) log.warn(`flow guard would ${d.permissionDecision} ${flowTool(tool)}`);
+              }
+              if (reasons.length && opts.auditOnly) log.warn(`would ask a person before ${displaySafe(tool, 200)} runs (sensitive tool)`);
+              else if (reasons.length) {
+                if (!canAsk()) throw new Error(`tool blocked by WARDEN: ${displaySafe(tool, 200)} matches policy.sensitiveToolPatterns, so every call needs a person's approval, and wrap cannot ask you${cannotAsk()}; it was not run`);
+                const outcome = await askPerson(msg.id, tool, args, reasons);
+                if (flowAsked) flowApproval({ session_id: flowSession, tool_name: flowTool(tool) }, outcome);
+                if (wait.cancelled) throw new CallCancelled();
+                if (outcome !== 'approved') throw new Error(`tool call refused by WARDEN: ${outcome === 'timeout' ? 'no answer to the approval request within 5 minutes' : outcome === 'closed' ? 'the connection closed before an answer' : outcome === 'error' ? 'the client could not show the approval request' : 'it was not approved'}; ${displaySafe(tool, 200)} was not run`);
+                // The person approved the definition the client was shown; it must still be the one that runs.
+                if (quarantined || epoch !== generation) throw new Error('tool blocked by WARDEN: definitions changed while waiting for approval; list tools again');
+              }
+              if (wait.cancelled) throw new CallCancelled();
+              tracked.set(msg.id, { kind: 'call', generation, tool, args });
+              childWrite(body);
+            } finally { waiting.delete(msg.id); }
           }
-        } catch (e) { fail(msg, e instanceof Error ? e.message : String(e)); }
+        } catch (e) { if (!(e instanceof CallCancelled)) fail(msg, e instanceof Error ? e.message : String(e)); }
         finally { activeChecks--; }
         return;
       }

@@ -98,7 +98,8 @@ def main() -> None:
             body = {k: req[k] for k in FORWARDED if k in req}
             body["model"] = a.model
             body["max_tokens"] = min(int(body.get("max_tokens", 4096)), 8192)
-            body["thinking"] = {"type": "disabled"}
+            if "api.deepseek.com" in a.url:  # DeepSeek's own switch; other OpenAI-compatible APIs reject or ignore it
+                body["thinking"] = {"type": "disabled"}
             if body.get("tools"):
                 body["tool_choice"] = "auto"
             else:

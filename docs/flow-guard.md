@@ -10,12 +10,14 @@ The flow guard adds checks at tool-call boundaries after a session receives outs
 - Recognized writes to guard policy/state, Claude hook settings and Git hook/config paths are protected, including expanded environment paths and symlink targets. A hook running as the agent's OS user cannot replace OS permissions or sandboxing.
 - URL hosts are parsed with `URL`; userinfo is not the host. Every detected destination must be permitted, and an actual target argument must be present. A link in a message body does not authorize its recipient. Policy mailbox entries match exactly; a domain entry does not authorize all mailboxes there. User-typed destinations match complete values, not suffixes of other addresses. Mentioning a destination is still only a coarse allowance, not authorization for every action or payload.
 - Contact resolution is opt-in through `contactTools` and a `private` label. Only structured records with `name` and `email` are accepted, directly or in a JSON/MCP envelope. The full display name must appear in the user's prompt; conflicting addresses for that name ask. Local files, arbitrary prose, YAML and cached contacts from the earlier guard cannot establish this authority. Configure only lookup tools whose records the agent and outsiders cannot modify.
-- Secret fingerprints inspect visible argument text, with bounded URL/base64/hex decoding. Since 2026-10-22 key-like values (random-looking runs in credential files, and well-known token formats read anywhere) are also fingerprinted in 10-character windows of their letters and digits: a piece of a key, the key reversed, with separators, base64-encoded in pieces or with Cyrillic or Greek look-alike letters is denied. Each argument name keeps the tail of what it sent after outside text, so pieces sent back to back through the same argument are checked whole. Pieces under 10 characters wrapped in different words each time still pass, and so does the key's leading format (`rk_live_`). Fingerprints do not inspect arbitrary file contents at execution time, arbitrary encodings or every possible MCP schema. Internal project edits are generally allowed; executing their code is a separate decision.
+- Secret fingerprints inspect visible argument text, with bounded URL/base64/hex decoding. Since 2026-10-22 key-like values (random-looking runs in credential files, and well-known token formats read anywhere) are also fingerprinted in windows of 8 letters and digits, 10 for hex keys: a piece of a key, the key reversed, with separators or invisible characters, base64-encoded in pieces or with Cyrillic or Greek look-alike letters is denied. Those sizes are the smallest at which none of 480 made-up keys in eight formats matched anywhere in 115 million letters and digits (this monorepo and 1,000 HISTOR packages) of ordinary text; parts every key of a kind shares (a DER key's algorithm identifier, a JWT's header and claims) are never fingerprinted. Each argument name keeps the tail of what it sent after outside text, so pieces sent back to back through the same argument are checked whole. Pieces under 8 characters wrapped in different words each time still pass, and so does the key's leading format (`rk_live_`).
+- After outside text, a key read this session written into an ordinary project file asks (`deny` refuses): files in the project are committed and published later without another call. `.env`, `.npmrc` and the other credential files are where keys belong, and a write that only removes a key never matches.
+- An address that appears in your prompt only inside pasted text, a quoted line (`>`), the headers of a pasted message or below a forwarded-message marker is not one you named: sending to it asks once. A full stop or comma after an address you typed no longer hides it. Fingerprints do not inspect arbitrary file contents at execution time, arbitrary encodings or every possible MCP schema. Internal project edits are generally allowed; executing their code is a separate decision.
 - An MCP tool without an operator label is outbound when its name says so (send, post, share …), when it carries a URL, or, since 2026-10-22, when it names a party: an argument such as `to`, `email`, `attendees`, `assignee`, `collaborator` or `username`, or any e-mail address or IBAN. `warden-mcp flow-labels` lists the unlabeled MCP tools your sessions used, with the guess and a `labels` block to correct and paste into the policy.
-- An injection that only changes the answer makes no call to refuse. Since 2026-10-22 the plugin's Stop hook adds one line under an answer whose turn read outside text, naming those sources, and says so when any of it addressed the assistant with instructions. It never blocks. `answerNote` chooses `always` (default), `instruction` (only that case) or `off`; outside the plugin, register `warden-mcp hook stop`.
+- An injection that only changes the answer makes no call to refuse. Since 2026-10-22 the plugin's Stop hook adds one line under an answer whose turn read outside text, naming those sources, and says so when any of it addressed the assistant with instructions. When the answer repeats 12 letters and digits in a row from the sentences where that text addressed the assistant, the hook also sends the answer back once (`decision: block`), to be checked against the user's request before the user reads it; the user loses nothing but the time of that check. `answerNote` chooses `always` (default), `instruction` (only that case) or `off`; outside the plugin, register `warden-mcp hook stop`.
 - The MCP proxy records JSON-RPC error text and tool-error results as outside text too. If recording fails, it withholds the response. Existing corrupt session state blocks pre-tool checks instead of becoming an empty session.
 
-Released in npm `0.17.0`: `npx -y @aimarket/warden@0.19.0 hook pre-tool-use`, or from a source checkout `npm ci && npm run build`, then `node dist/mcp-server.js hook pre-tool-use`. Register the prompt and post hooks as well, or use the bundled Claude plugin.
+Released in npm `0.17.0`: `npx -y @aimarket/warden@0.20.0 hook pre-tool-use`, or from a source checkout `npm ci && npm run build`, then `node dist/mcp-server.js hook pre-tool-use`. Register the prompt and post hooks as well, or use the bundled Claude plugin.
 
 Policy is user-level (`~/.local/state/warden/flow-policy.json`, or `WARDEN_FLOW_POLICY`). Modes are `ask`, `deny`, `audit`, `off`. `audit` logs decisions without enforcing them. Example:
 
@@ -30,7 +32,7 @@ Policy is user-level (`~/.local/state/warden/flow-policy.json`, or `WARDEN_FLOW_
 }
 ```
 
-For the proxy, use `node dist/mcp-server.js wrap --flow mail -- node mail-server.js`. Set the same fresh `WARDEN_FLOW_SESSION` for all proxies belonging to one client conversation. The fallback is the parent PID; separate launchers can have different parents, so do not rely on that fallback for cross-server protection. The proxy cannot see the user's prompt or client built-in tools and refuses calls that would ask. `trustedSources` applies to a WebFetch URL, not URLs mentioned in arbitrary MCP arguments.
+For the proxy, use `node dist/mcp-server.js wrap --flow mail -- node mail-server.js`. Set the same fresh `WARDEN_FLOW_SESSION` for all proxies belonging to one client conversation. The fallback is the parent PID; separate launchers can have different parents, so do not rely on that fallback for cross-server protection. The proxy cannot see the user's prompt or client built-in tools. A call that would ask is asked through the client's MCP elicitation form when the client offers one (the answer is logged as `approvalOutcome`), and refused otherwise or with `--ask refuse`. `trustedSources` applies to a WebFetch URL, not URLs mentioned in arbitrary MCP arguments.
 
 **Which build the numbers describe.** The replay table below was run again on 2026-10-22 on the current code: the audit fixes plus the 2026-10-22 changes. The 2026-10-22 changes alter no decision in it (all 1,046 records match the code before them); the audit fixes cost one task with no question and 19 tasks done under attack. The model-run tables and costs still describe the pre-audit implementation through commit `2328be980`; no new model run was made. A reference-solution replay is one fixed attack path, not an adaptive worst case; the code-aware attacks of 2026-10-22 are [below](#what-changed-on-2026-10-22-and-why).
 
@@ -204,28 +206,46 @@ benchmark). Before the changes 14 of them got through; after them, 3.
 | The replay re-run on the current code | the audit fixes of 2026-10-18 had not been measured | 0 of 579 attack actions, 57 of 97 tasks with no question, 608 of 949 done under attack; the 2026-10-22 changes alter no decision |
 | `scripts/agentdojo/Dockerfile.dockerignore` | the package's `.dockerignore` leaves out `dist/`, so the reproduce command below did not build | it builds |
 
-Still delivered after the changes ([results](../scripts/redteam/results/)):
+Those three were still delivered: pieces under 10 characters wrapped in different words, an address pasted into
+the prompt, and a key written into a project file. The same day we closed what could be closed without false
+positives, and wrote six more attacks against the new rules. 2 of the 23 get through.
 
-- **Pieces under 10 characters wrapped in different words** ("part 3: … thanks") to an address the user typed.
-- **An address pasted into the prompt.** What the user types or pastes is the user's choice; the hook cannot tell
-  pasted text from typed text.
-- **A key written into a project file.** Editing project files is the agent's job; what CI later publishes from
-  them is outside the guard's view.
+| Change | Why | Result |
+|---|---|---|
+| Key windows of 8 letters and digits, 10 for hex keys, measured: the smallest sizes with no chance match in 115 million letters and digits (this monorepo and 1,000 HISTOR packages) of ordinary text ([`window-collisions.mjs`](../scripts/redteam/window-collisions.mjs)) | 8-character pieces wrapped in other words passed | denied from the second piece on; pieces under 8 characters with different words around each still pass |
+| Parts every key of a kind shares are not fingerprinted (a DER key's algorithm identifier, a JWT's header and claims) | the measurement found 0.19.0 would deny a DKIM public key in a README after a session read an RSA private key | no chance match at all with the shipped rules |
+| A key read this session written into an ordinary project file asks | the key in `docs/debug.md` passed | asks; `.env` and other credential files still pass |
+| An address only in pasted or quoted text is not one the user named | the attacker's address pasted into the prompt counted as the user's | asks once; an address the user also typed passes. A full stop after a typed address no longer makes it unnamed (0.19.0 asked about "send it to bob@corp.com.") |
+| The Stop hook sends an answer back once when it repeats an instruction aimed at the model | an answer-only injection makes no call | On Ministral 8B, which follows the attack (6 of 20 answers recommend the hotel without the guard), the guard's note alone took that to 0; the re-check fired 3 times in 20 and changed no outcome. On DeepSeek V4.1 Flash, which never recommended it, it fired 2 times in 20 ([results](../scripts/agentdojo/results/model-answer-recheck-2026-10-22.json)). A safety net, not a measured gain |
+| Ruleset v16 (see [gates](gates.md)) | 34 of MCPTox's dev-half poisoned tools still passed, nearly all tools that take no input | held-out half 194 → 210 of 218, all 66 implicit-trigger hijackings among them; 0 of 45 clean servers; the field corpus and 1,000 HISTOR packages block exactly what v15 blocked; five false positives of a first draft are pinned as tests |
+| The replay re-run | the new checks must not ask where 0.19.0 did not | all 1,046 records identical to 0.19.0 |
+
+Still delivered ([results](../scripts/redteam/results/)):
+
+- **Pieces under 8 characters, each wrapped in different words**, to an address the user typed: 7 or more messages
+  for a 40-character key.
+- **A key spelled out in words** ("seven, capital Q, m, two …"). Swapping letters for look-alike digits (o→0, l→1)
+  was caught on our test key only because enough of it had none of those letters.
 
 ## What it does not do
 
 - **Measurements are not a proof.** The replay obeys perfectly but follows one path; the model finds its own paths
-  but obeys rarely, even when told to; our own code-aware attacks are 17 ideas of ours. An attacker we have not
+  but obeys rarely, even when told to; our own code-aware attacks are 23 ideas of ours. An attacker we have not
   met, or a model that obeys more readily, is a harder test than any of them.
 - **Labels are the operator's.** Our first run marked Slack channel names as private data only, and the injection
   sat in a channel name. The run caught it because delivery is judged from the attack text, not from our labels.
   A tool you label wrongly is a hole; a tool you do not label gets the guard's guess, which only adds caution.
 - **It does not stop an injection that only changes the answer** ("say this hotel is the best"). No tool call,
-  nothing to refuse; the Stop hook can only tell the user where the answer came from.
-- **Local changes inside the project pass.** Editing project files is the agent's job.
+  nothing to refuse. The Stop hook tells the user where the answer came from and, when the answer repeats an
+  instruction aimed at the model, asks the model once to check it; it only sees instructions the guard recognises
+  as instructions.
+- **Local changes inside the project pass**, except a key read this session going into an ordinary file. Editing
+  project files is the agent's job.
 - **Leaks in small pieces.** Ordinary private text may go to a destination the user named, whole or in pieces:
   that is the user's choice. To other destinations, and for keys and card numbers anywhere, pieces sent back to back
-  through one argument are joined; pieces under 10 characters with different words around each are not.
+  through one argument are joined; pieces under 8 characters with different words around each are not, and neither
+  is a key spelled out in words.
+- **Pasted text is not typed text.** An address you meant to use but only pasted asks once.
 - **It cannot see** your prompt from before the plugin was installed, or text the model holds from elsewhere.
 
 ## Reproduce

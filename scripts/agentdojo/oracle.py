@@ -71,6 +71,9 @@ class Guard:
     def post(self, session: str, tool: str, args: dict, result: str) -> dict | None:
         return self._call("post", {"session_id": session, "cwd": "/agentdojo", "tool_name": tool, "tool_input": args, "tool_response": result})
 
+    def stop(self, session: str, answer: str, again: bool = False) -> dict | None:
+        return self._call("stop", {"session_id": session, "cwd": "/agentdojo", "stop_hook_active": again, "last_assistant_message": answer})
+
     def close(self) -> None:
         if self.proc.stdin:
             self.proc.stdin.close()

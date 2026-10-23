@@ -1,0 +1,287 @@
+{
+  "at": "2026-10-22T18:57:33.699Z",
+  "keys": 480,
+  "formats": [
+    "stripe",
+    "github",
+    "aws",
+    "anthropic",
+    "hex",
+    "base64",
+    "jwt",
+    "pem"
+  ],
+  "scanned": {
+    "files": 13310,
+    "lettersAndDigits": 114563844
+  },
+  "sizes": {
+    "6": {
+      "keyWindows": 31755,
+      "hitWindows": 1044,
+      "filesHit": 140,
+      "byFormat": {
+        "hex": 918,
+        "aws": 16,
+        "pem": 79,
+        "jwt": 29,
+        "base64": 2
+      },
+      "examples": [
+        {
+          "file": "/.claude/worktrees/ecosystem-onboarding-analysis-158bfd/ai-service-mesh/landing/index.html",
+          "window": "a97dd2",
+          "format": "hex"
+        },
+        {
+          "file": "/.claude/worktrees/ecosystem-onboarding-analysis-158bfd/ai-service-mesh/landing/index.html",
+          "window": "62cd2d",
+          "format": "hex"
+        },
+        {
+          "file": "/.claude/worktrees/ecosystem-onboarding-analysis-158bfd/ai-service-mesh/landing/index.html",
+          "window": "a97dd2",
+          "format": "hex"
+        },
+        {
+          "file": "/.claude/worktrees/ecosystem-onboarding-analysis-158bfd/ai-service-mesh/landing/index.html",
+          "window": "62cd2d",
+          "format": "hex"
+        },
+        {
+          "file": "/.claude/worktrees/ecosystem-onboarding-analysis-158bfd/ai-service-mesh/landing/index.html",
+          "window": "a97dd2",
+          "format": "hex"
+        },
+        {
+          "file": "/.claude/worktrees/ecosystem-onboarding-analysis-158bfd/ai-service-mesh/landing/index.html",
+          "window": "62cd2d",
+          "format": "hex"
+        },
+        {
+          "file": "/.claude/worktrees/ecosystem-onboarding-analysis-158bfd/ai-service-mesh/landing/index.html",
+          "window": "a97dd2",
+          "format": "hex"
+        },
+        {
+          "file": "/.claude/worktrees/ecosystem-onboarding-analysis-158bfd/ai-service-mesh/landing/index.html",
+          "window": "62cd2d",
+          "format": "hex"
+        }
+      ]
+    },
+    "7": {
+      "keyWindows": 33858,
+      "hitWindows": 87,
+      "filesHit": 18,
+      "byFormat": {
+        "pem": 17,
+        "hex": 57,
+        "jwt": 13
+      },
+      "examples": [
+        {
+          "file": "/.claude/worktrees/ecosystem-onboarding-analysis-158bfd/esim-kit/docs/zh/operator-guide.md",
+          "window": "mit3okt",
+          "format": "pem"
+        },
+        {
+          "file": "ees/ecosystem-onboarding-analysis-158bfd/independent/charon-liquidator/data/beefy_all.json",
+          "window": "cb3c71d",
+          "format": "hex"
+        },
+        {
+          "file": "ees/ecosystem-onboarding-analysis-158bfd/independent/charon-liquidator/data/beefy_all.json",
+          "window": "6706f9a",
+          "format": "hex"
+        },
+        {
+          "file": "ees/ecosystem-onboarding-analysis-158bfd/independent/charon-liquidator/data/beefy_all.json",
+          "window": "099ac1b",
+          "format": "pem"
+        },
+        {
+          "file": "-onboarding-analysis-158bfd/independent/charon-liquidator/data/bot_borrowers_arbitrum.json",
+          "window": "a10923d",
+          "format": "hex"
+        },
+        {
+          "file": "-onboarding-analysis-158bfd/independent/charon-liquidator/data/bot_borrowers_arbitrum.json",
+          "window": "fdb639f",
+          "format": "hex"
+        },
+        {
+          "file": "-onboarding-analysis-158bfd/independent/charon-liquidator/data/bot_borrowers_arbitrum.json",
+          "window": "771b202",
+          "format": "hex"
+        },
+        {
+          "file": "-onboarding-analysis-158bfd/independent/charon-liquidator/data/bot_borrowers_arbitrum.json",
+          "window": "1e8d166",
+          "format": "hex"
+        }
+      ]
+    },
+    "8": {
+      "keyWindows": 35471,
+      "hitWindows": 36,
+      "filesHit": 6,
+      "byFormat": {
+        "hex": 7,
+        "pem": 15,
+        "jwt": 14
+      },
+      "examples": [
+        {
+          "file": "ystem-onboarding-analysis-158bfd/independent/charon-liquidator/data/discover_ethereum.json",
+          "window": "fe18fb35",
+          "format": "hex"
+        },
+        {
+          "file": "ystem-onboarding-analysis-158bfd/independent/charon-liquidator/data/discover_ethereum.json",
+          "window": "fe18fb35",
+          "format": "hex"
+        },
+        {
+          "file": "ystem-onboarding-analysis-158bfd/independent/charon-liquidator/data/discover_ethereum.json",
+          "window": "fe18fb35",
+          "format": "hex"
+        },
+        {
+          "file": "ystem-onboarding-analysis-158bfd/independent/charon-liquidator/data/discover_ethereum.json",
+          "window": "fe18fb35",
+          "format": "hex"
+        },
+        {
+          "file": "ystem-onboarding-analysis-158bfd/independent/charon-liquidator/data/discover_ethereum.json",
+          "window": "7229b78c",
+          "format": "hex"
+        },
+        {
+          "file": "ystem-onboarding-analysis-158bfd/independent/charon-liquidator/data/discover_ethereum.json",
+          "window": "fe18fb35",
+          "format": "hex"
+        },
+        {
+          "file": "ude/worktrees/ecosystem-onboarding-analysis-158bfd/independent/kova-gateway/mail/README.md",
+          "window": "9w0baqef",
+          "format": "pem"
+        },
+        {
+          "file": "ude/worktrees/ecosystem-onboarding-analysis-158bfd/independent/kova-gateway/mail/README.md",
+          "window": "w0baqefa",
+          "format": "pem"
+        }
+      ]
+    },
+    "9": {
+      "keyWindows": 36684,
+      "hitWindows": 24,
+      "filesHit": 4,
+      "byFormat": {
+        "pem": 11,
+        "jwt": 13
+      },
+      "examples": [
+        {
+          "file": "ude/worktrees/ecosystem-onboarding-analysis-158bfd/independent/kova-gateway/mail/README.md",
+          "window": "9w0baqefa",
+          "format": "pem"
+        },
+        {
+          "file": "ude/worktrees/ecosystem-onboarding-analysis-158bfd/independent/kova-gateway/mail/README.md",
+          "window": "w0baqefaa",
+          "format": "pem"
+        },
+        {
+          "file": "worktrees/ecosystem-onboarding-analysis-158bfd/warden/claude-plugin/scripts/flow-guard.mjs",
+          "window": "9w0baqefa",
+          "format": "pem"
+        },
+        {
+          "file": "worktrees/ecosystem-onboarding-analysis-158bfd/warden/claude-plugin/scripts/flow-guard.mjs",
+          "window": "w0baqefaa",
+          "format": "pem"
+        },
+        {
+          "file": "orktrees/ecosystem-onboarding-analysis-158bfd/warden/scripts/redteam/window-collisions.mjs",
+          "window": "1niisinr5",
+          "format": "jwt"
+        },
+        {
+          "file": "orktrees/ecosystem-onboarding-analysis-158bfd/warden/scripts/redteam/window-collisions.mjs",
+          "window": "niisinr5c",
+          "format": "jwt"
+        },
+        {
+          "file": "orktrees/ecosystem-onboarding-analysis-158bfd/warden/scripts/redteam/window-collisions.mjs",
+          "window": "iisinr5cc",
+          "format": "jwt"
+        },
+        {
+          "file": "orktrees/ecosystem-onboarding-analysis-158bfd/warden/scripts/redteam/window-collisions.mjs",
+          "window": "isinr5cci",
+          "format": "jwt"
+        }
+      ]
+    },
+    "10": {
+      "keyWindows": 37616,
+      "hitWindows": 19,
+      "filesHit": 4,
+      "byFormat": {
+        "pem": 7,
+        "jwt": 12
+      },
+      "examples": [
+        {
+          "file": "ude/worktrees/ecosystem-onboarding-analysis-158bfd/independent/kova-gateway/mail/README.md",
+          "window": "9w0baqefaa",
+          "format": "pem"
+        },
+        {
+          "file": "worktrees/ecosystem-onboarding-analysis-158bfd/warden/claude-plugin/scripts/flow-guard.mjs",
+          "window": "9w0baqefaa",
+          "format": "pem"
+        },
+        {
+          "file": "orktrees/ecosystem-onboarding-analysis-158bfd/warden/scripts/redteam/window-collisions.mjs",
+          "window": "1niisinr5c",
+          "format": "jwt"
+        },
+        {
+          "file": "orktrees/ecosystem-onboarding-analysis-158bfd/warden/scripts/redteam/window-collisions.mjs",
+          "window": "niisinr5cc",
+          "format": "jwt"
+        },
+        {
+          "file": "orktrees/ecosystem-onboarding-analysis-158bfd/warden/scripts/redteam/window-collisions.mjs",
+          "window": "iisinr5cci",
+          "format": "jwt"
+        },
+        {
+          "file": "orktrees/ecosystem-onboarding-analysis-158bfd/warden/scripts/redteam/window-collisions.mjs",
+          "window": "isinr5cci6",
+          "format": "jwt"
+        },
+        {
+          "file": "orktrees/ecosystem-onboarding-analysis-158bfd/warden/scripts/redteam/window-collisions.mjs",
+          "window": "sinr5cci6i",
+          "format": "jwt"
+        },
+        {
+          "file": "orktrees/ecosystem-onboarding-analysis-158bfd/warden/scripts/redteam/window-collisions.mjs",
+          "window": "inr5cci6ik",
+          "format": "jwt"
+        }
+      ]
+    }
+  },
+  "guard": {
+    "keyWindows": 35257,
+    "hitWindows": 0,
+    "filesHit": 0,
+    "byFormat": {},
+    "examples": []
+  }
+}

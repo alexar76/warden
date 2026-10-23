@@ -53,22 +53,24 @@ Blocked, out of:
   ran in a gVisor container with no network on two of our servers, from images whose contents we pinned and
   hashed. See [how it was run](#how-it-was-run).
 
-## Ruleset v15, 2026-10-22 (WARDEN only)
+## Rulesets v15 and v16, 2026-10-22 (WARDEN only)
 
 A reader asked what WARDEN still misses. 78 of the 267 poisoned tools on MCPTox's dev half passed v14, so v15 widens
 `TOOL_DEF_CROSS_TOOL` from those, and from nothing else ([the rule](gates.md)). The held-out half was measured
 once, after the rules were frozen, and the added lines share no eight-word sequence with any held-out tool.
 
-| | v14 | v15 |
-|---|---|---|
-| MCPTox dev half (rules written from it) | 189 of 267 | 233 of 267 |
-| **MCPTox held-out half** | **171 of 218** | **194 of 218** |
-| …explicit-trigger function hijacking | 17 of 23 | 17 of 23 |
-| …implicit-trigger function hijacking | 59 of 66 | 61 of 66 |
-| …implicit-trigger parameter tampering | 95 of 129 | 116 of 129 |
-| 45 clean MCPTox servers | 0 | 0 |
-| field corpus, 999 servers with tools | 4 | the same 4 |
-| HISTOR packages, seeded sample of 1,000 drawn from the 2026-10-22 listing | 28 | the same 28 |
+| | v14 | v15 | v16 |
+|---|---|---| --- |
+| MCPTox dev half (rules written from it) | 189 of 267 | 233 of 267 | 250 of 267 |
+| **MCPTox held-out half** | **171 of 218** | **194 of 218** | **210 of 218** |
+| …explicit-trigger function hijacking | 17 of 23 | 17 of 23 | 17 of 23 |
+| …implicit-trigger function hijacking | 59 of 66 | 61 of 66 | 66 of 66 |
+| …implicit-trigger parameter tampering | 95 of 129 | 116 of 129 | 127 of 129 |
+| 45 clean MCPTox servers | 0 | 0 | 0 |
+| field corpus, 999 servers with tools | 4 | the same 4 | the same 4 |
+| HISTOR packages, seeded sample of 1,000 drawn from the 2026-10-22 listing | 28 | the same 28 | — (see below) |
+
+v16 is a second dev-half pass the same evening, for tools that take no input ([the rule](gates.md)). Its first draft blocked four honest packages of a second seeded sample of 1,000, drawn from HISTOR's evening listing, and was narrowed: on that sample v15 and v16 both block the same 31. Verdicts: [`results/2026-10-22-mcptox-v16.json`](../scripts/scanner-comparison/results/2026-10-22-mcptox-v16.json).
 
 The other scanners were not run again; the table at the top is from 2026-10-16. The run was on a workstation, not
 in the gVisor containers of 2026-10-16. Verdicts by case id:

@@ -19,11 +19,17 @@ export interface WrapOptions {
   /** The server's name for the flow guard (`--flow NAME`): its calls are `mcp__NAME__tool` to the guard's
    *  policy, and every call and result goes through the same guard the Claude Code plugin runs. */
   flow?: string;
+  /** A call that needs a person's yes — a tool matching `policy.sensitiveToolPatterns`, or a send the flow guard asks
+   *  about: `elicit` asks through the client's own form (MCP elicitation) when the client offers one and refuses
+   *  otherwise; `refuse` always refuses it. */
+  ask: AskPolicy;
 }
+export const ASK_POLICIES = ['elicit', 'refuse'] as const;
+export type AskPolicy = typeof ASK_POLICIES[number];
 export async function parseWrapArgs(argv: string[]): Promise<WrapOptions> {
   const mode = argv.shift();
   if (mode !== 'wrap' && mode !== 'pins') throw new Error('Usage: warden-mcp wrap [--flow NAME] [flags] -- command [args] | pins status|approve|revoke --id ID');
-  const opts: WrapOptions = { mode, args: [], stateDir: defaultStateDir(), policy: asPolicy(undefined), auditOnly: false, results: 'warn' };
+  const opts: WrapOptions = { mode, args: [], stateDir: defaultStateDir(), policy: asPolicy(undefined), auditOnly: false, results: 'warn', ask: 'elicit' };
   if (mode === 'pins') {
     opts.action = argv.shift();
     if (!['status', 'approve', 'revoke'].includes(opts.action ?? '')) throw new Error('pins requires status, approve or revoke');
@@ -36,7 +42,7 @@ export async function parseWrapArgs(argv: string[]): Promise<WrapOptions> {
     seen.add(flag);
     if (flag === '--audit-only' && mode === 'wrap') { opts.auditOnly = true; continue; }
     if (flag === '--require-approval' && mode === 'wrap') { continue; }
-    const allowed = mode === 'wrap' ? ['--id', '--state-dir', '--policy', '--feed', '--feed-key', '--verdict-log', '--results', '--flow'] : ['--id', '--state-dir', '--feed', '--feed-key'];
+    const allowed = mode === 'wrap' ? ['--id', '--state-dir', '--policy', '--feed', '--feed-key', '--verdict-log', '--results', '--flow', '--ask'] : ['--id', '--state-dir', '--feed', '--feed-key'];
     if (!allowed.includes(flag)) throw new Error(`Unknown flag ${flag}`);
     const value = argv.shift();
     if (!value || value.startsWith('--')) throw new Error(`Missing value for ${flag}`);
@@ -52,6 +58,9 @@ export async function parseWrapArgs(argv: string[]): Promise<WrapOptions> {
         // The name joins `mcp__NAME__tool`: a slug with no double underscore, so the tool part stays unambiguous.
         if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$/.test(value) || value.includes('__')) throw new Error('--flow must be a server name (letters, digits, ., _ or -, no "__")');
         opts.flow = value; break;
+      case '--ask':
+        if (!(ASK_POLICIES as readonly string[]).includes(value)) throw new Error('--ask must be elicit or refuse');
+        opts.ask = value as AskPolicy; break;
       case '--results':
         if (!(RESULT_POLICIES as readonly string[]).includes(value)) throw new Error('--results must be off, warn or block');
         opts.results = value as ResultPolicy; break;

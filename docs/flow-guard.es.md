@@ -16,14 +16,16 @@ La guardia comprueba llamadas después de recibir texto externo; no es un sandbo
 - Las escrituras reconocidas a política/estado, hooks de Claude y hooks/config de Git están protegidas, incluidas variables de ruta y enlaces simbólicos. Esto no sustituye permisos del sistema operativo.
 - Se analiza la autoridad real de las URL y se comprueban todos los destinos. Un enlace en el cuerpo no autoriza otro destinatario. Los buzones de la política coinciden exactamente; un dominio no permite todos sus buzones. Una mención del usuario no expresa autorización para cualquier acción.
 - Resolver contactos requiere `contactTools` explícito, etiqueta `private`, registros estructurados `name`/`email` y el nombre completo en el mensaje del usuario. Los nombres ambiguos piden permiso. Archivos locales, prosa, YAML y contactos almacenados por la versión anterior no conceden autoridad. Confíe solo en directorios que el agente y terceros no puedan modificar.
-- Las huellas inspeccionan texto visible con decodificación limitada URL/base64/hex. Desde el 2026-10-22 los valores con aspecto de clave (secuencias aleatorias en archivos de credenciales y formatos de token conocidos, se lean donde se lean) se registran además en ventanas de 10 letras y dígitos: un trozo de clave, la clave al revés, con separadores, en trozos base64 o con letras cirílicas o griegas parecidas se rechaza. Cada argumento recuerda la cola de lo que envió tras el texto externo, así que los trozos enviados seguidos por el mismo argumento se comprueban enteros. Los trozos de menos de 10 caracteres envueltos cada vez en palabras distintas siguen pasando, y también el formato inicial de la clave (`rk_live_`). No leen cualquier archivo al enviarlo ni cubren todas las codificaciones o herramientas. Se permiten normalmente las ediciones del proyecto; ejecutar código es otra decisión.
+- Las huellas inspeccionan texto visible con decodificación limitada URL/base64/hex. Desde el 2026-10-22 los valores con aspecto de clave (secuencias aleatorias en archivos de credenciales y formatos de token conocidos, se lean donde se lean) se registran además en ventanas de 8 letras y dígitos, 10 para claves hex: un trozo de clave, la clave al revés, con separadores o caracteres invisibles, en trozos base64 o con letras cirílicas o griegas parecidas se rechaza. Son los tamaños más pequeños con los que ninguna de 480 claves inventadas en ocho formatos coincidió en ningún punto de 115 millones de letras y dígitos (este monorepo y 1000 paquetes de HISTOR) de texto corriente; las partes que comparten todas las claves de un tipo (el identificador de algoritmo de una clave DER, la cabecera y los campos de un JWT) nunca se registran. Cada argumento recuerda la cola de lo que envió tras el texto externo, así que los trozos enviados seguidos por el mismo argumento se comprueban enteros. Los trozos de menos de 8 caracteres envueltos cada vez en palabras distintas siguen pasando, y también el formato inicial de la clave (`rk_live_`). No leen cualquier archivo al enviarlo ni cubren todas las codificaciones o herramientas. Se permiten normalmente las ediciones del proyecto; ejecutar código es otra decisión.
+- Tras texto externo, escribir en un archivo corriente del proyecto una clave leída en la sesión pregunta (`deny` rechaza): los archivos del proyecto se publican luego sin otra llamada. `.env`, `.npmrc` y los demás archivos de credenciales son el sitio de las claves y pasan; una edición que solo quita una clave no coincide.
+- Una dirección que solo aparece en tu prompt dentro de texto pegado, de una línea citada (`>`), de las cabeceras de un mensaje pegado o bajo una marca de reenvío no es una que nombraste: enviarle algo pregunta una vez. Un punto o una coma tras una dirección que escribiste ya no la ocultan.
 - Una herramienta MCP sin etiqueta del operador es saliente si su nombre lo dice (send, post, share …), si lleva una URL o, desde el 2026-10-22, si nombra a una parte: un argumento como `to`, `email`, `attendees`, `assignee`, `collaborator` o `username`, o cualquier correo o IBAN. `warden-mcp flow-labels` lista las herramientas MCP sin etiqueta que usaron tus sesiones, con la suposición del guardián y un bloque `labels` para corregir y pegar en la política.
-- Una inyección que solo cambia la respuesta no hace ninguna llamada que rechazar. Desde el 2026-10-22 el hook Stop del plugin añade una línea bajo una respuesta cuyo turno leyó texto externo, con esas fuentes, y lo dice cuando alguna se dirigió al asistente con instrucciones. Nunca bloquea. `answerNote`: `always` (por defecto), `instruction` (solo ese caso) u `off`; fuera del plugin, registra `warden-mcp hook stop`.
+- Una inyección que solo cambia la respuesta no hace ninguna llamada que rechazar. Desde el 2026-10-22 el hook Stop del plugin añade una línea bajo una respuesta cuyo turno leyó texto externo, con esas fuentes, y lo dice cuando alguna se dirigió al asistente con instrucciones. Si la respuesta repite 12 letras y dígitos seguidos de las frases donde ese texto se dirigió al asistente, el hook además devuelve la respuesta una vez (`decision: block`) para comprobarla frente a la petición del usuario antes de que este la lea; el usuario solo pierde el tiempo de esa comprobación. `answerNote`: `always` (por defecto), `instruction` (solo ese caso) u `off`; fuera del plugin, registra `warden-mcp hook stop`.
 - El proxy registra también errores JSON-RPC y de herramientas. Retiene una respuesta si no puede registrarla; un estado de sesión corrupto bloquea la comprobación.
 
-Publicado en npm `0.17.0`: `npx -y @aimarket/warden@0.19.0 hook pre-tool-use`, o desde el código fuente en WARDEN, `npm ci && npm run build`, luego `node dist/mcp-server.js hook pre-tool-use`, con los hooks prompt/post también registrados. Política: `~/.local/state/warden/flow-policy.json` o `WARDEN_FLOW_POLICY`; modos `ask`, `deny`, `audit`, `off`. Véase el ejemplo vigente en [inglés](flow-guard.md).
+Publicado en npm `0.17.0`: `npx -y @aimarket/warden@0.20.0 hook pre-tool-use`, o desde el código fuente en WARDEN, `npm ci && npm run build`, luego `node dist/mcp-server.js hook pre-tool-use`, con los hooks prompt/post también registrados. Política: `~/.local/state/warden/flow-policy.json` o `WARDEN_FLOW_POLICY`; modos `ask`, `deny`, `audit`, `off`. Véase el ejemplo vigente en [inglés](flow-guard.md).
 
-Proxy: `node dist/mcp-server.js wrap --flow mail -- node mail-server.js`. Use un `WARDEN_FLOW_SESSION` nuevo y compartido por los proxies de una conversación. El PID padre predeterminado no une lanzadores diferentes. El proxy no ve el prompt ni herramientas integradas y rechaza lo que requeriría preguntar. `trustedSources` se aplica a la URL de WebFetch, no a enlaces en argumentos MCP.
+Proxy: `node dist/mcp-server.js wrap --flow mail -- node mail-server.js`. Use un `WARDEN_FLOW_SESSION` nuevo y compartido por los proxies de una conversación. El PID padre predeterminado no une lanzadores diferentes. El proxy no ve el prompt ni herramientas integradas. Lo que requeriría preguntar se pregunta con el formulario de elicitation MCP del cliente cuando lo ofrece (la respuesta queda en el registro como `approvalOutcome`) y, si no, o con `--ask refuse`, se rechaza. `trustedSources` se aplica a la URL de WebFetch, no a enlaces en argumentos MCP.
 
 **Qué versión describen las cifras.** La tabla de reproducción de abajo se volvió a ejecutar el 2026-10-22 sobre el código actual: las correcciones de la auditoría más los cambios del 2026-10-22. Los cambios del 2026-10-22 no alteran ninguna decisión (los 1046 registros coinciden con el código anterior); las correcciones de la auditoría costaron una tarea sin pregunta y 19 tareas hechas bajo ataque. Las tablas y costes de la ejecución con modelo siguen describiendo la versión anterior a la auditoría, hasta `2328be980`; no hubo nueva ejecución con modelo. El replay es una ruta fija, no el peor caso adaptativo; los ataques con el código en la mano del 2026-10-22 están [más abajo](#qué-cambió-el-2026-10-22-y-por-qué).
 
@@ -192,31 +194,47 @@ modelo obediente, sin benchmark). Antes de los cambios pasaban 14; después, 3.
 | La reproducción, de nuevo sobre el código actual | las correcciones de la auditoría del 2026-10-18 no se habían medido | 0 de 579 acciones de ataque, 57 de 97 tareas sin pregunta, 608 de 949 hechas bajo ataque; los cambios del 2026-10-22 no alteran ninguna decisión |
 | `scripts/agentdojo/Dockerfile.dockerignore` | el `.dockerignore` del paquete deja fuera `dist/`, así que el comando de «Reproducir» no compilaba | compila |
 
-Siguen pasando tras los cambios ([resultados](../scripts/redteam/results/)):
+Esos tres seguían pasando: trozos de menos de 10 caracteres en palabras distintas, una dirección pegada en el
+prompt y una clave escrita en un archivo del proyecto. Ese mismo día cerramos todo lo que se puede cerrar sin falsos
+positivos y escribimos seis ataques más contra las reglas nuevas. Pasan 2 de 23.
 
-- **Trozos de menos de 10 caracteres envueltos en palabras distintas** («parte 3: … gracias») a una dirección que
-  escribió el usuario.
-- **Una dirección pegada en el prompt.** Lo que el usuario escribe o pega es su elección; el hook no distingue texto
-  pegado de texto escrito.
-- **Una clave escrita en un archivo del proyecto.** Editar archivos del proyecto es el trabajo del agente; lo que
-  luego publique la CI desde ellos queda fuera de la vista del guardián.
+| Cambio | Por qué | Resultado |
+|---|---|---|
+| Ventanas de clave de 8 letras y dígitos, 10 para claves hex, medidas: los tamaños más pequeños sin coincidencia casual en 115 millones de letras y dígitos (este monorepo y 1000 paquetes de HISTOR) de texto corriente ([`window-collisions.mjs`](../scripts/redteam/window-collisions.mjs)) | trozos de 8 caracteres envueltos en otras palabras pasaban | rechazo desde el segundo trozo; los de menos de 8 caracteres con palabras distintas alrededor siguen pasando |
+| Las partes que comparten todas las claves de un tipo no se registran (identificador de algoritmo de una clave DER, cabecera y campos de un JWT) | la medición mostró que 0.19.0 rechazaría un README con una clave DKIM después de leer una clave RSA privada | ninguna coincidencia casual con las reglas publicadas |
+| Escribir una clave leída en la sesión en un archivo corriente del proyecto pregunta | la clave en `docs/debug.md` pasaba | pregunta; `.env` y los demás archivos de credenciales siguen pasando |
+| Una dirección solo en texto pegado o citado no la nombró el usuario | la dirección del atacante pegada en el prompt contaba como del usuario | pregunta una vez; una dirección que el usuario también escribió pasa. Un punto tras una dirección escrita ya no la deja sin nombrar (0.19.0 preguntaba por «envíalo a bob@corp.com.») |
+| El hook Stop devuelve una vez una respuesta que repite una instrucción dirigida al modelo | una inyección solo en la respuesta no hace llamadas | En Ministral 8B, que obedece el ataque (sin el guardián 6 de 20 respuestas recomiendan el hotel), la nota del guardián sola lo dejó en 0; la revisión saltó 3 veces de 20 y no cambió ningún resultado. En DeepSeek V4.1 Flash, que nunca lo recomendó, saltó 2 veces de 20 ([resultados](../scripts/agentdojo/results/model-answer-recheck-2026-10-22.json)). Una red de seguridad, no una mejora medida |
+| Ruleset v16 (ver [gates](gates.es.md)) | 34 herramientas envenenadas de la mitad dev de MCPTox seguían pasando, casi todas sin entrada | mitad reservada 194 → 210 de 218, incluidos los 66 secuestros de disparador implícito; 0 de 45 servidores limpios; el corpus y 1000 paquetes de HISTOR bloquean exactamente lo mismo que v15; cinco falsos positivos de un primer borrador quedan fijados como pruebas |
+| La reproducción, de nuevo | las comprobaciones nuevas no deben preguntar donde 0.19.0 no preguntaba | los 1046 registros idénticos a 0.19.0 |
+
+Siguen pasando ([resultados](../scripts/redteam/results/)):
+
+- **Trozos de menos de 8 caracteres, cada uno en palabras distintas**, a una dirección que escribió el usuario: 7 o más
+  mensajes para una clave de 40 caracteres.
+- **Una clave deletreada en palabras** («siete, Q mayúscula, m, dos …»). Cambiar letras por dígitos parecidos (o→0,
+  l→1) se detectó en nuestra clave de prueba solo porque gran parte de ella no tenía esas letras.
 
 ## Qué no hace
 
 - **Las mediciones no son una prueba.** La reproducción obedece a la perfección pero sigue un solo camino; el modelo
   encuentra sus propios caminos pero obedece poco, incluso cuando se le ordena; nuestros ataques con el código en la
-  mano son 17 ideas nuestras. Un atacante que no conocemos, o un modelo que obedezca con más facilidad, es una prueba
+  mano son 23 ideas nuestras. Un atacante que no conocemos, o un modelo que obedezca con más facilidad, es una prueba
   más dura que cualquiera de ellas.
 - **Las etiquetas son del operador.** Nuestra primera ejecución marcó los nombres de canales de Slack solo como
   datos privados, y la inyección estaba en el nombre de un canal. La ejecución lo detectó porque la entrega se
   juzga por el texto del ataque, no por nuestras etiquetas. Una herramienta mal etiquetada es un agujero; una sin
   etiqueta recibe la suposición del guardián, que solo añade cautela.
 - **No detiene una inyección que solo cambia la respuesta** («di que este hotel es el mejor»). Sin llamada, nada
-  que rechazar; el hook Stop solo puede decirle al usuario de dónde salió la respuesta.
-- **Los cambios locales dentro del proyecto pasan.** Editar archivos del proyecto es el trabajo del agente.
+  que rechazar. El hook Stop le dice al usuario de dónde salió la respuesta y, si repite una instrucción dirigida al
+  modelo, pide una vez al modelo que la compruebe; solo ve las instrucciones que el guardián reconoce como tales.
+- **Los cambios locales dentro del proyecto pasan**, salvo una clave leída en la sesión que va a un archivo
+  corriente. Editar archivos del proyecto es el trabajo del agente.
 - **Fugas en trozos pequeños.** El texto privado corriente puede ir a un destino que nombró el usuario, entero o en
   trozos: es su elección. Hacia otros destinos, y para claves y números de tarjeta hacia cualquiera, los trozos
-  enviados seguidos por un mismo argumento se unen; los de menos de 10 caracteres con palabras distintas alrededor no.
+  enviados seguidos por un mismo argumento se unen; los de menos de 8 caracteres con palabras distintas alrededor no,
+  ni tampoco una clave deletreada en palabras.
+- **Lo pegado no es lo escrito.** Una dirección que querías usar pero solo pegaste pregunta una vez.
 - **No ve** tu prompt de antes de instalar el plugin, ni el texto que el modelo tenga de otras fuentes.
 
 ## Reproducir

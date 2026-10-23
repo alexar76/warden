@@ -252,22 +252,22 @@ describe("exfil detection is anchored on an external destination", () => {
 describe("ruleset is versioned and digestible", () => {
   it("exposes a stable digest over the rule table", () => {
     const rs = staticScanRuleset();
-    expect(rs.version).toBe("15");
+    expect(rs.version).toBe("16");
     // If this fails you changed a rule: bump STATIC_SCAN_RULESET_VERSION and
     // update the value here. A scan result is only comparable within one digest.
-    expect(rs.digest).toBe("sha256-dX1qSCMhKVXj5MUsZwWEsmOL7Fr7wAf7YgtJiVy7N50=");
+    expect(rs.digest).toBe("sha256-86y6iNc4R+LM5WmjSVxaCNgSMUEggeNOMQPUzq4L9n8=");
     // The fold is part of the ruleset identity: the same regexes over folded and
     // unfolded text are different scans, so the digest covers it too.
     expect(rs.fold).toBe("escapes+entities+percent+base64/4x64k+nfkc+tags+invisible+confusables/2");
     expect(rs.rules.every((r) => typeof r.raw === "boolean")).toBe(true);
-    expect(rs.rules.length).toBe(37);
-    // v5 added TOOL_DEF_SECRET_EXFIL as an advisory pair rule; v9 added six blocking rules, v10 three, v13 one, v15 one.
-    expect(rs.rules.filter((r) => r.tier === "block").length).toBe(26);
+    expect(rs.rules.length).toBe(39);
+    // v5 added TOOL_DEF_SECRET_EXFIL as an advisory pair rule; v9 added six blocking rules, v10 three, v13 one, v15 one, v16 two.
+    expect(rs.rules.filter((r) => r.tier === "block").length).toBe(28);
     expect(rs.rules.filter((r) => r.tier === "advise").length).toBe(11);
     // A rule's guards are part of the table, so the digest changes when a guard
     // is added even if every regex stays byte-identical. v5 added the navigation
     // and autonomy guards and the secret-exfil pair guard.
-    expect(rs.rules.filter((r) => r.guards.length > 0).length).toBe(26);
+    expect(rs.rules.filter((r) => r.guards.length > 0).length).toBe(28);
     // v3: every rule declares its surfaces, and the tool name is scanned by the
     // phrase and hidden-payload rules but by none of the noun-keyed ones.
     // One exception since v13: the rule for key material taken BY VALUE reads argument descriptions only,
