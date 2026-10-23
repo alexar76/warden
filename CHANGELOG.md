@@ -1,5 +1,36 @@
 # Changelog
 
+## Local source — first-fragment review, 2026-10-23
+
+- Stop the first matching short credential fragment with per-call `ask` before execution (`deny` refuses). Preserve hard denial for two distinct adjacent six-character pieces. Earlier approval never whitelists a repeated or later call.
+- Add narrow five/seven-character and known-prefix-boundary fingerprints, excluding public prefixes and tiny suffixes. Decode short supported URL/base64/character-list candidates and delimit atoms without weakly scanning long uninterrupted hashes.
+- Version the hash/offset/size index as v2; old v1 sessions require review and a fresh session/reread for complete tracking. Validate both index and observations; retain conservative capacity and corruption handling. GUI policy cannot waive ambiguous fragment review.
+- Regression tests assert no first-fragment server delivery for concurrent unapproved calls and for decline/cancel/missing elicitation. An explicit approval forwards one call only.
+- The new-rule 480-key/757-file probe measures 0 hard false denials and 2 files requiring review, not zero false positives. Five-language documentation explains scope, approval semantics and remaining limits. No npm publication, GitHub write or deployment.
+
+## Earlier local iteration — secret-transfer regressions, 2026-10-23
+
+- Correlate distinct adjacent six-character credential payload fragments across fields, turns and concurrent proxies; a single short match, repeated piece, overlap or unrelated key is insufficient. Shared prefixes and DER structure are excluded. Earlier partial disclosure remains possible.
+- Decode explicit English character/digit lists with bounded input and reset at unsupported units, then apply existing secret checks. Arbitrary verbal encodings remain outside the decoder.
+- Store bounded hash/offset metadata under the session lock; fail conservatively on legacy or exhausted tracking and fail closed on corrupt state. Project-file writes also receive the new correlation check. Strict GUI stays the default; detected secrets cannot be exempted by GUI policy.
+- Hook and real concurrent stdio regression tests verify refusal before server delivery. The unchanged 23-case deterministic red-team harness moves from 2 delivered to 0 delivered (two answer-only cases are noted/rechecked). Five-language documentation separates this local result from historical AgentDojo/corpus measurements. No production deploy or npm publication.
+
+## Unreleased
+
+- **Optional GUI policy mode** (`gui.mode: "policy"`) reduces questions only for explicit exact tool/action/role/accessibility-ID rules scoped to a site origin and/or application ID. Strict behavior remains the default. Validated coordinates and focus resolve the target; visible labels never grant permission. Bounded plain typing and configured navigation keys are supported, with snapshot age and one-use reservations under the session lock. Unknown/malformed policy or call shapes fall back to strict behavior with a diagnostic. Send/pay/delete/submit, Enter, paste, sensitive-data matches and credential reads retain their checks. Forwarded input/paste gates later clicks for the rest of the session. Local stdio tests compare four strict forms with one policy form for the same four fixture calls; this is not a real-world utility measurement. Five language docs include the same validated configuration example.
+
+
+The local source closes automatic-pass paths for coordinate clicks, pixel-only screens, Enter in a focused field and non-English labels. By default, after untrusted content, every recognized GUI pointer action, text input/fill, paste and non-exempt keyboard action requires approval (`screen_action`; `deny` refuses). Target labels and element-list formats no longer decide whether approval is required. English target words only improve the explanation. A user-named or policy-allowed destination does not exempt GUI actions.
+
+- Only exact copy/select-all chords in a strict known schema are exempt from the GUI rule; extra fields, sequences, malformed arrays, trailing newlines and oversized values ask. Visible-secret checks remain in force. Unknown/missing generic controller actions ask; exact known observation actions with only `action` are exempt. CamelCase and dotted/hyphenated names are normalized.
+- Coordinate hit-testing against unambiguous JSON boxes or exact centers, reported focus/form relations for Enter and cmd/ctrl+Enter, semantic submit types, accessibility/automation ID hints and a small multilingual action vocabulary improve the approval explanation. Overlaps, conflicting geometry, invalid values and conflicting duplicate nodes do not resolve a target. These are explicitly untrusted snapshot hints; context alone never exempts an action, while explicitly configured operator rules can permit reviewed interactions. Raw accessibility identifiers are not retained in element metadata or shown in the prompt. Asking only after paste/input remains insufficient for prefilled messages, payments and deletion.
+- Clipboard paste asks without needing a recognized credential read; the more specific `paste_after_secret` reason remains when such a read was recorded. Plain typing and Enter ask even without a visible credential or focus description.
+- The previous large-image text-budget and stale-screen fixes remain: binary image/audio result data does not hide later text, action results refresh the screen map, acknowledgments retain it and image-only results clear it. Outgoing arguments keep all secret checks.
+- Hook and real stdio-proxy integration tests cover coordinates, pixels, multilingual labels, Enter, unknown schemas and per-action approval, asserting refused calls never reach the server. Five language documents explain the behavior and limitations.
+- This deliberately increases confirmation frequency, including benign navigation and message-body clicks. No OCR or visual instruction classifier was added; answer-only pixel injection, arbitrary renamed tools and hidden server behavior remain outside this rule. It requires recorded untrusted content, enabled enforcement and a client that honors hook decisions. See [the flow guard documentation](docs/flow-guard.md#opaque-gui-actions-local-source-2026-10-23).
+
+These changes are local and have not been deployed or published to npm. Published npm `0.20.0` does not include the screen-control fixes.
+
 ## 0.20.0 — 2026-10-22
 
 What 0.19.0 still let through, closed as far as it goes without false positives, and one false positive of 0.19.0 itself. [The flow guard doc](docs/flow-guard.md#what-changed-on-2026-10-22-and-why) has the table; 2 of 23 code-aware attacks still get through, both named.

@@ -8,7 +8,7 @@
   <a href="https://glama.ai/mcp/servers/alexar76/warden"><img src="https://glama.ai/mcp/servers/alexar76/warden/badges/score.svg" alt="warden MCP server" /></a>
   <a href="https://warden.modelmarket.dev/"><img src="https://img.shields.io/npm/v/@aimarket/warden?color=cb3837&label=npm" alt="npm 版本" /></a>
   <img src="docs/badges/deps.svg" alt="零运行时依赖" />
-  <img src="docs/badges/tests.svg" alt="586 项测试通过" />
+  <img src="docs/badges/tests.svg" alt="868 项测试通过" />
   <img src="docs/badges/node.svg" alt="Node >= 20" />
   <a href="LICENSE"><img src="docs/badges/license.svg" alt="许可证：MIT" /></a>
 </p>
@@ -47,7 +47,9 @@ Details: warden-mcp scan --json, or --markdown FILE. To review a changed server:
 与另外四款开源扫描器在同一批服务器上对比，每款都在无网络的 gVisor 容器中运行：在 MCPTox（AAAI 2026 基准）的留出一半上（WARDEN 的规则只依据另一半编写），WARDEN 阻止了 218 个投毒工具中的 171 个，其余扫描器阻止 8 到 41 个。在 986 台公开服务器上 WARDEN 阻止 3 台，在 14,933 个 npm 和 PyPI 包上阻止 369 个；mcp-shield 分别阻止 343 台和 5,354 个。[方法与全部数字](docs/scanner-comparison.zh.md) · [scan 指南](docs/scan.zh.md)。
 <!-- /warden-try -->
 
-**流守卫（0.20.0）。** 外部文本之后的调用检查，已根据 2026-10-18 审计加固，并于 2026-10-22 两次扩展：分段或伪装发送的密钥、会触达他人的无标签工具、写进项目文件的密钥、只是粘贴进提示词的地址，以及在依赖外部文本的回答下加一行说明（并重新检查一次）。我们手握代码的 23 个攻击中仍有 2 个能通过，均已列明。在此代码上的 AgentDojo 回放：579 中 0 个攻击动作，97 个任务中 57 个不询问。早前的模型运行（被劫持模型 42 → 929 中 0）对应审计前的版本。[当前行为与限制](docs/flow-guard.zh.md)。
+**流守卫（已发布 0.20.0；2026-10-23 本地修复）。** 检查外部文本之后的调用。本地源码已拦截两个剩余的已展示秘密传输案例：六字符片段加填充文字，以及明确的英文字符列表。同一确定性测试集现为 **0/23 完整通过**，此前为 2/23；两个仅影响回答的案例会得到说明或复查。GUI 默认仍为严格模式，可选择有限的操作员规则。生产环境和 npm 未更新。历史 AgentDojo 回放（2026-10-22）：0/579 攻击动作、57/97 任务无需询问；本次未重新运行。[行为、测试及剩余边界](docs/flow-guard.zh.md)。
+
+首个短密钥匹配现在要求逐次审核后才能发送；相邻六字符配对仍强制拒绝。有限测量覆盖 480 个密钥和 757 个文件：0 次强制误拒绝，2 个文件需额外审核。GUI 默认仍严格。此本地改动替代等待配对的行为；生产和 npm 未更改。
 
 Ruleset v16（0.20.0，2026-10-22，仅 WARDEN）：MCPTox 留出的一半 218 中 210 个（v15：194，v12–v14：171），45 台干净服务器中 0 台；在实地语料和 1,000 个 HISTOR 包样本上拦截的与 v15 完全相同。上面与其他扫描器的对比来自 2026-10-16，使用 v12。[门链中的 v15 和 v16](docs/gates.zh.md)。
 
@@ -326,7 +328,7 @@ WARDEN 是 [Base 上的 `96684` 号](https://8004scan.io/agents/base/96684) ERC-
 ## 开发
 
 ```bash
-npm install && npm run build && npm test   # 586 项测试
+npm install && npm run build && npm test   # 868 项测试
 ```
 
 `test/packaging.test.ts` 正是让标题保持诚实的东西：一旦出现运行时依赖、任何源文件从包外 import、或者入口点不

@@ -24,7 +24,7 @@
  * the compiled file on every tool call (claude-plugin/scripts/flow-guard.mjs; a test keeps
  * the copy identical to dist/flow-guard.js).
  */
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readdirSync, readFileSync, readSync, realpathSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { basename, dirname, isAbsolute, join, normalize, resolve, sep } from 'node:path';
@@ -38,6 +38,9 @@ const STRIDE = 4;
 // made-up keys in eight formats matched anywhere in 100 million letters and digits of ordinary text
 // (scripts/redteam/window-collisions.mjs): 8 for keys of letters and digits, 10 for hex keys, whose characters carry
 // half the information and which share their alphabet with every hash and address in the text around them.
+const FRAGMENT_SIZE = 6;
+const MAX_FRAGMENT_INDEX = 16_384;
+const MAX_FRAGMENT_SEEN = 256;
 const TOKEN_WINDOW = 8;
 const HEX_TOKEN_WINDOW = 10;
 const TOKEN_WINDOWS = [TOKEN_WINDOW, HEX_TOKEN_WINDOW];
@@ -161,6 +164,10 @@ export function loadPolicy(env = process.env) {
             policy.taintLocalFiles = r.taintLocalFiles;
         if (typeof r.answerNote === 'string' && ANSWER_NOTES.includes(r.answerNote))
             policy.answerNote = r.answerNote;
+        if (r.gui !== undefined)
+            policy.gui = parseGuiPolicy(r.gui);
+        if (r.credentialEgress !== undefined)
+            policy.credentialEgress = parseCredentialEgress(r.credentialEgress);
         if (r.destinationArgs && typeof r.destinationArgs === 'object' && !Array.isArray(r.destinationArgs)) {
             for (const [k, v] of Object.entries(r.destinationArgs))
                 if (Array.isArray(v))
@@ -171,6 +178,54 @@ export function loadPolicy(env = process.env) {
     if (mode && MODES.includes(mode))
         policy.mode = mode;
     return policy;
+}
+function parseCredentialEgress(value) {
+    const deny = () => ({ allow: [], invalid: true });
+    if (!value || typeof value !== 'object' || Array.isArray(value))
+        return deny();
+    const v = value;
+    if (Object.keys(v).some(k => k !== 'allow') || !Array.isArray(v.allow) || v.allow.length > 32)
+        return deny();
+    const allow = [];
+    for (const raw of v.allow) {
+        if (!raw || typeof raw !== 'object' || Array.isArray(raw))
+            return deny();
+        const r = raw;
+        if (Object.keys(r).some(k => !['tool', 'requestSha256'].includes(k)) || typeof r.tool !== 'string' ||
+            !/^(?:mcp__[A-Za-z0-9_-]+__[A-Za-z0-9_.-]+|WebFetch|WebSearch|Write|Edit|MultiEdit|NotebookEdit)$/.test(r.tool) || r.tool.length > 200 ||
+            typeof r.requestSha256 !== 'string' || !/^[0-9a-f]{64}$/.test(r.requestSha256))
+            return deny();
+        allow.push({ tool: r.tool, requestSha256: r.requestSha256 });
+    }
+    return { allow };
+}
+/** Sorted JSON keys; array order and every argument/destination are significant. Never hashes a truncated input. */
+export function publicRequestDigest(tool, input) {
+    let nodes = 0, chars = 0;
+    const encode = (v, depth = 0) => {
+        if (++nodes > 1024 || depth > 32)
+            throw new Error('request exceeds digest limits');
+        let result;
+        if (v === null || typeof v === 'boolean' || typeof v === 'string' || typeof v === 'number' && Number.isFinite(v))
+            result = JSON.stringify(v);
+        else if (Array.isArray(v))
+            result = '[' + v.map(x => encode(x, depth + 1)).join(',') + ']';
+        else if (v && typeof v === 'object' && [Object.prototype, null].includes(Object.getPrototypeOf(v))) {
+            result = '{' + Object.keys(v).sort().map(k => JSON.stringify(k) + ':' + encode(v[k], depth + 1)).join(',') + '}';
+        }
+        else
+            throw new Error('request is not JSON');
+        chars += result.length;
+        if (chars > 65_536 || result.length > 16_384)
+            throw new Error('request exceeds digest limits');
+        return result;
+    };
+    try {
+        return createHash('sha256').update(encode([tool, input])).digest('hex');
+    }
+    catch {
+        return undefined;
+    }
 }
 function globMatch(glob, name) {
     const re = new RegExp('^' + glob.split('*').map(s => s.replace(/[.+?^${}()|[\]\\]/g, '\\$&')).join('.*') + '$', 'i');
@@ -194,10 +249,21 @@ function strings(value, out = [], budget = { left: MAX_TEXT }) {
     else if (Array.isArray(value))
         for (const v of value)
             strings(v, out, budget);
-    else if (value && typeof value === 'object')
-        for (const v of Object.values(value))
+    else if (value && typeof value === 'object') {
+        const o = value;
+        for (const [key, v] of Object.entries(o)) {
+            if (budget.omitBinary && key === 'data' && (o.type === 'image' || o.type === 'audio'))
+                continue;
             strings(v, out, budget);
+        }
+    }
     return out;
+}
+// MCP binary blocks are not text. Their base64 must not exhaust the text budget before a screen's labels,
+// titles or JSON text blocks are read. Arguments still use strings() without this exemption: an outgoing
+// credential disguised as an image's data is still a credential leaving the session.
+function responseStrings(value) {
+    return strings(value, [], { left: MAX_TEXT, omitBinary: true });
 }
 const URL_RE = /\b(?:https?|ftp|wss?):\/\/[^\s<>"']+/gi;
 export function hostsIn(texts) {
@@ -396,6 +462,569 @@ export function classifyCall(toolName, input, cwd, policy, env = process.env) {
     }
     return result;
 }
+const SCREEN_WORDS = /(^|_|-)(screenshot|snapshot|screen|observe|accessibility|a11y|read_?page|page_?content|get_?(page|elements|ui|tree|screen|state)|elements|ui_?tree|dom|inspect)(_|-|$)/i;
+const POINTER_WORDS = /(^|_|-)(click|tap|double_?click|right_?click|left_?click|middle_?click|triple_?click|press_?(button|element)|mouse|pointer|touch|drag|drop|swipe|long_?press)(_|-|$)/i;
+// `type` in known control names, not arbitrary nouns such as `get_cuisine_type`.
+const TYPE_WORDS = /(^|_|-)(type_?text|input_?text|insert_?text|enter_?text|fill)(_|-|$)|^type(_|-|$)|^(browser|screen|computer|desktop|keyboard)[_-]type$/i;
+const KEY_WORDS = /(^|_|-)(key|keys|keypress|key_?press|hotkey|shortcut|keyboard|paste)(_|-|$)/i;
+const keyControl = (name) => KEY_WORDS.test(name) || TYPE_WORDS.test(name);
+const GENERIC_CONTROL = /^(computer|screen_control|desktop_control|browser_control)$/i;
+// Exempt only complete observation names, never a substring such as `screenshot_then_submit`.
+const READ_CONTROL_ACTIONS = new Set(['screenshot', 'snapshot', 'observe', 'accessibility', 'a11y', 'read_page',
+    'page_content', 'get_page', 'get_elements', 'get_ui', 'get_tree', 'get_screen', 'get_state', 'elements', 'ui_tree', 'dom', 'inspect']);
+const PASSIVE_KEY_ACTIONS = new Set(['key', 'keys', 'keypress', 'key_press', 'press_key', 'press_keys', 'hotkey', 'shortcut', 'keyboard']);
+const screenOperation = (name) => name.replace(/([a-z0-9])([A-Z])/g, '$1_$2').replace(/[.-]/g, '_').toLowerCase();
+const SEND_TARGET = /\b(send|post|publish|submit|share|reply|comment|tweet|forward|upload|invite|pay|payment|buy|purchase|check\s?out|place\s+order|order\s+now|transfer|donate|sign\s?in|log\s?in)\b/i;
+const DESTROY_TARGET = /\b(delete|remove|discard|erase|wipe|empty\s+trash|uninstall|revoke)\b/i;
+const PASTE_KEYS = /\b(cmd|command|meta|super|win|ctrl|control)\s*[+-]\s*v\b|\bshift\s*[+-]\s*insert\b/i;
+const REF_ARGS = new Set(['ref', 'element_ref', 'elementref', 'index', 'idx', 'element_index', 'elementindex', 'element_id', 'elementid', 'id', 'node_id', 'nodeid', 'mark']);
+const TARGET_TEXT_ARGS = new Set(['element', 'label', 'name', 'text', 'title', 'target', 'description', 'selector', 'button', 'aria_label', 'arialabel']);
+const KEY_TEXT_ARGS = new Set(['key', 'keys', 'text', 'combo', 'combination', 'shortcut', 'sequence', 'value', 'chars', 'input']);
+const ID_KEYS = ['index', 'idx', 'id', 'ref', 'element_id', 'elementId', 'node_id', 'nodeId', 'mark'];
+const LABEL_KEYS = ['name', 'label', 'text', 'title', 'aria_label', 'ariaLabel', 'description', 'value', 'innerText'];
+const TITLE_KEYS = ['windowTitle', 'window_title', 'pageTitle', 'page_title', 'title'];
+const ACCESSIBILITY_ID_KEYS = ['accessibilityIdentifier', 'accessibility_id', 'accessibilityId', 'automationId', 'automation_id', 'AXIdentifier', 'identifier'];
+const TEXT_INPUT_ROLES = new Set(['textbox', 'input', 'textfield', 'text_field', 'entry', 'searchbox', 'textarea', 'combobox']);
+const GUI_NAV_KEYS = new Set(['tab', 'shift+tab', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'home', 'end', 'pageup', 'pagedown', 'escape']);
+// Best-effort explanation vocabulary, never an allow-list. Unknown words still require approval.
+const SCREEN_ACTION_ALIASES = Object.fromEntries([
+    ['send', 'senden envoyer enviar wyślij отправить 发送 送信 إرسال'],
+    ['submit', 'absenden soumettre zatwierdź отправка 提交'],
+    ['pay', 'bezahlen payer pagar zapłać оплатить 支付'],
+    ['share', 'teilen partager compartir udostępnij поделиться 分享'],
+    ['delete', 'löschen supprimer eliminar usuń удалить 删除'],
+    ['discard', 'verwerfen abandonner descartar odrzuć отменить 丢弃'],
+].flatMap(([verb, words]) => words.split(' ').map(word => [word, verb])));
+// Playwright's accessibility snapshot (`- button "Send" [ref=e14]`), the `[ref_14]` form, numbered element lists
+// (`14: button "Send"`, `1 'Issues' tab`) and `Page Title:` / `window:` lines.
+const REF_LINE = /(?:^|\n)[ \t]*-?[ \t]*([a-z][\w-]{0,30})[ \t]+"([^"\n]{1,160})"[^\n]*?\[ref=([\w-]{1,24})\]/gi;
+const REF_TOKEN_LINE = /(?:^|\n)[ \t]*-?[ \t]*([a-z][\w-]{0,30})[ \t]+"([^"\n]{1,160})"[^\n]*?\[(ref_\d{1,6})\]/gi;
+const INDEX_LINE = /(?:^|[\n,;])[ \t]*(?:elements?:)?[ \t]*\[?(\d{1,4})\]?[ \t]*[:.)\]=-]?[ \t]*(?:([a-z][\w-]{0,30})[ \t]+)?["'“‘]([^"'”’\n]{1,160})["'”’](?:[ \t]+([a-z][\w-]{0,30}))?/gi;
+const TITLE_LINE = /(?:^|\n)[ \t]*-?[ \t]*(?:page[ \t]+title|window[ \t]+title|active[ \t]+window|window|title)[ \t]*[:=][ \t]*["']?([^\n"']{1,160})/gi;
+const MAX_SCREENS = 8;
+const MAX_REFS = 500;
+const MAX_TITLES = 6;
+function screenServer(toolName) {
+    return (toolName.split('__')[1] || toolName).slice(0, 100);
+}
+function refKey(v) {
+    return String(v).trim().toLowerCase().slice(0, 40);
+}
+const ROLE = (v) => (typeof v === 'string' && /^[a-z][\w-]{0,30}$/i.test(v) ? v.toLowerCase() : '');
+const screenObject = (v) => v && typeof v === 'object' && !Array.isArray(v) ? v : undefined;
+const screenNumber = (v) => typeof v === 'number' && Number.isFinite(v) && Math.abs(v) <= 10_000_000;
+const screenHash = (v) => createHash('sha256').update(v).digest('hex');
+const guiIdentity = (v) => typeof v === 'string' && v.length > 0 && v.length <= 200 && !/[\x00-\x1f\x7f]/.test(v);
+const guiFields = (o, fields) => Object.keys(o).every(k => fields.includes(k));
+function guiOrigin(v, policy = false) {
+    if (typeof v !== 'string' || v.length > 2048)
+        return undefined;
+    try {
+        const u = new URL(v);
+        if (!['https:', 'http:'].includes(u.protocol) || u.username || u.password)
+            return undefined;
+        if (policy && (u.pathname !== '/' || u.search || u.hash))
+            return undefined;
+        return u.origin;
+    }
+    catch {
+        return undefined;
+    }
+}
+function guiKey(v) {
+    if (typeof v !== 'string' && !(Array.isArray(v) && v.length > 0 && v.every(k => typeof k === 'string')))
+        return undefined;
+    const raw = Array.isArray(v) ? v.join('+') : v;
+    if (raw.length > 40 || /[^a-z+ ]/i.test(raw))
+        return undefined;
+    const key = raw.trim().toLowerCase().replace(/ *\+ */g, '+');
+    return GUI_NAV_KEYS.has(key) ? key : undefined;
+}
+/** Invalid GUI policy is strict as a whole: a typo must never create a broader permission. */
+function parseGuiPolicy(value) {
+    const strict = { mode: 'strict', maxSnapshotAgeMs: 5000, allow: [] };
+    const invalid = { ...strict, invalid: true };
+    const o = screenObject(value);
+    if (o?.mode === 'strict' && guiFields(o, ['mode', 'maxSnapshotAgeMs', 'allow']))
+        return strict;
+    if (!o || !guiFields(o, ['mode', 'maxSnapshotAgeMs', 'allow']) || o.mode !== 'policy')
+        return invalid;
+    const age = o.maxSnapshotAgeMs ?? 5000;
+    if (!Number.isInteger(age) || age < 100 || age > 30_000 || !Array.isArray(o.allow) || o.allow.length > 64)
+        return invalid;
+    const allow = [];
+    for (const raw of o.allow) {
+        const r = screenObject(raw), target = screenObject(r?.target), context = screenObject(r?.context);
+        if (!r || !target || !context || !guiFields(r, ['tool', 'action', 'target', 'context', 'keys', 'maxTextLength'])
+            || !guiFields(target, ['role', 'accessibilityId']) || !guiFields(context, ['origin', 'application'])
+            || typeof r.tool !== 'string' || !/^mcp__[A-Za-z0-9_-]+__[A-Za-z0-9_.-]+$/.test(r.tool)
+            || typeof r.action !== 'string' || !['click', 'type', 'key'].includes(r.action) || !guiIdentity(target.accessibilityId)
+            || typeof target.role !== 'string' || !/^[a-z][\w-]{0,30}$/.test(target.role))
+            return invalid;
+        const origin = guiOrigin(context.origin, true), application = context.application;
+        if ((context.origin !== undefined && !origin) || (application !== undefined && (typeof application !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9_.-]{0,199}$/.test(application)))
+            || (!origin && application === undefined))
+            return invalid;
+        const keys = guiKey(r.keys);
+        if (r.action === 'key' ? typeof r.keys !== 'string' || !keys || r.maxTextLength !== undefined : r.keys !== undefined)
+            return invalid;
+        if (r.action === 'type' ? !Number.isInteger(r.maxTextLength) || r.maxTextLength < 1 || r.maxTextLength > 4096 : r.maxTextLength !== undefined)
+            return invalid;
+        allow.push({ tool: r.tool, action: r.action, target: { role: target.role, accessibilityId: target.accessibilityId },
+            context: { ...(origin ? { origin } : {}), ...(typeof application === 'string' ? { application } : {}) },
+            ...(keys ? { keys } : {}), ...(r.action === 'type' ? { maxTextLength: r.maxTextLength } : {}) });
+    }
+    return { mode: 'policy', maxSnapshotAgeMs: age, allow };
+}
+function screenPoint(v) {
+    const o = screenObject(v);
+    if (o && screenNumber(o.x) && screenNumber(o.y))
+        return { x: o.x, y: o.y };
+    if (Array.isArray(v) && v.length === 2 && screenNumber(v[0]) && screenNumber(v[1]))
+        return { x: v[0], y: v[1] };
+    return undefined;
+}
+function screenBox(v) {
+    const o = screenObject(v);
+    if (!o)
+        return undefined; // Bare arrays have incompatible xywh/xyxy conventions; do not guess.
+    const x = o.x ?? o.left, y = o.y ?? o.top;
+    if (!screenNumber(x) || !screenNumber(y))
+        return undefined;
+    if ((o.left !== undefined && o.left !== x) || (o.top !== undefined && o.top !== y))
+        return undefined;
+    const width = o.width ?? (screenNumber(o.right) ? o.right - x : undefined);
+    const height = o.height ?? (screenNumber(o.bottom) ? o.bottom - y : undefined);
+    if (!screenNumber(width) || !screenNumber(height) || width <= 0 || height <= 0 || !screenNumber(x + width) || !screenNumber(y + height))
+        return undefined;
+    if ((o.right !== undefined && o.right !== x + width) || (o.bottom !== undefined && o.bottom !== y + height))
+        return undefined;
+    return { x, y, width, height };
+}
+function screenAction(text) {
+    const words = screenOperation(text.normalize('NFKC')).split(/[^\p{L}\p{N}]+/u);
+    const verb = words.join(' ').match(SEND_TARGET)?.[1]?.toLowerCase().replace(/\s+/g, ' ');
+    const destroy = words.join(' ').match(DESTROY_TARGET)?.[1]?.toLowerCase().replace(/\s+/g, ' ');
+    const aliases = words
+        .map(word => Object.hasOwn(SCREEN_ACTION_ALIASES, word) ? SCREEN_ACTION_ALIASES[word] : undefined);
+    return { verb: verb ?? aliases.find(v => v && v !== 'delete' && v !== 'discard'), destroy: destroy ?? aliases.find(v => v === 'delete' || v === 'discard') };
+}
+function screenElement(o, role, form) {
+    const boxes = ['bounds', 'boundingBox', 'bounding_box', 'rect'].filter(k => o[k] !== undefined).map(k => screenBox(o[k]));
+    const bounds = boxes.length && boxes.every(b => b && JSON.stringify(b) === JSON.stringify(boxes[0])) ? boxes[0] : undefined;
+    const center = boxes.length ? undefined : screenPoint(o.center);
+    const identifier = ACCESSIBILITY_ID_KEYS.map(k => typeof o[k] === 'string' ? o[k].slice(0, 200) : '').join(' ');
+    const action = screenAction(screenOperation(identifier));
+    const identities = [...new Set(ACCESSIBILITY_ID_KEYS.filter(k => o[k] !== undefined).map(k => guiIdentity(o[k]) ? o[k] : ''))];
+    const identityHash = identities.length === 1 && identities[0] ? screenHash(identities[0]) : undefined;
+    const idKey = ID_KEYS.find(k => typeof o[k] === 'string' || typeof o[k] === 'number');
+    const reference = idKey ? String(o[idKey]) : '';
+    const referenceHash = reference.length > 0 && reference.length <= 40 ? screenHash(reference) : undefined;
+    const labelHash = screenHash(JSON.stringify(LABEL_KEYS.map(k => typeof o[k] === 'string' ? o[k] : null)));
+    const formRef = typeof o.formId === 'string' || typeof o.formId === 'number' ? refKey(o.formId) : typeof o.form === 'string' || typeof o.form === 'number' ? refKey(o.form) : form;
+    return { ...(role ? { role } : {}), ...(bounds ? { bounds } : {}), ...(center ? { center } : {}),
+        ...(o.focused === true ? { focused: true } : {}), ...(typeof o.multiline === 'boolean' ? { multiline: o.multiline } : {}),
+        ...(formRef ? { form: formRef } : {}), ...(action.verb ? { identifierVerb: action.verb } : {}),
+        ...(action.destroy ? { identifierDestroy: action.destroy } : {}),
+        ...(o.type === 'submit' && ['button', 'input', 'submit'].includes(role) ? { submit: true } : {}),
+        ...(identityHash ? { identityHash } : {}), ...(referenceHash ? { referenceHash } : {}), labelHash };
+}
+function coordinateRef(input, view) {
+    const points = ['coordinate', 'coordinates', 'position'].filter(k => input[k] !== undefined).map(k => screenPoint(input[k]));
+    if (input.x !== undefined || input.y !== undefined)
+        points.push(screenPoint(input));
+    if (!points.length || !points.every(p => p && p.x === points[0]?.x && p.y === points[0]?.y))
+        return undefined;
+    const p = points[0];
+    const hits = Object.entries(view?.elements ?? {}).filter(([, e]) => {
+        if (e.ambiguous)
+            return false;
+        const b = e.bounds;
+        return b ? p.x >= b.x && p.y >= b.y && p.x < b.x + b.width && p.y < b.y + b.height
+            : e.center?.x === p.x && e.center?.y === p.y;
+    });
+    return hits.length === 1 ? hits[0][0] : undefined; // Overlaps have no reliable stacking order.
+}
+function explainScreenElement(out, ref, view) {
+    const e = Object.hasOwn(view.elements ?? {}, ref) ? view.elements?.[ref] : undefined;
+    if (e?.ambiguous)
+        return;
+    out.ref = ref;
+    const label = Object.hasOwn(view.refs, ref) ? view.refs[ref] : '';
+    const action = screenAction(label ?? '');
+    out.verb ??= action.verb;
+    out.destroy ??= action.destroy;
+    if (!out.verb && !out.destroy && (e?.identifierVerb || e?.identifierDestroy || e?.submit)) {
+        out.verb = e.identifierVerb ?? (e.submit ? 'submit' : undefined);
+        out.destroy = e.identifierDestroy;
+        out.evidence = e.submit && !e.identifierVerb && !e.identifierDestroy ? 'semantic' : 'identifier';
+    }
+}
+/** The elements and titles a screen tool's result shows, or undefined when the result is not a screen. A screen
+ *  tool's result always replaces the server's last view, even when it is only an image: a stale list must not
+ *  label the next click. Numbered lists also count from pointer/keyboard action results; acknowledgments alone
+ *  keep the previous view, while an image-only action result clears it. `[ref=…]` lines and JSON nodes with a role
+ *  count from any tool, since they are what accessibility trees look like. */
+export function screenFromResult(toolName, response, text, input = {}) {
+    const tool = screenOperation(toolName.split('__').slice(2).join('__') || toolName);
+    const action = typeof input.action === 'string' ? screenOperation(input.action) : '';
+    const screenTool = SCREEN_WORDS.test(tool) || (GENERIC_CONTROL.test(tool) && SCREEN_WORDS.test(action));
+    const controlTool = POINTER_WORDS.test(tool) || keyControl(tool) || POINTER_WORDS.test(action) || keyControl(action);
+    const refs = Object.create(null);
+    const elements = Object.create(null);
+    const focusedRefs = new Set();
+    const conflictingRefs = new Set();
+    const origins = new Set(), applications = new Set();
+    const titles = [];
+    let structural = false;
+    let image = false;
+    let truncated = text.length >= MAX_TEXT;
+    const add = (key, role, label) => {
+        if (Object.keys(refs).length >= MAX_REFS || !label.trim())
+            return;
+        const ref = refKey(key), value = `${role ? role + ' ' : ''}"${label.trim().slice(0, 160)}"`;
+        if (Object.hasOwn(refs, ref) && refs[ref] !== value)
+            conflictingRefs.add(ref);
+        refs[ref] = value;
+    };
+    const body = text.slice(0, MAX_TEXT);
+    for (const m of body.matchAll(REF_LINE)) {
+        structural = true;
+        add(m[3], (m[1] ?? '').toLowerCase(), m[2] ?? '');
+    }
+    for (const m of body.matchAll(REF_TOKEN_LINE)) {
+        structural = true;
+        add(m[3], (m[1] ?? '').toLowerCase(), m[2] ?? '');
+    }
+    if (screenTool || controlTool)
+        for (const m of body.matchAll(INDEX_LINE)) {
+            structural = true;
+            add(m[1], ROLE(m[2]) || ROLE(m[4]), m[3] ?? '');
+        }
+    // JSON element lists, given as objects or as JSON in a text block.
+    const nodes = [response];
+    for (const t of responseStrings(response)) {
+        const s = t.trim();
+        if ((s.startsWith('{') || s.startsWith('[')) && s.length < MAX_TEXT) {
+            try {
+                nodes.push(JSON.parse(s));
+            }
+            catch { /* not JSON */ }
+        }
+    }
+    // Only document-level context: an element/link URL cannot authorize the page containing it.
+    for (const n of nodes) {
+        const root = screenObject(n);
+        for (const scope of [root, screenObject(root?.structuredContent)]) {
+            if (!scope)
+                continue;
+            for (const k of ['url', 'pageUrl', 'page_url', 'documentUrl'])
+                if (scope[k] !== undefined)
+                    origins.add(guiOrigin(scope[k]) ?? '');
+            for (const k of ['applicationId', 'bundleId'])
+                if (scope[k] !== undefined)
+                    applications.add(guiIdentity(scope[k]) ? scope[k] : '');
+        }
+    }
+    let budget = 20_000;
+    const walk = (v, depth, form) => {
+        if (budget-- <= 0 || depth > 8) {
+            truncated = true;
+            return;
+        }
+        if (!v || typeof v !== 'object')
+            return;
+        if (Array.isArray(v)) {
+            for (const x of v)
+                walk(x, depth + 1, form);
+            return;
+        }
+        const o = v;
+        if (o.type === 'image')
+            image = true;
+        const idKey = ID_KEYS.find(k => typeof o[k] === 'string' || typeof o[k] === 'number');
+        const labelKey = LABEL_KEYS.find(k => typeof o[k] === 'string' && o[k].trim());
+        const role = ROLE(o.role) || ROLE(o.type) || ROLE(o.tag);
+        const elementKey = idKey ? refKey(o[idKey]) : undefined;
+        const childForm = role === 'form' && elementKey ? elementKey : form;
+        if (elementKey && (role || screenTool) && (Object.hasOwn(elements, elementKey) || Object.keys(elements).length < MAX_REFS)) {
+            const element = screenElement(o, role, role === 'form' ? undefined : form);
+            if (Object.hasOwn(elements, elementKey) && JSON.stringify(elements[elementKey]) !== JSON.stringify(element))
+                elements[elementKey] = { ambiguous: true };
+            else
+                elements[elementKey] = element;
+            if (o.role !== undefined)
+                structural = true;
+        }
+        else if (elementKey && (role || screenTool))
+            truncated = true;
+        for (const k of ['focusedRef', 'focusedElementId', 'activeElementId']) {
+            if (typeof o[k] === 'string' || typeof o[k] === 'number')
+                focusedRefs.add(refKey(o[k]));
+        }
+        if (idKey && labelKey && (role || screenTool)) {
+            if (o.role !== undefined)
+                structural = true;
+            add(o[idKey], role, o[labelKey]);
+        }
+        else if (!idKey) {
+            for (const k of TITLE_KEYS)
+                if (typeof o[k] === 'string' && o[k].trim() && titles.length < MAX_TITLES)
+                    titles.push(o[k].trim().slice(0, 160));
+        }
+        for (const x of Object.values(o))
+            if (x && typeof x === 'object')
+                walk(x, depth + 1, childForm);
+    };
+    for (const n of nodes)
+        walk(n, 0);
+    for (const ref of conflictingRefs)
+        if (Object.hasOwn(elements, ref))
+            elements[ref] = { ambiguous: true };
+    for (const m of body.matchAll(TITLE_LINE)) {
+        if (titles.length >= MAX_TITLES)
+            break;
+        titles.push((m[1] ?? '').trim().slice(0, 160));
+    }
+    if (!screenTool && !structural && !(controlTool && (image || titles.length)))
+        return undefined;
+    for (const [ref, e] of Object.entries(elements))
+        if (e.focused)
+            focusedRefs.add(ref);
+    const focused = focusedRefs.size === 1 ? [...focusedRefs][0] : undefined;
+    return { refs, titles, ...(Object.keys(elements).length ? { elements } : {}),
+        ...(!truncated ? { policyComplete: true } : {}),
+        ...(origins.size === 1 && !origins.has('') ? { origin: [...origins][0] } : {}),
+        ...(applications.size === 1 && !applications.has('') ? { application: [...applications][0] } : {}),
+        ...(focused && Object.hasOwn(elements, focused) && !elements[focused]?.ambiguous ? { focused } : {}) };
+}
+/** A pointer or keyboard call to an MCP screen server, read against that server's last screen. */
+export function screenCall(toolName, input, state) {
+    if (!toolName.startsWith('mcp__'))
+        return undefined;
+    const tool = screenOperation(toolName.split('__').slice(2).join('__') || toolName);
+    const action = typeof input.action === 'string' ? screenOperation(input.action) : '';
+    const pointer = POINTER_WORDS.test(tool) || POINTER_WORDS.test(action);
+    const key = keyControl(tool) || keyControl(action);
+    if (!pointer && !key) {
+        if (GENERIC_CONTROL.test(tool) && !(READ_CONTROL_ACTIONS.has(action) && Object.keys(input).length === 1))
+            return { guarded: 'control' };
+        return undefined;
+    }
+    const out = {};
+    const view = state.screens?.[screenServer(toolName)];
+    if (pointer) {
+        // No label, role, coordinate or caller-supplied description establishes the actual effect of a click.
+        // Gate even familiar labels: "Inbox" can be a submit button, or a page can change after the snapshot.
+        out.guarded = 'pointer';
+        const targets = [];
+        const requestedRefs = new Set();
+        for (const [k, v] of Object.entries(input)) {
+            const name = k.toLowerCase();
+            if (TARGET_TEXT_ARGS.has(name) && typeof v === 'string')
+                targets.push(v.slice(0, 300));
+            if (REF_ARGS.has(name) && (typeof v === 'string' || typeof v === 'number'))
+                requestedRefs.add(refKey(v));
+        }
+        const hit = coordinateRef(input, view);
+        const ref = requestedRefs.size === 1 ? [...requestedRefs][0] : requestedRefs.size === 0 ? hit : undefined;
+        if (ref && view && (hit === undefined || hit === ref)) {
+            explainScreenElement(out, ref, view);
+            if (hit === ref)
+                out.via = 'coordinates';
+        }
+        for (const t of targets) {
+            const action = screenAction(t);
+            out.verb ??= action.verb;
+            out.destroy ??= action.destroy;
+        }
+    }
+    if (key) {
+        const typed = keyTexts(input);
+        const paste = /(^|_|-)paste(_|-|$)/i.test(tool) || /^paste$/i.test(action) || typed.some(t => PASTE_KEYS.test(t));
+        // What the clipboard holds is not in the call. After a credential read it may be the credential.
+        if (paste)
+            out.paste = [...state.private].reverse().find(p => p.secret);
+        if (!out.guarded) {
+            if (paste)
+                out.guarded = 'paste';
+            else if (TYPE_WORDS.test(tool) || TYPE_WORDS.test(action))
+                out.guarded = 'text';
+            else if (typed.some(t => /\b(enter|return|numpadenter)\b|[\r\n]/i.test(t)))
+                out.guarded = 'enter';
+            else if (!passiveShortcut(input))
+                out.guarded = 'keyboard';
+        }
+        if (out.guarded === 'enter' && view?.focused) {
+            explainScreenElement(out, view.focused, view);
+            out.via = 'focus';
+            const focused = view.elements?.[view.focused];
+            const chord = typed.some(t => /\b(cmd|command|meta|ctrl|control)[+-]enter\b/i.test(t));
+            if (!out.verb && !out.destroy && focused?.form && TEXT_INPUT_ROLES.has(focused.role ?? '') && (focused.multiline === false || (focused.multiline === true && chord))) {
+                const buttons = Object.entries(view.elements ?? {}).filter(([, e]) => !e.ambiguous && e.form === focused.form && (e.role === 'button' || e.submit));
+                const submits = buttons.map(([ref]) => { const result = {}; explainScreenElement(result, ref, view); return result; }).filter(e => e.verb);
+                if (submits.length === 1) {
+                    out.verb = submits[0].verb;
+                    out.evidence = 'form';
+                }
+            }
+        }
+    }
+    return out;
+}
+/** The only keyboard exemptions are an exact copy/select-all chord in a simple known schema. Extra fields,
+ * malformed arrays and sequences never turn into a harmless chord by dropping values during extraction. */
+function passiveShortcut(input) {
+    const fields = Object.entries(input).filter(([k]) => k !== 'action');
+    if (fields.length !== 1)
+        return false;
+    const [name, value] = fields[0];
+    if (!['key', 'keys', 'combo', 'combination', 'shortcut'].includes(name))
+        return false;
+    if (input.action !== undefined && (typeof input.action !== 'string' || !PASSIVE_KEY_ACTIONS.has(screenOperation(input.action))))
+        return false;
+    if (typeof value !== 'string' && !(Array.isArray(value) && value.length > 0 && value.every(v => typeof v === 'string')))
+        return false;
+    const raw = Array.isArray(value) ? value.join('+') : value;
+    if (raw.length > 64 || /[^a-z+ ]/i.test(raw))
+        return false;
+    const chord = raw.trim().toLowerCase()
+        .replace(/\s*\+\s*/g, '+').replace(/^(command|meta|super|win)\+/, 'cmd+').replace(/^control\+/, 'ctrl+');
+    return /^(cmd|ctrl)\+[ac]$/.test(chord);
+}
+function keyTexts(input) {
+    return Object.entries(input).filter(([k]) => KEY_TEXT_ARGS.has(k.toLowerCase()))
+        .map(([, v]) => (typeof v === 'string' ? v : Array.isArray(v) ? v.filter(x => typeof x === 'string').join('+') : ''))
+        .filter(Boolean).map(t => t.slice(0, 2000));
+}
+function guiOperation(toolName, input) {
+    const operation = (name) => {
+        const simple = name.replace(/^(browser|screen|computer|desktop|keyboard)_/, '');
+        if (/^(click|left_click|tap)$/.test(simple))
+            return 'click';
+        if (/^(type|type_text|input_text|insert_text|enter_text|fill)$/.test(simple))
+            return 'type';
+        if (/^(key|keys|key_press|keypress|press_key|press_keys|hotkey|shortcut|keyboard)$/.test(simple))
+            return 'key';
+        return undefined;
+    };
+    const name = screenOperation(toolName.split('__').slice(2).join('__'));
+    const action = typeof input.action === 'string' ? operation(screenOperation(input.action)) : undefined;
+    const tool = GENERIC_CONTROL.test(name) ? action : operation(name);
+    return tool && (input.action === undefined || action === tool) ? tool : undefined;
+}
+/** Resolve the actual supported argument shape, not the model's label/selector or a truncated reference. */
+function guiTarget(input, view, action) {
+    const refs = Object.entries(input).filter(([k]) => REF_ARGS.has(k.toLowerCase()));
+    if (refs.length > 1)
+        return undefined;
+    const raw = refs[0]?.[1];
+    if (refs.length && !(typeof raw === 'string' && raw.length > 0 && raw.length <= 40 || typeof raw === 'number' && Number.isSafeInteger(raw)))
+        return undefined;
+    const ref = refs.length ? refKey(raw) : undefined;
+    if (ref && view.elements?.[ref]?.referenceHash !== screenHash(String(raw)))
+        return undefined;
+    const coordinates = ['x', 'y', 'coordinate', 'coordinates', 'position'].some(k => input[k] !== undefined);
+    const hit = coordinates ? coordinateRef(input, view) : undefined;
+    if (coordinates && (!hit || ref && ref !== hit))
+        return undefined;
+    const target = ref ?? hit ?? (action !== 'click' ? view.focused : undefined);
+    if (!target || action !== 'click' && view.focused !== target)
+        return undefined;
+    return target;
+}
+function matchingGuiRule(tool, input, state, policy) {
+    const gui = policy.gui, view = state.screens?.[screenServer(tool)];
+    if (policy.mode !== 'ask' || gui?.mode !== 'policy' || !view?.revision || view.policyConsumed || !view.policyComplete || state.full
+        || state.credentialRead || state.private.some(p => p.secret))
+        return undefined;
+    const age = Date.now() - Date.parse(view.at);
+    if (!Number.isFinite(age) || age < 0 || age > gui.maxSnapshotAgeMs)
+        return undefined;
+    const action = guiOperation(tool, input);
+    if (!action || action === 'click' && state.guiInputSeen)
+        return undefined;
+    const keyFields = ['key', 'keys', 'combo', 'combination', 'shortcut'];
+    const textFields = ['text', 'value'];
+    const fields = action === 'click' ? ['x', 'y', 'coordinate', 'coordinates', 'position', 'element'] : action === 'key' ? keyFields : textFields;
+    if (!Object.keys(input).every(k => k === 'action' || REF_ARGS.has(k.toLowerCase()) || fields.includes(k)))
+        return undefined;
+    if (input.element !== undefined && (typeof input.element !== 'string' || input.element.length > 300 || /[\x00-\x1f\x7f]/.test(input.element)))
+        return undefined;
+    const ref = guiTarget(input, view, action), element = ref ? view.elements?.[ref] : undefined;
+    if (!ref || !element?.identityHash || element.ambiguous
+        || Object.values(view.elements ?? {}).filter(e => e.identityHash === element.identityHash).length !== 1)
+        return undefined;
+    const effect = {};
+    explainScreenElement(effect, ref, view);
+    // A rule for navigation never grants send/pay/delete/submit or clipboard access, in any known language.
+    if (effect.verb || effect.destroy || element.submit)
+        return undefined;
+    const named = screenCall(tool, input, state);
+    if (named?.verb || named?.destroy || named?.paste || named?.guarded === 'paste' || named?.guarded === 'enter')
+        return undefined;
+    const keys = keyFields.filter(k => input[k] !== undefined);
+    const key = action === 'key' && keys.length === 1 ? guiKey(input[keys[0]]) : undefined;
+    if (action === 'key' && !key)
+        return undefined;
+    const texts = textFields.filter(k => input[k] !== undefined);
+    const text = action === 'type' && texts.length === 1 ? input[texts[0]] : undefined;
+    if (action === 'type' && (typeof text !== 'string' || /[\x00-\x1f\x7f]/.test(text)))
+        return undefined;
+    const index = gui.allow.findIndex(r => r.tool === tool && r.action === action && r.target.role === element.role
+        && screenHash(r.target.accessibilityId) === element.identityHash
+        && (!r.context.origin || r.context.origin === view.origin) && (!r.context.application || r.context.application === view.application)
+        && (action !== 'key' || r.keys === key) && (action !== 'type' || typeof text === 'string' && text.length <= r.maxTextLength));
+    return index < 0 ? undefined : index;
+}
+/** Reserve a single snapshot under the state lock. Concurrent calls cannot reuse a permission or a replaced view. */
+function reserveGuiRule(paths, tool, input, state, policy) {
+    if (matchingGuiRule(tool, input, state, policy) === undefined)
+        return undefined;
+    let rule;
+    updateFlowState(paths.state, current => {
+        const view = current.screens?.[screenServer(tool)];
+        if (!view || view.revision !== state.screens?.[screenServer(tool)]?.revision)
+            return;
+        // Private data or user input observed while the original check ran must get a new decision.
+        if (JSON.stringify([current.private, current.untrusted, current.intent, current.turn]) !== JSON.stringify([state.private, state.untrusted, state.intent, state.turn]))
+            return;
+        const stores = readStores(paths), leak = checkLeak(paths, input, current.intent, stores);
+        const stream = checkStream(input, current.tails ?? {}, stores).leak;
+        const fragments = checkFragments(input, current, stores.tok.size > 0, false);
+        if (fragments.secret || fragments.review || fragments.unavailable || leak.incomplete || leak.secret || leak.private || leak.pii || stream.secret || stream.private || stream.pii)
+            return;
+        rule = matchingGuiRule(tool, input, current, policy);
+        if (rule !== undefined)
+            for (const snapshot of Object.values(current.screens ?? {}))
+                snapshot.policyConsumed = true;
+    });
+    return rule;
+}
+/** A credential read that a screen server's calls reveal: a credential path typed (into an open dialog, a
+ *  terminal, an address bar) or a window or page title naming a credential file. Only the file name is kept. */
+export function screenSecretRead(toolName, input, view) {
+    if (!toolName.startsWith('mcp__'))
+        return undefined;
+    const tool = screenOperation(toolName.split('__').slice(2).join('__') || toolName);
+    const action = typeof input.action === 'string' ? screenOperation(input.action) : '';
+    const name = (path) => { const b = basename(path.replace(/\\/g, '/')); return /^[A-Za-z0-9_.+-]{1,60}$/.test(b) ? b : 'a credential file'; };
+    if (keyControl(tool) || keyControl(action)) {
+        for (const t of keyTexts(input)) {
+            for (const raw of t.split(/[\s"'`]+/)) {
+                const token = raw.replace(/[,;:)]+$/, '');
+                if (/[/~.]/.test(token) && isSecretPath(token))
+                    return `typed path ${name(token)}`;
+            }
+        }
+    }
+    for (const title of view?.titles ?? []) {
+        for (const token of title.split(/[\s"'()|·–—]+/))
+            if (token && isSecretPath(token))
+                return `screen title naming ${name(token)}`;
+    }
+    return undefined;
+}
 // Who or what a call is aimed at. A destination the user named in their own words is the user's choice.
 const DEST_ARG_NAMES = new Set(['to', 'recipient', 'recipients', 'cc', 'bcc', 'email', 'emails', 'participants', 'user', 'users',
     'channel', 'url', 'urls', 'iban', 'account', 'address', 'phone', 'host', 'hostname', 'domain', 'webhook', 'endpoint',
@@ -406,7 +1035,8 @@ const DEST_ARG_NAMES = new Set(['to', 'recipient', 'recipients', 'cc', 'bcc', 'e
 const PARTY_ARG_NAMES = new Set(['to', 'recipient', 'recipients', 'cc', 'bcc', 'email', 'emails', 'participants', 'iban', 'phone',
     'webhook', 'endpoint', 'attendee', 'attendees', 'invitee', 'invitees', 'assignee', 'assignees', 'reviewer', 'reviewers',
     'collaborator', 'collaborators', 'member', 'members', 'username']);
-const EMAIL_RE = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi;
+// Bounded address parts and a fixed start prevent quadratic scans of long non-address payloads.
+const EMAIL_RE = /(?<![a-z0-9._%+-])[a-z0-9._%+-]{1,64}@[a-z0-9.-]{1,253}\.[a-z]{2,63}\b/gi;
 // A bare domain in text ("www.example.com/x"), limited to common TLDs so "file.txt" or "v1.2" do not count.
 const BARE_DOMAIN_RE = /\b(?:www\.)?(?:[a-z0-9-]+\.)+(?:com|net|org|io|dev|ai|co|app|info|biz|xyz|me|us|uk|de|fr|es|it|nl|ru|cn|jp|in|br|eu|ch|se|no|fi|pl|cz|at|be|ca|au|nz|online|site|top|link|click|live|shop|store|tech|cloud|pro|tk|gq|ml|ga|cf|ly|gg|to|so|sh|cc|tv|ws)\b(?:\/[^\s"'<>)]*)?/gi;
 const IBAN_RE = /\b[A-Z]{2}\d{2}(?:\s?[A-Z0-9]){10,30}\b/g;
@@ -594,34 +1224,92 @@ export function fingerprints(text) {
     }
     return [...out];
 }
-/** The texts an outbound call could be carrying: raw, URL-decoded, and base64/hex runs decoded. */
-export function candidates(texts) {
+/** Only explicit character lists are decoded, never arbitrary prose. Unknown items end a run.
+ * English digit names and case markers cover the recorded attack, not arbitrary verbal encodings. */
+export function spelledCandidates(text) {
+    const digits = { zero: '0', one: '1', two: '2', three: '3', four: '4', five: '5', six: '6', seven: '7', eight: '8', nine: '9' };
     const out = [];
-    let left = MAX_CANDIDATE;
-    const push = (s) => { if (left > 0 && s) {
-        out.push(s.slice(0, left));
-        left -= s.length;
-    } };
-    for (const t of texts) {
-        push(t);
-        if (/%[0-9a-f]{2}/i.test(t)) {
-            try {
-                push(decodeURIComponent(t.replace(/\+/g, ' ')));
-            }
-            catch { /* not URL-encoded */ }
-        }
-        // 12, not 24: a 10-character piece of a key encodes to 14 characters and its padding.
-        for (const m of t.matchAll(/[A-Za-z0-9+/_-]{12,}={0,2}/g)) {
-            const b = m[0].replace(/-/g, '+').replace(/_/g, '/');
-            const decoded = Buffer.from(b, 'base64').toString('utf8');
-            if (decoded && /^[\x09\x0a\x0d\x20-\x7e -￿]*$/.test(decoded) && decoded.replace(/[^\x20-\x7e]/g, '').length > decoded.length * 0.8)
-                push(decoded);
-        }
-        for (const m of t.matchAll(/\b(?:[0-9a-f]{2}){20,}\b/gi))
-            push(Buffer.from(m[0], 'hex').toString('utf8'));
+    let run = '';
+    const flush = () => { if (run.length >= 5)
+        out.push(run); run = ''; };
+    for (const item of text.slice(0, MAX_CANDIDATE).normalize('NFKC').split(/[,;|\r\n]+/)) {
+        const unit = item.trim().toLowerCase();
+        const ch = /^[a-z0-9]$/.test(unit) ? unit : (Object.hasOwn(digits, unit) ? digits[unit] : undefined) ?? /^(?:capital|uppercase|lowercase|letter) ([a-z])$/.exec(unit)?.[1];
+        if (ch)
+            run += ch;
+        else
+            flush();
     }
+    flush();
     return out;
 }
+/** Reversible text encodings only: bounded breadth/depth, no eval or decompression. Exhaustion is explicit. */
+export function scanCandidates(texts) {
+    const values = [], queue = [];
+    const seen = new Set();
+    let left = MAX_CANDIDATE, incomplete = false;
+    const push = (text, depth) => {
+        if (!text || seen.has(text))
+            return;
+        if (depth > 4 || values.length >= 64 || text.length > left) {
+            incomplete = true;
+            return;
+        }
+        seen.add(text);
+        left -= text.length;
+        values.push(text);
+        queue.push({ text, depth });
+    };
+    for (const text of texts) {
+        if (text.length > left) {
+            incomplete = true;
+            if (left)
+                push(text.slice(0, left), 0);
+        }
+        else
+            push(text, 0);
+    }
+    const utf8 = (bytes) => {
+        try {
+            const text = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+            return text && !/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(text) ? text : undefined;
+        }
+        catch {
+            return undefined;
+        }
+    };
+    for (let index = 0; index < queue.length; index++) {
+        const { text, depth } = queue[index];
+        const add = (value) => { if (value && value !== text)
+            push(value, depth + 1); };
+        if (/%[0-9a-f]{2}/i.test(text)) {
+            try {
+                add(decodeURIComponent(text.replace(/\+/g, ' ')));
+            }
+            catch { /* malformed literal, never executable */ }
+        }
+        for (const value of spelledCandidates(text))
+            add(value);
+        const escaped = text.replace(/\\u\{([0-9a-f]{1,6})\}|\\u([0-9a-f]{4})|\\x([0-9a-f]{2})|&#(?:x([0-9a-f]+)|([0-9]+));/gi, (whole, a, b, c, d, e) => {
+            const code = Number.parseInt(a ?? b ?? c ?? d ?? e, e === undefined ? 16 : 10);
+            return code <= 0x10ffff && !(code >= 0xd800 && code <= 0xdfff) ? String.fromCodePoint(code) : whole;
+        });
+        add(escaped);
+        for (const m of text.matchAll(/[A-Za-z0-9+/_-]{8,}={0,2}/g)) {
+            const normalized = m[0].replace(/-/g, '+').replace(/_/g, '/').replace(/=+$/, '');
+            if (normalized.length % 4 === 1)
+                continue;
+            const bytes = Buffer.from(normalized, 'base64');
+            if (bytes.toString('base64').replace(/=+$/, '') === normalized)
+                add(utf8(bytes));
+        }
+        for (const m of text.matchAll(/\b(?:[0-9a-f]{2}){3,}\b/gi))
+            add(utf8(Buffer.from(m[0], 'hex')));
+    }
+    return { values, incomplete };
+}
+/** Compatibility helper: enforcement uses scanCandidates() so truncation is never mistaken for a clean scan. */
+export function candidates(texts) { return scanCandidates(texts).values; }
 // Short structured values a 20-character window misses: card, passport, account and phone numbers.
 // Words are split on whitespace; consecutive words that carry digits ("DE89 3704 0044", "+1 (555) 123-4567")
 // join into one value, and a word without digits ends it.
@@ -698,7 +1386,7 @@ function entropy(s) {
 const TOKEN_RUN = /[A-Za-z0-9+/_-]{16,}={0,2}/g;
 /** Key-like values in private text: every random-looking run of a credential file, and every well-known
  * secret format wherever it was read. Words, paths and host names are not random enough to count. */
-export function secretTokens(text, credentialFile) {
+export function secretValues(text, credentialFile) {
     const out = new Set();
     const t = text.slice(0, MAX_TEXT);
     const add = (raw) => {
@@ -708,7 +1396,7 @@ export function secretTokens(text, credentialFile) {
             return;
         const a = alnum(raw);
         if (a.length >= 16 && /\d/.test(a) && /[a-z]/.test(a) && entropy(a) >= 3.5)
-            out.add(a);
+            out.add(raw);
     };
     if (credentialFile)
         for (const m of t.matchAll(TOKEN_RUN))
@@ -717,6 +1405,10 @@ export function secretTokens(text, credentialFile) {
         for (const m of t.matchAll(new RegExp(re.source, 'g')))
             add(m[0]);
     return [...out];
+}
+/** Normalized credentials for the original strong-window check. Raw values exist only transiently. */
+export function secretTokens(text, credentialFile) {
+    return [...new Set(secretValues(text, credentialFile).map(alnum))];
 }
 /** Windows that hold both a letter and a digit, so an ordinary word is never a piece of a key. A window never
  * starts in the key's leading letters ("sk-ant-api03" or "rk_live" is a format every such key shares), never in the
@@ -734,6 +1426,119 @@ export function tokenFingerprints(tokens) {
     }
     return [...out];
 }
+const fragmentHash = (s) => createHash('sha256').update(`warden-fragment-v1:${s}`).digest('hex').slice(0, 32);
+const fragmentKey = (r) => `${r.group}:${r.offset}:${r.size ?? FRAGMENT_SIZE}:${r.edge ? 'edge' : 'atom'}:${r.hash}`;
+const CREDENTIAL_PREFIX = /^(?:[rs]k_(?:live|test)_|sk-ant-api[0-9]+-|sk-ant-|sk-proj-|sk-|gh[pousr]_|github_pat_|glpat-|npm_|xox[abprs]-|AKIA|ASIA|AIza)/i;
+const fragmentVisible = (s) => s.normalize('NFKC').toLowerCase().replace(/[^a-z0-9]/g, ch => CONFUSABLE[ch] ?? ch);
+const SHORT_SIZES = [5, 6, 7];
+/** Weak evidence asks before its first transmission, never silently learns by sending it.
+ * Five-char windows require upper/lower/digit classes in the source, while 6/7-char atoms may be words.
+ * Exact prefix-boundary slices cover chunks that already contain payload but no full six-char window.
+ * Only hash/offset/size metadata is persisted; public format and DER structure alone do not count. */
+export function fragmentFingerprints(tokens, limit = MAX_FRAGMENT_INDEX) {
+    const out = [];
+    for (const raw of new Set(tokens)) {
+        const a = alnum(raw), prefix = CREDENTIAL_PREFIX.exec(raw)?.[0];
+        const normPrefix = /^(?:[rs]k(?:live|test)|skantapi[0-9]+|skant|skproj|sk|gh[pousr]|githubpat|glpat|npm|xox[abprs]|akia|asia|aiza)/.exec(a)?.[0];
+        const start = /^(mii|mig|mhc|mc4|mco)/.test(a) ? Math.max(48, /^[a-z]*/.exec(a)[0].length) : normPrefix?.length ?? /^[a-z]*/.exec(a)[0].length;
+        const group = fragmentHash(`key:${a}`);
+        // Preserve case only transiently to avoid indexing every short hex/hash or ordinary word.
+        const caseful = raw.normalize('NFKC').replace(/[^a-z0-9]/gi, '');
+        for (const size of SHORT_SIZES)
+            for (let offset = start; offset + size <= a.length; offset++) {
+                const piece = a.slice(offset, offset + size), original = caseful.slice(offset, offset + size);
+                if (size < FRAGMENT_SIZE && !(/[A-Z]/.test(original) && /[a-z]/.test(original) && /[0-9]/.test(original)))
+                    continue;
+                if (/^(.)\1+$/.test(piece) || KEY_STRUCTURE.some(k => k.includes(piece)))
+                    continue;
+                out.push({ group, hash: fragmentHash(piece), offset, size });
+                if (out.length > limit)
+                    return out;
+            }
+        if (prefix)
+            for (let offset = 0; offset < prefix.length; offset++) {
+                // Require a real format delimiter, or the entire delimiter-free prefix (AWS/Google).
+                const suffix = prefix.slice(offset);
+                if (offset !== 0 && (!/[_-]/.test(suffix) || !/[a-z]/i.test(suffix)))
+                    continue;
+                for (let length = 1; length <= 7 && prefix.length + length <= raw.length; length++) {
+                    const piece = fragmentVisible(raw.slice(offset, prefix.length + length));
+                    if (piece.length < 5)
+                        continue;
+                    out.push({ group, hash: fragmentHash(`edge:${piece}`), offset, size: piece.length, edge: true });
+                    if (out.length > limit)
+                        return out;
+                }
+            }
+    }
+    return out;
+}
+/** Full isolated atoms, not every substring of long ordinary hashes. Structured encoded candidates are included. */
+function fragmentAtoms(input) {
+    const hashes = new Set(), scan = scanCandidates(strings(input));
+    if (scan.incomplete)
+        return { hashes, incomplete: true };
+    for (const text of scan.values) {
+        const visible = fragmentVisible(text);
+        for (const run of visible.matchAll(/\b(?:[a-z0-9][\t ]+){4,6}[a-z0-9]\b/g)) {
+            const atom = alnum(run[0]);
+            hashes.add(fragmentHash(atom));
+            hashes.add(fragmentHash([...atom].reverse().join('')));
+        }
+        for (const m of visible.matchAll(/[a-z0-9+/_-]+/g)) {
+            const raw = m[0];
+            if (raw.length <= 64)
+                hashes.add(fragmentHash(`edge:${raw}`));
+            const joined = alnum(raw);
+            if (/^[a-z0-9]{5,7}$/.test(joined)) {
+                hashes.add(fragmentHash(joined));
+                hashes.add(fragmentHash([...joined].reverse().join('')));
+            }
+            // Separators delimit atoms; a long uninterrupted hash is never scanned with weak windows.
+            for (const atom of raw.matchAll(/[a-z0-9]+/g))
+                if (/^[a-z0-9]{5,7}$/.test(atom[0])) {
+                    hashes.add(fragmentHash(atom[0]));
+                    hashes.add(fragmentHash([...atom[0]].reverse().join('')));
+                }
+        }
+    }
+    return { hashes, incomplete: scan.incomplete };
+}
+/** Must run under the session lock when remembering evidence. Audit never consumes or whitelists a match. */
+export function checkFragments(input, state, hasLegacyTokens, remember) {
+    const f = state.fragments;
+    if (!f)
+        return hasLegacyTokens ? { unavailable: true } : {};
+    if (f.v !== 2 || f.full)
+        return { unavailable: true };
+    if (!f.index.length)
+        return {};
+    const { hashes, incomplete } = fragmentAtoms(input);
+    const matches = f.index.filter(r => hashes.has(r.hash));
+    if (!matches.length)
+        return incomplete ? { unavailable: true } : {};
+    const seen = new Map(f.seen.map(r => [fragmentKey(r), r]));
+    for (const r of matches)
+        seen.set(fragmentKey(r), r);
+    const all = [...seen.values()];
+    const offsets = new Map();
+    for (const r of all) {
+        if (r.edge || r.size !== FRAGMENT_SIZE)
+            continue;
+        const key = `${r.group}:${r.offset}`, at = offsets.get(key) ?? new Set();
+        at.add(r.hash);
+        offsets.set(key, at);
+    }
+    const paired = all.some(r => !r.edge && r.size === FRAGMENT_SIZE && [...(offsets.get(`${r.group}:${r.offset + FRAGMENT_SIZE}`) ?? [])].some(h => h !== r.hash));
+    if (remember) {
+        f.seen = all.slice(0, MAX_FRAGMENT_SEEN);
+        if (all.length > MAX_FRAGMENT_SEEN)
+            f.full = true;
+    }
+    if (paired)
+        return { secret: 'adjacent short fragments of a credential this session read' };
+    return { review: true, ...(incomplete || all.length > MAX_FRAGMENT_SEEN ? { unavailable: true } : {}) };
+}
 /** Every window of letters and digits of both token sizes, forwards and backwards: what a call is checked by. */
 export function tokenWindows(text) {
     const out = [];
@@ -749,10 +1554,15 @@ function tokenHit(text, tokFp) {
 }
 function readFp(path) {
     try {
-        return new Set(readFileSync(path, 'utf8').split('\n').filter(Boolean));
+        const lines = readFileSync(path, 'utf8').split('\n').filter(Boolean);
+        if (lines.some(line => !/^[0-9a-f]{12}$/.test(line)))
+            throw new Error('invalid fingerprints');
+        return new Set(lines);
     }
-    catch {
-        return new Set();
+    catch (err) {
+        if (err.code === 'ENOENT')
+            return new Set();
+        throw new Error('flow fingerprints cannot be read safely');
     }
 }
 function readStores(paths) {
@@ -762,15 +1572,17 @@ function readStores(paths) {
  * for ordinary private text, never for secrets. */
 export function checkLeak(paths, input, typed = [], stores = readStores(paths)) {
     const all = strings(input);
-    const cands = candidates(all);
+    const scan = scanCandidates(all);
+    const cands = scan.values;
     const typedText = typed.join('\n');
     const own = (s) => { const n = normalizeText(s); return n.length > 0 && typedText.includes(n); };
-    const privateCands = candidates(all.filter(s => !own(s)));
     const pattern = secretPattern(cands);
     if (pattern)
         return { secret: pattern };
+    if (scan.incomplete)
+        return { incomplete: true };
     const { secret: secretFp, fp: privateFp, pii: piiFp, tok: tokFp } = stores;
-    if (!secretFp.size && !privateFp.size && !tokFp.size)
+    if (!secretFp.size && !privateFp.size && !tokFp.size && !piiFp.size)
         return {};
     for (const c of cands)
         for (const h of windowsAll(c))
@@ -780,6 +1592,7 @@ export function checkLeak(paths, input, typed = [], stores = readStores(paths)) 
         for (const c of cands)
             if (tokenHit(c, tokFp))
                 return { secret: 'part of a credential this session read' };
+    const privateCands = candidates(all.filter(s => !own(s)));
     const result = {};
     if (piiFp.size)
         for (const c of privateCands)
@@ -850,6 +1663,24 @@ export function readFlowState(path) {
         const s = JSON.parse(readFileSync(path, 'utf8'));
         if (!s || s.v !== 1 || !Array.isArray(s.untrusted) || !Array.isArray(s.private))
             throw new Error('invalid flow state');
+        if (s.credentialRead !== undefined && s.credentialRead !== true || s.credentialGrants !== undefined && (!Array.isArray(s.credentialGrants) || s.credentialGrants.length > 32 || !s.credentialGrants.every(v => typeof v === 'string' && /^[0-9a-f]{64}$/.test(v))))
+            throw new Error('invalid credential egress state');
+        if (s.fragments !== undefined) {
+            const f = s.fragments;
+            if (!f || ![1, 2].includes(f.v))
+                throw new Error('invalid fragment state');
+            const valid = (r) => {
+                if (!r || typeof r.group !== 'string' || !/^[0-9a-f]{32}$/.test(r.group) || typeof r.hash !== 'string' || !/^[0-9a-f]{32}$/.test(r.hash) ||
+                    !Number.isSafeInteger(r.offset) || r.offset < 0 || r.offset > MAX_TEXT || r.edge !== undefined && r.edge !== true)
+                    return false;
+                if (f.v === 1)
+                    return r.size === undefined || Number.isSafeInteger(r.size) && r.size >= 1 && r.size <= 64;
+                return typeof r.size === 'number' && Number.isSafeInteger(r.size) && (r.edge ? r.size >= 5 && r.size <= 64 : SHORT_SIZES.includes(r.size));
+            };
+            if (!Array.isArray(f.index) || f.index.length > MAX_FRAGMENT_INDEX || !f.index.every(valid) ||
+                !Array.isArray(f.seen) || f.seen.length > MAX_FRAGMENT_SEEN || !f.seen.every(valid) || f.full !== undefined && f.full !== true)
+                throw new Error('invalid fragment state');
+        }
         return s;
     }
     catch (err) {
@@ -1011,6 +1842,32 @@ function targetSummary(toolName, input, policy, sensitivePayload) {
     }
     return targets.length ? targets.join(', ') + (omitted ? '; additional targets omitted — review full call' : '') : 'not identified in destination arguments; review full call';
 }
+function credentialSession(state, stores) {
+    return !!(state.credentialRead || state.private.some(s => s.secret) || state.fragments?.index.length || stores.secret.size || stores.tok.size);
+}
+function reservePublicRequest(paths, tool, input, checked, policy, env) {
+    const digest = publicRequestDigest(tool, input);
+    if (!digest || policy.mode !== 'ask' || !policy.credentialEgress?.allow.some(r => r.tool === tool && r.requestSha256 === digest))
+        return;
+    let grant;
+    mkdirSync(paths.dir, { recursive: true, mode: 0o700 });
+    updateFlowState(paths.state, current => {
+        const fresh = loadPolicy(env);
+        if (fresh.mode !== policy.mode || !fresh.credentialEgress?.allow.some(r => r.tool === tool && r.requestSha256 === digest))
+            return;
+        if (current.full || current.credentialGrants?.includes(digest) || (current.credentialGrants?.length ?? 0) >= 32)
+            return;
+        const stores = readStores(paths), leak = checkLeak(paths, checked, current.intent, stores);
+        const fragments = checkFragments(checked, current, stores.tok.size > 0, false);
+        const stream = checkStream(checked, current.tails ?? {}, stores).leak;
+        if (stream.secret || stream.private || stream.pii || leak.secret || leak.private || leak.pii || leak.incomplete || fragments.secret || fragments.review || fragments.unavailable)
+            return;
+        current.credentialGrants = [...(current.credentialGrants ?? []), digest];
+        current.credentialRead = true;
+        grant = digest;
+    });
+    return grant;
+}
 export function flowPre(input, env = process.env, presentation = 'hook') {
     const policy = loadPolicy(env);
     if (policy.mode === 'off')
@@ -1021,36 +1878,65 @@ export function flowPre(input, env = process.env, presentation = 'hook') {
     const toolInput = input.tool_input && typeof input.tool_input === 'object' && !Array.isArray(input.tool_input) ? input.tool_input : {};
     if (!toolName || !sessionId)
         return undefined;
+    if (input.tool_input !== undefined && (!input.tool_input || typeof input.tool_input !== 'object' || Array.isArray(input.tool_input)))
+        return { permissionDecision: 'deny', permissionDecisionReason: 'WARDEN flow guard: tool arguments must be a JSON object; malformed input cannot receive a public-request grant.' };
     const dir = stateDir(env);
     const paths = flowPaths(dir, sessionId);
+    const publicEligible = input.public_request_eligible !== false && (input.tool_input === undefined || !!input.tool_input && typeof input.tool_input === 'object' && !Array.isArray(input.tool_input));
     const c = classifyCall(toolName, toolInput, cwd, policy, env);
     const state = readFlowState(paths.state);
+    // A click is what it lands on. This only adds caution, so it applies to operator-labelled tools too: a glob that
+    // labels a screen server's screenshots must not switch off the check on its clicks.
+    const screen = screenCall(toolName, toolInput, state);
+    if (screen?.verb)
+        c.labels.add('outbound');
+    if (screen?.destroy)
+        c.labels.add('destructive');
     const defTaint = definitionTaint(dir, sessionId);
     const tainted = state.untrusted.length > 0 || !!defTaint;
     let decision;
     let reason;
     let sensitivePayload = false;
+    let guiRule;
+    let publicGrant;
     if (c.protectedTouch) {
         reason = 'protected_settings';
         sensitivePayload = true;
         decision = { permissionDecision: tainted ? 'deny' : 'ask', permissionDecisionReason: `WARDEN flow guard: this call would change WARDEN's policy or Claude Code's hook/MCP settings${tainted ? ` after the session read outside text (${sourcesText(state, defTaint)})` : ''}.` };
     }
-    else if (tainted && (c.labels.has('outbound') || toolName.startsWith('mcp__'))) {
+    else if (tainted && (c.labels.has('outbound') || toolName.startsWith('mcp__') || ['WebFetch', 'WebSearch'].includes(toolName))) {
         const stores = readStores(paths);
         const leak = checkLeak(paths, toolInput, state.intent, stores);
         const stream = checkStream(toolInput, state.tails ?? {}, stores);
+        let credential = credentialSession(state, stores);
         leak.secret ||= stream.leak.secret;
         leak.private ||= stream.leak.private;
         leak.pii ||= stream.leak.pii;
-        // Recorded before the decision is known: a call the user then refuses still counts as sent. That errs
-        // toward a question later, never toward letting a piece through.
-        if (Object.keys(stream.next).length && policy.mode !== 'audit') {
-            updateFlowState(paths.state, s => {
-                const tails = { ...(s.tails ?? {}), ...stream.next };
-                s.tails = Object.fromEntries(Object.entries(tails).slice(-MAX_TAIL_KEYS));
+        // Conservative observations include refused calls, and survive prompts/server changes. Re-evaluate under
+        // the shared lock so simultaneous proxies cannot both send the two halves of the same credential.
+        let fragments = {};
+        if (policy.mode === 'audit' || presentation === 'audit') {
+            fragments = checkFragments(toolInput, state, stores.tok.size > 0, false);
+        }
+        else {
+            mkdirSync(paths.dir, { recursive: true, mode: 0o700 });
+            updateFlowState(paths.state, current => {
+                const currentStores = readStores(paths);
+                credential ||= credentialSession(current, currentStores);
+                if (credential)
+                    current.credentialRead = true;
+                const currentLeak = checkLeak(paths, toolInput, current.intent, currentStores);
+                const currentStream = checkStream(toolInput, current.tails ?? {}, currentStores);
+                leak.secret ||= currentLeak.secret || currentStream.leak.secret;
+                leak.private ||= currentLeak.private || currentStream.leak.private;
+                leak.pii ||= currentLeak.pii || currentStream.leak.pii;
+                leak.incomplete ||= currentLeak.incomplete;
+                fragments = checkFragments(toolInput, current, currentStores.tok.size > 0, true);
+                current.tails = Object.fromEntries(Object.entries({ ...(current.tails ?? {}), ...currentStream.next }).slice(-MAX_TAIL_KEYS));
             });
         }
-        sensitivePayload = !!(leak.secret || leak.private || leak.pii);
+        leak.secret ||= fragments.secret;
+        sensitivePayload = !!(leak.secret || leak.private || leak.pii || leak.incomplete || credential || fragments.review || fragments.unavailable);
         const dests = destinations(toolName, toolInput, policy, c.hosts);
         const targetKnown = hasDestinationArgument(toolName, toolInput, policy);
         const allowedHosts = targetKnown && dests.length > 0 && dests.every(d => allowedDestination(d, policy.allowedDestinations));
@@ -1058,9 +1944,26 @@ export function flowPre(input, env = process.env, presentation = 'hook') {
         const userNamed = (targetKnown && namedByUser(dests, state.intent, state.intentRaw, contacts)) || (dests.length === 0 && keepsDestination(toolName, toolInput, policy));
         if (c.opaqueShell && c.secret)
             leak.secret = 'credential file referenced by shell code';
-        if (leak.secret) {
+        if (!leak.secret && fragments.review) {
+            reason = 'secret_fragment';
+            decision = { permissionDecision: policy.mode === 'deny' ? 'deny' : 'ask', permissionDecisionReason: 'WARDEN flow guard: an argument matches a short fragment of a credential read this session. A short match can be coincidental, so review it before transmission. Named or allowed destinations and earlier approvals do not exempt this call.' };
+        }
+        else if (!leak.secret && screen?.paste) {
+            reason = 'paste_after_secret';
+            sensitivePayload = true;
+            decision = { permissionDecision: policy.mode === 'deny' ? 'deny' : 'ask', permissionDecisionReason: `WARDEN flow guard: this call pastes the clipboard after the session read a credential (${screen.paste.src.slice(0, 80)}) and outside text (${sourcesText(state, defTaint)}). What a paste carries is not in its arguments, so the guard cannot check it. Allow it only if you know what the clipboard holds.` };
+        }
+        else if (leak.secret) {
             reason = 'secret';
             decision = { permissionDecision: 'deny', permissionDecisionReason: `WARDEN flow guard: this call carries a secret (${leak.secret}) after the session read outside text (${sourcesText(state, defTaint)}). Denied.` };
+        }
+        else if (leak.incomplete) {
+            reason = 'payload_incomplete';
+            decision = { permissionDecision: policy.mode === 'deny' ? 'deny' : 'ask', permissionDecisionReason: 'WARDEN flow guard: the bounded payload decoder could not finish checking this request. Review it before execution; no automatic public-request grant applies.' };
+        }
+        else if (fragments.unavailable) {
+            reason = 'secret_tracking';
+            decision = { permissionDecision: policy.mode === 'deny' ? 'deny' : 'ask', permissionDecisionReason: 'WARDEN flow guard: short-secret tracking is incomplete or at capacity. This call after outside text requires review even for a named or allowed destination. Start a new session and reread private sources to restore tracking.' };
         }
         else if (c.opaqueShell) {
             reason = 'opaque_shell';
@@ -1076,6 +1979,24 @@ export function flowPre(input, env = process.env, presentation = 'hook') {
             reason = 'private_text';
             decision = { permissionDecision: policy.mode === 'deny' ? 'deny' : 'ask', permissionDecisionReason: `WARDEN flow guard: an argument matches a private-text fingerprint recorded during this session, after outside text (${sourcesText(state, defTaint)}), and the destination is not confirmed as user-named. The matching source was not retained. Check what is being sent.` };
         }
+        else if (credential && !screen?.guarded) {
+            if (publicEligible && presentation !== 'audit' && !c.labels.has('destructive'))
+                publicGrant = reservePublicRequest(paths, toolName, toolInput, toolInput, policy, env);
+            if (!publicGrant) {
+                reason = 'credential_egress';
+                decision = { permissionDecision: policy.mode === 'deny' ? 'deny' : 'ask', permissionDecisionReason: 'WARDEN flow guard: this session holds credentials and outside text. Review this outbound request before execution, regardless of fragment length, encoding or destination. This is a credential boundary, not a claim that its contents are a detected secret.' };
+            }
+        }
+        else if (screen?.guarded) {
+            if (presentation !== 'audit' && !leak.private && !c.labels.has('outbound') && !c.labels.has('destructive'))
+                guiRule = reserveGuiRule(paths, toolName, toolInput, state, policy);
+            if (guiRule === undefined) {
+                reason = 'screen_action';
+                const actions = { pointer: 'a pointer action', paste: 'a clipboard paste', enter: 'Enter/Return', text: 'text input', keyboard: 'a keyboard action', control: 'an unresolved GUI control action' };
+                const policyNote = policy.gui?.invalid ? ' Invalid GUI policy: strict behavior is active.' : policy.gui?.mode === 'policy' ? ' GUI policy did not authorize this action: all scope, target, freshness and safety checks must match.' : '';
+                decision = { permissionDecision: policy.mode === 'deny' ? 'deny' : 'ask', permissionDecisionReason: `WARDEN flow guard: ${actions[screen.guarded]} follows outside text (${sourcesText(state, defTaint)}). Screen labels, coordinates, images and key arguments do not establish what this action will send or change. Check the actual window, target and effect before allowing it. A named or allowed destination does not authorize GUI actions.${policyNote}` };
+            }
+        }
         else if (c.labels.has('outbound') && !allowedHosts && !userNamed) {
             reason = 'unnamed_destination';
             // Not only leaks: an outbound call acts with the user's authority (a message, a payment, an invite),
@@ -1086,17 +2007,35 @@ export function flowPre(input, env = process.env, presentation = 'hook') {
     }
     // A file the agent writes inside the project can leave later without another call: CI publishes docs/, a commit
     // is pushed by a person. After outside text, a key read this session written into an ordinary project file asks;
-    // a credential file (.env, .npmrc …) is where keys belong, and a write that only removes one never matches.
+    // credential files (.env, .npmrc …) remain exempt. Ordinary writes need review after a credential read,
     if (!decision && tainted && ['Write', 'Edit', 'MultiEdit', 'NotebookEdit'].includes(toolName)) {
         const target = typeof toolInput.file_path === 'string' ? toolInput.file_path : typeof toolInput.notebook_path === 'string' ? toolInput.notebook_path : '';
         if (!target || !isSecretPath(absPath(target, cwd))) {
             const written = { content: toolInput.content, new_string: toolInput.new_string, new_source: toolInput.new_source,
                 edits: Array.isArray(toolInput.edits) ? toolInput.edits.map(e => (e && typeof e === 'object' ? e.new_string : undefined)) : undefined };
             const leak = checkLeak(paths, written);
-            if (leak.secret) {
+            let fragments = {};
+            if (policy.mode === 'audit' || presentation === 'audit')
+                fragments = checkFragments(written, state, readFp(paths.tok).size > 0, false);
+            else {
+                mkdirSync(paths.dir, { recursive: true, mode: 0o700 });
+                updateFlowState(paths.state, current => { fragments = checkFragments(written, current, readFp(paths.tok).size > 0, true); });
+            }
+            leak.secret ||= fragments.secret;
+            const credential = credentialSession(readFlowState(paths.state), readStores(paths));
+            if (leak.secret || fragments.review || fragments.unavailable || leak.incomplete) {
                 reason = 'secret_to_file';
                 sensitivePayload = true;
-                decision = { permissionDecision: policy.mode === 'deny' ? 'deny' : 'ask', permissionDecisionReason: `WARDEN flow guard: this write puts a secret (${leak.secret}) into a project file after the session read outside text (${sourcesText(state, defTaint)}). Files in the project can be committed or published later. Allow it only if you asked for this key to go into this file.` };
+                decision = { permissionDecision: policy.mode === 'deny' ? 'deny' : 'ask', permissionDecisionReason: leak.secret ? `WARDEN flow guard: this write puts a secret (${leak.secret}) into a project file after the session read outside text (${sourcesText(state, defTaint)}). Files in the project can be committed or published later. Allow it only if you asked for this key to go into this file.` : fragments.review ? 'WARDEN flow guard: this project-file write matches a short credential fragment. Review it before writing; project files can be published later.' : 'WARDEN flow guard: short-secret tracking is incomplete or at capacity. Review this project-file write after outside text; project files can be published later. Start a new session and reread private sources to restore tracking.' };
+            }
+            else if (credential) {
+                if (publicEligible && presentation !== 'audit')
+                    publicGrant = reservePublicRequest(paths, toolName, toolInput, written, policy, env);
+                if (!publicGrant) {
+                    reason = 'credential_egress';
+                    sensitivePayload = true;
+                    decision = { permissionDecision: policy.mode === 'deny' ? 'deny' : 'ask', permissionDecisionReason: 'WARDEN flow guard: review this project-file write after credentials and outside text. Short or encoded data can leave later through published files; an exact reviewed public request is required for automatic execution.' };
+                }
             }
         }
     }
@@ -1105,7 +2044,21 @@ export function flowPre(input, env = process.env, presentation = 'hook') {
         decision = { permissionDecision: policy.mode === 'deny' ? 'deny' : 'ask', permissionDecisionReason: `WARDEN flow guard: the session read outside text (${sourcesText(state, defTaint)}); this call changes or deletes things outside the project. Allow it only if you expected it.` };
     }
     if (decision) {
-        decision.permissionDecisionReason = `Action: ${safeToolName(toolName)}. Targets: ${targetSummary(toolName, toolInput, policy, sensitivePayload)}.\n${decision.permissionDecisionReason}`;
+        let targets = targetSummary(toolName, toolInput, policy, sensitivePayload);
+        // The screen label is outside text: the prompt names only the guard's own word for it, never the label.
+        const word = screen?.verb ?? screen?.destroy;
+        if (word || screen?.via) {
+            const ref = screen?.ref && /^[A-Za-z0-9_.:-]{1,24}$/.test(screen.ref) ? ` ${JSON.stringify(screen.ref)}` : '';
+            const evidence = screen?.evidence === 'form' ? ` in a form with a "${word}" control; Enter may submit it`
+                : screen?.evidence === 'identifier' ? ` whose accessibility identifier suggests "${word}"`
+                    : screen?.evidence === 'semantic' ? ` reported as a "${word}" control`
+                        : word ? ` whose label says "${word}"` : '';
+            const via = screen?.via === 'coordinates' ? ' (coordinates intersect its reported geometry)'
+                : screen?.via === 'focus' ? ' (reported focused element)' : '';
+            const note = `screen element${ref}${evidence}${via}; last-snapshot context is untrusted, not a verified live target`;
+            targets = targets.startsWith('not identified') ? note : `${note}; ${targets}`;
+        }
+        decision.permissionDecisionReason = `Action: ${safeToolName(toolName)}. Targets: ${targets}.\n${decision.permissionDecisionReason}`;
         // These are guard decisions, not proof a dialog was shown or a human clicked it. Never infer
         // approval from PostToolUse: execution can also follow automatic client permissions.
         const disposition = policy.mode === 'audit' || presentation === 'audit' ? 'audit_only'
@@ -1113,6 +2066,12 @@ export function flowPre(input, env = process.env, presentation = 'hook') {
         log(paths, { event: 'pre', tool: safeToolName(toolName), decision: decision.permissionDecision, reason, disposition,
             approvalOutcome: 'unknown', mode: policy.mode, labels: [...c.labels] });
     }
+    else if (guiRule !== undefined) {
+        log(paths, { event: 'pre', tool: safeToolName(toolName), decision: 'allow', reason: 'screen_policy', disposition: 'policy_allowed',
+            guiRule, approvalOutcome: 'unknown', mode: policy.mode, labels: [...c.labels] });
+    }
+    if (publicGrant)
+        log(paths, { event: 'pre', tool: safeToolName(toolName), decision: 'allow', reason: 'credential_public_request', disposition: 'policy_allowed', approvalOutcome: 'unknown', mode: policy.mode });
     if (policy.mode === 'audit')
         return undefined;
     return decision;
@@ -1134,23 +2093,25 @@ export function flowPost(input, env = process.env) {
     const toolInput = input.tool_input && typeof input.tool_input === 'object' && !Array.isArray(input.tool_input) ? input.tool_input : {};
     if (!toolName || !sessionId)
         return undefined;
-    const text = strings(input.tool_response).join('\n');
+    const text = responseStrings(input.tool_response).join('\n');
     const dir = stateDir(env);
     const paths = flowPaths(dir, sessionId);
     mkdirSync(paths.dir, { recursive: true, mode: 0o700 });
     const c = classifyCall(toolName, toolInput, cwd, policy, env);
     const t = resultTaints(toolName, toolInput, text, cwd, policy, c);
+    const resultError = input.tool_error !== undefined || !!(input.tool_response && typeof input.tool_response === 'object' && input.tool_response.isError === true);
     // Errors are server-authored text even when a successful result is operator-labelled private.
-    if (input.tool_error !== undefined || (input.tool_response && typeof input.tool_response === 'object' && input.tool_response.isError === true))
+    if (resultError)
         t.untrusted = true;
-    if (!t.untrusted && !t.private)
+    // A screen server's result says what the next click lands on; its calls can reveal a credential read.
+    const view = toolName.startsWith('mcp__') && !resultError ? screenFromResult(toolName, input.tool_response, text, toolInput) : undefined;
+    const screenSecret = screenSecretRead(toolName, toolInput, view);
+    const screenControl = screenCall(toolName, toolInput, EMPTY);
+    if (!t.untrusted && !t.private && !view && !screenSecret && !screenControl)
         return undefined;
-    let stored = true;
-    if (t.private && text) {
-        stored = appendFp(c.secret ? paths.secret : paths.fp, fingerprints(text));
-        appendFp(paths.pii, piiTokens(text).map(fpHash));
-        appendFp(paths.tok, tokenFingerprints(secretTokens(text, c.secret)));
-    }
+    const values = t.private && text ? secretValues(text, c.secret) : [];
+    const tokens = [...new Set(values.map(alnum))];
+    const shortIndex = fragmentFingerprints(values);
     const looksLikeInstruction = t.untrusted && INJECTION_HINTS.test(text.slice(0, MAX_TEXT));
     if (looksLikeInstruction)
         appendFp(paths.hint, hintWindows(instructionText(text)));
@@ -1160,8 +2121,41 @@ export function flowPost(input, env = process.env) {
     const newResolved = contactTool && t.private && !t.untrusted ? resolvedContacts(input.tool_response) : [];
     let firstTaint = false;
     updateFlowState(paths.state, s => {
+        let stored = true;
+        if (screenSecret || t.private && (c.secret || values.length > 0))
+            s.credentialRead = true;
+        if (t.private && text) {
+            // Fingerprints and fragment metadata are committed under the same lock as outbound observations.
+            const legacy = s.fragments?.v === 1 || !s.fragments && readFp(paths.tok).size > 0;
+            stored = appendFp(c.secret ? paths.secret : paths.fp, fingerprints(text));
+            appendFp(paths.pii, piiTokens(text).map(fpHash));
+            appendFp(paths.tok, tokenFingerprints(tokens));
+            const f = s.fragments ?? { v: 2, index: [], seen: [] };
+            const records = new Map(f.index.map(r => [fragmentKey(r), r]));
+            for (const r of shortIndex)
+                records.set(fragmentKey(r), r);
+            f.index = [...records.values()].slice(0, MAX_FRAGMENT_INDEX);
+            if (legacy || records.size > MAX_FRAGMENT_INDEX)
+                f.full = true;
+            s.fragments = f;
+        }
         if (t.private)
             s.private.push({ tool: toolName, src: t.src.slice(0, 200), at, secret: c.secret });
+        if (screenSecret)
+            s.private.push({ tool: toolName, src: screenSecret, at, secret: true });
+        if (screenControl || resultError && toolName.startsWith('mcp__')) {
+            for (const snapshot of Object.values(s.screens ?? {}))
+                snapshot.policyConsumed = true;
+            if (screenControl?.guarded && screenControl.guarded !== 'pointer')
+                s.guiInputSeen = true;
+        }
+        if (view) {
+            const server = screenServer(toolName);
+            const screens = { ...(s.screens ?? {}) };
+            delete screens[server];
+            screens[server] = { at, tool: toolName.slice(0, 200), ...view, revision: randomUUID() };
+            s.screens = Object.fromEntries(Object.entries(screens).slice(-MAX_SCREENS));
+        }
         if (newResolved.length) {
             s.resolved = [...(s.resolvedVersion === 2 ? s.resolved ?? [] : []), ...newResolved].slice(-MAX_RESOLVED);
             s.resolvedVersion = 2;

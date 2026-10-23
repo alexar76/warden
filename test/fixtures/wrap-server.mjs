@@ -46,6 +46,7 @@ rl.on('line', async body => {
     if (cfg.callsFile) appendFileSync(cfg.callsFile, body + '\n');
     if (cfg.callError) return send({ jsonrpc: '2.0', id: msg.id, error: { code: -32603, message: cfg.callError } });
     if (cfg.raceCall) send({ jsonrpc: '2.0', method: 'notifications/tools/list_changed' });
+    if (cfg.callResult) return ok(cfg.callResult);
     // Deliberate whitespace proves the proxy doesn't reserialize pass-through results.
     process.stdout.write('{ "jsonrpc": "2.0", "id": ' + JSON.stringify(msg.id) + ', "result": {"content":[{"type":"text","text":' + JSON.stringify(cfg.large ? 'x'.repeat(5 * 1024 * 1024) : cfg.callText ?? 'hello') + '}]}}\n');
     return;

@@ -54,7 +54,9 @@ Details: warden-mcp scan --json, or --markdown FILE. To review a changed server:
 Against four other open-source scanners on the same servers, each in a gVisor container with no network: on the held-out half of MCPTox (an AAAI 2026 benchmark; WARDEN's rules were written from the other half) WARDEN blocks 171 of 218 poisoned tools, the others 8 to 41. On 986 public servers it blocks 3 and on 14,933 npm and PyPI packages 369; mcp-shield blocks 343 and 5,354. [Method and every number](docs/scanner-comparison.md) · [scan guide](docs/scan.md).
 <!-- /warden-try -->
 
-**Flow guard (0.20.0).** Tool-call checks after outside text, hardened after the 2026-10-18 audit and extended twice on 2026-10-22: keys sent in pieces or disguised, unlabeled tools that reach a person, a key written into a project file, an address only pasted into the prompt, and a note (and once a re-check) under answers that drew on outside text. 2 of 23 code-aware attacks of ours still get through, each named. AgentDojo replay on this code: 0 of 579 attack actions, 57 of 97 tasks with no question. The earlier model run (hijacked model 42 → 0 of 929) describes the pre-audit build. [Current behavior and limitations](docs/flow-guard.md).
+**Flow guard (published 0.20.0; local fixes 2026-10-23).** Checks calls after outside text. The local source now blocks both remaining demonstrated secret-transfer cases: six-character pieces with filler and explicit English character lists. The unchanged deterministic harness reports **0/23 fully delivered**, versus 2/23 on the prior build; two answer-only cases are noted or rechecked. Strict GUI remains the default, with optional scoped operator rules. Production and npm have not been updated. Historical AgentDojo replay (2026-10-22): 0/579 attack actions, 57/97 tasks without a question; it was not rerun for this change. [Behavior, tests and remaining limits](docs/flow-guard.md).
+
+First short credential matches now require per-call review before transmission; adjacent six-character pairs still deny. The bounded 480-key/757-file probe found 0 hard false denials and 2 files requiring additional review. Strict GUI stays the default. This local change supersedes the earlier correlation-only behavior; production and npm remain unchanged.
 
 Ruleset v16 (0.20.0, 2026-10-22, WARDEN only): MCPTox held-out half 210 of 218 (v15: 194, v12–v14: 171), 0 of 45 clean servers; on the field corpus and a 1,000-package HISTOR sample it blocks exactly what v15 blocked. The comparison with other scanners above is from 2026-10-16 with v12. [v15 and v16 in the gate chain](docs/gates.md).
 
@@ -356,7 +358,7 @@ check them: [ERC-8004 identities](https://github.com/alexar76/aicom/blob/main/do
 ## Development
 
 ```bash
-npm install && npm run build && npm test   # 586 tests
+npm install && npm run build && npm test   # 868 tests
 ```
 
 `test/packaging.test.ts` is what keeps the headline honest: it fails if an npm runtime dependency

@@ -234,13 +234,14 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
               if (!opts.auditOnly && (quarantined || epoch !== generation || !def || !seen || pinToolsHash([def]) !== pinToolsHash([seen]))) throw new Error('tool blocked by WARDEN: definition changed since exposure');
               if (tracked.size >= 256 || tracked.has(msg.id)) throw new Error('Too many or duplicate pending MCP requests');
               const tool = String(name);
+              if (msg.params?.arguments !== undefined && (!msg.params.arguments || typeof msg.params.arguments !== 'object' || Array.isArray(msg.params.arguments))) throw new Error('Invalid MCP tool arguments: expected a JSON object');
               const args = msg.params?.arguments && typeof msg.params.arguments === 'object' && !Array.isArray(msg.params.arguments) ? msg.params.arguments as Record<string, unknown> : {};
               // A call that needs a person's yes: a tool the operator marked sensitive, or a send the flow guard asks about.
               const reasons: string[] = [];
               if (isSensitiveTool(tool, opts.policy)) reasons.push(`${displaySafe(tool, 200)} matches policy.sensitiveToolPatterns: every call to it needs a person's approval.`);
               let flowAsked = false;
               if (opts.flow) {
-                const d = flowPre({ session_id: flowSession, cwd: process.cwd(), tool_name: flowTool(tool), tool_input: args }, process.env, opts.auditOnly ? 'audit' : canAsk() ? 'elicit' : 'refuse');
+                const d = flowPre({ session_id: flowSession, cwd: process.cwd(), tool_name: flowTool(tool), tool_input: args, public_request_eligible: Object.keys(msg.params ?? {}).every(k => ['name', 'arguments'].includes(k)) && Object.keys(msg).every(k => ['jsonrpc', 'id', 'method', 'params'].includes(k)) }, process.env, opts.auditOnly ? 'audit' : canAsk() ? 'elicit' : 'refuse');
                 if (d && !opts.auditOnly) {
                   if (d.permissionDecision === 'deny' || !canAsk()) throw new Error(`${d.permissionDecisionReason}${d.permissionDecision === 'ask' ? ` Refused: wrap cannot ask you${cannotAsk()}; name the destination in the flow policy (allowedDestinations) or make the call yourself.` : ''}`);
                   reasons.push(d.permissionDecisionReason); flowAsked = true;

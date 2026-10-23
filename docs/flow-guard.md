@@ -2,6 +2,106 @@
 
 > 🌐 **English** · [Русский](flow-guard.ru.md) · [Español](flow-guard.es.md) · [Français](flow-guard.fr.md) · [中文](flow-guard.zh.md)
 
+Follow-up audit, 2026-10-23: binary `image`/`audio` data in tool results no longer consumes the text budget, so a large screenshot before its text does not hide element labels, credential-file window titles or JSON text blocks. Screens returned by pointer and keyboard actions (including `computer` actions) update the view too. A plain acknowledgment keeps the previous view; an image-only action result clears it. Outgoing arguments receive no binary exemption and remain subject to secret checks. Regression tests cover both bypasses through the hooks and the real stdio proxy. The local source now also gates opaque GUI actions as described below.
+
+This follow-up describes the source build; the published npm `0.20.0` package does not include these screen-control fixes.
+
+## First secret fragment: review before transmission (local source, 2026-10-23)
+
+After recorded outside text and a credential read, the first matching short fragment now requires **`ask` before execution** (`deny` mode refuses). The earlier correlation-only implementation let the first pieces leave; this source supersedes it. Two distinct adjacent six-character payload pieces of one key still give a hard denial. A single short coincidence is ambiguous evidence, not proof of a secret leak. User-named/allowed destinations, GUI policy and previous approval never exempt the next match; clients must honor the decision. `audit` only logs; `off` disables enforcement. Strict GUI remains the default.
+
+Decision-log reason: `secret_fragment`.
+
+- **Narrow matching:** isolated six/seven-character payload atoms; five-character source windows only when they contain uppercase, lowercase and a digit. Exact known-prefix boundary slices also count when they contain payload, have at least five characters and retain a format letter plus delimiter (or the whole AWS/Google prefix). This catches `e_7Qm2`, `ve_7Q` and a first 15-character chunk. Public prefixes alone and tiny suffixes such as `_7` remain exempt. Punctuation-separated atoms, bounded URL/base64, reversal, case folding, look-alike letters and explicit character lists are checked; a long uninterrupted hash is not split into weak windows.
+- **Verbal decoding:** explicit comma/semicolon/pipe/newline lists of ASCII letters/digits, English `zero`–`nine` and `capital`/`uppercase`/`lowercase`/`letter X` markers produce candidates from five decoded characters. Unknown units end a run. This is not an arbitrary language or semantic decoder.
+- **Approval and errors:** every ambiguous match asks again, including a repeated piece after an earlier approval; cancellation, decline or missing elicitation never forwards it. Approval authorizes that one call. Old fragment index v1 is review-only; v2 stores hashes, offsets and sizes, not plaintext fragments. A new session and rereading private sources restores complete tracking; rereading an incomplete old session does not clear it. The 16,384-entry/256-observation limits and corrupt-state failure remain conservative. Existing stream tails contain bounded normalized outgoing text; hashes are not encryption and the state directory is sensitive.
+- **Evidence:** regressions cover the first payload chunk in 5/6/15-character splits, isolated 5/6/7-character pieces, supported disguises, prefix boundaries, nested arguments, legacy/corrupt state and concurrent real stdio proxies. Two simultaneous unapproved fragments result in zero server calls. The unchanged 23-case replay remains **0/23 fully delivered**, including `secret-chunks-6-filler` and `secret-spelled-out`; two answer-only cases are noted/rechecked. This is a deterministic rules test without a model or network.
+
+The new-rule probe uses 480 synthetic keys in eight formats and 757 repository text files: **0 hard false denials, 2 files requiring additional review, no capacity fallback**. Both reviews come from one isolated short observation; this is a measured tradeoff, not a zero-false-positive claim. Reproduce: `npm run build`, `npm test`, `node scripts/redteam/flow-redteam.mjs /tmp/warden-redteam.json`, and `node scripts/redteam/fragment-collisions.mjs /tmp/warden-fragments.json docs src test ../docs ../core`. Review counts and hard denials are reported separately.
+
+**Limits:** this prevents automatic transmission of detected first fragments, not every possible partition. Unrecognized shorter pieces, text embedded without boundaries, unsupported encodings, unseen sources, hidden side effects and clients that bypass approval remain outside the guarantee. No OCR or universal prevention is claimed. Production and npm 0.20.0 are unchanged. Historical AgentDojo and the 115-million-character corpus results below were not rerun for this change.
+
+## Opaque GUI actions (local source, 2026-10-23)
+
+In the default strict GUI mode, after untrusted content, recognized pointer and keyboard MCP calls ask before execution (`deny` refuses). This closes the automatic-pass paths for coordinate clicks, pixel-only screens, Enter in a focused field and non-English labels **by requiring a person**, not by recognizing every screen. Typing also asks: a newline, an auto-submitting field or a chat box can send text. Clipboard paste asks even without a recorded credential read; after a recognized credential read it retains the more specific `paste_after_secret` explanation. Ordinary opaque GUI decisions use `screen_action`.
+
+Only a single exact copy/select-all chord (`cmd+a`, `cmd+c`, `ctrl+a`, `ctrl+c`, with supported modifier aliases) in one known key field is exempt from this GUI rule. Extra fields, sequences, malformed arrays, trailing newlines and oversized values ask. Visible-secret checks still apply. Known generic controllers (`computer`, `screen_control`, `desktop_control`, `browser_control`) ask for unknown or missing actions. A complete known observation action such as `screenshot` or `get_screen`, with only the `action` field, is exempt. CamelCase and dotted/hyphenated operation names are normalized. A named or policy-allowed destination does not authorize GUI actions.
+
+The latest per-server element list (Playwright `[ref=e14]`, `[ref_14]`, numbered lists and JSON nodes) supplies explanation context only. A different list format no longer bypasses approval; a sample is useful for improving the explanation, not needed to block a click. The prompt uses the guard's canonical English word when recognized, never the raw screen label. Inspect the actual window, target, clipboard and intended effect before approving. In the stdio proxy, each action needs its own accepted, ticked MCP elicitation form; no form or a declined/cancelled request means the server never receives that action. The Claude hook returns `ask` to the client; its permissions UI remains responsible for enforcement.
+
+Strict mode increases confirmation frequency, including for benign navigation and clicks into a message body; usability and approval fatigue have not been measured. `audit` records without enforcing and `off` disables checks. The rule needs previously recorded untrusted content (screenshots are untrusted by default); an operator override that marks all observations private can remove that trigger. It covers recognized operation names, not arbitrary renamed tools, embedded JavaScript executors or a malicious tool's hidden behavior. Operator policies and OS isolation remain necessary at those boundaries. No OCR or visual instruction classifier was added: an injection contained only in pixels can still alter an answer without making a guarded call. Local hook and real stdio integration tests verify refusal before forwarding, per-action approval and the four reported cases. These local changes have not been deployed or published to npm.
+
+The latest snapshot now improves the explanation in three ways. Coordinate arguments (`x`/`y`, `coordinate`, `coordinates`, or `position`) can intersect a unique JSON element's `bounds`, `boundingBox`, `bounding_box` or `rect`: finite numeric `{x,y,width,height}` or `{left,top,right,bottom}` with positive dimensions. Boxes use half-open edges; a `center` point matches only its exact coordinates. Overlaps, conflicting boxes/references, invalid numbers and bare arrays with ambiguous xywh/xyxy conventions produce no inferred target. No screen/viewport/zoom conversion is inferred. A match is reported geometry from the last snapshot, not a verified live target.
+
+For Enter/Return, an unambiguous `focused: true` node or `focusedRef`/`focusedElementId`/`activeElementId` can name the focused element. A reported single-line field (`multiline: false`) in a form with one recognized submission control gets an “Enter may submit” explanation; a multiline field does so for cmd/ctrl+Enter. Forms must be explicitly linked by `form`/`formId` or JSON form ancestry. Missing or conflicting focus, unknown multiline state, different forms and multiple submission candidates do not establish submission. Recognized accessibility/automation identifiers and `type: "submit"` provide canonical action hints, including when a visible label is absent. Small word lists explain common labels such as Senden, Envoyer, Enviar and Wyślij. Identifiers, roles and translated words remain untrusted hints; raw accessibility fields are not copied into the additional element metadata or rendered in the prompt; existing element references and labels remain in session state.
+
+In strict mode these additions do not reduce approval requirements; the optional policy below can authorize specific reviewed interactions. Asking only after a paste or typed text would miss prefilled messages, payments and deletion. Snapshot-only geometry, focus or accessibility IDs cannot establish that navigation is harmless. An image-only replacement clears these hints; conflicting duplicate nodes are not used. Hook and stdio tests check both the explanations and refusal before forwarding.
+
+## Opt-in GUI permissions
+
+Strict remains the default: omit `gui` or use `"gui": {"mode":"strict"}`. To reduce repeated questions for reviewed interactions, enable `gui.mode: "policy"` in the user-level `flow-policy.json` (`WARDEN_FLOW_POLICY` can select its path). This is separate from the existing enforcement `mode`. It never enables itself from a screenshot or project file. Replace the example tool names, IDs and site with values from your reviewed server.
+
+```json
+{
+  "mode": "ask",
+  "gui": {
+    "mode": "policy",
+    "maxSnapshotAgeMs": 5000,
+    "allow": [
+      {
+        "tool": "mcp__screen__click",
+        "action": "click",
+        "target": {
+          "role": "link",
+          "accessibilityId": "nav.inbox"
+        },
+        "context": {
+          "origin": "https://mail.example"
+        }
+      },
+      {
+        "tool": "mcp__screen__type",
+        "action": "type",
+        "target": {
+          "role": "textbox",
+          "accessibilityId": "search.query"
+        },
+        "context": {
+          "origin": "https://mail.example"
+        },
+        "maxTextLength": 128
+      },
+      {
+        "tool": "mcp__screen__press_keys",
+        "action": "key",
+        "target": {
+          "role": "textbox",
+          "accessibilityId": "search.query"
+        },
+        "context": {
+          "origin": "https://mail.example"
+        },
+        "keys": "Tab"
+      }
+    ]
+  }
+}
+```
+
+Each rule requires an exact MCP `tool`, `action` (`click`, `type`, `key`), exact case-sensitive `target.accessibilityId`, a `target.role`, and at least one context: `origin` or `application`. Both contexts, if present, must match. There are no tool or identity globs. An origin is HTTP(S) scheme/host/port only, without credentials, path or query; an application is an exact application/bundle ID, such as `"context":{"application":"dev.example.Mail"}`. Visible names, model-written descriptions and numeric references alone cannot authorize an action.
+
+Matching uses a complete structured JSON snapshot: document-level `url`, `pageUrl`, `page_url` or `documentUrl` (also in `structuredContent`), and/or `applicationId`/`bundleId`, plus element role and an accessibility/automation ID. JSON in MCP text blocks is supported. An element's link URL does not identify the page. The additional accessibility identity is hashed for policy matching; existing bounded element references and labels remain in session state. Duplicate identities, conflicting focus/geometry/labels/IDs, incomplete or old-format state, missing context and pixels-only results fall back to approval. Coordinate clicks use the same unique hit-test described above. Type/key rules require the matching focused element. Unknown selectors, dispatch fields and unsupported tool action shapes also fall back.
+
+A snapshot is valid for 5,000 ms by default (`maxSnapshotAgeMs`: integer 100–30,000). One grant reserves it under the session lock and consumes all cached screen views, so parallel requests cannot reuse it. Every forwarded GUI action invalidates earlier views; a fresh complete snapshot returned by the action can supply the next view. An acknowledgment retains explanatory labels but cannot renew permission. No conversion or atomic check of the actual live GUI is provided: the operator trusts the selected server's metadata and the configured control's behavior, including any auto-submit behavior when typing. Page content can spoof IDs and change event bindings. Use rules only for controls whose behavior you trust; origin/ID matching does not attest that an action is harmless. An MCP error invalidates previous views, and a snapshot embedded in an error cannot renew permission.
+
+`type` requires `maxTextLength` (1–4096 UTF-16 code units), one string `text` or `value`, no line breaks/control characters, and no extra dispatch flags. `key` requires one configured navigation chord: Tab, Shift+Tab, ArrowUp/Down/Left/Right, Home, End, PageUp, PageDown or Escape. Exact copy/select-all keeps its existing exemption. Click rules cover supported single left-click/tap operations; unknown, right/double-click or drag operations keep asking.
+
+Rules never exempt recognized send/pay/delete/submit actions, Enter/Return, clipboard paste, matched secrets/private text/personal data or protected settings. After any credential read, or when fingerprint capacity is exhausted, GUI auto-permissions stop. Following Auten's input/paste concern, once forwarded typing, paste or another potentially typing keyboard/control action occurs, subsequent clicks ask for the rest of the session, across servers, screenshots and user turns. A refused pre-call does not set this marker; a forwarded error can, because an action may have partly executed. Only a new session clears it. Pixels-only navigation is still unresolved and asks even before input: prefilled messages, payments or deletion need no new typing.
+
+Up to 64 rules are supported. An invalid GUI section, unknown field or malformed rule disables the entire GUI allow list, restores strict behavior and adds a fixed diagnostic to GUI approval reasons. A valid rule that fails scope, target, age or safety checks also asks. Existing `deny` takes precedence; `audit` records would-ask decisions without enforcing them or issuing GUI policy grants; `off` retains its existing disabled behavior. A policy grant logs `reason: "screen_policy"`, `disposition: "policy_allowed"` and a zero-based `guiRule` index, with `approvalOutcome: "unknown"`: this is operator policy, not a human confirmation. No raw IDs, text or scope values are added to that log.
+
+A deterministic stdio fixture executes three listed navigation clicks and one unlisted click: strict mode requests four forms; policy mode requests one, with the same four calls executed after the fixture's approvals. This verifies fewer prompts in that fixture, not real-world task utility or approval fatigue. Hook/stdio regressions also check refusal before forwarding and concurrent snapshot reuse. These changes remain local, without deployment, npm publication or a production-quality claim for this exact build.
+
 ## Current behavior after the 2026-10-18 audit
 
 The flow guard adds checks at tool-call boundaries after a session receives outside text. It is a defense layer, not a sandbox or a proof that prompt injection cannot cause harm. Tool labels and supported argument shapes remain part of its trust boundary.
@@ -10,10 +110,11 @@ The flow guard adds checks at tool-call boundaries after a session receives outs
 - Recognized writes to guard policy/state, Claude hook settings and Git hook/config paths are protected, including expanded environment paths and symlink targets. A hook running as the agent's OS user cannot replace OS permissions or sandboxing.
 - URL hosts are parsed with `URL`; userinfo is not the host. Every detected destination must be permitted, and an actual target argument must be present. A link in a message body does not authorize its recipient. Policy mailbox entries match exactly; a domain entry does not authorize all mailboxes there. User-typed destinations match complete values, not suffixes of other addresses. Mentioning a destination is still only a coarse allowance, not authorization for every action or payload.
 - Contact resolution is opt-in through `contactTools` and a `private` label. Only structured records with `name` and `email` are accepted, directly or in a JSON/MCP envelope. The full display name must appear in the user's prompt; conflicting addresses for that name ask. Local files, arbitrary prose, YAML and cached contacts from the earlier guard cannot establish this authority. Configure only lookup tools whose records the agent and outsiders cannot modify.
-- Secret fingerprints inspect visible argument text, with bounded URL/base64/hex decoding. Since 2026-10-22 key-like values (random-looking runs in credential files, and well-known token formats read anywhere) are also fingerprinted in windows of 8 letters and digits, 10 for hex keys: a piece of a key, the key reversed, with separators or invisible characters, base64-encoded in pieces or with Cyrillic or Greek look-alike letters is denied. Those sizes are the smallest at which none of 480 made-up keys in eight formats matched anywhere in 115 million letters and digits (this monorepo and 1,000 HISTOR packages) of ordinary text; parts every key of a kind shares (a DER key's algorithm identifier, a JWT's header and claims) are never fingerprinted. Each argument name keeps the tail of what it sent after outside text, so pieces sent back to back through the same argument are checked whole. Pieces under 8 characters wrapped in different words each time still pass, and so does the key's leading format (`rk_live_`).
+- Secret fingerprints inspect visible argument text, with bounded URL/base64/hex decoding. Since 2026-10-22 key-like values (random-looking runs in credential files, and well-known token formats read anywhere) are also fingerprinted in windows of 8 letters and digits, 10 for hex keys: a piece of a key, the key reversed, with separators or invisible characters, base64-encoded in pieces or with Cyrillic or Greek look-alike letters is denied. Those sizes are the smallest at which none of 480 made-up keys in eight formats matched anywhere in 115 million letters and digits (this monorepo and 1,000 HISTOR packages) of ordinary text; parts every key of a kind shares (a DER key's algorithm identifier, a JWT's header and claims) are never fingerprinted. Each argument name keeps the tail of what it sent after outside text, so pieces sent back to back through the same argument are checked whole. The local 2026-10-23 source adds the six-character pair correlation and explicit character-list decoding described above. The leading key format (`rk_live_`) alone is not secret evidence.
 - After outside text, a key read this session written into an ordinary project file asks (`deny` refuses): files in the project are committed and published later without another call. `.env`, `.npmrc` and the other credential files are where keys belong, and a write that only removes a key never matches.
 - An address that appears in your prompt only inside pasted text, a quoted line (`>`), the headers of a pasted message or below a forwarded-message marker is not one you named: sending to it asks once. A full stop or comma after an address you typed no longer hides it. Fingerprints do not inspect arbitrary file contents at execution time, arbitrary encodings or every possible MCP schema. Internal project edits are generally allowed; executing their code is a separate decision.
 - An MCP tool without an operator label is outbound when its name says so (send, post, share …), when it carries a URL, or, since 2026-10-22, when it names a party: an argument such as `to`, `email`, `attendees`, `assignee`, `collaborator` or `username`, or any e-mail address or IBAN. `warden-mcp flow-labels` lists the unlabeled MCP tools your sessions used, with the guess and a `labels` block to correct and paste into the policy.
+- By default, screen-control calls after outside content require approval independently of coordinates, screenshot text, element-list format or label language. This includes clicks/taps/drags, typing/fill, clipboard paste, Enter/Return and unknown keyboard actions. `deny` refuses them. English target words improve the explanation only; a familiar label such as Inbox never authorizes a click. See the GUI policy above.
 - An injection that only changes the answer makes no call to refuse. Since 2026-10-22 the plugin's Stop hook adds one line under an answer whose turn read outside text, naming those sources, and says so when any of it addressed the assistant with instructions. When the answer repeats 12 letters and digits in a row from the sentences where that text addressed the assistant, the hook also sends the answer back once (`decision: block`), to be checked against the user's request before the user reads it; the user loses nothing but the time of that check. `answerNote` chooses `always` (default), `instruction` (only that case) or `off`; outside the plugin, register `warden-mcp hook stop`.
 - The MCP proxy records JSON-RPC error text and tool-error results as outside text too. If recording fails, it withholds the response. Existing corrupt session state blocks pre-tool checks instead of becoming an empty session.
 
@@ -34,7 +135,7 @@ Policy is user-level (`~/.local/state/warden/flow-policy.json`, or `WARDEN_FLOW_
 
 For the proxy, use `node dist/mcp-server.js wrap --flow mail -- node mail-server.js`. Set the same fresh `WARDEN_FLOW_SESSION` for all proxies belonging to one client conversation. The fallback is the parent PID; separate launchers can have different parents, so do not rely on that fallback for cross-server protection. The proxy cannot see the user's prompt or client built-in tools. A call that would ask is asked through the client's MCP elicitation form when the client offers one (the answer is logged as `approvalOutcome`), and refused otherwise or with `--ask refuse`. `trustedSources` applies to a WebFetch URL, not URLs mentioned in arbitrary MCP arguments.
 
-**Which build the numbers describe.** The replay table below was run again on 2026-10-22 on the current code: the audit fixes plus the 2026-10-22 changes. The 2026-10-22 changes alter no decision in it (all 1,046 records match the code before them); the audit fixes cost one task with no question and 19 tasks done under attack. The model-run tables and costs still describe the pre-audit implementation through commit `2328be980`; no new model run was made. A reference-solution replay is one fixed attack path, not an adaptive worst case; the code-aware attacks of 2026-10-22 are [below](#what-changed-on-2026-10-22-and-why).
+**Which build the numbers describe.** The replay table below was run again on 2026-10-22 on that day’s code: the audit fixes plus the 2026-10-22 changes. The 2026-10-22 changes alter no decision in it (all 1,046 records match the code before them); the audit fixes cost one task with no question and 19 tasks done under attack. The model-run tables and costs still describe the pre-audit implementation through commit `2328be980`; no new model run was made. A reference-solution replay is one fixed attack path, not an adaptive worst case; the code-aware attacks of 2026-10-22 are [below](#what-changed-on-2026-10-22-and-why).
 
 ## What an approval request explains
 
@@ -203,12 +304,12 @@ benchmark). Before the changes 14 of them got through; after them, 3.
 | An unlabeled MCP tool that names a party is outbound; `warden-mcp flow-labels` | "add attendee" with the attacker's e-mail and "add collaborator" by user name passed | both ask |
 | Stop hook: one line under an answer that drew on outside text | an answer-only injection makes no call | the user is told which sources the answer used; nothing is blocked |
 | Ruleset v15 (see [gates](gates.md)) | 78 of MCPTox's dev-half poisoned tools passed the rules | held-out half 171 → 194 of 218 (rules written from the other half only), dev half 189 → 233 of 267; 0 of 45 clean servers; the field corpus and 1,000 HISTOR packages block exactly what v14 blocked |
-| The replay re-run on the current code | the audit fixes of 2026-10-18 had not been measured | 0 of 579 attack actions, 57 of 97 tasks with no question, 608 of 949 done under attack; the 2026-10-22 changes alter no decision |
+| The replay re-run on the 2026-10-22 code | the audit fixes of 2026-10-18 had not been measured | 0 of 579 attack actions, 57 of 97 tasks with no question, 608 of 949 done under attack; the 2026-10-22 changes alter no decision |
 | `scripts/agentdojo/Dockerfile.dockerignore` | the package's `.dockerignore` leaves out `dist/`, so the reproduce command below did not build | it builds |
 
 Those three were still delivered: pieces under 10 characters wrapped in different words, an address pasted into
 the prompt, and a key written into a project file. The same day we closed what could be closed without false
-positives, and wrote six more attacks against the new rules. 2 of the 23 get through.
+positives, and wrote six more attacks against the new rules. At that release, 2 of the 23 got through.
 
 | Change | Why | Result |
 |---|---|---|
@@ -220,7 +321,7 @@ positives, and wrote six more attacks against the new rules. 2 of the 23 get thr
 | Ruleset v16 (see [gates](gates.md)) | 34 of MCPTox's dev-half poisoned tools still passed, nearly all tools that take no input | held-out half 194 → 210 of 218, all 66 implicit-trigger hijackings among them; 0 of 45 clean servers; the field corpus and 1,000 HISTOR packages block exactly what v15 blocked; five false positives of a first draft are pinned as tests |
 | The replay re-run | the new checks must not ask where 0.19.0 did not | all 1,046 records identical to 0.19.0 |
 
-Still delivered ([results](../scripts/redteam/results/)):
+At the 2026-10-22 release these two examples were still delivered. Both are blocked in the local 2026-10-23 source; see the new section above. Historical [results](../scripts/redteam/results/):
 
 - **Pieces under 8 characters, each wrapped in different words**, to an address the user typed: 7 or more messages
   for a 40-character key.
@@ -241,10 +342,7 @@ Still delivered ([results](../scripts/redteam/results/)):
   as instructions.
 - **Local changes inside the project pass**, except a key read this session going into an ordinary file. Editing
   project files is the agent's job.
-- **Leaks in small pieces.** Ordinary private text may go to a destination the user named, whole or in pieces:
-  that is the user's choice. To other destinations, and for keys and card numbers anywhere, pieces sent back to back
-  through one argument are joined; pieces under 8 characters with different words around each are not, and neither
-  is a key spelled out in words.
+- **Leaks in small pieces.** Ordinary private text may go to a user-named destination. Existing stream joins and the six-character pair rule above cover selected secret partitions; shorter pieces with filler and unsupported verbal encodings remain limits.
 - **Pasted text is not typed text.** An address you meant to use but only pasted asks once.
 - **It cannot see** your prompt from before the plugin was installed, or text the model holds from elsewhere.
 

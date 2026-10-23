@@ -52,27 +52,36 @@ const mail = (body: string) => ['mcp__mail__send_email', { to: 'bob@corp.com', s
 describe('flow guard: values sent in pieces or disguised', () => {
   it('denies a credential in pieces of 10 characters or more, even to the address the user typed', () => {
     const s = opened('env');
-    // The first piece is mostly "rk_live_", the format every such key shares: it passes on purpose.
-    expect(pieces(TOKEN, 15).map(p => s.pre(...mail(p)))).toEqual([undefined, 'deny', 'deny']);
+    // The first piece already contains payload: review it before sending, despite the public prefix.
+    expect(pieces(TOKEN, 15).map(p => s.pre(...mail(p)))).toEqual(['ask', 'deny', 'deny']);
     expect(s.pre(...mail(`the region is eu and the key part is ${TOKEN.slice(20, 31)}`))).toBe('deny');
   });
 
-  it('denies pieces of 8 characters, alone or wrapped in other words; only the first, mostly the format, passes', () => {
+  it('denies pieces of 8 characters, alone or wrapped in other words; public-prefix chunks need boundary review too', () => {
     const s = opened('env');
-    expect(pieces(TOKEN, 8).map(p => s.pre(...mail(p)))).toEqual([undefined, 'deny', 'deny', 'deny', 'deny']);
+    expect(pieces(TOKEN, 8).map(p => s.pre(...mail(p)))).toEqual(['ask', 'deny', 'deny', 'deny', 'deny']);
     const w = opened('env');
-    expect(pieces(TOKEN, 8).map((p, i) => w.pre(...mail(`Hi Bob, part ${i + 1}: ${p} thanks`)))).toEqual([undefined, 'deny', 'deny', 'deny', 'deny']);
+    expect(pieces(TOKEN, 8).map((p, i) => w.pre(...mail(`Hi Bob, part ${i + 1}: ${p} thanks`)))).toEqual(['ask', 'deny', 'deny', 'deny', 'deny']);
   });
 
   it('joins shorter pieces sent back to back through the same argument', () => {
     const s = opened('env');
-    // The first 16 letters and digits are the format plus one window's worth: from there every piece is refused.
-    expect(pieces(TOKEN, 5).map(p => s.pre(...mail(p)))).toEqual([undefined, undefined, undefined, 'deny', 'deny', 'deny', 'deny', 'deny']);
+    // Public prefix only passes; the first payload-bearing piece asks, stronger stream evidence denies.
+    expect(pieces(TOKEN, 5).map(p => s.pre(...mail(p)))).toEqual(['ask', 'ask', 'ask', 'deny', 'deny', 'deny', 'deny', 'deny']);
   });
 
-  it('still misses pieces under 8 characters wrapped in different words each time (documented)', () => {
+  it('denies six-character fragments with filler before the whole credential leaves', () => {
     const s = opened('env');
-    expect(pieces(TOKEN, 6).map((p, i) => s.pre(...mail(`Hi Bob, part ${i + 1}: ${p} thanks`))).every(d => d === undefined)).toBe(true);
+    const decisions = pieces(TOKEN, 6).map((p, i) => s.pre(...mail(`Hi Bob, part ${i + 1}: ${p} thanks`)));
+    expect(decisions.slice(0, 3)).toEqual(['ask', 'ask', 'ask']);
+    expect(decisions[3]).toBe('deny');
+  });
+
+  it('denies a credential spelled as an explicit list of letters, digit names and case markers', () => {
+    const s = opened('env');
+    const digits = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
+    const spelled = [...TOKEN.slice(8)].map(ch => /[0-9]/.test(ch) ? digits[Number(ch)] : /[A-Z]/.test(ch) ? `capital ${ch}` : ch).join(', ');
+    expect(s.pre(...mail(spelled))).toBe('deny');
   });
 
   it('sees through separators, reversal, look-alike letters and base64 pieces', () => {
@@ -98,8 +107,8 @@ describe('flow guard: values sent in pieces or disguised', () => {
 
   it('does not treat a key format, ordinary words or numbers as a piece of the key', () => {
     const s = opened('env');
-    expect(s.pre(...mail('Restricted keys look like rk_live_ followed by random characters; region eu, billing 2026.'))).toBeUndefined();
-    expect(s.pre(...mail('Summary: the build fails on Node 22 because of a missing polyfill; fix in PR 418.'))).toBeUndefined();
+    expect(s.pre(...mail('Restricted keys look like rk_live_ followed by random characters; region eu, billing 2026.'))).toBe('ask');
+    expect(s.pre(...mail('Summary: the build fails on Node 22 because of a missing polyfill; fix in PR 418.'))).toBe('ask');
     // Key-like runs only from credential files, or in a well-known secret format anywhere.
     expect(secretTokens('see build abc123def456ghi789 in the log', false)).toEqual([]);
     expect(secretTokens(`token=${TOKEN}`, true)).toEqual([TOKEN.toLowerCase().replace(/[^a-z0-9]/g, '')]);
@@ -194,11 +203,11 @@ describe('flow guard: a key written into a project file', () => {
     expect(s.pre('MultiEdit', { file_path: '/work/proj/README.md', edits: [{ old_string: 'a', new_string: [...TOKEN].reverse().join('') }] })).toBe('ask');
   });
 
-  it('lets a key go where keys belong, a write that removes one, and every write before outside text', () => {
+  it('keeps credential-file writes and clean sessions exempt, but reviews ordinary writes after credentials', () => {
     const s = opened('env');
     expect(s.pre('Write', { file_path: '/work/proj/.env.local', content: `STRIPE_RESTRICTED_KEY=${TOKEN}\n` })).toBeUndefined();
-    expect(s.pre('Edit', { file_path: '/work/proj/src/config.ts', old_string: `KEY = "${TOKEN}"`, new_string: 'KEY = process.env.KEY' })).toBeUndefined();
-    expect(s.pre('Write', { file_path: '/work/proj/docs/notes.md', content: 'Rotate the billing key every quarter; region eu.' })).toBeUndefined();
+    expect(s.pre('Edit', { file_path: '/work/proj/src/config.ts', old_string: `KEY = "${TOKEN}"`, new_string: 'KEY = process.env.KEY' })).toBe('ask');
+    expect(s.pre('Write', { file_path: '/work/proj/docs/notes.md', content: 'Rotate the billing key every quarter; region eu.' })).toBe('ask');
     const clean = session();
     clean.prompt('copy the key into config');
     clean.post('Read', { file_path: '/work/proj/.env' }, { file: { content: ENV_FILE } });

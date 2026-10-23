@@ -8,7 +8,7 @@
   <a href="https://glama.ai/mcp/servers/alexar76/warden"><img src="https://glama.ai/mcp/servers/alexar76/warden/badges/score.svg" alt="warden MCP server" /></a>
   <a href="https://warden.modelmarket.dev/"><img src="https://img.shields.io/npm/v/@aimarket/warden?color=cb3837&label=npm" alt="version npm" /></a>
   <img src="docs/badges/deps.svg" alt="Zéro dépendance d'exécution" />
-  <img src="docs/badges/tests.svg" alt="586 tests au vert" />
+  <img src="docs/badges/tests.svg" alt="868 tests au vert" />
   <img src="docs/badges/node.svg" alt="Node >= 20" />
   <a href="LICENSE"><img src="docs/badges/license.svg" alt="Licence : MIT" /></a>
 </p>
@@ -47,7 +47,9 @@ Details: warden-mcp scan --json, or --markdown FILE. To review a changed server:
 Face à quatre autres scanners open source sur les mêmes serveurs, chacun dans un conteneur gVisor sans réseau : sur la moitié réservée de MCPTox (un benchmark d’AAAI 2026 ; les règles de WARDEN ont été écrites à partir de l’autre moitié), WARDEN bloque 171 des 218 outils empoisonnés, les autres entre 8 et 41. Sur 986 serveurs publics, WARDEN en bloque 3 et sur 14 933 paquets npm et PyPI, 369 ; mcp-shield en bloque 343 et 5 354. [Méthode et tous les chiffres](docs/scanner-comparison.fr.md) · [guide de scan](docs/scan.fr.md).
 <!-- /warden-try -->
 
-**Garde de flux (0.20.0).** Vérifications des appels après du texte extérieur, renforcées après l’audit du 2026-10-18 et étendues deux fois le 2026-10-22 : clés en morceaux ou déguisées, outils sans étiquette qui atteignent une personne, une clé écrite dans un fichier du projet, une adresse seulement collée dans le prompt, et une ligne (et une vérification) sous les réponses appuyées sur du texte extérieur. 2 de nos 23 attaques code en main passent encore, chacune nommée. Rejeu AgentDojo sur ce code : 0 sur 579 actions d’attaque, 57 tâches sur 97 sans question. L’exécution avec modèle antérieure (modèle détourné 42 → 0 sur 929) décrit la version d’avant l’audit. [Comportement et limites actuels](docs/flow-guard.fr.md).
+**Garde de flux (0.20.0 publié ; changements locaux 2026-10-23).** Vérifie les appels après du texte extérieur. Le code local bloque les deux exemples restants : fragments de six caractères entourés de texte et listes explicites de caractères en anglais. Le même ensemble déterministe donne **0/23 livrés intégralement**, contre 2/23 auparavant ; deux cas limités à la réponse entraînent une note ou une vérification. GUI strict reste le défaut, avec des règles opérateur facultatives et limitées. Production et npm ne sont pas mis à jour. AgentDojo historique (2026-10-22) : 0/579 actions d’attaque, 57/97 tâches sans question ; non rejoué pour ce changement. [Comportement, tests et limites](docs/flow-guard.fr.md).
+
+La première correspondance courte impose une vérification par appel avant envoi ; les paires adjacentes de six caractères restent refusées. Mesure bornée sur 480 clés et 757 fichiers : 0 faux refus fermes et 2 fichiers avec vérification supplémentaire. GUI strict est conservé. Ce changement local remplace l’attente d’une paire ; production et npm restent inchangés.
 
 Ruleset v16 (0.20.0, 2026-10-22, WARDEN seul) : moitié réservée de MCPTox 210 sur 218 (v15 : 194, v12–v14 : 171), 0 sur 45 serveurs propres ; sur le corpus de terrain et un échantillon de 1 000 paquets HISTOR, il bloque exactement ce que bloquait v15. La comparaison avec les autres scanners ci-dessus date du 2026-10-16, avec v12. [v15 et v16 dans la chaîne de portes](docs/gates.fr.md).
 
@@ -349,7 +351,7 @@ transactions et la façon de les vérifier :
 ## Développement
 
 ```bash
-npm install && npm run build && npm test   # 586 tests
+npm install && npm run build && npm test   # 868 tests
 ```
 
 `test/packaging.test.ts` est ce qui tient l'accroche honnête : il échoue si une dépendance d'exécution

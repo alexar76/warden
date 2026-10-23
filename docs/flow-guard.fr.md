@@ -2,6 +2,106 @@
 
 > 🌐 [English](flow-guard.md) · [Русский](flow-guard.ru.md) · [Español](flow-guard.es.md) · **Français** · [中文](flow-guard.zh.md)
 
+Audit complémentaire du 2026-10-23 : les données binaires `image`/`audio` des résultats ne consomment plus le budget de texte ; une grande capture placée avant le texte ne masque donc plus les libellés, les titres de fenêtres contenant un fichier de secrets ou le JSON des blocs de texte. Les écrans renvoyés par les actions du pointeur et du clavier, y compris celles de `computer`, actualisent aussi la vue. Un simple accusé conserve la vue précédente ; une action ne renvoyant qu’une image l’efface. Les arguments sortants ne bénéficient pas de cette exception et restent soumis à la détection de secrets. Les tests de régression reproduisent les deux contournements via les hooks et le véritable proxy stdio. Le code local soumet désormais aussi les actions GUI opaques à une approbation, comme décrit ci-dessous.
+
+Ce suivi décrit la compilation des sources ; le paquet npm `0.20.0` publié ne contient pas ces corrections du contrôle d’écran.
+
+## Premier fragment secret : vérification avant envoi (code local, 2026-10-23)
+
+Après du texte extérieur enregistré et la lecture d’une clé, la première correspondance courte impose **`ask` avant exécution** (`deny` refuse). Ce code remplace la corrélation précédente, qui laissait sortir les premiers morceaux. Deux fragments distincts et adjacents de six caractères d’une même clé entraînent toujours un refus ferme. Une correspondance courte isolée reste ambiguë, pas une preuve de fuite. Destinataires nommés/autorisés, politique GUI et approbation antérieure ne dispensent pas l’appel suivant ; le client doit respecter la décision. `audit` journalise seulement ; `off` désactive. GUI strict reste le défaut.
+
+Motif dans le journal des décisions : `secret_fragment`.
+
+- **Correspondances limitées :** fragments isolés de six/sept caractères ; fenêtres de cinq seulement si la source mêle majuscule, minuscule et chiffre. Les morceaux exacts à la frontière d’un préfixe connu comptent aussi s’ils contiennent du contenu secret, mesurent au moins cinq caractères et gardent une lettre du format avec séparateur (ou le préfixe AWS/Google entier). Cela détecte `e_7Qm2`, `ve_7Q` et le premier morceau de 15 caractères. Préfixes publics seuls et suffixes minuscules comme `_7` ne suffisent pas. Ponctuation, URL/base64 bornés, inversion, casse, lettres ressemblantes et listes explicites sont vérifiés ; un long hash continu n’est pas découpé en fenêtres faibles.
+- **Listes verbales :** lettres/chiffres ASCII, noms anglais `zero`–`nine` et marqueurs `capital`/`uppercase`/`lowercase`/`letter X`, séparés par virgules, points-virgules, barres ou sauts de ligne, produisent des candidats dès cinq caractères décodés. Une unité inconnue termine la suite. Aucun décodeur sémantique ou multilingue universel.
+- **Approbations et erreurs :** chaque correspondance ambiguë redemande confirmation, même après approbation du même morceau. Refus, annulation ou absence de formulaire ne transmettent pas l’appel ; l’accord n’autorise qu’un appel. L’ancien index v1 impose une vérification ; v2 stocke empreintes, positions et tailles, sans fragments en clair. Une nouvelle session et la relecture des sources privées restaurent le suivi complet ; relire une session incomplète ne la répare pas. Limites conservées : 16 384 entrées/256 observations, refus sur état corrompu. Les queues anciennes conservent du texte sortant normalisé et borné ; une empreinte n’est pas un chiffrement et le répertoire reste sensible.
+- **Tests :** premier morceau contenant du secret pour des découpages 5/6/15, fragments isolés 5/6/7, représentations reconnues, préfixes, arguments imbriqués, état ancien/corrompu et vrais proxies stdio concurrents. Deux fragments simultanés non approuvés donnent zéro appel serveur. Le même ensemble de 23 cas reste à **0/23 livrés intégralement**, dont `secret-chunks-6-filler` et `secret-spelled-out` ; deux cas limités à la réponse reçoivent note/vérification. Test déterministe sans modèle ni réseau.
+
+Mesure de la nouvelle règle : 480 clés synthétiques de huit formats, 757 fichiers du dépôt ; **0 faux refus fermes, 2 fichiers demandant une vérification supplémentaire, aucune saturation**. Les deux vérifications proviennent d’une même correspondance courte isolée : compromis mesuré, pas promesse de zéro faux positif. Reproduire : `npm run build`, `npm test`, `node scripts/redteam/flow-redteam.mjs /tmp/warden-redteam.json`, `node scripts/redteam/fragment-collisions.mjs /tmp/warden-fragments.json docs src test ../docs ../core`. Vérifications et refus sont comptés séparément.
+
+**Limites :** l’envoi automatique du premier fragment détecté est empêché, pas toutes les partitions possibles. Morceaux plus courts non reconnus, texte sans frontières, encodages non pris en charge, sources non vues, effets cachés et clients contournant l’approbation restent hors garantie. Ni OCR ni prévention universelle ne sont affirmés. Production et npm 0.20.0 restent inchangés. AgentDojo et l’ancien corpus de 115 millions de caractères n’ont pas été rejoués pour ce changement.
+
+## Actions GUI opaques (code local, 2026-10-23)
+
+En mode GUI strict par défaut, après du contenu non fiable, les appels MCP reconnus du pointeur et du clavier demandent une approbation avant exécution (`deny` les refuse). Le passage automatique des clics par coordonnées, des écrans uniquement en pixels, d’Entrée dans un champ actif et des libellés non anglais est fermé **par une décision humaine**, sans prétendre comprendre chaque écran. La saisie demande aussi : un saut de ligne ou un champ à envoi automatique peut transmettre le texte. Le collage demande même sans lecture d’identifiants enregistrée ; après une telle lecture il conserve l’explication `paste_after_secret`. Les autres décisions GUI opaques portent la raison `screen_action`.
+
+Seule une combinaison exacte tout sélectionner/copier (`cmd+a`, `cmd+c`, `ctrl+a`, `ctrl+c`, avec les alias de modificateur pris en charge) dans un seul champ de touches connu est exemptée. Champs supplémentaires, séquences, tableaux mal formés, sauts de ligne finaux et valeurs trop longues demandent confirmation. Les secrets visibles restent vérifiés. Les contrôleurs génériques connus (`computer`, `screen_control`, `desktop_control`, `browser_control`) demandent si l’action manque ou est inconnue. Une opération d’observation complète connue telle que `screenshot` ou `get_screen` n’est exemptée qu’avec le seul champ `action`. Les noms camelCase, à points et à tirets sont normalisés. Un destinataire nommé ou autorisé ne permet pas les actions GUI.
+
+La dernière liste de chaque serveur (Playwright `[ref=e14]`, `[ref_14]`, listes numérotées et nœuds JSON) sert seulement à expliquer. Un autre format ne contourne plus l’approbation ; un exemple aide l’explication, mais n’est pas nécessaire pour bloquer le clic. Le message emploie le mot anglais canonique du garde s’il le reconnaît, jamais le libellé brut. Avant d’accepter, vérifiez la fenêtre, la cible, le presse-papiers et l’effet réel. Dans le proxy stdio, chaque action exige son propre formulaire MCP elicitation accepté avec la case cochée ; sans formulaire, en cas de refus ou d’annulation, l’action ne parvient pas au serveur. Le hook Claude renvoie `ask` au client ; son mécanisme de permissions doit l’appliquer.
+
+En mode strict, les confirmations augmentent, y compris pour naviguer ou cliquer dans le corps d’un message ; utilité et fatigue n’ont pas été mesurées. `audit` journalise sans bloquer, `off` désactive les vérifications. Du contenu non fiable doit avoir été enregistré auparavant (les captures le sont par défaut) ; marquer toutes les observations private peut supprimer ce déclencheur. La règle reconnaît des noms d’opération, pas les outils arbitrairement renommés, les exécuteurs JavaScript ou les effets cachés d’un serveur malveillant. Les politiques de l’opérateur et l’isolation OS restent nécessaires. Aucun OCR ni classificateur visuel d’instructions n’a été ajouté : une injection uniquement en pixels peut encore changer une réponse sans appel protégé. Les tests locaux des hooks et du véritable proxy stdio vérifient le refus avant envoi, l’approbation par action et les quatre cas signalés. Ces changements locaux ne sont encore ni déployés ni publiés sur npm.
+
+Le dernier instantané précise désormais l’explication de trois façons. Les coordonnées (`x`/`y`, `coordinate`, `coordinates` ou `position`) peuvent correspondre à un unique élément JSON via `bounds`, `boundingBox`, `bounding_box` ou `rect` : nombres finis dans `{x,y,width,height}` ou `{left,top,right,bottom}`, dimensions positives. Les bords droit et inférieur sont exclus ; `center` exige une correspondance exacte. Chevauchements, rectangles ou références contradictoires, nombres invalides et tableaux aux conventions xywh/xyxy ambiguës ne donnent aucune cible déduite. Aucune conversion écran/viewport/zoom n’est devinée. Il s’agit de la géométrie déclarée dans le dernier instantané, pas d’une cible actuelle vérifiée.
+
+Pour Entrée/Return, un nœud non ambigu `focused: true` ou `focusedRef`/`focusedElementId`/`activeElementId` indique l’élément actif. Un champ explicitement monoligne (`multiline: false`) dans un formulaire avec un seul contrôle d’envoi reconnu reçoit l’explication « Entrée peut soumettre » ; un champ multiligne la reçoit pour cmd/ctrl+Entrée. Le lien exige `form`/`formId` ou une ascendance JSON de formulaire. Focus absent ou contradictoire, état multiline inconnu, formulaires différents et plusieurs candidats ne permettent pas cette déduction. Les identifiants accessibility/automation reconnus et `type: "submit"` apportent des indices canoniques même sans libellé visible. De petites listes expliquent Senden, Envoyer, Enviar, Wyślij et d’autres libellés. Identifiants, rôles et traductions restent non fiables ; le champ accessibility brut n’est ni copié dans les métadonnées supplémentaires ni affiché dans la demande ; références et libellés existants restent dans l’état de session.
+
+En mode strict, ces ajouts ne réduisent pas l’approbation ; la politique optionnelle ci-dessous peut autoriser des interactions précises examinées. Demander seulement après un collage ou une saisie manquerait les messages préremplis, les paiements et les suppressions. Géométrie, focus et accessibility-id issus d’un instantané ne prouvent pas l’innocuité d’une navigation. Une nouvelle vue uniquement en image efface ces indices ; les doublons contradictoires ne sont pas utilisés. Les tests hooks et stdio vérifient les explications et le refus avant transmission.
+
+## Permissions GUI explicites et optionnelles
+
+Le mode strict reste celui par défaut : omettez `gui` ou utilisez `"gui": {"mode":"strict"}`. Pour réduire les questions sur des interactions examinées, activez `gui.mode: "policy"` dans le `flow-policy.json` utilisateur (`WARDEN_FLOW_POLICY` peut sélectionner le chemin). C’est indépendant du `mode` général. Aucun écran ni fichier du projet ne l’active. Remplacez outils, identifiants et site de l’exemple par ceux du serveur examiné.
+
+```json
+{
+  "mode": "ask",
+  "gui": {
+    "mode": "policy",
+    "maxSnapshotAgeMs": 5000,
+    "allow": [
+      {
+        "tool": "mcp__screen__click",
+        "action": "click",
+        "target": {
+          "role": "link",
+          "accessibilityId": "nav.inbox"
+        },
+        "context": {
+          "origin": "https://mail.example"
+        }
+      },
+      {
+        "tool": "mcp__screen__type",
+        "action": "type",
+        "target": {
+          "role": "textbox",
+          "accessibilityId": "search.query"
+        },
+        "context": {
+          "origin": "https://mail.example"
+        },
+        "maxTextLength": 128
+      },
+      {
+        "tool": "mcp__screen__press_keys",
+        "action": "key",
+        "target": {
+          "role": "textbox",
+          "accessibilityId": "search.query"
+        },
+        "context": {
+          "origin": "https://mail.example"
+        },
+        "keys": "Tab"
+      }
+    ]
+  }
+}
+```
+
+Chaque règle exige un `tool` MCP exact, `action` (`click`, `type`, `key`), un `target.accessibilityId` exact et sensible à la casse, `target.role` et au moins un contexte : `origin` ou `application`. Si les deux sont présents, les deux doivent correspondre. Aucun joker d’outil ou d’identité. Origin est uniquement schéma HTTP(S), hôte et port, sans identifiants, chemin ni requête ; application est un ID exact d’application/bundle, par exemple `"context":{"application":"dev.example.Mail"}`. Libellés visibles, descriptions du modèle et références numériques ne suffisent pas.
+
+Il faut un instantané JSON structuré complet avec `url`, `pageUrl`, `page_url` ou `documentUrl` au niveau du document (aussi dans `structuredContent`), et/ou `applicationId`/`bundleId`, plus le rôle et l’ID accessibility/automation de l’élément. Le JSON dans un bloc texte MCP est accepté. L’URL d’un lien enfant ne définit pas la page. L’identité accessibility supplémentaire est hachée ; les références et libellés existants, bornés, restent dans l’état de session. Identités dupliquées, focus/géométrie/libellés/IDs contradictoires, état incomplet ou ancien, contexte manquant et pixels seuls redemandent. Les coordonnées utilisent l’intersection unique décrite plus haut ; type/key exigent l’élément actif. Sélecteurs inconnus, champs supplémentaires et opérations non prises en charge demandent aussi.
+
+L’instantané vaut 5 000 ms par défaut (`maxSnapshotAgeMs` : entier 100–30 000). Un droit le réserve sous verrou de session et consomme toutes les vues : les requêtes concurrentes ne le réutilisent pas. Tout appel GUI transmis invalide les vues précédentes ; un nouveau résultat complet peut fournir la suivante. Un simple accusé conserve les libellés explicatifs sans renouveler les droits. Aucune conversion de coordonnées ni vérification atomique du GUI réel : l’opérateur fait confiance aux métadonnées du serveur choisi et au comportement du contrôle, dont un éventuel envoi automatique lors de la saisie. Le contenu d’une page peut usurper des IDs et changer les gestionnaires. Réservez les règles aux contrôles dont vous acceptez le comportement ; origine/ID ne certifie pas l’innocuité. Une erreur MCP invalide les vues précédentes ; une capture dans une erreur ne renouvelle aucun droit.
+
+`type` exige `maxTextLength` (1–4096 unités UTF-16), une seule chaîne `text` ou `value`, sans saut de ligne, caractère de contrôle ni option supplémentaire. `key` exige un accord configuré : Tab, Shift+Tab, ArrowUp/Down/Left/Right, Home, End, PageUp, PageDown ou Escape. Copier/tout sélectionner exacts gardent leur exemption. `click` couvre le clic gauche simple/tap reconnu ; clic droit/double, glissement et opérations inconnues demandent toujours.
+
+Les règles n’exemptent jamais send/pay/delete/submit reconnus, Entrée/Return, collage, correspondances de secrets/texte privé/données personnelles ou réglages protégés. Après lecture d’identifiants, ou saturation des empreintes, les permissions GUI automatiques cessent. Selon la préoccupation d’Auten, après une saisie, un collage ou une action clavier/contrôle susceptible d’introduire du texte effectivement transmis, les clics demandent jusqu’à la fin de session, entre serveurs, captures et tours utilisateur. Un refus préalable ne pose pas ce marqueur ; une erreur après transmission peut le poser en raison d’effets partiels. Seule une nouvelle session l’efface. Les pixels seuls demandent même avant saisie : messages préremplis, paiements et suppressions n’exigent aucun texte nouveau.
+
+Au plus 64 règles. Une section GUI invalide, un champ inconnu ou une règle mal formée désactive toute la liste, rétablit le mode strict et ajoute un diagnostic fixe. Une règle valide échouant au contexte, à la cible, à l’âge ou à la sécurité redemande aussi. `deny` prime ; `audit` journalise sans bloquer ni octroyer de droits GUI automatiques ; `off` reste désactivé. Un droit journalise `reason: "screen_policy"`, `disposition: "policy_allowed"`, l’index `guiRule` à partir de zéro et `approvalOutcome: "unknown"` : politique opérateur, pas confirmation humaine. Aucun ID brut, texte ou valeur du contexte n’est ajouté à cette entrée.
+
+Un scénario stdio déterministe exécute trois clics autorisés et un non listé : quatre formulaires en mode strict, un en mode policy, avec les quatre mêmes appels exécutés après les réponses du client de test. Cela mesure ce scénario, pas l’utilité réelle ni la fatigue. Les régressions hooks/stdio vérifient refus avant transmission et réutilisation concurrente. Changements locaux, sans déploiement, publication npm ni validation de production revendiquée pour cette compilation.
+
 ## Explication des demandes (sources non encore publiées)
 
 La demande indique l’outil, jusqu’à quatre destinations et le motif. Elle omet le corps des messages, le code shell, les identifiants/chemins/paramètres des URL et les valeurs sensibles reconnues. L’origine de chaque destination n’est pas suivie ; une correspondance d’empreinte n’identifie pas non plus un fichier précis. Les derniers fichiers lus ne sont plus présentés comme sa source. Vérifiez l’appel complet dans le client.
@@ -16,10 +116,11 @@ La garde vérifie les appels après réception de texte externe. Ce n’est ni u
 - Les écritures reconnues dans politique/état, hooks Claude et hooks/config Git sont protégées, y compris variables de chemin et liens symboliques. Cela ne remplace pas les permissions du système.
 - L’autorité réelle des URL et tous les destinataires sont vérifiés. Un lien dans le corps ne permet pas un autre destinataire. Les adresses mail de la politique correspondent exactement ; un domaine n’autorise pas toutes ses boîtes. Une mention n’autorise pas toute action ou donnée.
 - La résolution exige `contactTools` explicite, l’étiquette `private`, des enregistrements structurés `name`/`email` et le nom complet dans la demande. Un nom ambigu demande confirmation. Fichiers locaux, prose, YAML et anciens contacts en cache ne confèrent aucune autorité. Ne faites confiance qu’aux annuaires non modifiables par l’agent ou des tiers.
-- Les empreintes inspectent le texte visible avec un décodage URL/base64/hex limité. Depuis le 2026-10-22, les valeurs qui ressemblent à des clés (suites aléatoires des fichiers d’identifiants, et formats de jetons connus où qu’ils soient lus) sont aussi relevées par fenêtres de 8 lettres et chiffres, 10 pour les clés hex : un morceau de clé, la clé à l’envers, avec des séparateurs ou des caractères invisibles, en morceaux base64 ou avec des lettres cyrilliques ou grecques sosies est refusé. Ce sont les plus petites tailles pour lesquelles aucune de 480 clés inventées dans huit formats ne s’est retrouvée nulle part dans 115 millions de lettres et chiffres (ce monorepo et 1 000 paquets HISTOR) de texte ordinaire ; les parties que partagent toutes les clés d’un type (l’identifiant d’algorithme d’une clé DER, l’en-tête et les champs d’un JWT) ne sont jamais relevées. Chaque argument garde la fin de ce qu’il a envoyé après le texte extérieur, si bien que des morceaux envoyés à la suite par le même argument sont vérifiés en entier. Les morceaux de moins de 8 caractères entourés chaque fois d’autres mots passent encore, de même que le format initial de la clé (`rk_live_`). Elles ne lisent pas tout fichier à l’envoi et ne couvrent pas tous les encodages ou outils. Les modifications du projet restent généralement permises ; exécuter du code est une autre décision.
+- Les empreintes inspectent le texte visible avec un décodage URL/base64/hex limité. Depuis le 2026-10-22, les valeurs qui ressemblent à des clés (suites aléatoires des fichiers d’identifiants, et formats de jetons connus où qu’ils soient lus) sont aussi relevées par fenêtres de 8 lettres et chiffres, 10 pour les clés hex : un morceau de clé, la clé à l’envers, avec des séparateurs ou des caractères invisibles, en morceaux base64 ou avec des lettres cyrilliques ou grecques sosies est refusé. Ce sont les plus petites tailles pour lesquelles aucune de 480 clés inventées dans huit formats ne s’est retrouvée nulle part dans 115 millions de lettres et chiffres (ce monorepo et 1 000 paquets HISTOR) de texte ordinaire ; les parties que partagent toutes les clés d’un type (l’identifiant d’algorithme d’une clé DER, l’en-tête et les champs d’un JWT) ne sont jamais relevées. Chaque argument garde la fin de ce qu’il a envoyé après le texte extérieur, si bien que des morceaux envoyés à la suite par le même argument sont vérifiés en entier. Le code local du 2026-10-23 ajoute la corrélation de paires de six caractères et le décodage des listes explicites décrits plus haut. Le format initial (`rk_live_`) seul ne constitue pas une preuve de secret. Elles ne lisent pas tout fichier à l’envoi et ne couvrent pas tous les encodages ou outils. Les modifications du projet restent généralement permises ; exécuter du code est une autre décision.
 - Après du texte extérieur, écrire dans un fichier ordinaire du projet une clé lue pendant la session demande (`deny` refuse) : les fichiers du projet sont publiés plus tard sans autre appel. `.env`, `.npmrc` et les autres fichiers d’identifiants sont la place des clés et passent ; une modification qui ne fait qu’enlever une clé ne déclenche rien.
 - Une adresse qui n’apparaît dans votre prompt que dans un texte collé, une ligne citée (`>`), les en-têtes d’un message collé ou sous une marque de transfert n’est pas une adresse que vous avez nommée : y envoyer demande une fois. Un point ou une virgule après une adresse tapée ne la cachent plus.
 - Un outil MCP sans étiquette d’opérateur est sortant si son nom le dit (send, post, share …), s’il porte une URL ou, depuis le 2026-10-22, s’il nomme une partie : un argument comme `to`, `email`, `attendees`, `assignee`, `collaborator` ou `username`, ou toute adresse e-mail ou IBAN. `warden-mcp flow-labels` liste les outils MCP sans étiquette que vos sessions ont utilisés, avec la supposition de la garde et un bloc `labels` à corriger puis coller dans la politique.
+- Par défaut, après du contenu externe, les actions d’écran reconnues nécessitent une approbation quels que soient les coordonnées, le texte de la capture, le format de la liste ou la langue du libellé. Cela comprend clics/taps/glissements, saisie/remplissage, collage, Entrée/Return et actions de clavier inconnues. `deny` les refuse. Les mots anglais précisent seulement l’explication ; un libellé comme Inbox n’autorise pas un clic. Voir la règle GUI ci-dessus.
 - Une injection qui ne change que la réponse ne fait aucun appel à refuser. Depuis le 2026-10-22, le hook Stop du plugin ajoute une ligne sous une réponse dont le tour a lu du texte extérieur, avec ces sources, et le dit quand l’un d’eux s’adressait à l’assistant avec des instructions. Si la réponse reprend 12 lettres et chiffres d’affilée des phrases où ce texte s’adressait à l’assistant, le hook renvoie aussi la réponse une fois (`decision: block`) pour qu’elle soit vérifiée face à la demande de l’utilisateur avant qu’il la lise ; l’utilisateur ne perd que le temps de cette vérification. `answerNote` : `always` (par défaut), `instruction` (ce cas seulement) ou `off` ; hors du plugin, enregistrez `warden-mcp hook stop`.
 - Le proxy enregistre aussi les erreurs JSON-RPC et d’outils, retient les réponses dont l’enregistrement échoue et bloque les vérifications si l’état existant est corrompu.
 
@@ -27,7 +128,7 @@ Publié dans npm `0.17.0` : `npx -y @aimarket/warden@0.20.0 hook pre-tool-use`, 
 
 Proxy : `node dist/mcp-server.js wrap --flow mail -- node mail-server.js`. Attribuez un nouveau `WARDEN_FLOW_SESSION` commun aux proxies d’une conversation. Le PID parent par défaut ne relie pas des lanceurs différents. Le proxy ne voit ni prompt ni outils intégrés. Un appel qui demanderait confirmation est demandé via le formulaire d’elicitation MCP du client s’il en propose un (la réponse est journalisée comme `approvalOutcome`), sinon, ou avec `--ask refuse`, il est refusé. `trustedSources` s’applique à l’URL WebFetch, pas aux liens des arguments MCP.
 
-**Quelle version décrivent les chiffres.** Le tableau du rejeu ci-dessous a été refait le 2026-10-22 sur le code actuel : les corrections de l’audit plus les changements du 2026-10-22. Ceux du 2026-10-22 ne changent aucune décision (les 1 046 enregistrements sont identiques à ceux du code d’avant) ; les corrections de l’audit ont coûté une tâche sans question et 19 tâches faites sous attaque. Les tableaux et coûts de l’exécution avec modèle décrivent toujours la version d’avant l’audit, jusqu’à `2328be980` ; aucune nouvelle exécution avec modèle. Un replay suit un chemin fixe, pas le pire cas adaptatif ; les attaques menées code en main le 2026-10-22 sont [plus bas](#ce-qui-a-changé-le-2026-10-22-et-pourquoi).
+**Quelle version décrivent les chiffres.** Le tableau du rejeu ci-dessous a été refait le 2026-10-22 sur le code de ce jour-là : les corrections de l’audit plus les changements du 2026-10-22. Ceux du 2026-10-22 ne changent aucune décision (les 1 046 enregistrements sont identiques à ceux du code d’avant) ; les corrections de l’audit ont coûté une tâche sans question et 19 tâches faites sous attaque. Les tableaux et coûts de l’exécution avec modèle décrivent toujours la version d’avant l’audit, jusqu’à `2328be980` ; aucune nouvelle exécution avec modèle. Un replay suit un chemin fixe, pas le pire cas adaptatif ; les attaques menées code en main le 2026-10-22 sont [plus bas](#ce-qui-a-changé-le-2026-10-22-et-pourquoi).
 
 ## Mesuré sur AgentDojo
 
@@ -197,7 +298,7 @@ sans benchmark). Avant les changements, 14 passaient ; après, 3.
 | Un outil MCP sans étiquette qui nomme une partie est sortant ; `warden-mcp flow-labels` | « ajouter un participant » avec l’e-mail de l’attaquant et « ajouter un collaborateur » par nom d’utilisateur passaient | les deux demandent |
 | Hook Stop : une ligne sous une réponse appuyée sur du texte extérieur | une injection dans la seule réponse ne fait aucun appel | l’utilisateur voit quelles sources la réponse a utilisées ; rien n’est bloqué |
 | Ruleset v15 (voir [gates](gates.fr.md)) | 78 outils empoisonnés de la moitié dev de MCPTox passaient les règles | moitié réservée 171 → 194 sur 218 (règles écrites à partir de l’autre moitié seulement), moitié dev 189 → 233 sur 267 ; 0 sur 45 serveurs propres ; le corpus et 1 000 paquets HISTOR bloquent exactement comme v14 |
-| Le rejeu refait sur le code actuel | les corrections de l’audit du 2026-10-18 n’avaient pas été mesurées | 0 sur 579 actions d’attaque, 57 sur 97 tâches sans question, 608 sur 949 faites sous attaque ; les changements du 2026-10-22 ne changent aucune décision |
+| Le rejeu refait sur le code du 2026-10-22 | les corrections de l’audit du 2026-10-18 n’avaient pas été mesurées | 0 sur 579 actions d’attaque, 57 sur 97 tâches sans question, 608 sur 949 faites sous attaque ; les changements du 2026-10-22 ne changent aucune décision |
 | `scripts/agentdojo/Dockerfile.dockerignore` | le `.dockerignore` du paquet exclut `dist/`, si bien que la commande de « Reproduire » ne se construisait pas | elle se construit |
 
 Ces trois-là passaient encore : des morceaux de moins de 10 caractères entourés d’autres mots, une adresse collée
@@ -214,7 +315,7 @@ faux positifs et écrit six attaques de plus contre les nouvelles règles. 2 sur
 | Ruleset v16 (voir [gates](gates.fr.md)) | 34 outils empoisonnés de la moitié dev de MCPTox passaient encore, presque tous sans entrée | moitié réservée 194 → 210 sur 218, dont les 66 détournements à déclencheur implicite ; 0 sur 45 serveurs propres ; le corpus et 1 000 paquets HISTOR bloquent exactement comme v15 ; cinq faux positifs d’un premier jet sont fixés dans les tests |
 | Le rejeu, refait | les nouvelles vérifications ne doivent pas demander là où 0.19.0 ne demandait pas | les 1 046 enregistrements identiques à 0.19.0 |
 
-Passent encore ([résultats](../scripts/redteam/results/)) :
+Dans la version du 2026-10-22 ces deux exemples passaient encore. Ils sont bloqués dans le code local du 2026-10-23 ; voir plus haut. [Résultats historiques](../scripts/redteam/results/) :
 
 - **Des morceaux de moins de 8 caractères, chacun entouré d’autres mots**, vers une adresse que l’utilisateur a
   tapée : 7 messages ou plus pour une clé de 40 caractères.
@@ -237,10 +338,7 @@ Passent encore ([résultats](../scripts/redteam/results/)) :
   reconnaît comme telles.
 - **Les modifications locales dans le projet passent**, sauf une clé lue pendant la session qui part dans un fichier
   ordinaire. Modifier les fichiers du projet est le travail de l’agent.
-- **Les fuites en petits morceaux.** Du texte privé ordinaire peut partir vers un destinataire nommé par
-  l’utilisateur, entier ou en morceaux : c’est son choix. Vers d’autres destinataires, et pour les clés et numéros de
-  carte vers n’importe qui, les morceaux envoyés à la suite par un même argument sont réunis ; ceux de moins de 8
-  caractères entourés d’autres mots, non, pas plus qu’une clé épelée en mots.
+- **Les fuites en petits morceaux.** Le texte privé ordinaire peut aller vers un destinataire nommé par l’utilisateur. Les flux joints et la règle des paires de six caractères couvrent certaines partitions ; les fragments plus courts avec remplissage et les encodages verbaux non reconnus restent des limites.
 - **Le collé n’est pas le tapé.** Une adresse que vous vouliez utiliser mais avez seulement collée demande une fois.
 - **Elle ne voit pas** votre prompt d’avant l’installation du plugin, ni le texte que le modèle tient d’ailleurs.
 

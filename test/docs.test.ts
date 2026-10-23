@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { loadPolicy } from "../src/flow-guard.js";
 import { fileURLToPath } from "node:url";
 import { dirname, join, resolve } from "node:path";
 
@@ -18,6 +20,29 @@ const all = [...readmes, ...docs];
  * four. These are the checks a reviewer cannot do by eye.
  */
 describe("documentation set", () => {
+  it("ships the same valid opt-in GUI policy example in all five languages", () => {
+    const examples = DOC_LANGS.map(suffix => {
+      const page = readFileSync(join(root, `docs/flow-guard${suffix}.md`), 'utf8');
+      const blocks = [...page.matchAll(/```json\s*\n([\s\S]*?)\n```/g)].map(m => JSON.parse(m[1]!));
+      return blocks.find(block => block.gui?.mode === 'policy');
+    });
+    expect(examples[0]?.gui?.allow).toHaveLength(3);
+    for (const example of examples) expect(example).toEqual(examples[0]);
+    const dir = mkdtempSync(join(tmpdir(), 'warden-doc-policy-'));
+    try {
+      const path = join(dir, 'policy.json'); writeFileSync(path, JSON.stringify(examples[0]));
+      const policy = loadPolicy({ WARDEN_FLOW_POLICY: path, WARDEN_STATE_DIR: dir, WARDEN_FLOW_MODE: '' });
+      expect(policy.gui).toMatchObject({ mode: 'policy', maxSnapshotAgeMs: 5000 });
+      expect(policy.gui?.invalid).toBeUndefined();
+      expect(policy.gui?.allow).toHaveLength(3);
+    } finally { rmSync(dir, { recursive: true, force: true }); }
+  });
+  it("documents both secret-transfer regressions and their reproducible replay in all five languages", () => {
+    for (const suffix of DOC_LANGS) {
+      const page = readFileSync(join(root, `docs/flow-guard${suffix}.md`), 'utf8');
+      for (const evidence of ['secret-chunks-6-filler', 'secret-spelled-out', 'secret_fragment', 'v2', 'ask', '0/23', 'scripts/redteam/flow-redteam.mjs', 'scripts/redteam/fragment-collisions.mjs']) expect(page).toContain(evidence);
+    }
+  });
   it("ships every page in all five languages", () => {
     for (const f of all) expect(existsSync(join(root, f)), `missing ${f}`).toBe(true);
   });
