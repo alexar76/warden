@@ -36,11 +36,11 @@
 **Check every MCP server on your machine.** No account, no API key, no model. The only network traffic is to the servers in your config.
 
 ```bash
-npx -y @aimarket/warden@0.20.0 scan
+npx -y @aimarket/warden@0.21.0 scan
 ```
 
 ```text
-WARDEN scan 0.20.0 · ruleset 11 sha256-RDXs+TaQoehA… · block at high
+WARDEN scan 0.21.0 · ruleset 11 sha256-RDXs+TaQoehA… · block at high
   read .mcp.json (claude-code, 3 servers)
 
   ✓ allow   notes       claude-code    1 tool · score 0.90
@@ -54,9 +54,8 @@ Details: warden-mcp scan --json, or --markdown FILE. To review a changed server:
 Against four other open-source scanners on the same servers, each in a gVisor container with no network: on the held-out half of MCPTox (an AAAI 2026 benchmark; WARDEN's rules were written from the other half) WARDEN blocks 171 of 218 poisoned tools, the others 8 to 41. On 986 public servers it blocks 3 and on 14,933 npm and PyPI packages 369; mcp-shield blocks 343 and 5,354. [Method and every number](docs/scanner-comparison.md) · [scan guide](docs/scan.md).
 <!-- /warden-try -->
 
-**Flow guard (published 0.20.0; local fixes 2026-10-23).** Checks calls after outside text. The local source now blocks both remaining demonstrated secret-transfer cases: six-character pieces with filler and explicit English character lists. The unchanged deterministic harness reports **0/23 fully delivered**, versus 2/23 on the prior build; two answer-only cases are noted or rechecked. Strict GUI remains the default, with optional scoped operator rules. Production and npm have not been updated. Historical AgentDojo replay (2026-10-22): 0/579 attack actions, 57/97 tasks without a question; it was not rerun for this change. [Behavior, tests and remaining limits](docs/flow-guard.md).
+**Flow guard (local source, 2026-10-23).** After credentials and outside text, outbound/MCP calls and ordinary project writes require review, regardless of short fragments or unknown encodings. Exact operator-reviewed public requests can run once per session; known leaks and incomplete scans stay blocked from this exemption. Fixture: 0/16 attacks automatically allowed in both modes; 12/12 benign calls reviewed by default, 0/12 with exact public rules. This is an explicit usability tradeoff, not universal decoding. The unchanged 23-case replay remains 0/23 fully delivered. Production/npm are unchanged. [Policy, tests and limits](docs/flow-guard.md).
 
-First short credential matches now require per-call review before transmission; adjacent six-character pairs still deny. The bounded 480-key/757-file probe found 0 hard false denials and 2 files requiring additional review. Strict GUI stays the default. This local change supersedes the earlier correlation-only behavior; production and npm remain unchanged.
 
 Ruleset v16 (0.20.0, 2026-10-22, WARDEN only): MCPTox held-out half 210 of 218 (v15: 194, v12–v14: 171), 0 of 45 clean servers; on the field corpus and a 1,000-package HISTOR sample it blocks exactly what v15 blocked. The comparison with other scanners above is from 2026-10-16 with v12. [v15 and v16 in the gate chain](docs/gates.md).
 
@@ -88,6 +87,20 @@ server adds other `node:` builtins (`fs`, `path`, `process`) and still pulls in 
 the firewall out of [ARGUS](https://github.com/alexar76/argus), extracted so you can put it in front
 of your own MCP host without adopting an agent.
 
+Decimal/NATO secret encodings and MCP Git commit/push now have regressions; the complete 28-case hook replay is a failing local CI/release gate (`npm run test:redteam`).
+
+Auten follow-up: opt-in `taskAdapter.mode: "review"` / `task_run` asks once for a fixed outcome; `wrap --screen-read` can cancel an approved GUI action after a fresh target check. Strict GUI remains default; snapshot and click are not atomic.
+
+Atomic screen opt-in: `wrap --flow screen --screen-read screenshot --screen-atomic` requires a trusted server-side revision/target CAS (`AtomicScreenServer`, `warden.screen.atomic.v1`). No raw-click fallback; server-owned synchronous surfaces only. A runnable virtual-form example is included; arbitrary native desktop atomicity is not claimed.
+
+Native macOS: `npm run build:macos` builds the target-side AppKit SDK and a real native demo window; `npm run test:macos` runs its separate integration gate. Atomicity requires embedding `WardenDesktopSurface` in the application that owns the controls; unrelated apps are refused. See [macOS integration](docs/flow-guard.md).
+
+## Constrained task mode: fewer confirmations, actual effect control
+
+Strict GUI remains the default. Legacy `gui.mode: "policy"` / `gui.allow` are parsed for migration but no longer authorize a click, typing or a navigation key after outside text. Even an exact origin, role and accessibility ID can be spoofed by the page. Geometry, focus and translated labels explain the request only. Composite keyboard names such as `press_keys_then_execute` cannot use the Copy exception. Extra RPC metadata never receives automatic authorization.
+
+Opt-in constrained operations: `node dist/mcp-server.js task`. See the [task adapter, payments, limits and fresh AgentDojo replay](docs/flow-guard.md). Local source only; no publication or deployment.
+
 ## Protect Claude Desktop or Cursor with one wrapper
 
 **Use 0.8.2 or later: 0.8.0 and 0.8.1 let a wrapped server forge the reply to the client's own `tools/list`** ([CHANGELOG](CHANGELOG.md)). From source, `node /absolute/path/warden/dist/mcp-server.js wrap ...` works the same. Adding WARDEN as a separate MCP server does not inspect other servers. Tested end to end with the MCP TypeScript SDK and fixture servers; runs in Claude Desktop and Cursor themselves are not yet recorded ([release validation](docs/wrap-validation.md)). Replace each protected server’s command with `wrap`:
@@ -97,7 +110,7 @@ of your own MCP host without adopting an agent.
   "mcpServers": {
     "filesystem": {
       "command": "npx",
-      "args": ["-y", "@aimarket/warden@0.20.0", "wrap", "--id", "filesystem", "--",
+      "args": ["-y", "@aimarket/warden@0.21.0", "wrap", "--id", "filesystem", "--",
                "npx", "-y", "@modelcontextprotocol/server-filesystem", "/Users/me/docs"]
     }
   }
@@ -106,7 +119,7 @@ of your own MCP host without adopting an agent.
 
 For explicit first-contact review, add `--require-approval` to `wrap`. It withholds new definitions until `warden-mcp pins approve --id filesystem` in an operator terminal, then rejects any changed field or launch identity. Automatic/legacy pins need reapproval. See the [language-independent admission boundary](docs/security-hardening-language-boundary.md).
 
-Always specify `--id`: without it, changing command arguments creates a new identity and a new first contact. A stable ID turns a command or path change into `SERVER_IDENTITY_DRIFT`. Environment variables are inherited by the child and excluded from identity. To avoid repeated cold `npx` starts, install globally with `npm install -g @aimarket/warden@0.20.0`, then use `warden-mcp`.
+Always specify `--id`: without it, changing command arguments creates a new identity and a new first contact. A stable ID turns a command or path change into `SERVER_IDENTITY_DRIFT`. Environment variables are inherited by the child and excluded from identity. To avoid repeated cold `npx` starts, install globally with `npm install -g @aimarket/warden@0.21.0`, then use `warden-mcp`.
 
 **Sensitive tools.** A policy file's `sensitiveToolPatterns` (`--policy policy.json` with `{"sensitiveToolPatterns": ["*delete*", "*transfer*"]}`, case-insensitive `*` globs) makes every call to a matching tool wait for a person: `wrap` asks through the client's own form (MCP elicitation) with the tool, the server and the arguments, and only a ticked, accepted answer lets that one call through. The box starts unticked, so a client that accepts forms with their defaults approves nothing. A client that offers no elicitation form gets a refusal and the server never receives the call; `--ask refuse` refuses without asking. If the client cancels the call while the person decides, or the definitions change meanwhile, it is not sent. Before 0.20.0 `wrap` accepted these patterns and did not enforce them. With `--flow`, a send the flow guard would ask about is asked the same way.
 
@@ -134,16 +147,16 @@ Claude Desktop on macOS writes stderr to `~/Library/Logs/Claude/mcp-server-<name
 ## Scan every server your clients start
 
 ```bash
-npx -y @aimarket/warden@0.20.0 scan
+npx -y @aimarket/warden@0.21.0 scan
 ```
 
-Reads the MCP configs of Claude Code, Claude Desktop, Cursor, VS Code and Windsurf, connects to every server they start, and vets the tool definitions before a model sees them. It prints a table, JSON, SARIF or Markdown, and exits 1 when a server is blocked; `--no-launch` starts nothing. In a repository, `warden.lock.json` turns a change in tool definitions into a reviewable diff, and CI fails on a new or changed server. Also as a GitHub Action (`uses: alexar76/warden@v0.20.0`), pre-commit hooks and a Claude Code plugin (`/plugin marketplace add alexar76/warden`). `--histor` asks the public HISTOR log whether a server serves you what it serves everyone; for a remote server it sends the endpoint and a digest, for a stdio server started from npm or PyPI the package name (`npm:<name>`, `pypi:<name>`, which HISTOR runs in a gVisor sandbox) and a digest — never tool text. An opt-in classifier (`--classifier-url`, `--classifier-model`) adds the reading of a model you choose, local or hosted, for what no rule names. See the [scan guide](docs/scan.md). How it compares with two other scanners, on the same servers: [scanner comparison](docs/scanner-comparison.md).
+Reads the MCP configs of Claude Code, Claude Desktop, Cursor, VS Code and Windsurf, connects to every server they start, and vets the tool definitions before a model sees them. It prints a table, JSON, SARIF or Markdown, and exits 1 when a server is blocked; `--no-launch` starts nothing. In a repository, `warden.lock.json` turns a change in tool definitions into a reviewable diff, and CI fails on a new or changed server. Also as a GitHub Action (`uses: alexar76/warden@v0.21.0`), pre-commit hooks and a Claude Code plugin (`/plugin marketplace add alexar76/warden`). `--histor` asks the public HISTOR log whether a server serves you what it serves everyone; for a remote server it sends the endpoint and a digest, for a stdio server started from npm or PyPI the package name (`npm:<name>`, `pypi:<name>`, which HISTOR runs in a gVisor sandbox) and a digest — never tool text. An opt-in classifier (`--classifier-url`, `--classifier-model`) adds the reading of a model you choose, local or hosted, for what no rule names. See the [scan guide](docs/scan.md). How it compares with two other scanners, on the same servers: [scanner comparison](docs/scanner-comparison.md).
 
-**For a server's publisher.** If your server lists different tools where something HISTOR's sandbox lacks is installed — a launcher's runner, one per operating system — `npx -y @aimarket/warden@0.20.0 declare --out mcp-tool-sets.json -- <your server>` writes those sets to a file you publish on your own domain, and the people who get them see the publisher's declaration instead of an unseen tool set. See [declare your server's tool sets](docs/scan.md#for-publishers-declare-your-servers-tool-sets).
+**For a server's publisher.** If your server lists different tools where something HISTOR's sandbox lacks is installed — a launcher's runner, one per operating system — `npx -y @aimarket/warden@0.21.0 declare --out mcp-tool-sets.json -- <your server>` writes those sets to a file you publish on your own domain, and the people who get them see the publisher's declaration instead of an unseen tool set. See [declare your server's tool sets](docs/scan.md#for-publishers-declare-your-servers-tool-sets).
 
 ## What WARDEN does not do
 
-Only stdio is wrapped. Tool results are read by the same rules (`--results warn`, the default, puts a notice in front of a result that reads as instructions to the model; `block` withholds it after the tool ran; `off`); call arguments, `prompts/*`, `resources/*`, sampling and elicitation content pass through without scanning. Paraphrases and non-English instructions without recognized literals can pass; see the separate [HISTOR classifier](https://github.com/alexar76/histor). WARDEN is not a sandbox and does not protect the client config from edits. It cannot make verification and execution inside another process atomic: a detected change before dispatch blocks the call; a change during execution withholds the result, but the action may already have happened. A silent change after the last list response is not observable. Clients ignoring list-change notifications may display old tools, but changed definitions are checked again before calls.
+Only stdio is wrapped. Tool results are read by the same rules (`--results warn`, the default, puts a notice in front of a result that reads as instructions to the model; `block` withholds it after the tool ran; `off`); call arguments, `prompts/*`, `resources/*`, sampling and elicitation content pass through without scanning. Paraphrases and non-English instructions without recognized literals can pass; see the separate [HISTOR classifier](https://github.com/alexar76/histor). WARDEN is not a sandbox and does not protect the client config from edits. Without a trusted participating atomic screen backend, it cannot make verification and execution inside another process atomic: a detected change before dispatch blocks the call; a change during execution withholds the result, but the action may already have happened. A silent change after the last list response is not observable. Clients ignoring list-change notifications may display old tools, but changed definitions are checked again before calls.
 
 Verdicts are unsigned diagnostic records, not compliance attestations. `--audit-only` logs `AUDIT-ONLY`, forwards security-blocked descriptions/calls and does not establish pins; framing and resource limits still apply. Use it to investigate false positives, not for protection.
 
@@ -358,7 +371,7 @@ check them: [ERC-8004 identities](https://github.com/alexar76/aicom/blob/main/do
 ## Development
 
 ```bash
-npm install && npm run build && npm test   # 868 tests
+npm install && npm run build && npm test   # 1148 tests
 ```
 
 `test/packaging.test.ts` is what keeps the headline honest: it fails if an npm runtime dependency

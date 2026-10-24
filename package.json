@@ -1,7 +1,7 @@
 {
   "name": "@aimarket/warden",
-  "version": "0.20.0",
-  "description": "WARDEN — MCP security firewall. Stdio wrap proxy, inspection tools and library. Vets definitions before model exposure. Zero runtime dependencies.",
+  "version": "0.21.0",
+  "description": "WARDEN \u2014 MCP security firewall. Stdio wrap proxy, inspection tools and library. Vets definitions before model exposure. Zero runtime dependencies.",
   "type": "module",
   "license": "MIT",
   "author": "AICOM (alexar76)",
@@ -29,6 +29,11 @@
       "types": "./dist/jcs.d.ts",
       "import": "./dist/jcs.js",
       "default": "./dist/jcs.js"
+    },
+    "./atomic-screen": {
+      "types": "./dist/atomic-screen.d.ts",
+      "import": "./dist/atomic-screen.js",
+      "default": "./dist/atomic-screen.js"
     }
   },
   "files": [
@@ -45,7 +50,11 @@
     "LICENSE",
     "docs/security-hardening*.md",
     "docs/gates*.md",
-    "docs/flow-guard*.md"
+    "docs/flow-guard*.md",
+    "examples/atomic-screen-server.mjs",
+    "native/macos/Package.swift",
+    "native/macos/Sources",
+    "scripts/build-macos.mjs"
   ],
   "engines": {
     "node": ">=20"
@@ -57,12 +66,15 @@
     "prepare": "npm run build",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
+    "test:redteam": "node scripts/redteam/flow-redteam.mjs --check",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
-    "prepublishOnly": "npm run build && npm test && npm run check:ruleset && npm run check:quality",
+    "prepublishOnly": "npm run build && npm test && npm run test:redteam && npm run check:ruleset && npm run check:quality",
     "check:quality": "node scripts/check-quality-gate.mjs",
     "check:ruleset": "node scripts/check-published-ruleset.mjs",
-    "bench:wrap": "npm run build && node scripts/benchmark-wrap.mjs"
+    "bench:wrap": "npm run build && node scripts/benchmark-wrap.mjs",
+    "build:macos": "node scripts/build-macos.mjs",
+    "test:macos": "node scripts/build-macos.mjs && node scripts/build-macos.mjs --tests && npm run build && vitest run --config vitest.macos.config.ts"
   },
   "keywords": [
     "mcp",

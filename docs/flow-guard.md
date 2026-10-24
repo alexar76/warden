@@ -4,22 +4,41 @@
 
 Follow-up audit, 2026-10-23: binary `image`/`audio` data in tool results no longer consumes the text budget, so a large screenshot before its text does not hide element labels, credential-file window titles or JSON text blocks. Screens returned by pointer and keyboard actions (including `computer` actions) update the view too. A plain acknowledgment keeps the previous view; an image-only action result clears it. Outgoing arguments receive no binary exemption and remain subject to secret checks. Regression tests cover both bypasses through the hooks and the real stdio proxy. The local source now also gates opaque GUI actions as described below.
 
-This follow-up describes the source build; the published npm `0.20.0` package does not include these screen-control fixes.
+These screen-control fixes ship in npm `0.21.0`. npm `0.20.0` did not include them.
 
-## First secret fragment: review before transmission (local source, 2026-10-23)
+## Credential boundary and encoded fragments (local source, 2026-10-23)
 
-After recorded outside text and a credential read, the first matching short fragment now requires **`ask` before execution** (`deny` mode refuses). The earlier correlation-only implementation let the first pieces leave; this source supersedes it. Two distinct adjacent six-character payload pieces of one key still give a hard denial. A single short coincidence is ambiguous evidence, not proof of a secret leak. User-named/allowed destinations, GUI policy and previous approval never exempt the next match; clients must honor the decision. `audit` only logs; `off` disables enforcement. Strict GUI remains the default.
+After a recorded credential/key read and outside text, **every supported outbound/MCP call requires `ask` before execution** (`deny` refuses), regardless of fragment length, encoding, user-named destination or read-only MCP label. Ordinary project writes are reviewed too; credential-file writes retain their existing exemption. The sticky `credentialRead` flag survives source-history rotation and user turns. This closes automatic transmission of one-to-four-character pieces and unknown encoded blobs by enforcing a boundary, not by claiming to decode arbitrary information.
 
-Decision-log reason: `secret_fragment`.
+Known secret matches still deny; ambiguous short matches use `secret_fragment`. Other boundary reviews use `credential_egress`, not a false assertion that harmless text is a secret. Strict GUI stays the default; GUI/control exemptions, including copy chords, do not waive this credential boundary. `audit` only logs, `off` disables enforcement; the client must honor decisions.
 
-- **Narrow matching:** isolated six/seven-character payload atoms; five-character source windows only when they contain uppercase, lowercase and a digit. Exact known-prefix boundary slices also count when they contain payload, have at least five characters and retain a format letter plus delimiter (or the whole AWS/Google prefix). This catches `e_7Qm2`, `ve_7Q` and a first 15-character chunk. Public prefixes alone and tiny suffixes such as `_7` remain exempt. Punctuation-separated atoms, bounded URL/base64, reversal, case folding, look-alike letters and explicit character lists are checked; a long uninterrupted hash is not split into weak windows.
-- **Verbal decoding:** explicit comma/semicolon/pipe/newline lists of ASCII letters/digits, English `zero`–`nine` and `capital`/`uppercase`/`lowercase`/`letter X` markers produce candidates from five decoded characters. Unknown units end a run. This is not an arbitrary language or semantic decoder.
-- **Approval and errors:** every ambiguous match asks again, including a repeated piece after an earlier approval; cancellation, decline or missing elicitation never forwards it. Approval authorizes that one call. Old fragment index v1 is review-only; v2 stores hashes, offsets and sizes, not plaintext fragments. A new session and rereading private sources restores complete tracking; rereading an incomplete old session does not clear it. The 16,384-entry/256-observation limits and corrupt-state failure remain conservative. Existing stream tails contain bounded normalized outgoing text; hashes are not encryption and the state directory is sensitive.
-- **Evidence:** regressions cover the first payload chunk in 5/6/15-character splits, isolated 5/6/7-character pieces, supported disguises, prefix boundaries, nested arguments, legacy/corrupt state and concurrent real stdio proxies. Two simultaneous unapproved fragments result in zero server calls. The unchanged 23-case replay remains **0/23 fully delivered**, including `secret-chunks-6-filler` and `secret-spelled-out`; two answer-only cases are noted/rechecked. This is a deterministic rules test without a model or network.
+**Reducing unnecessary reviews:** an operator may put exact, independently reviewed public requests in the protected user-level `flow-policy.json`. Rules bind the full tool name and all arguments, including destination, via `publicRequestDigest(tool, args)` from `dist/flow-guard.js`. Object keys are sorted; array order matters. Every rule grants at most one call per session, atomically across proxies, and is spent even if the call fails. Repeated/changed requests, extra RPC metadata and malformed arguments are not covered. Known secret/private/PII/weak-fragment matches, incomplete scans, saturated stores, GUI controls, shell code, destructive actions and protected settings cannot be exempted. A policy rule authorizes its exact payload; it is not a classifier of opaque data. Review the decoded contents yourself before approving encoded requests. No rules are installed automatically.
 
-The new-rule probe uses 480 synthetic keys in eight formats and 757 repository text files: **0 hard false denials, 2 files requiring additional review, no capacity fallback**. Both reviews come from one isolated short observation; this is a measured tradeoff, not a zero-false-positive claim. Reproduce: `npm run build`, `npm test`, `node scripts/redteam/flow-redteam.mjs /tmp/warden-redteam.json`, and `node scripts/redteam/fragment-collisions.mjs /tmp/warden-fragments.json docs src test ../docs ../core`. Review counts and hard denials are reported separately.
+The following rule authorizes only `mcp__mail__send_email` with `{"to":"bob@corp.com","subject":"status","body":"The public release is ready."}`:
 
-**Limits:** this prevents automatic transmission of detected first fragments, not every possible partition. Unrecognized shorter pieces, text embedded without boundaries, unsupported encodings, unseen sources, hidden side effects and clients that bypass approval remain outside the guarantee. No OCR or universal prevention is claimed. Production and npm 0.20.0 are unchanged. Historical AgentDojo and the 115-million-character corpus results below were not rerun for this change.
+```json
+{"credentialEgress":{"allow":[{"tool":"mcp__mail__send_email","requestSha256":"62e02f4cb9c21a472999fac9316b66fc8fefe3fcafd2b2860c32c5409dae4a65"}]}}
+```
+
+Enforced flow calls forward the inspected JSON object, removing ignored duplicate fields; raw ignored values cannot ride an exact grant.
+
+Generate the digest locally with `publicRequestDigest` after inspecting the complete request. Limits: 32 rules/consumed grants, 1,024 JSON nodes, depth 32, 16,384 UTF-16 units per serialized request and 65,536 units of serialization work. Invalid sections grant nothing. This grant is logged as `credential_public_request` / `policy_allowed`, with approval outcome unknown; it does not claim a person clicked a form.
+
+Fragment metadata remains version `v2`. Benign review counts: **12/12 → 0/12** with exact reviewed rules; this does not remove the default cost.
+
+**Decoding and errors:** a bounded work queue composes URL, canonical base64/base64url, UTF-8 hex, scalar Unicode/hex escapes, numeric HTML entities and explicit English character lists. Maximum: four transformation levels, 64 candidates and 524,288 UTF-16 units in aggregate. Exceeding a budget yields `payload_incomplete` and review, never a clean result or public grant. Malformed literals are not executed; no decompression or semantic inference is attempted. Corrupt session/fingerprint state fails closed. Fingerprint v1 sessions remain review-only; use a fresh session and reread private sources to restore complete indexing. State holds hashes/offsets/sizes and bounded outgoing tails, remains sensitive, and is not encrypted.
+
+**Measured tradeoff:** the workflow fixture has 12 harmless requests and 16 attacks. Strict default reviews all 12 harmless requests; exact reviewed rules automatically pass all 12 once. Both profiles allow **0/16 attacks** automatically and give **0 hard false denials**. The separate fingerprint-only probe uses 480 synthetic keys and 758 files: 0 hard denials and 2 files with short-match reviews. These are different measurements; they do not establish a production false-positive rate. The unchanged 23-case replay stays at **0/23 fully delivered**, including `secret-chunks-6-filler` and `secret-spelled-out`; two answer-only cases are noted/rechecked. Real stdio tests verify zero server calls for unapproved tiny/unknown-encoded requests, one concurrent public grant, and no metadata/retry bypass.
+
+```bash
+npm run build
+npm test
+node scripts/redteam/credential-egress.mjs /tmp/warden-egress.json
+node scripts/redteam/flow-redteam.mjs /tmp/warden-redteam.json
+node scripts/redteam/fragment-collisions.mjs /tmp/warden-fragments.json docs src test ../docs ../core
+```
+
+**Limits:** this is enforcement at the recorded tool boundary, not universal information-flow analysis. Unobserved sources, unknown/renamed integrations, model-only answers, timing/covert channels, hidden server behavior, explicitly approved disclosure and clients bypassing decisions remain outside the guarantee. Without reviewed rules there are deliberately more benign confirmations. Production/npm are unchanged; the AgentDojo oracle replay was rerun below; historical model and 115-million-character/HISTOR measurements were not rerun.
 
 ## Opaque GUI actions (local source, 2026-10-23)
 
@@ -35,72 +54,220 @@ The latest snapshot now improves the explanation in three ways. Coordinate argum
 
 For Enter/Return, an unambiguous `focused: true` node or `focusedRef`/`focusedElementId`/`activeElementId` can name the focused element. A reported single-line field (`multiline: false`) in a form with one recognized submission control gets an “Enter may submit” explanation; a multiline field does so for cmd/ctrl+Enter. Forms must be explicitly linked by `form`/`formId` or JSON form ancestry. Missing or conflicting focus, unknown multiline state, different forms and multiple submission candidates do not establish submission. Recognized accessibility/automation identifiers and `type: "submit"` provide canonical action hints, including when a visible label is absent. Small word lists explain common labels such as Senden, Envoyer, Enviar and Wyślij. Identifiers, roles and translated words remain untrusted hints; raw accessibility fields are not copied into the additional element metadata or rendered in the prompt; existing element references and labels remain in session state.
 
-In strict mode these additions do not reduce approval requirements; the optional policy below can authorize specific reviewed interactions. Asking only after a paste or typed text would miss prefilled messages, payments and deletion. Snapshot-only geometry, focus or accessibility IDs cannot establish that navigation is harmless. An image-only replacement clears these hints; conflicting duplicate nodes are not used. Hook and stdio tests check both the explanations and refusal before forwarding.
+These additions only improve explanations; screen metadata never authorizes an interaction. Asking only after a paste or typed text would miss prefilled messages, payments and deletion. Snapshot-only geometry, focus or accessibility IDs cannot establish that navigation is harmless. An image-only replacement clears these hints; conflicting duplicate nodes are not used. Hook and stdio tests check both the explanations and refusal before forwarding.
 
-## Opt-in GUI permissions
+## Gautam regressions: character codes, NATO, Git metadata and CI
 
-Strict remains the default: omit `gui` or use `"gui": {"mode":"strict"}`. To reduce repeated questions for reviewed interactions, enable `gui.mode: "policy"` in the user-level `flow-policy.json` (`WARDEN_FLOW_POLICY` can select its path). This is separate from the existing enforcement `mode`. It never enables itself from a screenshot or project file. Replace the example tool names, IDs and site with values from your reviewed server.
+The bounded decoder now adds decimal character-code lists and NATO spelling. Decimal lists need at least five valid scalar codes; NATO runs need at least five explicit units. Spaces, commas, semicolons, pipes and newlines separate units. Unknown units, invalid scalars and ambiguous case markers break a run. NATO supports alfa/alpha, juliett/juliet, xray/x-ray, digit words/literals, punctuation words and explicit capital/uppercase/lowercase markers. Numeric JSON arrays of 5–4096 integers are inspected too. These candidates share the existing depth/variant/text limits; exhaustion remains `payload_incomplete`. No eval or decompression is used.
+
+Decoding alone does not assert a leak: a known secret pattern/fingerprint is still required for a secret denial. Ordinary number lists and NATO prose are not automatically denied. First 1–4 characters remain under the credential boundary even when too short for decoding. New tests exercise both real reconstructed credentials and benign text; they do not equate every short match with a secret.
+
+Unlabelled MCP `git_push`, `push_files`, `git_commit`, commit creation and common camelCase/dotted variants now count as outbound/persistent effects. A commit message may be published later; it is not just local working-tree text. `get_commit` / `list_commits` remain reads. Operator labels still require correct configuration; the independent credential boundary continues to cover mislabelled MCP tools. Shell git commands keep their existing review. No commit or push was performed to test this.
+
+**Local release-gate change:** `npm run build && npm run test:redteam` runs the entire end-to-end hook replay with `--check`. All original 23 scenarios remain, plus five Gautam regressions: **28 cases, 26 tool attacks requiring ask/deny and two answer-only cases requiring a note/recheck**. Missing/duplicate cases, mismatched outcomes or a reopened automatic path fail with a nonzero exit. Fault-injected gate tests prove failures. The command is wired into the WARDEN CI matrix, workspace CI, npm `prepublishOnly` and the registry workflow before publication. These are local configuration edits: no remote CI/release/publication was started. A note on an answer is not proof of stopping a model’s answer-only attack.
+
+Reproduce: `npm run build`, `npm run test:redteam`, or `node scripts/redteam/flow-redteam.mjs /tmp/warden-redteam.json --check`. See `test/flow-guard-gautam.test.ts` and `scripts/redteam/flow-gate.mjs`.
+
+## Constrained task mode: fewer confirmations, actual effect control
+
+Strict GUI remains the default. Legacy `gui.mode: "policy"` / `gui.allow` are parsed for migration but no longer authorize a click, typing or a navigation key after outside text. Even an exact origin, role and accessibility ID can be spoofed by the page. Geometry, focus and translated labels explain the request only. Composite keyboard names such as `press_keys_then_execute` cannot use the Copy exception. Extra RPC metadata never receives automatic authorization.
+
+The opt-in **built-in task adapter** (`node dist/mcp-server.js task`) is an enforcing MCP server, not a quiet wrapper around arbitrary screen tools. It lists fixed resources, reads pinned local UTF-8 snapshots without executing HTML/JS, and executes reviewed HTTP operations by ID. The model cannot supply a URL, method, headers, body, recipient, attachment or file path. It has no browser profile, cookie jar, OS clipboard, page scripts, service workers, subprocess or general-purpose tool forwarding. Ordinary GUI tools keep their existing approval requirements. This is a structured alternative for supported tasks, not a browser/VM sandbox or universal quiet computer-use.
+
+**Setup, local and explicit:** save the following manifest as `<WARDEN_STATE_DIR>/task-manifest.json` and the policy as the user flow policy. Replace the example snapshot path, pin and endpoint; update `expiresAt` to at most 24 hours ahead. The snapshot must contain only material you deliberately expose to the agent. The example pin is for exactly `The public release is ready.\n`. Review every request, then compute `manifestSha256` over the exact saved manifest bytes (including whitespace/newline). The policy example matches the displayed manifest plus one final newline. Nothing installs these permissions automatically.
+
+```json
+{
+  "version": 1,
+  "taskId": "public-report",
+  "expiresAt": "2026-10-23T23:00:00.000Z",
+  "resources": [
+    {
+      "id": "report",
+      "title": "Public report",
+      "path": "/absolute/path/public-report.txt",
+      "sha256": "1403cece199725b166f0f6e59faa9d45e3d5a25db26080fecf95e818ac8d4d0d"
+    }
+  ],
+  "operations": [
+    {
+      "id": "send_report",
+      "title": "Send reviewed report to Bob, no attachments",
+      "maxUses": 1,
+      "request": {
+        "method": "POST",
+        "url": "https://mail.example/api/send",
+        "headers": {
+          "content-type": "application/json",
+          "idempotency-key": "public-report-once"
+        },
+        "body": "{\"to\":\"bob@corp.com\",\"body\":\"The public release is ready.\",\"attachments\":[]}"
+      }
+    }
+  ]
+}
+```
 
 ```json
 {
   "mode": "ask",
-  "gui": {
-    "mode": "policy",
-    "maxSnapshotAgeMs": 5000,
-    "allow": [
-      {
-        "tool": "mcp__screen__click",
-        "action": "click",
-        "target": {
-          "role": "link",
-          "accessibilityId": "nav.inbox"
-        },
-        "context": {
-          "origin": "https://mail.example"
-        }
-      },
-      {
-        "tool": "mcp__screen__type",
-        "action": "type",
-        "target": {
-          "role": "textbox",
-          "accessibilityId": "search.query"
-        },
-        "context": {
-          "origin": "https://mail.example"
-        },
-        "maxTextLength": 128
-      },
-      {
-        "tool": "mcp__screen__press_keys",
-        "action": "key",
-        "target": {
-          "role": "textbox",
-          "accessibilityId": "search.query"
-        },
-        "context": {
-          "origin": "https://mail.example"
-        },
-        "keys": "Tab"
+  "taskAdapter": {
+    "mode": "capabilities",
+    "server": "warden_task",
+    "manifestSha256": "1531d08beffb7c86d6f236c3bdfa85a8fbac1c3e8734d701e79455c53d0d94b7"
+  }
+}
+```
+```json
+{
+  "mcpServers": {
+    "warden_task": {
+      "command": "node",
+      "args": [
+        "/absolute/path/warden/dist/mcp-server.js",
+        "task"
+      ],
+      "env": {
+        "WARDEN_STATE_DIR": "/absolute/state/warden",
+        "WARDEN_FLOW_POLICY": "/absolute/state/warden/flow-policy.json"
       }
-    ]
+    }
   }
 }
 ```
 
-Each rule requires an exact MCP `tool`, `action` (`click`, `type`, `key`), exact case-sensitive `target.accessibilityId`, a `target.role`, and at least one context: `origin` or `application`. Both contexts, if present, must match. There are no tool or identity globs. An origin is HTTP(S) scheme/host/port only, without credentials, path or query; an application is an exact application/bundle ID, such as `"context":{"application":"dev.example.Mail"}`. Visible names, model-written descriptions and numeric references alone cannot authorize an action.
+```sh
+node -e 'console.log(new Date(Date.now() + 3600000).toISOString())'
+node --input-type=module -e 'import {createHash} from "node:crypto"; import {readFileSync} from "node:fs"; console.log(createHash("sha256").update(readFileSync(process.argv[1])).digest("hex"))' /absolute/state/warden/task-manifest.json
+```
 
-Matching uses a complete structured JSON snapshot: document-level `url`, `pageUrl`, `page_url` or `documentUrl` (also in `structuredContent`), and/or `applicationId`/`bundleId`, plus element role and an accessibility/automation ID. JSON in MCP text blocks is supported. An element's link URL does not identify the page. The additional accessibility identity is hashed for policy matching; existing bounded element references and labels remain in session state. Duplicate identities, conflicting focus/geometry/labels/IDs, incomplete or old-format state, missing context and pixels-only results fall back to approval. Coordinate clicks use the same unique hit-test described above. Type/key rules require the matching focused element. Unknown selectors, dispatch fields and unsupported tool action shapes also fall back.
 
-A snapshot is valid for 5,000 ms by default (`maxSnapshotAgeMs`: integer 100–30,000). One grant reserves it under the session lock and consumes all cached screen views, so parallel requests cannot reuse it. Every forwarded GUI action invalidates earlier views; a fresh complete snapshot returned by the action can supply the next view. An acknowledgment retains explanatory labels but cannot renew permission. No conversion or atomic check of the actual live GUI is provided: the operator trusts the selected server's metadata and the configured control's behavior, including any auto-submit behavior when typing. Page content can spoof IDs and change event bindings. Use rules only for controls whose behavior you trust; origin/ID matching does not attest that an action is harmless. An MCP error invalidates previous views, and a snapshot embedded in an error cannot renew permission.
+Register MCP server **`warden_task`** with command `node`, arguments `[/absolute/path/warden/dist/mcp-server.js, task]`, and the same `WARDEN_STATE_DIR` / `WARDEN_FLOW_POLICY` as the hooks or `wrap --flow warden_task`. Only bind this policy name to WARDEN's built-in adapter. Assigning it to an unrelated server gives that server authority: a tool name or `readOnlyHint` is not attestation. With missing/strict/invalid policy the adapter refuses network operations; global `deny`, `audit` and `off` do not grant task execution. Other client permissions may still require confirmation.
 
-`type` requires `maxTextLength` (1–4096 UTF-16 code units), one string `text` or `value`, no line breaks/control characters, and no extra dispatch flags. `key` requires one configured navigation chord: Tab, Shift+Tab, ArrowUp/Down/Left/Right, Home, End, PageUp, PageDown or Escape. Exact copy/select-all keeps its existing exemption. Click rules cover supported single left-click/tap operations; unknown, right/double-click or drag operations keep asking.
+Calls are `task_list {}`, `task_read {"id":"report"}` and `task_execute {"id":"send_report"}`. One exact ID is the entire call schema; extra fields, duplicate JSON keys, arrays and hidden RPC metadata are rejected. Hook log `task_adapter_delegated` means delegation to the trusted enforcer, not successful execution or human approval. The runtime rechecks pin, schema, expiry and policy, reserves the shared per-task budget with a process lock and fsync before sending, and keeps it across restarts. Changed manifests cannot reset a spent task ID. Failed/uncertain requests and cancellation after dispatch spend the capability; cancellation before dispatch does not. Corrupt state or an abandoned lock refuses execution; an operator must reconcile uncertain effects rather than deleting state and retrying.
 
-Rules never exempt recognized send/pay/delete/submit actions, Enter/Return, clipboard paste, matched secrets/private text/personal data or protected settings. After any credential read, or when fingerprint capacity is exhausted, GUI auto-permissions stop. Following Auten's input/paste concern, once forwarded typing, paste or another potentially typing keyboard/control action occurs, subsequent clicks ask for the rest of the session, across servers, screenshots and user turns. A refused pre-call does not set this marker; a forwarded error can, because an action may have partly executed. Only a new session clears it. Pixels-only navigation is still unresolved and asks even before input: prefilled messages, payments or deletion need no new typing.
+Only fixed HTTPS requests are supported; `loopback-test` additionally permits numeric localhost HTTP for isolated tests. Redirects are refused, response cookies/links/instructions are not acted on, response size and total time are bounded, and retries are disabled. Optional `bearerEnv` names an operator-selected environment variable; the token is added only to the fixed endpoint and is absent from listings/audit. Audit stores IDs/outcomes, not payloads/tokens. All responses remain untrusted data.
 
-Up to 64 rules are supported. An invalid GUI section, unknown field or malformed rule disables the entire GUI allow list, restores strict behavior and adds a fixed diagnostic to GUI approval reasons. A valid rule that fails scope, target, age or safety checks also asks. Existing `deny` takes precedence; `audit` records would-ask decisions without enforcing them or issuing GUI policy grants; `off` retains its existing disabled behavior. A policy grant logs `reason: "screen_policy"`, `disposition: "policy_allowed"` and a zero-based `guiRule` index, with `approvalOutcome: "unknown"`: this is operator policy, not a human confirmation. No raw IDs, text or scope values are added to that log.
+**Payments and transactions:** fix invoice/account, amount, currency and body in the reviewed operation; use `maxUses: 1` and a provider-supported fixed `idempotency-key`. A single dispatch is not proof of exactly-once settlement. After timeout/error, reconcile with the provider before a new authorization. All integration tests use isolated loopback fixtures and synthetic credentials; no production payment was made.
 
-A deterministic stdio fixture executes three listed navigation clicks and one unlisted click: strict mode requests four forms; policy mode requests one, with the same four calls executed after the fixture's approvals. This verifies fewer prompts in that fixture, not real-world task utility or approval fatigue. Hook/stdio regressions also check refusal before forwarding and concurrent snapshot reuse. These changes remain local, without deployment, npm publication or a production-quality claim for this exact build.
+**Limits:** the operator must trust this WARDEN process and protect its policy/state, runtime and MCP binding. Reviewed requests can have whatever effects their endpoint implements; even GET is not assumed harmless. A mistaken operator grant, an authorized literal secret, server-side behavior, ID/order/timing covert channels and another tool/client bypassing the guard are outside this boundary. No OCR or live arbitrary-GUI effect interception was added.
+
+**Verification (2026-10-23):** a fresh deterministic AgentDojo 0.1.35 / v1.2.2 oracle replay, local Docker without network or model API: intent variant 0/579 successful delivered action attacks, 57/97 clean tasks without a question, 58/97 clean tasks completed, 608/949 user tasks completed under attack (previous historical result 613/949). `ask` counts as refused; no-ground-truth and answer-only goals are not thereby proven safe. AgentDojo has no GUI/task-adapter tools: the separate stdio, multi-process and loopback tests cover those. The historical live-model, 115-million-character and HISTOR measurements below were not rerun. [Replay summary](../scripts/agentdojo/results/summary-2026-10-23-local.json).
+
+Regressions: `test/task-adapter.test.ts`, `test/flow-guard-gui-policy.test.ts`, `test/flow-guard-credential-boundary.test.ts`, `test/flow-guard-secret-regression.test.ts`. They cover spoofed labels/IDs, policy schema, pinned resources, concurrency/restarts, redirects, exact recipient/body, and first 1–4 credential characters in raw, hex, base64, Unicode and unknown encodings. The credential boundary reviews ambiguous data rather than claiming every short coincidence is a detected secret.
+
+## Native macOS backend: target-side AppKit
+
+**Implemented:** the Swift package [WardenDesktop](../native/macos/Package.swift), `WardenDesktopSurface` and `WardenDesktopStandardIO` run inside the native application that owns the window. The executable `warden-desktop --demo` opens a real AppKit window with a local button handler. It does not operate unrelated applications, send global mouse/keyboard input or perform network/payment operations. Strict wrap approval remains default. The backend is opt-in and requires application cooperation; it is not a universal desktop injector.
+
+Build and run from the WARDEN directory. Requires macOS, Xcode command-line tools and an active WindowServer session. The build targets macOS 13+ and the host arm64/x86_64 architecture; only the recorded local architecture is verified. Native sources are shipped, not a prebuilt binary. No runtime npm dependency is added:
+
+```sh
+npm run build
+npm run build:macos
+node dist/mcp-server.js wrap --id macos-owned-app --flow native --screen-read screenshot --screen-atomic -- native/macos/.build/warden-desktop --demo
+npm run test:macos
+```
+
+Native action example; references are strings. Alternatively use only `x` and `y` in global top-left screen points (not pixels); overlapping or covered targets refuse:
+
+```json
+{"name":"click","arguments":{"index":"3"}}
+```
+
+**Atomic boundary:** prepare retains the exact `NSButton`, its explicit `NSObject` target, selector and ABI-checked implementation obtained with `method_getImplementation`. MainActor commit compares revision, live role/identifier/frame/title, object identity, window/focus/modal state, opacity along the ancestor chain and native hit-test. Fully transparent controls/windows, blocked modal windows and pending sheets (including the logical `sheetParent` transition) refuse. It recaptures after hit-test, checks both clocks, then performs a final revision comparison after every injected callback. The pinned IMP is invoked through `NativeAction` in the same main-loop turn. `NSApp.sendAction` is deliberately bypassed: an override can queue, reroute or report success without calling the approved method. No `AXPress`, `CGEvent`, animated `performClick`, first-responder lookup or queued coordinate input is used. Only registered, enabled, visible momentary push buttons with a `void action(id sender)` signature are supported. Raw click, typing, keyboard chords, clipboard, secure fields, unregistered views and external PIDs refuse.
+
+**Embedding:** import the local Swift package into your application. On MainActor create `WardenDesktopSurface(window:applicationID:)`, set the button’s accessibility element/role/identifier, and call `register(id:button:target:selector:)`. Keep the surface and `WardenDesktopStandardIO(surface:)` alive; `start()` serves the exclusive inherited stdio pipe. Read observations are structured metadata from registered controls, not pixel screenshots or a global AX tree. Register at most 64 controls, unique references/identifiers and explicit retained targets; nil targets and unsafe Objective-C signatures refuse. See [native source](../native/macos/Sources/WardenDesktop/NativeSurface.swift) and [reference host](../native/macos/Sources/WardenDesktopHost/Main.swift).
+
+All application model/recipient/handler changes must run on MainActor and call `invalidate()` **before** mutation outside the approved handler, including invisible changes and A → B → A. Window notifications and fresh fingerprints supplement this rule; they do not prove all hidden model changes were observed. Approved handlers must execute synchronously without nested modal run loops, asynchronous forwarding or responder substitution. Their own mutations are covered by the commit’s revision rotation. If an application cannot uphold this ownership contract, do not enable atomic mode. There is no fallback for an unmodified third-party app: Apple exposes [AX attribute reads and actions separately](https://developer.apple.com/documentation/applicationservices/1462091-axuielementperformaction), not our revision contract.
+
+Tickets bind full arguments and expire under both wall-clock and monotonic time, at most five minutes. They are consumed before dispatch; cancellation, replay, restart and mismatches cannot reuse them. A failed/uncertain dispatch poisons the native authority; do not restart or reauthorize merely to retry a payment. A committed receipt attests local target-handler dispatch, **not** successful delivery of mail, settlement of a payment or completion of an asynchronous handler. Use transaction reconciliation and durable endpoint idempotency for those outcomes. Wrap retains its uncertainty lease if a reply is lost.
+
+**Native integration gate:** `npm run test:macos` builds production and test executables separately and runs real windows plus real stdio/wrap forms. It checks target/handler/frame/window drift, same-visible-object replacement, ABA, native hit-test reentrancy, expiry/rollback/replay/restart/cancel, cross-language stamps and multilingual labels. Test-only mutation endpoints are compiled out of production. The suite is separate from cross-platform `npm test`; non-macOS, missing tools or unavailable GUI fail the native gate, never silently skip it. Local CI configuration adds a macOS gate; no remote workflow was run. Tests request no global Accessibility or Screen Recording permission and do not modify TCC. No publication/deployment.
+
+**Local follow-up audit (2026-10-24):** prepare and commit now recapture native properties after `hitTest`; a changed handler, title, enabled state or frame refuses even if the host omitted `invalidate()`. Both clocks are checked again immediately before dispatch. The Objective-C sender argument must be exactly an object (`@`), never a block (`@?`). The generic TypeScript atomic server also enforces a monotonic deadline and rechecks expiry at the effect boundary. Regressions cover these cases, preparation drift, capacity cleanup and reentrant native handler calls. These checks do not replace the host ownership contract: getters and hit-tests must not pump nested run loops or dispatch effects; hidden model/recipient changes still require prior invalidation. Only cooperating trusted applications are supported.
+
+**Direct handler contract (second local audit, 2026-10-24):** registered handlers must be safe for direct invocation and enforce their own application permissions; do not rely on an `NSApplication.sendAction` override or responder routing to authorize them. Clock providers and getters are trusted, synchronous host code. Hidden changes and ABA still require `invalidate()` before mutation. Regressions include modal/opacity transitions during hit-test, runtime implementation drift, unchanged translucent controls, dispatch interception and final-clock invalidation. These checks ship in npm `0.21.0`. A local test report is not the signed release-quality receipt. That receipt currently binds JavaScript `dist` files, not the native SDK sources; native validation is separate.
+
+## Atomic target verification on the server
+
+**Explicit opt-in:** `--screen-atomic` requires `--flow`, `--screen-read` and enforcing flow mode. Strict approval remains the default. This mode requires a trusted participating server; tool annotations or a claimed protocol version do not make a server trustworthy. Unsupported servers refuse before the approval question. There is no fallback to a raw click. The existing snapshot-only mode remains non-atomic.
+
+Build first, then run this local example from the WARDEN directory. The example owns a virtual form; it performs no OS input, mail, payment or network operation:
+
+```sh
+node dist/mcp-server.js wrap --flow screen --screen-read screenshot --screen-atomic -- node examples/atomic-screen-server.mjs
+```
+
+**Protocol:** the proxy privately calls `warden/screen/prepare` before the question with the exact action and configured observation. Example parameters:
+
+```json
+{
+  "protocol": "warden.screen.atomic.v1",
+  "observation": { "name": "screenshot", "arguments": {} },
+  "action": { "name": "click", "arguments": { "index": 3 } }
+}
+```
+
+The server returns `protocol`, an opaque one-use `ticket`, a surface `revision`, target `stamp`, `expiresAt` and `observation`. The proxy checks the stamp against that observation, shows the action, then rechecks definitions, risk context and the fresh target after explicit acceptance. It sends `warden/screen/commit` with `{protocol,ticket,expected:{revision,stamp},action}` instead of the raw tool call. The server consumes the ticket, compares the current revision, resolved target and exact arguments, and commits synchronously in the same critical section. No event-loop handoff or coordinate dispatch is allowed between comparison and effect. Any change, including a handler/recipient change or A → B → A, must rotate the revision. The operation uses the resolved target reference, not a later coordinate lookup.
+
+Use `AtomicScreenServer` from `@aimarket/warden/atomic-screen` (`dist/atomic-screen.js` in a local build) on the server. Route the three protocol methods to `prepare(params)`, `commit(params)` and `cancel(params)`; route the observation tool to `read()`. All raw effect routes must refuse. Maintain one shared authority per surface across connections; every other mutation goes through `replace(snapshot)`. Supply a trusted synchronous `apply(action, target)` returning `{result,snapshot}`. The result is the normal MCP tool result. Async callbacks are rejected; exceptions or malformed backend results invalidate the surface until explicit reconciliation and replacement. See the [runnable server example](../examples/atomic-screen-server.mjs).
+
+Tickets expire within five minutes, bind the full action, are consumed on a commit attempt and cannot survive a server restart. Capacity is 256 pending tickets. Client requests cannot invoke the private protocol through wrap, and tickets are not sent to the model or flow log. `warden/screen/cancel` discards an unused preparation after refusal/cancellation; expiry bounds abandoned preparations. Atomic argument previews must fit completely within 1500 escaped characters; oversized calls refuse rather than showing truncated text.
+
+A verified `committed` receipt includes `protocol,status,revisionBefore,revisionAfter,stamp,result`; wrap returns only `result`. A verified `refused` receipt includes `protocol,status,reason` and means no effect. Audit outcomes are `atomic_committed` / `atomic_refused`. A malformed receipt, transport error or missing result is `execution_uncertain`: no retry, and the shared GUI lease remains for operator reconciliation. An effect may have occurred before a lost reply. Server-local tickets are not durable payment idempotency keys.
+
+**Ownership boundary:** the implementation closes this race only for a surface whose entire state and synchronous effect are owned by the trusted server. Authentication/exclusive transport must restrict preparation/commit to trusted proxies; a ticket is not proof of human consent. One authority in one process is not a cross-process OS lock. Locking the server while sending asynchronous mouse input, or wrapping a Playwright/desktop RPC in this API, does not make the remote surface atomic. Native backends need an actual platform transaction/revision primitive or a controlled synchronous application model. The native target-side AppKit backend is described in the macOS section; unmodified external applications remain unsupported. Dishonest metadata, untracked external actors and harmful authorized handlers remain outside the guarantee. Claude hooks cannot implement the private post-approval commit. The regressions include a mutation after the final proxy read, ABA/handler drift, replay, expiry, restart, reentrancy, direct raw-call refusal and uncertain effects. No publication/deployment.
+
+## Auten: one outcome approval and a fresh screen after approval
+
+**Outcome approval:** add the `runs` fragment below to the existing pinned manifest, serialize it as two-space JSON with a final newline, recompute its pin, and use the following `taskAdapter.mode: "review"` policy. Call `task_run {"id":"mail_to_bob"}`. The built-in adapter asks once through MCP form elicitation before the first effect. It shows the outcome plus the complete ordered requests, exact URLs and bodies; credentials in headers are redacted. The checkbox defaults to false. Missing form support, default acceptance, rejection or cancellation does not authorize a run. `strict` remains the default; `capabilities` retains explicit operator preauthorization.
+
+The example collapses the GUI preparation/send sequence into its fixed HTTP effect. A plan may contain up to eight distinct fixed operation IDs; there are at most 16 plans and a full escaped preview must fit 12,000 characters. The caller cannot change steps, order, recipient, body or outcome. `review` disables individual `task_execute`, so it cannot bypass the outcome question. Resources and listings remain quiet; unrelated client/sensitive-tool permissions may still ask.
+
+The adapter holds a cross-process task execution lease during the question and run, prechecks availability before asking, and atomically reserves the whole plan plus every operation budget after acceptance. The plan is one-use across restart. Before each step it rechecks manifest/policy, expiry, cancellation and the credential binding. Drift, errors or an uncertain response stop the remaining steps; unused reserved budgets remain spent. Earlier effects are not rolled back. Responses cannot change the next step or supply a new destination. A declined/pre-reservation-cancelled plan remains unspent. Do not delete uncertain state/locks to retry a payment: reconcile it first. Audit distinguishes approval, reservation, completion and stopped runs without recording payloads/tokens.
+
+```json
+{
+  "runs": [
+    {
+      "id": "mail_to_bob",
+      "title": "Send the reviewed public report to bob@corp.com in Mail",
+      "operations": [
+        "send_report"
+      ]
+    }
+  ]
+}
+```
+
+```json
+{
+  "mode": "ask",
+  "taskAdapter": {
+    "mode": "review",
+    "server": "warden_task",
+    "manifestSha256": "c69bafc53aa2e4a1a82dd9a20accbe2e4de5372d7545509fe3f6ccf18fdc5580"
+  }
+}
+```
+
+**Fresh screen in wrap only:** explicitly select a known observation tool from the same reviewed server, for example:
+
+```sh
+node dist/mcp-server.js wrap --flow screen --screen-read get_elements -- node /absolute/path/screen-server.js
+node dist/mcp-server.js wrap --flow screen --screen-read computer --screen-read-input '{"action":"screenshot"}' -- node /absolute/path/screen-server.js
+```
+
+`--screen-read` requires `--flow`; `--screen-read-input` is strict JSON and only supports an empty input for a known observation name, or one known observation `action` for a generic controller. It never guesses authority from `readOnlyHint`. Without this explicit setting the existing per-call strict GUI behavior remains, with no claim of post-approval revalidation. The Claude hook has no callback between the client's approval and execution and cannot perform this check.
+
+With revalidation enabled, wrap reads a baseline immediately before the question, then rechecks definitions and reads again after acceptance. The fresh response itself must resolve one target with role, exact node reference, bounds, context and a consistent focused field for keyboard input; accessibility identity, labels and form hints are also compared when present. Changed, missing, overlapping/ambiguous, incomplete, image-only or failed observations refuse the action. No geometry/zoom conversion is guessed. Unsupported multi-action or extra-field dispatch schemas refuse comparison. Changed risk context or newly detected secrets also stop execution. Cancellation during the last read is honored.
+
+Known GUI effects across proxies sharing `WARDEN_FLOW_SESSION` / state are serialized through a screen lease, including a second proxy without revalidation. A normal result releases it; a missing result/crash leaves an uncertain lease requiring operator review. Read-only observations may continue. `screen_validation` logs `unchanged`, `refused_without_approval`, `refused_after_approval` or `execution_uncertain`; neither an accepted form nor an unchanged stamp proves execution.
+
+**Limits:** this narrows the stale-target window, it does not make snapshot + click atomic. An external actor may change the UI after the last read; a server may return cached/false metadata; unchanged IDs/boxes do not prove unchanged handlers or harmless effects. Full closure needs a trusted server that atomically validates a revision/target and performs the effect. Arbitrary click/paste/Send chains are not granted a blanket approval. Grouping is for the enforcing structured task adapter, not permission derived from page metadata. Answer-only injections remain outside tool-effect enforcement.
+
+Local regressions: `test/wrap-screen.test.ts`, `test/wrap.test.ts`, `test/task-adapter.test.ts`. [Fresh local AgentDojo checkpoint](../scripts/agentdojo/results/summary-2026-10-23-auten-local.json); deterministic replay, no model API and no GUI tools. No remote publication/deployment or comment was sent.
 
 ## Current behavior after the 2026-10-18 audit
 
@@ -114,11 +281,11 @@ The flow guard adds checks at tool-call boundaries after a session receives outs
 - After outside text, a key read this session written into an ordinary project file asks (`deny` refuses): files in the project are committed and published later without another call. `.env`, `.npmrc` and the other credential files are where keys belong, and a write that only removes a key never matches.
 - An address that appears in your prompt only inside pasted text, a quoted line (`>`), the headers of a pasted message or below a forwarded-message marker is not one you named: sending to it asks once. A full stop or comma after an address you typed no longer hides it. Fingerprints do not inspect arbitrary file contents at execution time, arbitrary encodings or every possible MCP schema. Internal project edits are generally allowed; executing their code is a separate decision.
 - An MCP tool without an operator label is outbound when its name says so (send, post, share …), when it carries a URL, or, since 2026-10-22, when it names a party: an argument such as `to`, `email`, `attendees`, `assignee`, `collaborator` or `username`, or any e-mail address or IBAN. `warden-mcp flow-labels` lists the unlabeled MCP tools your sessions used, with the guess and a `labels` block to correct and paste into the policy.
-- By default, screen-control calls after outside content require approval independently of coordinates, screenshot text, element-list format or label language. This includes clicks/taps/drags, typing/fill, clipboard paste, Enter/Return and unknown keyboard actions. `deny` refuses them. English target words improve the explanation only; a familiar label such as Inbox never authorizes a click. See the GUI policy above.
+- By default, screen-control calls after outside content require approval independently of coordinates, screenshot text, element-list format or label language. This includes clicks/taps/drags, typing/fill, clipboard paste, Enter/Return and unknown keyboard actions. `deny` refuses them. English target words improve the explanation only; a familiar label such as Inbox never authorizes a click. See the constrained task mode above.
 - An injection that only changes the answer makes no call to refuse. Since 2026-10-22 the plugin's Stop hook adds one line under an answer whose turn read outside text, naming those sources, and says so when any of it addressed the assistant with instructions. When the answer repeats 12 letters and digits in a row from the sentences where that text addressed the assistant, the hook also sends the answer back once (`decision: block`), to be checked against the user's request before the user reads it; the user loses nothing but the time of that check. `answerNote` chooses `always` (default), `instruction` (only that case) or `off`; outside the plugin, register `warden-mcp hook stop`.
 - The MCP proxy records JSON-RPC error text and tool-error results as outside text too. If recording fails, it withholds the response. Existing corrupt session state blocks pre-tool checks instead of becoming an empty session.
 
-Released in npm `0.17.0`: `npx -y @aimarket/warden@0.20.0 hook pre-tool-use`, or from a source checkout `npm ci && npm run build`, then `node dist/mcp-server.js hook pre-tool-use`. Register the prompt and post hooks as well, or use the bundled Claude plugin.
+Released in npm `0.17.0`: `npx -y @aimarket/warden@0.21.0 hook pre-tool-use`, or from a source checkout `npm ci && npm run build`, then `node dist/mcp-server.js hook pre-tool-use`. Register the prompt and post hooks as well, or use the bundled Claude plugin.
 
 Policy is user-level (`~/.local/state/warden/flow-policy.json`, or `WARDEN_FLOW_POLICY`). Modes are `ask`, `deny`, `audit`, `off`. `audit` logs decisions without enforcing them. Example:
 
@@ -357,7 +524,8 @@ docker run --rm --network none -v "$PWD/out:/out" warden-adojo /out/oracle.json
 
 `oracle.py` writes per-pair results; `--variants none,strict,intent` chooses the guard variants (`strict` ignores
 what the user typed). `summarize_oracle.py` turns them into the summary the table quotes. `WARDEN_FLOW_GUARD=/out/x.mjs`
-plays another build of the guard (any plugin copy of `flow-guard.mjs`), which is how the 2026-10-22 changes were
+plays another build of the guard (any plugin copy of `flow-guard.mjs`; since 2026-10-24 with its `flow-guard-*.mjs`
+parts in the same folder), which is how the 2026-10-22 changes were
 compared with the code before them.
 
 The code-aware attacks need no container: `npm run build && node scripts/redteam/flow-redteam.mjs out.json`.

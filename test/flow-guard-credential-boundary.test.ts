@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
+import { gzipSync } from 'node:zlib';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { flowPre, flowPaths, runFlowHook, loadPolicy, publicRequestDigest, readFlowState, scanCandidates } from '../src/flow-guard.js';
@@ -37,7 +38,12 @@ describe('credential boundary: no length or encoding exemption', () => {
     expect(d?.permissionDecision).toBe('ask');
     expect(d?.permissionDecisionReason).not.toContain(payload);
   });
-  it.each(['gzip bytes', 'rot13', 'custom alphabet', 'base32'])('reviews unrecognized %s without claiming it decoded a secret', body => {
+  it.each([
+    ['gzip', gzipSync(Buffer.from(payload)).toString('base64')],
+    ['rot13', payload.replace(/[a-z]/gi, c => String.fromCharCode(c.charCodeAt(0) + (c.toLowerCase() <= 'm' ? 13 : -13)))],
+    ['custom alphabet', [...payload].map(c => String.fromCharCode(0xe000 + c.charCodeAt(0))).join('')],
+    ['base32', (() => { let bits = ''; for (const byte of Buffer.from(payload)) bits += byte.toString(2).padStart(8, '0'); let out = ''; for (let i = 0; i < bits.length; i += 5) out += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'[parseInt(bits.slice(i, i + 5).padEnd(5, '0'), 2)]; return out; })()],
+  ])('reviews unrecognized %s without claiming it decoded a secret', (_kind, body) => {
     const s = setup();
     const d = s.pre({ ...publicArgs, body });
     expect(d?.permissionDecision).toBe('ask');
@@ -110,6 +116,16 @@ describe('exact reviewed public requests', () => {
     const s = setup(); s.authorize(publicArgs); writeFileSync(s.paths.tok, 'corrupt');
     expect(() => s.pre(publicArgs)).toThrow('fingerprints cannot be read safely');
   });
+  it('never lets exact public requests waive external writes or GUI copy controls', () => {
+    const s = setup();
+    const args = { file_path: '/outside/file.txt', content: 'public text' };
+    s.authorize(args, 'Write');
+    expect(s.pre(args, 'Write')?.permissionDecision).toBe('ask');
+    const copy = { keys: 'cmd+c' };
+    s.authorize(copy, 'mcp__screen__press_keys');
+    expect(s.pre(copy, 'mcp__screen__press_keys')?.permissionDecision).toBe('ask');
+    expect(s.state().credentialGrants ?? []).toEqual([]);
+  });
   it('does not consume a rule in audit or deny mode', () => {
     for (const mode of ['audit', 'deny']) {
       const s = setup({ mode }); s.authorize(publicArgs);
@@ -147,6 +163,7 @@ describe('bounded reversible decoding', () => {
     expect(setup().pre({ ...publicArgs, body: text })?.permissionDecision).toBeDefined();
   });
   it('treats invalid escapes and non-UTF8 bytes as literals, never executable code', () => {
+    expect(scanCandidates(['constructor']).values).toEqual(['constructor']);
     expect(scanCandidates(['%zz', '\\uZZZZ', '&#x110000;', '////////']).values).toEqual(['%zz', '\\uZZZZ', '&#x110000;', '////////']);
   });
 });

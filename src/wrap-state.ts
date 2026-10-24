@@ -5,7 +5,7 @@ import { readState, writeState, withStateLock } from './state.js';
 import { Warden, pinToolsHash, serverIdentityHash, displaySafe } from './index.js';
 import type { McpServerRef, ToolDef, WardenPolicy, WardenVerdict } from './types.js';
 import type { ThreatFeed } from './threat-feed.js';
-import { diffToolDefinitions, formatDefinitionDiff } from './review-diff.js';
+import { diffToolDefinitions, formatDefinitionDiff, formatOriginLines, launchSpec, plainVersion } from './review-diff.js';
 
 export interface Observation {
   server: McpServerRef;
@@ -13,6 +13,8 @@ export interface Observation {
   tools?: ToolDef[];
   policy: WardenPolicy;
   revoked?: boolean;
+  /** serverInfo from the initialize result, when the proxy recorded it: shown in a review, never trusted. */
+  serverInfo?: { name?: string; version?: string };
 }
 /** A refusal WARDEN decided, as opposed to a check that could not run (timeout, lock, child error). */
 export class WardenBlock extends Error {}
@@ -60,6 +62,9 @@ export function describeReview(previous: Awaited<ReturnType<FilePinStore['getPin
     `Observed identity: ${current ? serverIdentityHash(current.server) : '(none)'}`,
     `Launch: ${current ? JSON.stringify(current.server) : '(none)'}`];
   if (current && !current.tools) lines.push('Launch was blocked; tool definitions below are the PREVIOUS snapshot, not fetched from the new command.');
+  // Where a change came from: the version the server reports and whether the launch command pins one.
+  lines.push(...formatOriginLines(current ? launchSpec(current.server) : undefined, plainVersion(previous?.serverInfo?.version),
+    plainVersion(current?.serverInfo?.version), !!previous && !!current?.tools && previous.toolsHash !== pinToolsHash(newTools)));
   // What changed, field by field, first; the full definitions follow for the record.
   lines.push(...formatDefinitionDiff(diffToolDefinitions(oldTools, newTools)));
   if (JSON.stringify(oldTools) !== JSON.stringify(newTools)) lines.push('Full definitions of the tools that differ:');

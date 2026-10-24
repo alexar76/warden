@@ -8,7 +8,7 @@
   <a href="https://glama.ai/mcp/servers/alexar76/warden"><img src="https://glama.ai/mcp/servers/alexar76/warden/badges/score.svg" alt="warden MCP server" /></a>
   <a href="https://warden.modelmarket.dev/"><img src="https://img.shields.io/npm/v/@aimarket/warden?color=cb3837&label=npm" alt="npm 版本" /></a>
   <img src="docs/badges/deps.svg" alt="零运行时依赖" />
-  <img src="docs/badges/tests.svg" alt="868 项测试通过" />
+  <img src="docs/badges/tests.svg" alt="1148 项测试通过" />
   <img src="docs/badges/node.svg" alt="Node >= 20" />
   <a href="LICENSE"><img src="docs/badges/license.svg" alt="许可证：MIT" /></a>
 </p>
@@ -29,11 +29,11 @@
 **检查你机器上的所有 MCP 服务器。** 无需账号、无需 API 密钥、不调用模型。唯一的网络流量是发往你配置中的服务器。
 
 ```bash
-npx -y @aimarket/warden@0.20.0 scan
+npx -y @aimarket/warden@0.21.0 scan
 ```
 
 ```text
-WARDEN scan 0.20.0 · ruleset 11 sha256-RDXs+TaQoehA… · block at high
+WARDEN scan 0.21.0 · ruleset 11 sha256-RDXs+TaQoehA… · block at high
   read .mcp.json (claude-code, 3 servers)
 
   ✓ allow   notes       claude-code    1 tool · score 0.90
@@ -47,9 +47,8 @@ Details: warden-mcp scan --json, or --markdown FILE. To review a changed server:
 与另外四款开源扫描器在同一批服务器上对比，每款都在无网络的 gVisor 容器中运行：在 MCPTox（AAAI 2026 基准）的留出一半上（WARDEN 的规则只依据另一半编写），WARDEN 阻止了 218 个投毒工具中的 171 个，其余扫描器阻止 8 到 41 个。在 986 台公开服务器上 WARDEN 阻止 3 台，在 14,933 个 npm 和 PyPI 包上阻止 369 个；mcp-shield 分别阻止 343 台和 5,354 个。[方法与全部数字](docs/scanner-comparison.zh.md) · [scan 指南](docs/scan.zh.md)。
 <!-- /warden-try -->
 
-**流守卫（已发布 0.20.0；2026-10-23 本地修复）。** 检查外部文本之后的调用。本地源码已拦截两个剩余的已展示秘密传输案例：六字符片段加填充文字，以及明确的英文字符列表。同一确定性测试集现为 **0/23 完整通过**，此前为 2/23；两个仅影响回答的案例会得到说明或复查。GUI 默认仍为严格模式，可选择有限的操作员规则。生产环境和 npm 未更新。历史 AgentDojo 回放（2026-10-22）：0/579 攻击动作、57/97 任务无需询问；本次未重新运行。[行为、测试及剩余边界](docs/flow-guard.zh.md)。
+**流守卫（2026-10-23 本地源码）。** 读取凭据和外部文本后，传出／MCP 调用及普通项目写入均需审核，即使片段极短或编码未知。操作员检查过的精确公开请求可每会话自动执行一次，但不能豁免已识别泄露或不完整扫描。测试中两种配置均自动放行 0/16 攻击；正常请求默认确认 12/12，精确规则下 0/12。这是明确的可用性取舍，不是万能解码器。同一旧案例集仍为 0/23 完整通过。生产和 npm 未更改。[策略、测试与边界](docs/flow-guard.zh.md)。
 
-首个短密钥匹配现在要求逐次审核后才能发送；相邻六字符配对仍强制拒绝。有限测量覆盖 480 个密钥和 757 个文件：0 次强制误拒绝，2 个文件需额外审核。GUI 默认仍严格。此本地改动替代等待配对的行为；生产和 npm 未更改。
 
 Ruleset v16（0.20.0，2026-10-22，仅 WARDEN）：MCPTox 留出的一半 218 中 210 个（v15：194，v12–v14：171），45 台干净服务器中 0 台；在实地语料和 1,000 个 HISTOR 包样本上拦截的与 v15 完全相同。上面与其他扫描器的对比来自 2026-10-16，使用 v12。[门链中的 v15 和 v16](docs/gates.zh.md)。
 
@@ -78,6 +77,20 @@ WARDEN 在**该服务器的任何工具到达模型之前**审查它，并返回
 内建模块（`fs`、`path`、`process`），仍然不拉任何包。它就是 [ARGUS](https://github.com/alexar76/argus)
 里的那个防火墙，被单独抽出来，好让你把它放在自己的 MCP 宿主前面，而不必换用一个智能体。
 
+新增十进制/NATO 密钥编码及 MCP Git commit/push 回归；完整 28 项 hook replay 成为本地可验证的 CI/release 门禁（`npm run test:redteam`）。
+
+Auten 后续：`taskAdapter.mode: "review"` / `task_run` 按固定结果确认一次；`wrap --screen-read` 在新目标变化时取消已批准 GUI 操作。默认严格 GUI；截图和点击不是原子的。
+
+原子模式：`wrap --flow screen --screen-read screenshot --screen-atomic` 要求可信服务器端修订/目标 CAS（`AtomicScreenServer`、`warden.screen.atomic.v1`）。不退回普通点击；仅支持完全由服务器控制的同步表面。附可运行虚拟表单示例，不声称任意原生桌面具有原子性。
+
+原生 macOS：`npm run build:macos` 构建目标应用内 AppKit SDK 和真实窗口示例；`npm run test:macos` 运行独立集成门禁。原子性要求将 `WardenDesktopSurface` 接入拥有控件的应用，其他应用被拒绝。参见 [macOS 接入](docs/flow-guard.zh.md)。
+
+## 受限任务模式：减少确认并控制实际操作
+
+默认仍为严格 GUI 模式。旧的 `gui.mode: "policy"` / `gui.allow` 仅为迁移保留解析，外部文本出现后不再自动放行点击、输入或导航按键。页面可伪造 origin、角色和 accessibility ID；几何、焦点和翻译只用于解释。`press_keys_then_execute` 等复合工具名不能使用 Copy 例外；额外 RPC 元数据也不能获得自动授权。
+
+明确启用受限操作：`node dist/mcp-server.js task`。[适配器、支付、边界与最新 AgentDojo replay](docs/flow-guard.zh.md)。仅本地代码，没有发布或部署。
+
 ## 通过一层代理保护 Claude Desktop 或 Cursor
 
 **请使用 0.8.2 或更高版本：0.8.0 和 0.8.1 会让被包装的服务器伪造对客户端自身 `tools/list` 的响应**（[CHANGELOG](CHANGELOG.md)）。从源码运行 `node /绝对路径/warden/dist/mcp-server.js wrap ...` 效果相同。单独添加 WARDEN MCP 服务器不会检查其他服务器。已用 MCP TypeScript SDK 和 fixture 服务器做过端到端测试；在 Claude Desktop 和 Cursor 本身中的运行尚未记录（[发布验证](docs/wrap-validation.md)）。请把每个需要保护的服务器命令替换为 `wrap`：
@@ -87,14 +100,14 @@ WARDEN 在**该服务器的任何工具到达模型之前**审查它，并返回
   "mcpServers": {
     "filesystem": {
       "command": "npx",
-      "args": ["-y", "@aimarket/warden@0.20.0", "wrap", "--id", "filesystem", "--",
+      "args": ["-y", "@aimarket/warden@0.21.0", "wrap", "--id", "filesystem", "--",
                "npx", "-y", "@modelcontextprotocol/server-filesystem", "/Users/me/docs"]
     }
   }
 }
 ```
 
-始终指定 `--id`：否则修改命令参数会创建新身份并重新执行首次信任。稳定 ID 会把命令或路径变更识别为 `SERVER_IDENTITY_DRIFT`。子进程继承环境变量，身份哈希不包含环境。可运行 `npm install -g @aimarket/warden@0.20.0`，使用 `warden-mcp` 避免反复进行 `npx` 冷启动。
+始终指定 `--id`：否则修改命令参数会创建新身份并重新执行首次信任。稳定 ID 会把命令或路径变更识别为 `SERVER_IDENTITY_DRIFT`。子进程继承环境变量，身份哈希不包含环境。可运行 `npm install -g @aimarket/warden@0.21.0`，使用 `warden-mcp` 避免反复进行 `npx` 冷启动。
 
 **敏感工具。** 策略文件中的 `sensitiveToolPatterns`（`--policy policy.json`，内容如 `{"sensitiveToolPatterns": ["*delete*", "*transfer*"]}`，`*` 通配、不区分大小写）让每次调用匹配的工具都要等人确认：`wrap` 通过客户端自己的表单（MCP elicitation）询问，列出工具、服务器和参数，只有勾选并接受的回答才放行这一次调用。复选框默认不勾选，所以按默认值自动接受表单的客户端什么也批准不了。不提供 elicitation 表单的客户端会收到拒绝，服务器永远收不到这次调用；`--ask refuse` 不询问直接拒绝。若客户端在等人决定时取消调用，或其间定义发生变化，调用不会发出。0.20.0 之前 `wrap` 接受这些模式却不执行。配合 `--flow`，流守卫会询问的发送也以同样方式询问。
 
@@ -122,16 +135,16 @@ macOS 上 Claude Desktop 日志：`~/Library/Logs/Claude/mcp-server-<名称>.log
 ## 扫描客户端启动的所有服务器
 
 ```bash
-npx -y @aimarket/warden@0.20.0 scan
+npx -y @aimarket/warden@0.21.0 scan
 ```
 
-读取 Claude Code、Claude Desktop、Cursor、VS Code 和 Windsurf 的 MCP 配置，连接其中启动的每个服务器，并在模型看到工具定义之前对其进行审查。输出表格、JSON、SARIF 或 Markdown，有服务器被阻止时以 1 退出；`--no-launch` 不启动任何程序。在仓库中，`warden.lock.json` 把工具定义的改动变成可审查的 diff，CI 会在出现新的或改动过的服务器时失败。也提供 GitHub Action（`uses: alexar76/warden@v0.20.0`）、pre-commit 钩子和 Claude Code 插件（`/plugin marketplace add alexar76/warden`）。`--histor` 询问公开的 HISTOR 日志：服务器给你的是否与给所有人的相同；对远程服务器发送端点和摘要，对从 npm 或 PyPI 启动的 stdio 服务器发送软件包名（`npm:<名称>`、`pypi:<名称>`，HISTOR 会在 gVisor 沙箱中运行它）和摘要，从不发送工具文本。可选的分类器（`--classifier-url`、`--classifier-model`）会加入你所选模型（本地或托管）的判断，用于覆盖任何规则都没有提到的内容。详见 [scan 指南](docs/scan.zh.md)。与另外两款扫描器在同一批服务器上的对比，见[扫描器对比](docs/scanner-comparison.zh.md)。
+读取 Claude Code、Claude Desktop、Cursor、VS Code 和 Windsurf 的 MCP 配置，连接其中启动的每个服务器，并在模型看到工具定义之前对其进行审查。输出表格、JSON、SARIF 或 Markdown，有服务器被阻止时以 1 退出；`--no-launch` 不启动任何程序。在仓库中，`warden.lock.json` 把工具定义的改动变成可审查的 diff，CI 会在出现新的或改动过的服务器时失败。也提供 GitHub Action（`uses: alexar76/warden@v0.21.0`）、pre-commit 钩子和 Claude Code 插件（`/plugin marketplace add alexar76/warden`）。`--histor` 询问公开的 HISTOR 日志：服务器给你的是否与给所有人的相同；对远程服务器发送端点和摘要，对从 npm 或 PyPI 启动的 stdio 服务器发送软件包名（`npm:<名称>`、`pypi:<名称>`，HISTOR 会在 gVisor 沙箱中运行它）和摘要，从不发送工具文本。可选的分类器（`--classifier-url`、`--classifier-model`）会加入你所选模型（本地或托管）的判断，用于覆盖任何规则都没有提到的内容。详见 [scan 指南](docs/scan.zh.md)。与另外两款扫描器在同一批服务器上的对比，见[扫描器对比](docs/scanner-comparison.zh.md)。
 
-**面向服务器发布者。** 如果在安装了 HISTOR 沙箱所没有的东西（启动器的运行器、每个操作系统各一个）的地方，你的服务器列出的是别的工具，`npx -y @aimarket/warden@0.20.0 declare --out mcp-tool-sets.json -- <你的服务器>` 会把这些工具集写进一个文件，由你发布在自己的域名上；拿到这些工具集的人看到的将是发布者的声明，而不是陌生的工具集。参见 [scan 指南](docs/scan.zh.md)。
+**面向服务器发布者。** 如果在安装了 HISTOR 沙箱所没有的东西（启动器的运行器、每个操作系统各一个）的地方，你的服务器列出的是别的工具，`npx -y @aimarket/warden@0.21.0 declare --out mcp-tool-sets.json -- <你的服务器>` 会把这些工具集写进一个文件，由你发布在自己的域名上；拿到这些工具集的人看到的将是发布者的声明，而不是陌生的工具集。参见 [scan 指南](docs/scan.zh.md)。
 
 ## WARDEN 不做什么
 
-仅代理 stdio。工具结果用同一套规则读取（默认 `--results warn`：结果读起来像对模型的指令时，在其前面加一段提醒；`block`：扣下结果，此时工具已经执行；`off`）；调用参数、`prompts/*`、`resources/*`、sampling 和 elicitation 内容不被扫描。没有已知字面量的改写或非英语指令可能通过；可另用 [HISTOR 分类器](https://github.com/alexar76/histor)。WARDEN 不是沙箱，也不保护客户端配置免遭修改。检查和另一个进程内的执行无法原子化：发送前检测到变更会阻止调用；执行期间检测到变更会隐藏结果，但操作可能已发生。最后一次列表响应之后的静默变更无法被观察。不支持通知的客户端可能显示旧列表，但每次调用前仍会核对定义。
+仅代理 stdio。工具结果用同一套规则读取（默认 `--results warn`：结果读起来像对模型的指令时，在其前面加一段提醒；`block`：扣下结果，此时工具已经执行；`off`）；调用参数、`prompts/*`、`resources/*`、sampling 和 elicitation 内容不被扫描。没有已知字面量的改写或非英语指令可能通过；可另用 [HISTOR 分类器](https://github.com/alexar76/histor)。WARDEN 不是沙箱，也不保护客户端配置免遭修改。没有可信且参与原子屏幕协议的后端时，检查和另一个进程内的执行无法原子化：发送前检测到变更会阻止调用；执行期间检测到变更会隐藏结果，但操作可能已发生。最后一次列表响应之后的静默变更无法被观察。不支持通知的客户端可能显示旧列表，但每次调用前仍会核对定义。
 
 判定记录未签名，仅用于诊断，不是合规证明。`--audit-only` 在日志中标记 `AUDIT-ONLY`，放行被安全检查拒绝的描述和调用，不建立 pin；协议及资源限制仍有效。此模式用于调查误报，不提供防护。
 
@@ -328,7 +341,7 @@ WARDEN 是 [Base 上的 `96684` 号](https://8004scan.io/agents/base/96684) ERC-
 ## 开发
 
 ```bash
-npm install && npm run build && npm test   # 868 项测试
+npm install && npm run build && npm test   # 1148 项测试
 ```
 
 `test/packaging.test.ts` 正是让标题保持诚实的东西：一旦出现运行时依赖、任何源文件从包外 import、或者入口点不

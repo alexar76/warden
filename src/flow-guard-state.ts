@@ -1,0 +1,96 @@
+/** Flow guard: per-session state under a lock, fingerprint files and the session log. */
+import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
+import type { FlowState, FragmentRecord } from './flow-guard-types.js';
+import { flowPaths, stateDir } from './flow-guard-paths.js';
+import { MAX_TEXT } from './flow-guard-text.js';
+import { secretPattern } from './flow-guard-fingerprints.js';
+import { MAX_FRAGMENT_INDEX, MAX_FRAGMENT_SEEN, SHORT_SIZES } from './flow-guard-fragments.js';
+
+const MAX_SOURCES = 20;
+const MAX_PRIVATE = 50;
+const MAX_FP_BYTES = 32 * 1_048_576;
+
+export const EMPTY: FlowState = { v: 1, untrusted: [], private: [], notified: false, full: false };
+
+export function readFlowState(path: string): FlowState {
+  try {
+    const s = JSON.parse(readFileSync(path, 'utf8')) as FlowState;
+    if (!s || s.v !== 1 || !Array.isArray(s.untrusted) || !Array.isArray(s.private)) throw new Error('invalid flow state');
+    if (s.credentialRead !== undefined && s.credentialRead !== true || s.credentialGrants !== undefined && (!Array.isArray(s.credentialGrants) || s.credentialGrants.length > 32 || !s.credentialGrants.every(v => typeof v === 'string' && /^[0-9a-f]{64}$/.test(v)))) throw new Error('invalid credential egress state');
+    if (s.fragments !== undefined) {
+      const f = s.fragments;
+      if (!f || ![1, 2].includes(f.v)) throw new Error('invalid fragment state');
+      const valid = (r: FragmentRecord) => {
+        if (!r || typeof r.group !== 'string' || !/^[0-9a-f]{32}$/.test(r.group) || typeof r.hash !== 'string' || !/^[0-9a-f]{32}$/.test(r.hash) ||
+            !Number.isSafeInteger(r.offset) || r.offset < 0 || r.offset > MAX_TEXT || r.edge !== undefined && r.edge !== true) return false;
+        if (f.v === 1) return r.size === undefined || Number.isSafeInteger(r.size) && r.size >= 1 && r.size <= 64;
+        return typeof r.size === 'number' && Number.isSafeInteger(r.size) && (r.edge ? r.size >= 5 && r.size <= 64 : SHORT_SIZES.includes(r.size as 5 | 6 | 7));
+      };
+      if (!Array.isArray(f.index) || f.index.length > MAX_FRAGMENT_INDEX || !f.index.every(valid) ||
+          !Array.isArray(f.seen) || f.seen.length > MAX_FRAGMENT_SEEN || !f.seen.every(valid) || f.full !== undefined && f.full !== true) throw new Error('invalid fragment state');
+    }
+    return s;
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') return { ...EMPTY, untrusted: [], private: [] };
+    throw new Error('flow state cannot be read safely');
+  }
+}
+
+function withLock<T>(path: string, action: () => T): T {
+  const lock = `${path}.lock`;
+  let fd: number | undefined;
+  const deadline = Date.now() + 3000;
+  while (fd === undefined) {
+    try { fd = openSync(lock, 'wx', 0o600); }
+    catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== 'EEXIST') throw err;
+      // A lock older than 10 s is a crashed hook: take it over rather than wedge the session.
+      try { if (Date.now() - statSync(lock).mtimeMs > 10_000) unlinkSync(lock); } catch { /* raced */ }
+      if (Date.now() > deadline) throw new Error('flow state is locked');
+      const until = Date.now() + 15; while (Date.now() < until) { /* short spin; hooks are short-lived */ }
+    }
+  }
+  try { return action(); }
+  finally { closeSync(fd); try { unlinkSync(lock); } catch { /* gone */ } }
+}
+
+function writeAtomic(path: string, value: unknown): void {
+  const temp = `${path}.${process.pid}.${Date.now()}.tmp`;
+  writeFileSync(temp, JSON.stringify(value), { mode: 0o600 });
+  renameSync(temp, path);
+}
+
+export function updateFlowState(path: string, change: (s: FlowState) => void): FlowState {
+  return withLock(path, () => {
+    const s = readFlowState(path);
+    change(s);
+    s.untrusted = s.untrusted.slice(-MAX_SOURCES);
+    s.private = s.private.slice(-MAX_PRIVATE);
+    writeAtomic(path, s);
+    return s;
+  });
+}
+
+export function appendFp(path: string, fps: readonly string[]): boolean {
+  if (!fps.length) return true;
+  let size = 0;
+  try { size = statSync(path).size; } catch { /* new */ }
+  if (size > MAX_FP_BYTES) return false;
+  appendFileSync(path, fps.join('\n') + '\n', { mode: 0o600 });
+  return true;
+}
+
+export function log(paths: ReturnType<typeof flowPaths>, entry: Record<string, unknown>): void {
+  try {
+    mkdirSync(paths.dir, { recursive: true, mode: 0o700 });
+    appendFileSync(paths.log, JSON.stringify({ at: new Date().toISOString(), ...entry }) + '\n', { mode: 0o600 });
+  } catch { /* best effort */ }
+}
+
+export function safeToolName(name: string): string {
+  return /^[A-Za-z0-9_.:-]{1,100}$/.test(name) && !secretPattern([name]) ? name : '[unrecognized tool name]';
+}
+
+export function flowStateExists(sessionId: string, env: NodeJS.ProcessEnv = process.env): boolean {
+  return existsSync(flowPaths(stateDir(env), sessionId).state);
+}

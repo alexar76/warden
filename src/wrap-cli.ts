@@ -10,6 +10,8 @@ import { Warden, ThreatFeed, pinToolsHash, serverIdentityHash, displaySafe } fro
 import { observationPath, observationRevision, describeReview } from './wrap-state.js';
 import type { Observation } from './wrap-state.js';
 import type { McpServerRef, WardenLogger, WardenPolicy } from './types.js';
+import { parseJsonStrict } from './jcs.js';
+import { screenObservation } from './flow-guard.js';
 
 export interface WrapOptions {
   mode: 'wrap' | 'pins'; action?: string; id?: string; command?: string; args: string[];
@@ -19,6 +21,11 @@ export interface WrapOptions {
   /** The server's name for the flow guard (`--flow NAME`): its calls are `mcp__NAME__tool` to the guard's
    *  policy, and every call and result goes through the same guard the Claude Code plugin runs. */
   flow?: string;
+  /** Explicit same-server observation used before/after GUI approval; unsupported snapshots refuse execution. */
+  screenRead?: string;
+  screenReadInput?: Record<string, unknown>;
+  /** Require the trusted server's one-use revision/target CAS; never fall back to a raw GUI call. */
+  screenAtomic?: boolean;
   /** A call that needs a person's yes — a tool matching `policy.sensitiveToolPatterns`, or a send the flow guard asks
    *  about: `elicit` asks through the client's own form (MCP elicitation) when the client offers one and refuses
    *  otherwise; `refuse` always refuses it. */
@@ -41,8 +48,9 @@ export async function parseWrapArgs(argv: string[]): Promise<WrapOptions> {
     if (seen.has(flag)) throw new Error(`Duplicate flag ${flag}`);
     seen.add(flag);
     if (flag === '--audit-only' && mode === 'wrap') { opts.auditOnly = true; continue; }
+    if (flag === '--screen-atomic' && mode === 'wrap') { opts.screenAtomic = true; continue; }
     if (flag === '--require-approval' && mode === 'wrap') { continue; }
-    const allowed = mode === 'wrap' ? ['--id', '--state-dir', '--policy', '--feed', '--feed-key', '--verdict-log', '--results', '--flow', '--ask'] : ['--id', '--state-dir', '--feed', '--feed-key'];
+    const allowed = mode === 'wrap' ? ['--id', '--state-dir', '--policy', '--feed', '--feed-key', '--verdict-log', '--results', '--flow', '--ask', '--screen-read', '--screen-read-input'] : ['--id', '--state-dir', '--feed', '--feed-key'];
     if (!allowed.includes(flag)) throw new Error(`Unknown flag ${flag}`);
     const value = argv.shift();
     if (!value || value.startsWith('--')) throw new Error(`Missing value for ${flag}`);
@@ -58,6 +66,15 @@ export async function parseWrapArgs(argv: string[]): Promise<WrapOptions> {
         // The name joins `mcp__NAME__tool`: a slug with no double underscore, so the tool part stays unambiguous.
         if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$/.test(value) || value.includes('__')) throw new Error('--flow must be a server name (letters, digits, ., _ or -, no "__")');
         opts.flow = value; break;
+      case '--screen-read':
+        if (!/^[A-Za-z][A-Za-z0-9_.-]{0,99}$/.test(value)) throw new Error('--screen-read requires one exact observation tool');
+        opts.screenRead = value; break;
+      case '--screen-read-input': {
+        if (value.length > 1024) throw new Error('--screen-read-input is too large');
+        const input = parseJsonStrict(value);
+        if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('--screen-read-input must be an object');
+        opts.screenReadInput = input as Record<string, unknown>; break;
+      }
       case '--ask':
         if (!(ASK_POLICIES as readonly string[]).includes(value)) throw new Error('--ask must be elicit or refuse');
         opts.ask = value as AskPolicy; break;
@@ -77,6 +94,9 @@ export async function parseWrapArgs(argv: string[]): Promise<WrapOptions> {
     }
   }
   if (mode === 'wrap' && !opts.command) throw new Error('wrap requires -- command [args]');
+  if (opts.screenReadInput && !opts.screenRead) throw new Error('--screen-read-input requires --screen-read');
+  if (opts.screenRead && (!opts.flow || !screenObservation(`mcp__${opts.flow}__${opts.screenRead}`, opts.screenReadInput ?? {}))) throw new Error('--screen-read requires --flow and a supported observation schema (empty input, or a generic controller with only a read action)');
+  if (opts.screenAtomic && (!opts.screenRead || opts.auditOnly)) throw new Error('--screen-atomic requires --flow and --screen-read in enforcing mode');
   if (seen.has('--require-approval')) opts.policy.requireApproval = true;
   if (mode === 'pins' && !opts.id) throw new Error('pins requires --id');
   if (opts.feed) {

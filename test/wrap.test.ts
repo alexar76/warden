@@ -399,7 +399,198 @@ describe('wrap proxy', () => {
     const navigationView = () => ({ content: [{ type: 'text', text: JSON.stringify({ url: 'https://mail.example/inbox', elements: [
       { index: 3, role: 'link', name: 'Inbox', accessibilityIdentifier: 'nav.inbox', bounds: { x: 100, y: 50, width: 60, height: 40 } },
     ] }) }] });
-    it.each(['strict', 'policy'])('mode %s preserves execution while reducing forms only for the listed navigation', async mode => {
+    describe('atomic screen server CAS after approval', () => {
+      const flags = ['--flow', 'screen', '--screen-read', 'screenshot', '--screen-atomic'];
+      function setup(extra: any = {}, elicit?: (m: any) => any) {
+        const dir = state(), calls = join(dir, 'calls.jsonl'), effects = join(dir, 'effects.jsonl'), env = flowEnv(dir);
+        const h = harness({ dir, flags, env, config: { atomic: true, tools: screenTools, callsFile: calls, effectsFile: effects, callResult: navigationView(), ...extra },
+          elicit: elicit ?? (() => ({ result: { action: 'accept', content: { run: true } } })) });
+        return { h, calls, effects, env, effectsCount: () => existsSync(effects) ? readFileSync(effects, 'utf8').trim().split('\n').length : 0 };
+      }
+      const click = (h: ReturnType<typeof harness>) => h.request('tools/call', { name: 'click', arguments: { index: 3 } });
+      async function screenReady(h: ReturnType<typeof harness>) { await h.init({ elicitation: {} }); await h.request('tools/list'); await h.request('tools/call', { name: 'screenshot' }); }
+      it('commits exactly once through the server CAS and returns only the tool result, not the ticket/receipt', async () => {
+        const s = setup(); await screenReady(s.h); const r = await click(s.h);
+        expect(r.result.content[0].text).toBe('atomic effect committed'); expect(s.effectsCount()).toBe(1); expect(s.h.asked).toHaveLength(1);
+        const calls = readFileSync(s.calls, 'utf8').trim().split('\n').map(line => JSON.parse(line));
+        expect(calls.at(-1).method).toBe('warden/screen/commit');
+        expect(calls.some(c => c.method === 'tools/call' && c.params?.name === 'click')).toBe(false);
+        expect(JSON.stringify(s.h.messages)).not.toContain(calls.at(-1).params.ticket);
+        expect(readFileSync(flowPaths(s.env.WARDEN_STATE_DIR, s.env.WARDEN_FLOW_SESSION).log, 'utf8')).not.toContain(calls.at(-1).params.ticket);
+        expect(readFileSync(flowPaths(s.env.WARDEN_STATE_DIR, s.env.WARDEN_FLOW_SESSION).log, 'utf8')).toContain('atomic_committed');
+        await s.h.stop();
+      });
+      it('refuses the exact race after the final proxy read but before server comparison, with no raw-click fallback', async () => {
+        const s = setup({ atomicRaceOnCommit: true }); await screenReady(s.h);
+        expect((await click(s.h)).error.message).toContain('atomic server refused'); expect(s.effectsCount()).toBe(0);
+        expect(readFileSync(flowPaths(s.env.WARDEN_STATE_DIR, s.env.WARDEN_FLOW_SESSION).log, 'utf8')).toContain('atomic_refused');
+        s.h.change({ atomicRaceOnCommit: false }); expect((await click(s.h)).result).toBeDefined(); expect(s.effectsCount()).toBe(1);
+        expect(s.h.asked).toHaveLength(2); await s.h.stop();
+      });
+      it('rejects invisible handler/ABA revision changes even if both snapshots have identical role/ID/bounds', async () => {
+        let s: ReturnType<typeof setup>; s = setup({}, () => { s.h.change({ atomicRevision: 'handler-changed-and-restored' }); return { result: { action: 'accept', content: { run: true } } }; });
+        await screenReady(s.h); expect((await click(s.h)).error.message).toContain('atomic server refused'); expect(s.effectsCount()).toBe(0); await s.h.stop();
+      });
+      it('refuses a server without the protocol before asking, rather than sending an ordinary click', async () => {
+        const s = setup({ atomic: false }); await screenReady(s.h);
+        expect((await click(s.h)).error.message).toContain('atomic screen preparation'); expect(s.effectsCount()).toBe(0); expect(s.h.asked).toHaveLength(0);
+        expect(readFileSync(s.calls, 'utf8')).not.toContain('"name":"click"'); await s.h.stop();
+      });
+      it.each(['protocol', 'stamp', 'ticket'])('refuses malformed prepared %s before approval', async field => {
+        const s = setup({ atomicBadPreparation: field }); await screenReady(s.h);
+        expect((await click(s.h)).error).toBeDefined(); expect(s.effectsCount()).toBe(0); expect(s.h.asked).toHaveLength(0); await s.h.stop();
+      });
+      it('rejects extra RPC metadata and oversized arguments without a truncated approval', async () => {
+        const s = setup(); await screenReady(s.h);
+        for (const params of [{ name: 'click', arguments: { index: 3 }, _meta: { changed: true } }, { name: 'type_text', arguments: { text: 'x'.repeat(1600) } }]) {
+          expect((await s.h.request('tools/call', params)).error).toBeDefined();
+        }
+        expect(s.h.asked).toHaveLength(0); expect(s.effectsCount()).toBe(0); await s.h.stop();
+      });
+      it('decline and cancel never commit; internal server methods are inaccessible to client requests', async () => {
+        const s = setup({}, () => ({ result: { action: 'decline' } })); await screenReady(s.h);
+        expect((await click(s.h)).error).toBeDefined(); expect(s.effectsCount()).toBe(0);
+        for (const method of ['warden/screen/prepare', 'warden/screen/commit', 'warden/screen/cancel']) expect((await s.h.request(method, {})).error.message).toContain('Reserved');
+        expect(readFileSync(s.calls, 'utf8')).not.toContain('warden/screen/commit'); await s.h.stop();
+      });
+      it('cancellation while approving discards the preparation; a late yes never commits', async () => {
+        const s = setup({}, () => undefined); await screenReady(s.h);
+        s.h.send({ jsonrpc: '2.0', id: 'atomic-cancel', method: 'tools/call', params: { name: 'click', arguments: { index: 3 } } });
+        await until(() => s.h.asked.length === 1);
+        const q = s.h.asked[0];
+        s.h.send({ jsonrpc: '2.0', method: 'notifications/cancelled', params: { requestId: 'atomic-cancel' } });
+        await until(() => s.h.messages.some(m => m.method === 'notifications/cancelled' && m.params.requestId === q.id));
+        s.h.send({ jsonrpc: '2.0', id: q.id, result: { action: 'accept', content: { run: true } } });
+        await s.h.request('ping'); expect(s.effectsCount()).toBe(0);
+        expect(readFileSync(s.calls, 'utf8')).not.toContain('warden/screen/commit');
+        const next = click(s.h); await until(() => s.h.asked.length === 2);
+        s.h.send({ jsonrpc: '2.0', id: s.h.asked[1].id, result: { action: 'accept', content: { run: true } } });
+        expect((await next).result).toBeDefined(); expect(s.effectsCount()).toBe(1); await s.h.stop();
+      });
+      it.each(['stamp', 'protocol', 'extra'])('a malformed committed receipt %s never triggers a retry and leaves an uncertain lease', async field => {
+        const s = setup({ atomicBadReceipt: field }); await screenReady(s.h);
+        expect((await click(s.h)).error.message).toContain('uncertain'); expect(s.effectsCount()).toBe(1);
+        expect((await click(s.h)).error.message).toContain('operator review'); expect(s.effectsCount()).toBe(1); await s.h.stop();
+      });
+      it('an error after the server effect remains uncertain and cannot be replayed automatically', async () => {
+        const s = setup({ atomicEffectError: true }); await screenReady(s.h);
+        expect((await click(s.h)).error.message).toContain('uncertain'); expect(s.effectsCount()).toBe(1);
+        expect((await click(s.h)).error.message).toContain('operator review'); await s.h.stop();
+      });
+      it('runs the documented server-owned virtual surface through a real stdio proxy', async () => {
+        const dir = state(), env = flowEnv(dir), example = join(root, 'examples/atomic-screen-server.mjs');
+        const h = harness({ dir, env, args: ['wrap', '--id', 'atomic-example', '--state-dir', dir, ...flags, '--', process.execPath, example],
+          elicit: () => ({ result: { action: 'accept', content: { run: true } } }) });
+        await screenReady(h); expect((await click(h)).result.content[0].text).toContain('Virtual form submitted 1');
+        expect((await click(h)).result.content[0].text).toContain('Virtual form submitted 2'); expect(h.asked).toHaveLength(2); await h.stop();
+      });
+      it('the participating server refuses raw screen calls even when the client bypasses wrap', async () => {
+        const dir = state(), effects = join(dir, 'effects');
+        const h = harness({ dir, direct: true, config: { atomic: true, tools: screenTools, effectsFile: effects, callResult: navigationView() } });
+        await h.init(); expect((await click(h)).error.message).toContain('Raw screen effects disabled'); expect(existsSync(effects)).toBe(false); await h.stop();
+      });
+    });
+    describe('Auten: fresh target after approval', () => {
+      const flags = ['--flow', 'screen', '--screen-read', 'screenshot'];
+      const callsAt = (path: string) => readFileSync(path, 'utf8').trim().split('\n').map(line => JSON.parse(line).params.name);
+      it('reads before the question and after approval, then forwards exactly one unchanged action', async () => {
+        const dir = state(), calls = join(dir, 'calls.jsonl'), env = flowEnv(dir);
+        const h = harness({ dir, flags, env, config: { tools: screenTools, callsFile: calls, callResult: navigationView() }, elicit: () => {
+          expect(callsAt(calls)).toEqual(['screenshot', 'screenshot']); return { result: { action: 'accept', content: { run: true } } };
+        } });
+        await h.init({ elicitation: {} }); await h.request('tools/list'); await h.request('tools/call', { name: 'screenshot' });
+        expect((await h.request('tools/call', { name: 'click', arguments: { index: 3 } })).result).toBeDefined();
+        expect(callsAt(calls)).toEqual(['screenshot', 'screenshot', 'screenshot', 'click']); expect(h.asked).toHaveLength(1);
+        expect(readFileSync(flowPaths(env.WARDEN_STATE_DIR, env.WARDEN_FLOW_SESSION).log, 'utf8')).toContain('"outcome":"unchanged"');
+        await h.stop();
+      });
+      it.each(['role', 'identity', 'box', 'reference', 'label', 'origin', 'missing', 'pixels', 'error', 'duplicate'])('cancels approved execution when the fresh %s changes or cannot be read', async kind => {
+        const dir = state(), calls = join(dir, 'calls.jsonl'), env = flowEnv(dir);
+        const h = harness({ dir, flags, env, config: { tools: screenTools, callsFile: calls, callResult: navigationView() }, elicit: () => {
+          const data = JSON.parse(navigationView().content[0]!.text), e = data.elements[0];
+          if (kind === 'role') e.role = 'button'; if (kind === 'identity') e.accessibilityIdentifier = 'compose.send';
+          if (kind === 'box') e.bounds.x++; if (kind === 'reference') e.index = 4; if (kind === 'label') e.name = 'Send';
+          if (kind === 'origin') data.url = 'https://other.example'; if (kind === 'missing') data.elements = [];
+          if (kind === 'duplicate') data.elements.push({ ...e, name: 'Send' });
+          h.change(kind === 'error' ? { callError: 'fresh read unavailable' } : { callResult: kind === 'pixels' ? { content: [{ type: 'image', data: 'iVBORw0KGgo=', mimeType: 'image/png' }] } : { content: [{ type: 'text', text: JSON.stringify(data) }] } });
+          return { result: { action: 'accept', content: { run: true } } };
+        } });
+        await h.init({ elicitation: {} }); await h.request('tools/list'); await h.request('tools/call', { name: 'screenshot' });
+        expect((await h.request('tools/call', { name: 'click', arguments: { index: 3 } })).error?.message).toContain('WARDEN');
+        expect(callsAt(calls).filter(name => name === 'click')).toHaveLength(0); expect(h.asked).toHaveLength(1); await h.stop();
+        expect(readFileSync(flowPaths(env.WARDEN_STATE_DIR, env.WARDEN_FLOW_SESSION).log, 'utf8')).toContain('refused_after_approval');
+      });
+      it('does not read again or execute when approval is declined', async () => {
+        const dir = state(), calls = join(dir, 'calls.jsonl'), env = flowEnv(dir);
+        const h = harness({ dir, flags, env, config: { tools: screenTools, callsFile: calls, callResult: navigationView() }, elicit: () => ({ result: { action: 'accept', content: { run: false } } }) });
+        await h.init({ elicitation: {} }); await h.request('tools/list'); await h.request('tools/call', { name: 'screenshot' });
+        expect((await h.request('tools/call', { name: 'click', arguments: { index: 3 } })).error).toBeDefined();
+        expect(callsAt(calls)).toEqual(['screenshot', 'screenshot']); await h.stop();
+      });
+      it('refuses an action with no comparable baseline before showing a misleading approval form', async () => {
+        const dir = state(), calls = join(dir, 'calls.jsonl'), env = flowEnv(dir);
+        const h = harness({ dir, flags, env, config: { tools: screenTools, callsFile: calls, callText: 'pixels only' }, elicit: () => ({ result: { action: 'accept', content: { run: true } } }) });
+        await h.init({ elicitation: {} }); await h.request('tools/list'); await h.request('tools/call', { name: 'screenshot' });
+        expect((await h.request('tools/call', { name: 'click', arguments: { x: 120, y: 60 } })).error?.message).toContain('unambiguous');
+        expect(h.asked).toHaveLength(0); expect(callsAt(calls)).not.toContain('click'); await h.stop();
+      });
+      it('rechecks definitions even if the server forgot its change notification', async () => {
+        const dir = state(), calls = join(dir, 'calls.jsonl'), env = flowEnv(dir);
+        const h = harness({ dir, flags, env, config: { tools: screenTools, callsFile: calls, callResult: navigationView() }, elicit: () => {
+          h.change({ tools: screenTools.map(t => t.name === 'click' ? { ...t, description: 'Control the screen with updated routing.' } : t) });
+          return { result: { action: 'accept', content: { run: true } } };
+        } });
+        await h.init({ elicitation: {} }); await h.request('tools/list'); await h.request('tools/call', { name: 'screenshot' });
+        expect((await h.request('tools/call', { name: 'click', arguments: { index: 3 } })).error).toBeDefined(); expect(callsAt(calls)).not.toContain('click'); await h.stop();
+      });
+      it('cancels a clipboard action when a credential read changes its approval basis, despite identical geometry', async () => {
+        const dir = state(), calls = join(dir, 'calls.jsonl'), env = flowEnv(dir);
+        const data = JSON.parse(navigationView().content[0]!.text); Object.assign(data.elements[0], { role: 'textbox', focused: true });
+        const h = harness({ dir, flags, env, config: { tools: screenTools, callsFile: calls, callResult: { content: [{ type: 'text', text: JSON.stringify(data) }] } }, elicit: () => {
+          runFlowHook('post', JSON.stringify({ session_id: env.WARDEN_FLOW_SESSION, cwd: '/w', tool_name: 'Read', tool_input: { file_path: '/w/.env' }, tool_response: 'REGION=eu' }), { ...process.env, ...env });
+          return { result: { action: 'accept', content: { run: true } } };
+        } });
+        await h.init({ elicitation: {} }); await h.request('tools/list'); await h.request('tools/call', { name: 'screenshot' });
+        expect((await h.request('tools/call', { name: 'press_keys', arguments: { keys: 'cmd+v' } })).error?.message).toContain('risk context changed');
+        expect(callsAt(calls)).not.toContain('press_keys'); await h.stop();
+      });
+      it('blocks a second proxy GUI action while the first approval is pending, even without revalidation configured on the second', async () => {
+        const dir = state(), otherDir = state(), calls = join(dir, 'calls.jsonl'), otherCalls = join(otherDir, 'calls.jsonl'), env = flowEnv(dir);
+        let question: any;
+        const first = harness({ dir, flags, env, config: { tools: screenTools, callsFile: calls, callResult: navigationView() }, elicit: m => { question = m; } });
+        const second = harness({ dir: otherDir, flags: ['--flow', 'screen'], env, config: { tools: screenTools, callsFile: otherCalls, callResult: navigationView() }, elicit: () => ({ result: { action: 'accept', content: { run: true } } }) });
+        await Promise.all([first.init({ elicitation: {} }), second.init({ elicitation: {} })]); await Promise.all([first.request('tools/list'), second.request('tools/list')]);
+        await first.request('tools/call', { name: 'screenshot' }); const action = first.request('tools/call', { name: 'click', arguments: { index: 3 } }); await until(() => !!question);
+        expect((await second.request('tools/call', { name: 'click', arguments: { index: 3 } })).error?.message).toContain('another GUI action'); expect(second.asked).toHaveLength(0);
+        first.send({ jsonrpc: '2.0', id: question.id, result: { action: 'accept', content: { run: true } } });
+        expect((await action).result).toBeDefined(); await Promise.all([first.stop(), second.stop()]);
+      });
+      it('honors cancellation during the final observation and releases the unused screen lease', async () => {
+        const dir = state(), calls = join(dir, 'calls.jsonl'), env = flowEnv(dir);
+        const h = harness({ dir, flags, env, config: { tools: screenTools, callsFile: calls, callResult: navigationView() }, elicit: () => {
+          h.change({ callDelay: 350, delayTool: 'screenshot' }); return { result: { action: 'accept', content: { run: true } } };
+        } });
+        await h.init({ elicitation: {} }); await h.request('tools/list'); await h.request('tools/call', { name: 'screenshot' });
+        h.send({ jsonrpc: '2.0', id: 72, method: 'tools/call', params: { name: 'click', arguments: { index: 3 } } });
+        await until(() => callsAt(calls).length === 3);
+        h.send({ jsonrpc: '2.0', method: 'notifications/cancelled', params: { requestId: 72 } });
+        await h.request('ping', { delay: 500 }); expect(callsAt(calls)).not.toContain('click');
+        expect((await h.request('tools/call', { name: 'click', arguments: { index: 3 } })).result).toBeDefined();
+        expect(h.asked).toHaveLength(2); await h.stop();
+      });
+      it('retains an uncertain screen lease across proxy restart when the action has no result', async () => {
+        const dir = state(), calls = join(dir, 'calls.jsonl'), env = flowEnv(dir);
+        const config = { tools: screenTools, callsFile: calls, callResult: navigationView(), callDelay: 10000, delayTool: 'click' };
+        const h = harness({ dir, flags, env, config, elicit: () => ({ result: { action: 'accept', content: { run: true } } }) });
+        await h.init({ elicitation: {} }); await h.request('tools/list'); await h.request('tools/call', { name: 'screenshot' });
+        h.send({ jsonrpc: '2.0', id: 73, method: 'tools/call', params: { name: 'click', arguments: { index: 3 } } }); await until(() => callsAt(calls).includes('click'));
+        h.send({ jsonrpc: '2.0', id: 74, method: 'fixture/exit', params: { code: 1 } }); await h.exited;
+        const next = harness({ dir, flags, env, config: { ...config, callDelay: 0 } }); await ready(next);
+        expect((await next.request('tools/call', { name: 'click', arguments: { index: 3 } })).error?.message).toContain('operator review');
+        expect(callsAt(calls).filter(name => name === 'click')).toHaveLength(1); await next.stop();
+      });
+    });
+    it.each(['strict', 'policy'])('mode %s requires actual approval even for listed navigation', async mode => {
       const dir = state(), calls = join(dir, 'calls.jsonl'), env = flowEnv(dir);
       writeFileSync(env.WARDEN_FLOW_POLICY, JSON.stringify({ gui: { mode, allow: [navigationRule] } }));
       const h = harness({ dir, flags: ['--flow', 'screen'], env, config: { tools: screenTools, callsFile: calls, callResult: navigationView() }, elicit: () => ({ result: { action: 'accept', content: { run: true } } }) });
@@ -409,38 +600,38 @@ describe('wrap proxy', () => {
         expect((await h.request('tools/call', { name: 'click', arguments: { index: 3 } })).result).toBeDefined();
       }
       expect((await h.request('tools/call', { name: 'click', arguments: { index: 99 } })).result).toBeDefined();
-      expect(h.asked).toHaveLength(mode === 'strict' ? 4 : 1);
+      expect(h.asked).toHaveLength(4);
       expect(readFileSync(calls, 'utf8').trim().split('\n').filter(line => JSON.parse(line).params.name === 'click')).toHaveLength(4);
       await h.stop();
     });
-    it('forwards a policy-authorized coordinate click without elicitation, but refuses reuse and unknown targets', async () => {
+    it('refuses coordinate, listed and unknown clicks without an actual approval channel', async () => {
       const dir = state(), calls = join(dir, 'calls.jsonl'), env = flowEnv(dir);
       writeFileSync(env.WARDEN_FLOW_POLICY, JSON.stringify({ gui: { mode: 'policy', allow: [navigationRule] } }));
       const h = harness({ dir, flags: ['--flow', 'screen'], env, config: { tools: screenTools, callsFile: calls, callResult: navigationView() } });
       await ready(h); await h.request('tools/call', { name: 'screenshot' });
       h.change({ callResult: null, callText: 'clicked' });
-      expect((await h.request('tools/call', { name: 'click', arguments: { x: 120, y: 60 } })).result).toBeDefined();
+      expect((await h.request('tools/call', { name: 'click', arguments: { x: 120, y: 60 } })).error?.message).toContain('WARDEN flow guard');
       expect((await h.request('tools/call', { name: 'click', arguments: { index: 3 } })).error?.message).toContain('WARDEN flow guard');
       expect((await h.request('tools/call', { name: 'click', arguments: { x: 900, y: 900 } })).error?.message).toContain('WARDEN flow guard');
       expect(h.asked).toHaveLength(0);
-      expect(readFileSync(calls, 'utf8').trim().split('\n').map(line => JSON.parse(line).params.name)).toEqual(['screenshot', 'click']);
+      expect(readFileSync(calls, 'utf8').trim().split('\n').map(line => JSON.parse(line).params.name)).toEqual(['screenshot']);
       const decisions = readFileSync(flowPaths(env.WARDEN_STATE_DIR, env.WARDEN_FLOW_SESSION).log, 'utf8').trim().split('\n').map(line => JSON.parse(line));
-      expect(decisions.some(e => e.disposition === 'policy_allowed' && e.approvalOutcome === 'unknown')).toBe(true);
+      expect(decisions.some(e => e.disposition === 'policy_allowed' && e.approvalOutcome === 'unknown')).toBe(false);
       await h.stop();
     });
-    it('reserves a snapshot once when two policy-authorized requests arrive together', async () => {
+    it('refuses both concurrent GUI requests without human approval', async () => {
       const dir = state(), calls = join(dir, 'calls.jsonl'), env = flowEnv(dir);
       writeFileSync(env.WARDEN_FLOW_POLICY, JSON.stringify({ gui: { mode: 'policy', allow: [navigationRule] } }));
       const h = harness({ dir, flags: ['--flow', 'screen'], env, config: { tools: screenTools, callsFile: calls, callResult: navigationView() } });
       await ready(h); await h.request('tools/call', { name: 'screenshot' }); h.change({ callResult: null });
       const action = { name: 'click', arguments: { index: 3 } };
       const results = await Promise.all([h.request('tools/call', action), h.request('tools/call', action)]);
-      expect(results.filter(r => r.result)).toHaveLength(1);
-      expect(results.filter(r => r.error)).toHaveLength(1);
-      expect(readFileSync(calls, 'utf8').trim().split('\n').filter(line => JSON.parse(line).params.name === 'click')).toHaveLength(1);
+      expect(results.filter(r => r.result)).toHaveLength(0);
+      expect(results.filter(r => r.error)).toHaveLength(2);
+      expect(readFileSync(calls, 'utf8').trim().split('\n').filter(line => JSON.parse(line).params.name === 'click')).toHaveLength(0);
       await h.stop();
     });
-    it('reserves policy permission once across separate proxy processes sharing the session', async () => {
+    it('refuses unapproved GUI requests across separate proxy processes sharing the session', async () => {
       const dir = state(), otherDir = state(), env = flowEnv(dir), firstCalls = join(dir, 'calls.jsonl'), secondCalls = join(otherDir, 'calls.jsonl');
       writeFileSync(env.WARDEN_FLOW_POLICY, JSON.stringify({ gui: { mode: 'policy', allow: [navigationRule] } }));
       const first = harness({ dir, flags: ['--flow', 'screen'], env, config: { tools: screenTools, callsFile: firstCalls, callResult: navigationView() } });
@@ -449,10 +640,10 @@ describe('wrap proxy', () => {
       await first.request('tools/call', { name: 'screenshot' }); first.change({ callResult: null });
       const action = { name: 'click', arguments: { index: 3 } };
       const results = await Promise.all([first.request('tools/call', action), second.request('tools/call', action)]);
-      expect(results.filter(r => r.result)).toHaveLength(1);
-      expect(results.filter(r => r.error)).toHaveLength(1);
+      expect(results.filter(r => r.result)).toHaveLength(0);
+      expect(results.filter(r => r.error)).toHaveLength(2);
       const sent = [firstCalls, secondCalls].filter(existsSync).flatMap(path => readFileSync(path, 'utf8').trim().split('\n').map(line => JSON.parse(line)));
-      expect(sent.filter(call => call.params.name === 'click')).toHaveLength(1);
+      expect(sent.filter(call => call.params.name === 'click')).toHaveLength(0);
       await Promise.all([first.stop(), second.stop()]);
     });
     it('lets policy mode use the normal approval form for an unlisted target', async () => {
@@ -664,6 +855,18 @@ describe('wrap proxy', () => {
       expect((await h.request('tools/call', { name: 'send_email', arguments: args })).result).toBeDefined();
       expect((await h.request('tools/call', { name: 'send_email', arguments: { ...args, body: '7' } })).error).toBeDefined();
       expect(readFileSync(calls, 'utf8').trim().split('\n')).toHaveLength(1);
+      await h.stop();
+    });
+    it('never forwards ignored duplicate JSON fields under an exact public grant', async () => {
+      const dir = state(), { env, calls } = boundaryFixture(dir, true);
+      const h = harness({ dir, flags: ['--flow', 'mail'], env, config: { tools: mail, callsFile: calls } });
+      await ready(h);
+      h.p.stdin.write('{"jsonrpc":"2.0","id":"duplicate-payload","method":"tools/call","params":{"name":"send_email","arguments":{"to":"bob@corp.com","subject":"status","body":"7","body":"The public release is ready."}}}\n');
+      await until(() => h.messages.some(m => m.id === 'duplicate-payload'));
+      expect(h.messages.find(m => m.id === 'duplicate-payload').result).toBeDefined();
+      const received = readFileSync(calls, 'utf8');
+      expect(received).not.toContain('"body":"7"');
+      expect((received.match(/"body"/g) ?? [])).toHaveLength(1);
       await h.stop();
     });
     it('never forwards tiny or custom-encoded data through send or read-only MCP arguments', async () => {

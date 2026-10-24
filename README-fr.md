@@ -8,7 +8,7 @@
   <a href="https://glama.ai/mcp/servers/alexar76/warden"><img src="https://glama.ai/mcp/servers/alexar76/warden/badges/score.svg" alt="warden MCP server" /></a>
   <a href="https://warden.modelmarket.dev/"><img src="https://img.shields.io/npm/v/@aimarket/warden?color=cb3837&label=npm" alt="version npm" /></a>
   <img src="docs/badges/deps.svg" alt="Zéro dépendance d'exécution" />
-  <img src="docs/badges/tests.svg" alt="868 tests au vert" />
+  <img src="docs/badges/tests.svg" alt="1148 tests au vert" />
   <img src="docs/badges/node.svg" alt="Node >= 20" />
   <a href="LICENSE"><img src="docs/badges/license.svg" alt="Licence : MIT" /></a>
 </p>
@@ -29,11 +29,11 @@
 **Vérifiez tous les serveurs MCP de votre machine.** Pas de compte, pas de clé d’API, pas de modèle. Le seul trafic réseau va vers les serveurs de votre configuration.
 
 ```bash
-npx -y @aimarket/warden@0.20.0 scan
+npx -y @aimarket/warden@0.21.0 scan
 ```
 
 ```text
-WARDEN scan 0.20.0 · ruleset 11 sha256-RDXs+TaQoehA… · block at high
+WARDEN scan 0.21.0 · ruleset 11 sha256-RDXs+TaQoehA… · block at high
   read .mcp.json (claude-code, 3 servers)
 
   ✓ allow   notes       claude-code    1 tool · score 0.90
@@ -47,9 +47,8 @@ Details: warden-mcp scan --json, or --markdown FILE. To review a changed server:
 Face à quatre autres scanners open source sur les mêmes serveurs, chacun dans un conteneur gVisor sans réseau : sur la moitié réservée de MCPTox (un benchmark d’AAAI 2026 ; les règles de WARDEN ont été écrites à partir de l’autre moitié), WARDEN bloque 171 des 218 outils empoisonnés, les autres entre 8 et 41. Sur 986 serveurs publics, WARDEN en bloque 3 et sur 14 933 paquets npm et PyPI, 369 ; mcp-shield en bloque 343 et 5 354. [Méthode et tous les chiffres](docs/scanner-comparison.fr.md) · [guide de scan](docs/scan.fr.md).
 <!-- /warden-try -->
 
-**Garde de flux (0.20.0 publié ; changements locaux 2026-10-23).** Vérifie les appels après du texte extérieur. Le code local bloque les deux exemples restants : fragments de six caractères entourés de texte et listes explicites de caractères en anglais. Le même ensemble déterministe donne **0/23 livrés intégralement**, contre 2/23 auparavant ; deux cas limités à la réponse entraînent une note ou une vérification. GUI strict reste le défaut, avec des règles opérateur facultatives et limitées. Production et npm ne sont pas mis à jour. AgentDojo historique (2026-10-22) : 0/579 actions d’attaque, 57/97 tâches sans question ; non rejoué pour ce changement. [Comportement, tests et limites](docs/flow-guard.fr.md).
+**Garde de flux (code local, 2026-10-23).** Après identifiants et texte extérieur, appels sortants/MCP et écritures ordinaires du projet imposent vérification, même pour fragments minuscules ou encodages inconnus. Des requêtes publiques exactes vérifiées par l’opérateur peuvent passer une fois par session ; elles ne dispensent pas les fuites reconnues ni analyses incomplètes. Scénario : 0/16 attaques automatiques dans les deux profils ; confirmations innocentes 12/12 par défaut, 0/12 avec règles exactes. Compromis explicite, pas décodeur universel. Même ensemble : 0/23 livrés intégralement. Production/npm restent inchangés. [Politique, tests et limites](docs/flow-guard.fr.md).
 
-La première correspondance courte impose une vérification par appel avant envoi ; les paires adjacentes de six caractères restent refusées. Mesure bornée sur 480 clés et 757 fichiers : 0 faux refus fermes et 2 fichiers avec vérification supplémentaire. GUI strict est conservé. Ce changement local remplace l’attente d’une paire ; production et npm restent inchangés.
 
 Ruleset v16 (0.20.0, 2026-10-22, WARDEN seul) : moitié réservée de MCPTox 210 sur 218 (v15 : 194, v12–v14 : 171), 0 sur 45 serveurs propres ; sur le corpus de terrain et un échantillon de 1 000 paquets HISTOR, il bloque exactement ce que bloquait v15. La comparaison avec les autres scanners ci-dessus date du 2026-10-16, avec v12. [v15 et v16 dans la chaîne de portes](docs/gates.fr.md).
 
@@ -82,6 +81,20 @@ MCP stdio ajoute d'autres builtins `node:` (`fs`, `path`, `process`) et ne tire 
 C'est le pare-feu d'[ARGUS](https://github.com/alexar76/argus), extrait pour que vous puissiez le
 placer devant votre propre hôte MCP sans adopter d'agent.
 
+Régressions codes décimaux/NATO et MCP Git commit/push ; replay complet de 28 cas comme gate CI/release local (`npm run test:redteam`).
+
+Suite Auten : `taskAdapter.mode: "review"` / `task_run` demande une fois pour le résultat fixé ; `wrap --screen-read` annule si la cible fraîche change. GUI strict par défaut ; snapshot et clic non atomiques.
+
+Mode atomique : `wrap --flow screen --screen-read screenshot --screen-atomic` exige un CAS révision/cible sur un serveur de confiance (`AtomicScreenServer`, `warden.screen.atomic.v1`). Aucun clic direct de repli ; seules les surfaces synchrones contrôlées par le serveur sont prises en charge. Exemple de formulaire virtuel inclus ; aucune atomicité revendiquée pour un bureau natif arbitraire.
+
+macOS natif : `npm run build:macos` compile le SDK AppKit côté application et une vraie fenêtre ; `npm run test:macos` lance son gate séparé. L’atomicité exige `WardenDesktopSurface` dans l’application propriétaire des contrôles ; les autres applications sont refusées. Voir [intégration macOS](docs/flow-guard.fr.md).
+
+## Mode de tâches limité : moins de confirmations, contrôle des effets réels
+
+Le GUI strict reste le défaut. `gui.mode: "policy"` / `gui.allow` sont lus pour la migration, mais n’autorisent plus clic, saisie ou navigation après du texte externe. La page peut falsifier même origin, rôle et accessibility ID. Géométrie, focus et traductions expliquent seulement. Un nom composé tel que `press_keys_then_execute` n’obtient pas l’exception Copy ; des métadonnées RPC supplémentaires n’autorisent rien automatiquement.
+
+Opérations limitées sur activation explicite : `node dist/mcp-server.js task`. [Adaptateur, paiements, limites et nouveau replay AgentDojo](docs/flow-guard.fr.md). Code local uniquement, aucune publication ni mise en production.
+
 ## Protéger Claude Desktop ou Cursor avec un wrapper
 
 **Utilisez 0.8.2 ou une version ultérieure : 0.8.0 et 0.8.1 permettent à un serveur placé derrière le wrapper de falsifier la réponse au propre `tools/list` du client** ([CHANGELOG](CHANGELOG.md)). Depuis les sources, `node /chemin/absolu/warden/dist/mcp-server.js wrap ...` fonctionne de la même façon. Ajouter WARDEN comme serveur distinct ne vérifie pas les autres serveurs. Testé de bout en bout avec le SDK TypeScript MCP et des serveurs de test ; aucun essai dans Claude Desktop ni dans Cursor eux-mêmes n’est encore consigné ([validation de la version](docs/wrap-validation.md)). Remplacez la commande de chaque serveur protégé par `wrap` :
@@ -91,14 +104,14 @@ placer devant votre propre hôte MCP sans adopter d'agent.
   "mcpServers": {
     "filesystem": {
       "command": "npx",
-      "args": ["-y", "@aimarket/warden@0.20.0", "wrap", "--id", "filesystem", "--",
+      "args": ["-y", "@aimarket/warden@0.21.0", "wrap", "--id", "filesystem", "--",
                "npx", "-y", "@modelcontextprotocol/server-filesystem", "/Users/me/docs"]
     }
   }
 }
 ```
 
-Spécifiez toujours `--id` : sans cet identifiant, modifier les arguments crée une nouvelle identité et un premier contact. Un ID stable transforme un changement de commande ou de chemin en `SERVER_IDENTITY_DRIFT`. Le processus enfant hérite de l’environnement, exclu de l’identité. `npm install -g @aimarket/warden@0.20.0` puis `warden-mcp` évitent les démarrages à froid répétés de `npx`.
+Spécifiez toujours `--id` : sans cet identifiant, modifier les arguments crée une nouvelle identité et un premier contact. Un ID stable transforme un changement de commande ou de chemin en `SERVER_IDENTITY_DRIFT`. Le processus enfant hérite de l’environnement, exclu de l’identité. `npm install -g @aimarket/warden@0.21.0` puis `warden-mcp` évitent les démarrages à froid répétés de `npx`.
 
 **Outils sensibles.** `sensitiveToolPatterns` dans un fichier de politique (`--policy policy.json` avec `{"sensitiveToolPatterns": ["*delete*", "*transfer*"]}`, motifs `*` insensibles à la casse) fait attendre une personne à chaque appel d’un outil correspondant : `wrap` demande par le formulaire du client lui-même (elicitation MCP), avec l’outil, le serveur et les arguments, et seule une réponse acceptée, case cochée, laisse passer cet appel-là. La case est décochée au départ : un client qui accepte les formulaires avec leurs valeurs par défaut n’approuve rien. Un client sans formulaire d’elicitation reçoit un refus et le serveur ne reçoit jamais l’appel ; `--ask refuse` refuse sans demander. Si le client annule l’appel pendant que la personne décide, ou si les définitions changent entre-temps, il n’est pas envoyé. Avant 0.20.0, `wrap` acceptait ces motifs sans les appliquer. Avec `--flow`, un envoi pour lequel la garde de flux demanderait est demandé de la même façon.
 
@@ -126,16 +139,16 @@ Claude Desktop sur macOS : `~/Library/Logs/Claude/mcp-server-<nom>.log`. Cursor 
 ## Analyser tous les serveurs que démarrent vos clients
 
 ```bash
-npx -y @aimarket/warden@0.20.0 scan
+npx -y @aimarket/warden@0.21.0 scan
 ```
 
-Lit les configurations MCP de Claude Code, Claude Desktop, Cursor, VS Code et Windsurf, se connecte à chaque serveur qu’elles démarrent et vérifie les définitions d’outils avant qu’un modèle ne les voie. Affiche un tableau, du JSON, du SARIF ou du Markdown, et sort avec 1 quand un serveur est bloqué ; `--no-launch` ne démarre rien. Dans un dépôt, `warden.lock.json` transforme un changement de définitions en diff relisible, et la CI échoue sur un serveur nouveau ou modifié. Existe aussi en GitHub Action (`uses: alexar76/warden@v0.20.0`), en hooks pre-commit et en plugin Claude Code (`/plugin marketplace add alexar76/warden`). `--histor` demande au journal public HISTOR si un serveur vous sert ce qu’il sert à tout le monde ; pour un serveur distant il envoie l’endpoint et un condensé, pour un serveur stdio lancé depuis npm ou PyPI le nom du paquet (`npm:<nom>`, `pypi:<nom>`, qu’HISTOR exécute dans un bac à sable gVisor) et un condensé — jamais le texte des outils. Un classificateur optionnel (`--classifier-url`, `--classifier-model`) ajoute la lecture d'un modèle que vous choisissez, local ou hébergé, pour ce qu'aucune règle ne nomme. Voir le [guide de scan](docs/scan.fr.md). Comment il se compare à deux autres scanners sur les mêmes serveurs : [comparaison de scanners](docs/scanner-comparison.fr.md).
+Lit les configurations MCP de Claude Code, Claude Desktop, Cursor, VS Code et Windsurf, se connecte à chaque serveur qu’elles démarrent et vérifie les définitions d’outils avant qu’un modèle ne les voie. Affiche un tableau, du JSON, du SARIF ou du Markdown, et sort avec 1 quand un serveur est bloqué ; `--no-launch` ne démarre rien. Dans un dépôt, `warden.lock.json` transforme un changement de définitions en diff relisible, et la CI échoue sur un serveur nouveau ou modifié. Existe aussi en GitHub Action (`uses: alexar76/warden@v0.21.0`), en hooks pre-commit et en plugin Claude Code (`/plugin marketplace add alexar76/warden`). `--histor` demande au journal public HISTOR si un serveur vous sert ce qu’il sert à tout le monde ; pour un serveur distant il envoie l’endpoint et un condensé, pour un serveur stdio lancé depuis npm ou PyPI le nom du paquet (`npm:<nom>`, `pypi:<nom>`, qu’HISTOR exécute dans un bac à sable gVisor) et un condensé — jamais le texte des outils. Un classificateur optionnel (`--classifier-url`, `--classifier-model`) ajoute la lecture d'un modèle que vous choisissez, local ou hébergé, pour ce qu'aucune règle ne nomme. Voir le [guide de scan](docs/scan.fr.md). Comment il se compare à deux autres scanners sur les mêmes serveurs : [comparaison de scanners](docs/scanner-comparison.fr.md).
 
-**Pour l’éditeur d’un serveur.** Si votre serveur liste d’autres outils là où est installé ce que le bac à sable d’HISTOR n’a pas — le runner d’un lanceur, un par système —, `npx -y @aimarket/warden@0.20.0 declare --out mcp-tool-sets.json -- <votre serveur>` écrit ces ensembles dans un fichier que vous publiez sur votre propre domaine, et ceux qui les reçoivent voient la déclaration de l’éditeur au lieu d’un ensemble inconnu. Voir le [guide de scan](docs/scan.fr.md).
+**Pour l’éditeur d’un serveur.** Si votre serveur liste d’autres outils là où est installé ce que le bac à sable d’HISTOR n’a pas — le runner d’un lanceur, un par système —, `npx -y @aimarket/warden@0.21.0 declare --out mcp-tool-sets.json -- <votre serveur>` écrit ces ensembles dans un fichier que vous publiez sur votre propre domaine, et ceux qui les reçoivent voient la déclaration de l’éditeur au lieu d’un ensemble inconnu. Voir le [guide de scan](docs/scan.fr.md).
 
 ## Ce que WARDEN ne fait pas
 
-Seul stdio est pris en charge. Les résultats des outils sont lus par les mêmes règles (`--results warn`, par défaut, place un avertissement devant un résultat qui se lit comme des instructions au modèle ; `block` le retient, l’outil ayant déjà été exécuté ; `off`) ; les arguments d’appel, `prompts/*`, `resources/*`, sampling et elicitation ne sont pas analysés. Des paraphrases et des instructions non anglaises sans littéraux reconnus peuvent passer ; voir le [classificateur HISTOR](https://github.com/alexar76/histor). Ce n’est pas un sandbox et la configuration du client reste modifiable. Vérification et exécution dans un autre processus ne sont pas atomiques : un changement détecté avant envoi bloque ; pendant l’exécution, la réponse est retenue, mais l’action peut avoir eu lieu. Un changement silencieux après la dernière liste est inobservable. Un client sans notifications peut afficher une ancienne liste ; les définitions sont revérifiées avant appel.
+Seul stdio est pris en charge. Les résultats des outils sont lus par les mêmes règles (`--results warn`, par défaut, place un avertissement devant un résultat qui se lit comme des instructions au modèle ; `block` le retient, l’outil ayant déjà été exécuté ; `off`) ; les arguments d’appel, `prompts/*`, `resources/*`, sampling et elicitation ne sont pas analysés. Des paraphrases et des instructions non anglaises sans littéraux reconnus peuvent passer ; voir le [classificateur HISTOR](https://github.com/alexar76/histor). Ce n’est pas un sandbox et la configuration du client reste modifiable. Sans backend écran atomique participant et de confiance, vérification et exécution dans un autre processus ne sont pas atomiques : un changement détecté avant envoi bloque ; pendant l’exécution, la réponse est retenue, mais l’action peut avoir eu lieu. Un changement silencieux après la dernière liste est inobservable. Un client sans notifications peut afficher une ancienne liste ; les définitions sont revérifiées avant appel.
 
 Les verdicts sont des diagnostics non signés, pas des attestations de conformité. `--audit-only` inscrit `AUDIT-ONLY`, transmet les descriptions et appels refusés par la sécurité et ne crée pas d’empreintes ; les limites de protocole et de ressources restent actives. Ce mode sert à étudier les faux positifs, pas à protéger.
 
@@ -351,7 +364,7 @@ transactions et la façon de les vérifier :
 ## Développement
 
 ```bash
-npm install && npm run build && npm test   # 868 tests
+npm install && npm run build && npm test   # 1148 tests
 ```
 
 `test/packaging.test.ts` est ce qui tient l'accroche honnête : il échoue si une dépendance d'exécution

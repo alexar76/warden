@@ -1,6 +1,6 @@
 import { FilePinStore, pinRevision } from "./pin-store.js";
 import { pinToolsHash, serverIdentityHash } from "./pinning.js";
-import { diffToolDefinitions, formatDefinitionDiff } from "./review-diff.js";
+import { diffToolDefinitions, formatDefinitionDiff, formatOriginLines, launchSpec, plainVersion } from "./review-diff.js";
 import { displaySafe } from "./sanitize.js";
 /**
  * MCP tool surface for the WARDEN stdio server.
@@ -522,6 +522,13 @@ const PIN_SCHEMA = {
   description: "A stored approval: serverId, toolsHash, identityHash, approvalMode (operator | automatic), toolNames, the approved tool definitions and approvedAt.",
 } as const;
 
+const SERVER_INFO = {
+  type: "object", additionalProperties: false,
+  properties: { name: { type: "string", maxLength: 200 }, version: { type: "string", maxLength: 200 } },
+  description:
+    "Optional: the serverInfo object from the server's initialize result, unmodified ({ name, version }). Shown next to the review as the version the server reports, and stored with an approval; it is the server's own word, so it is never hashed or trusted.",
+} as const;
+
 const PREVIOUS_PIN_REVISION = {
   type: ["string", "null"],
   description:
@@ -544,6 +551,7 @@ MCP_TOOLS.push(
       properties: {
         server: vetProps.server,
         tools: { ...(vetProps.tools as object), description: "The server's current tools/list payload, unmodified. Its hash is compared with the stored approval and returned as currentToolsHash." },
+        server_info: SERVER_INFO,
       },
     },
     outputSchema: {
@@ -568,7 +576,16 @@ MCP_TOOLS.push(
           }, { type: "null" }],
           description: "What changed since the stored approval, field by field; null when nothing is stored.",
         },
-        reviewText: { type: "string", description: "The same changes as plain lines for a person: [-removed-] and {+added+} inside text, before → after for values." },
+        reviewText: { type: "string", description: "The same changes as plain lines for a person: where they came from (reported version, launch command), [-removed-] and {+added+} inside text, before → after for values, and which tools gain text about the user's approval or tool choice." },
+        origin: {
+          type: "object", required: ["approvedVersion", "currentVersion", "launch"],
+          properties: {
+            approvedVersion: { type: ["string", "null"], description: "serverInfo.version stored with the approval (the server's own word), or null." },
+            currentVersion: { type: ["string", "null"], description: "serverInfo.version you passed now, or null." },
+            launch: { anyOf: [{ type: "object" }, { type: "null" }], description: "For npx / uvx style launches: runner, ecosystem, package, requested version or range, and pinned (an exact version in the command). null for other launches." },
+          },
+          description: "Where a change came from: the versions the server reported and whether the launch command pins one.",
+        },
         mutationsEnabled: { type: "boolean", description: "false means approve_mcp_server and revoke_mcp_server will refuse in this process." },
       },
     },
@@ -592,6 +609,7 @@ MCP_TOOLS.push(
         reviewed_tools_hash: { type: "string", description: "currentToolsHash from the status_mcp_server call the operator reviewed." },
         reviewed_identity_hash: { type: "string", description: "currentIdentityHash from the same status_mcp_server call." },
         previous_pin_revision: PREVIOUS_PIN_REVISION,
+        server_info: SERVER_INFO,
       },
     },
     outputSchema: {
@@ -807,13 +825,17 @@ async function managePin(name: string, args: Record<string, unknown>): Promise<o
     return { revoked: true, serverId: server.id };
   }
   const tools = asTools(args.tools);
+  const serverInfo = asServerInfo(args.server_info);
   const toolsHash = pinToolsHash(tools);
   const identityHash = serverIdentityHash(server);
   if (name === "status_mcp_server") {
+    const launch = launchSpec(server) ?? null;
+    const origin = { approvedVersion: plainVersion(previous?.serverInfo?.version) ?? null, currentVersion: plainVersion(serverInfo?.version) ?? null, launch };
     return { serverId: server.id, previous: previous ?? null, previousRevision: pinRevision(previous), currentToolsHash: toolsHash, currentIdentityHash: identityHash,
       changed: !!previous && (previous.toolsHash !== toolsHash || previous.identityHash !== identityHash),
-      currentTools: tools, mutationsEnabled: PIN_MUTATIONS_ENABLED,
-      ...review(previous?.tools, tools) };
+      currentTools: tools, mutationsEnabled: PIN_MUTATIONS_ENABLED, origin,
+      ...review(previous?.tools, tools, formatOriginLines(launch ?? undefined, origin.approvedVersion ?? undefined, origin.currentVersion ?? undefined,
+        !!previous && previous.toolsHash !== toolsHash)) };
   }
   if (args.reviewed_tools_hash !== toolsHash || args.reviewed_identity_hash !== identityHash) {
     throw new McpToolError("Payload differs from reviewed tool/identity hashes");
@@ -824,16 +846,31 @@ async function managePin(name: string, args: Record<string, unknown>): Promise<o
   const verdict = await warden.vet(server, tools);
   if (!verdict.allow) throw new McpToolError("Server failed security checks; approval refused");
   const pin = { serverId: server.id, toolsHash, toolsHashVersion: 2, identityHash, tools, approvalMode: "operator" as const,
-    toolNames: tools.map(t => t.name).sort(), approvedAt: new Date().toISOString() };
+    toolNames: tools.map(t => t.name).sort(), approvedAt: new Date().toISOString(), ...(serverInfo ? { serverInfo } : {}) };
   await store.replace(server.id, args.previous_pin_revision as string | null, pin);
   return { approved: true, pin };
 }
 
-function review(approved: ToolDef[] | undefined, current: ToolDef[]): { changes: ReturnType<typeof diffToolDefinitions> | null; reviewText: string } {
-  if (!approved) return { changes: null, reviewText: "No stored approval: every tool below is new to this store." };
-  const diff = diffToolDefinitions(approved, current);
+function review(approved: ToolDef[] | undefined, current: ToolDef[], origin: string[] = []): { changes: ReturnType<typeof diffToolDefinitions> | null; reviewText: string } {
   // A server's own text goes to a person's screen: escape control and bidi characters, as the CLI does.
-  return { changes: diff, reviewText: formatDefinitionDiff(diff).map(line => displaySafe(line, 20_000)).join("\n") };
+  const safe = (lines: string[]) => lines.map(line => displaySafe(line, 20_000)).join("\n");
+  if (!approved) return { changes: null, reviewText: safe([...origin, "No stored approval: every tool below is new to this store."]) };
+  const diff = diffToolDefinitions(approved, current);
+  return { changes: diff, reviewText: safe([...origin, ...formatDefinitionDiff(diff)]) };
+}
+
+/** The client's copy of serverInfo from the initialize result: an object with short string name and version. */
+function asServerInfo(raw: unknown): { name?: string; version?: string } | undefined {
+  if (raw === undefined || raw === null) return undefined;
+  if (typeof raw !== "object" || Array.isArray(raw)) throw new McpToolError("server_info must be the serverInfo object from initialize");
+  const out: { name?: string; version?: string } = {};
+  for (const key of ["name", "version"] as const) {
+    const v = (raw as Record<string, unknown>)[key];
+    if (v === undefined) continue;
+    if (typeof v !== "string" || v.length > 200) throw new McpToolError(`server_info.${key} must be a string of at most 200 characters`);
+    out[key] = v;
+  }
+  return Object.keys(out).length ? out : undefined;
 }
 
 async function staticScan(args: Record<string, unknown>): Promise<{

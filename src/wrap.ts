@@ -11,7 +11,9 @@ import { observe, vetAndPin, observationPath, WardenBlock, type Observation } fr
 import { readState } from './state.js';
 import { listAllTools } from './tool-list.js';
 import { screenResult, annotateResult } from './result-screen.js';
-import { flowPre, flowPost, flowApproval } from './flow-guard.js';
+import { flowPre, flowPost, flowApproval, flowScreenValidation, screenCall, screenResponseStamp, screenObservation, loadPolicy } from './flow-guard.js';
+import { screenLease } from './wrap-screen.js';
+import { ATOMIC_SCREEN_PROTOCOL, ATOMIC_SCREEN_PREPARE, ATOMIC_SCREEN_COMMIT, ATOMIC_SCREEN_CANCEL, atomicScreenPrepared, atomicScreenReceipt, type AtomicScreenPrepared } from './atomic-screen.js';
 
 type Message = { jsonrpc: '2.0'; id?: string | number | null; method?: string; params?: Record<string, unknown>; result?: any; error?: unknown };
 // How long a call waits for a person to answer the approval form before it is refused.
@@ -27,6 +29,7 @@ function parse(body: string): Message {
 }
 
 export async function runWrap(opts: WrapOptions): Promise<number> {
+  if (opts.screenAtomic && (!opts.flow || !opts.screenRead || opts.auditOnly || !screenObservation(`mcp__${opts.flow}__${opts.screenRead}`, opts.screenReadInput ?? {}))) throw new Error('Atomic screen requires an explicit observation and enforcing flow proxy');
   const server = wrapServer(opts), log = wrapLogger(opts.auditOnly);
   const feed = await loadWrapFeed(opts), store = new FilePinStore(join(opts.stateDir, 'pins'));
   const warden = Warden.create({ policy: opts.policy, threatFeed: feed, store });
@@ -52,11 +55,11 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
   let refresh: Promise<ToolDef[]> | undefined;
   const prefix = `warden:${randomUUID()}:`;
   let seq = 0;
-  const pending = new Map<string, { resolve: (value: { result: any; bytes: number }) => void; reject: (e: Error) => void; timer: NodeJS.Timeout }>();
+  const pending = new Map<string, { resolve: (value: { result: any; bytes: number }) => void; reject: (e: Error) => void; timer: NodeJS.Timeout; screen?: true }>();
   // Every client request forwarded to the child, by id. A child response is delivered only
   // against one of these, once: a response to an id the client never sent to the child (its
   // tools/list, which this proxy answers) or already received is a forgery, not a reply.
-  const tracked = new Map<string | number | null, { kind: 'initialize' | 'call' | 'other'; generation: number; tool?: string; args?: Record<string, unknown> }>();
+  const tracked = new Map<string | number | null, { kind: 'initialize' | 'call' | 'other'; generation: number; tool?: string; args?: Record<string, unknown>; screenRelease?: (abandon?: boolean) => void; atomic?: AtomicScreenPrepared }>();
   // Flow guard (--flow NAME). Every server a client wraps shares one session — by default the client's
   // process, which started them all — so outside text read through one server taints a send through another.
   const flowSession = opts.flow ? (process.env.WARDEN_FLOW_SESSION || `wrap-${process.ppid}`) : '';
@@ -79,6 +82,11 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
       pending.clear();
       for (const q of questions.values()) { clearTimeout(q.timer); q.resolve('closed'); }
       questions.clear();
+      for (const request of tracked.values()) {
+        if (request.screenRelease) flowScreenValidation({ session_id: flowSession, tool_name: flowTool(request.tool ?? '') }, 'execution_uncertain');
+        try { request.screenRelease?.(true); } catch { /* uncertain effect: keep the lease file */ }
+      }
+      tracked.clear();
       process.stdin.pause();
       process.removeListener('SIGTERM', signalStop); process.removeListener('SIGINT', signalStop);
       resolve(code);
@@ -145,6 +153,21 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
       try { childWrite(JSON.stringify({ jsonrpc: '2.0', id, method: 'tools/list', params: cursor === undefined ? {} : { cursor } })); }
       catch (e) { clearTimeout(timer); pending.delete(id); reject(e); }
     });
+    const requestScreen = (): Promise<{ result: any; bytes: number }> => new Promise((resolveScreen, reject) => {
+      const id = prefix + seq++;
+      const timer = setTimeout(() => { pending.delete(id); reject(new Error('WARDEN screen observation timed out; action was not run')); }, 10_000);
+      pending.set(id, { resolve: resolveScreen, reject, timer, screen: true });
+      try { childWrite(JSON.stringify({ jsonrpc: '2.0', id, method: 'tools/call', params: { name: opts.screenRead, arguments: opts.screenReadInput ?? {} } })); }
+      catch (err) { clearTimeout(timer); pending.delete(id); reject(err); }
+    });
+    const prepareAtomic = (tool: string, args: Record<string, unknown>): Promise<{ result: any; bytes: number }> => new Promise((resolveScreen, reject) => {
+      const id = prefix + seq++;
+      const timer = setTimeout(() => { pending.delete(id); reject(new Error('Atomic preparation timed out; action was not run')); }, 10_000);
+      pending.set(id, { resolve: resolveScreen, reject, timer, screen: true });
+      try { childWrite(JSON.stringify({ jsonrpc: '2.0', id, method: ATOMIC_SCREEN_PREPARE, params: { protocol: ATOMIC_SCREEN_PROTOCOL,
+        observation: { name: opts.screenRead, arguments: opts.screenReadInput ?? {} }, action: { name: tool, arguments: args } } })); }
+      catch (err) { clearTimeout(timer); pending.delete(id); reject(err); }
+    });
     const listAll = (): Promise<ToolDef[]> => listAllTools(requestPage);
     const check = (): Promise<ToolDef[]> => {
       if (refresh) return refresh;
@@ -198,6 +221,8 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
         return;
       }
       if (closing) return;
+      // Internal capabilities/tickets belong to this proxy, never to client/model requests.
+      if (msg.method?.startsWith('warden/screen/')) { fail(msg, 'Reserved WARDEN atomic screen method'); return; }
       if (msg.method === 'initialize' && msg.params?.capabilities && typeof msg.params.capabilities === 'object') clientCapabilities = msg.params.capabilities as Record<string, unknown>;
       if (msg.method === 'notifications/cancelled') {
         // A call still being checked, or waiting for a person, was never sent on: stop it here.
@@ -227,6 +252,9 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
             if (tracked.size >= 256 || tracked.has(msg.id) || waiting.has(msg.id)) throw new Error('Too many or duplicate pending MCP requests');
             const wait: { cancelled: boolean; question?: string } = { cancelled: false };
             waiting.set(msg.id, wait);
+            let releaseScreen: ((abandon?: boolean) => void) | undefined;
+            let screenChecking = false, humanApproved = false;
+            let atomic: AtomicScreenPrepared | undefined;
             try {
               const epoch = generation;
               const current = await check();
@@ -236,6 +264,27 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
               const tool = String(name);
               if (msg.params?.arguments !== undefined && (!msg.params.arguments || typeof msg.params.arguments !== 'object' || Array.isArray(msg.params.arguments))) throw new Error('Invalid MCP tool arguments: expected a JSON object');
               const args = msg.params?.arguments && typeof msg.params.arguments === 'object' && !Array.isArray(msg.params.arguments) ? msg.params.arguments as Record<string, unknown> : {};
+              const isGui = !!opts.flow && !!screenCall(flowTool(tool), args, { v: 1, untrusted: [], private: [], notified: false, full: false });
+              if (isGui && opts.screenAtomic && (!['ask', 'deny'].includes(loadPolicy().mode) || Object.keys(msg).some(k => !['jsonrpc', 'id', 'method', 'params'].includes(k)) || Object.keys(msg.params ?? {}).some(k => !['name', 'arguments'].includes(k)))) throw new Error('Atomic screen requires enforcing flow policy and exact call schema; action was not run');
+              if (isGui && opts.screenAtomic && displaySafe(JSON.stringify(args), 100_000).length > 1500) throw new Error('Atomic action arguments exceed the complete approval preview limit; action was not run');
+              if (isGui && !opts.auditOnly && (opts.screenRead || ['ask', 'deny'].includes(loadPolicy().mode))) releaseScreen = screenLease(flowSession);
+              const observeTarget = async (): Promise<string> => {
+                screenChecking = true;
+                const observedDef = current.find(t => t.name === opts.screenRead), exposedDef = visible.find(t => t.name === opts.screenRead);
+                if (!observedDef || !exposedDef || isSensitiveTool(observedDef.name, opts.policy) || pinToolsHash([observedDef]) !== pinToolsHash([exposedDef])) throw new Error('WARDEN: configured observation tool is not independently available for read; action was not run');
+                const preparing = opts.screenAtomic && !atomic;
+                const r = preparing ? await prepareAtomic(tool, args) : await requestScreen();
+                if (preparing) atomic = atomicScreenPrepared(r.result);
+                const observation = preparing ? atomic!.observation : r.result;
+                if (wait.cancelled) throw new CallCancelled();
+                if (closing || quarantined || epoch !== generation || !observation || observation.isError) throw new Error('WARDEN: screen observation failed or was cancelled; action was not run');
+                flowPost({ session_id: flowSession, cwd: process.cwd(), tool_name: flowTool(opts.screenRead!), tool_input: opts.screenReadInput ?? {}, tool_response: observation });
+                const stamp = screenResponseStamp(flowTool(tool), args, flowTool(opts.screenRead!), opts.screenReadInput ?? {}, observation);
+                if (!stamp) throw new Error('WARDEN: fresh screen cannot establish an unambiguous target, role, ID, bounds and context; action was not run');
+                if (preparing && stamp !== atomic!.stamp) throw new Error('Atomic server target binding differs from observation; action was not run');
+                return stamp;
+              };
+              const atomicTarget = isGui && opts.screenAtomic ? await observeTarget() : undefined;
               // A call that needs a person's yes: a tool the operator marked sensitive, or a send the flow guard asks about.
               const reasons: string[] = [];
               if (isSensitiveTool(tool, opts.policy)) reasons.push(`${displaySafe(tool, 200)} matches policy.sensitiveToolPatterns: every call to it needs a person's approval.`);
@@ -251,17 +300,52 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
               if (reasons.length && opts.auditOnly) log.warn(`would ask a person before ${displaySafe(tool, 200)} runs (sensitive tool)`);
               else if (reasons.length) {
                 if (!canAsk()) throw new Error(`tool blocked by WARDEN: ${displaySafe(tool, 200)} matches policy.sensitiveToolPatterns, so every call needs a person's approval, and wrap cannot ask you${cannotAsk()}; it was not run`);
+                const targetBefore = atomicTarget ?? (isGui && opts.screenRead ? await observeTarget() : undefined);
+                let approvedBasis: ReturnType<typeof flowPre>;
+                if (targetBefore) {
+                  const updated = flowPre({ session_id: flowSession, cwd: process.cwd(), tool_name: flowTool(tool), tool_input: args, public_request_eligible: false }, process.env, 'elicit');
+                  if (updated?.permissionDecision === 'deny') throw new Error(updated.permissionDecisionReason);
+                  approvedBasis = updated;
+                  if (flowAsked) reasons.pop();
+                  if (updated) { reasons.push(updated.permissionDecisionReason); flowAsked = true; }
+                  reasons.push(opts.screenAtomic ? 'The trusted server must atomically compare this exact target and revision and commit this one action. Stale/replayed approvals are refused; there is no raw-call fallback.' : 'WARDEN will read the screen again after approval and cancel if the target or context differs. Matching metadata does not attest the action’s effect.');
+                }
                 const outcome = await askPerson(msg.id, tool, args, reasons);
                 if (flowAsked) flowApproval({ session_id: flowSession, tool_name: flowTool(tool) }, outcome);
                 if (wait.cancelled) throw new CallCancelled();
                 if (outcome !== 'approved') throw new Error(`tool call refused by WARDEN: ${outcome === 'timeout' ? 'no answer to the approval request within 5 minutes' : outcome === 'closed' ? 'the connection closed before an answer' : outcome === 'error' ? 'the client could not show the approval request' : 'it was not approved'}; ${displaySafe(tool, 200)} was not run`);
+                humanApproved = true;
                 // The person approved the definition the client was shown; it must still be the one that runs.
                 if (quarantined || epoch !== generation) throw new Error('tool blocked by WARDEN: definitions changed while waiting for approval; list tools again');
+                if (targetBefore) {
+                  const reviewed = await check();
+                  if (quarantined || epoch !== generation || pinToolsHash(reviewed) !== pinToolsHash(current)) throw new Error('WARDEN: definitions changed since the approval prompt; action was not run');
+                }
+                if (targetBefore && await observeTarget() !== targetBefore) throw new Error('WARDEN: screen target or context changed since approval was requested; action was not run');
+                if (targetBefore) {
+                  const updated = flowPre({ session_id: flowSession, cwd: process.cwd(), tool_name: flowTool(tool), tool_input: args, public_request_eligible: false }, process.env, 'elicit');
+                  if (updated?.permissionDecision === 'deny') throw new Error(updated.permissionDecisionReason);
+                  if (JSON.stringify(updated) !== JSON.stringify(approvedBasis)) throw new Error('WARDEN: the risk context changed while approval was pending; action was not run');
+                  flowScreenValidation({ session_id: flowSession, tool_name: flowTool(tool) }, 'unchanged');
+                }
               }
               if (wait.cancelled) throw new CallCancelled();
-              tracked.set(msg.id, { kind: 'call', generation, tool, args });
-              childWrite(body);
-            } finally { waiting.delete(msg.id); }
+              if (quarantined || epoch !== generation) throw new Error('WARDEN: definitions changed before execution');
+              if (atomic && atomic.expiresAt <= Date.now()) throw new Error('Atomic approval expired; action was not run');
+              tracked.set(msg.id, { kind: 'call', generation, tool, args, screenRelease: releaseScreen, atomic });
+              releaseScreen = undefined;
+              // Forward the inspected object: ignored duplicate JSON fields must not carry hidden bytes.
+              const forward = atomic ? { jsonrpc: '2.0', id: msg.id, method: ATOMIC_SCREEN_COMMIT, params: { protocol: ATOMIC_SCREEN_PROTOCOL, ticket: atomic.ticket,
+                expected: { revision: atomic.revision, stamp: atomic.stamp }, action: { name: tool, arguments: args } } } : msg;
+              atomic = undefined; // Now tracked; cancellation/crash may mean the effect happened.
+              childWrite(opts.flow && !opts.auditOnly ? JSON.stringify(forward) : body);
+            } catch (err) {
+              if (screenChecking) flowScreenValidation({ session_id: flowSession, tool_name: flowTool(String(name)) }, tracked.has(msg.id) ? 'execution_uncertain' : humanApproved ? 'refused_after_approval' : 'refused_without_approval');
+              throw err;
+            } finally {
+              if (atomic && !closing) { try { childWrite(JSON.stringify({ jsonrpc: '2.0', method: ATOMIC_SCREEN_CANCEL, params: { protocol: ATOMIC_SCREEN_PROTOCOL, ticket: atomic.ticket } })); } catch { /* no effect; ticket expires */ } }
+              releaseScreen?.(); waiting.delete(msg.id);
+            }
           }
         } catch (e) { if (!(e instanceof CallCancelled)) fail(msg, e instanceof Error ? e.message : String(e)); }
         finally { activeChecks--; }
@@ -279,7 +363,7 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
         const p = pending.get(msg.id);
         if (!p) return; // Timed-out internal response must never leak to the client.
         clearTimeout(p.timer); pending.delete(msg.id);
-        if (msg.error) p.reject(new Error('MCP tools/list failed: ' + JSON.stringify(msg.error)));
+        if (msg.error) p.reject(new Error(p.screen ? 'WARDEN: screen observation failed; action was not run' : 'MCP tools/list failed: ' + JSON.stringify(msg.error)));
         else p.resolve({ result: msg.result, bytes: Buffer.byteLength(body) });
         return;
       }
@@ -300,14 +384,33 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
         if (!request) { log.warn(`dropped a child response to request ${displaySafe(JSON.stringify(msg.id), 80)}, which the client did not send to it or already received`); return; }
         {
           tracked.delete(msg.id);
+          if (request.atomic) {
+            try {
+              if (msg.error !== undefined) throw new Error('Atomic commit returned an error');
+              const receipt = atomicScreenReceipt(msg.result, request.atomic);
+              if (receipt.status === 'refused') {
+                request.screenRelease?.();
+                flowScreenValidation({ session_id: flowSession, tool_name: flowTool(request.tool ?? '') }, 'atomic_refused');
+                fail(msg, 'WARDEN: atomic server refused the stale, expired or mismatched approval; action was not run'); return;
+              }
+              msg.result = receipt.result;
+              body = JSON.stringify(msg);
+              flowScreenValidation({ session_id: flowSession, tool_name: flowTool(request.tool ?? '') }, 'atomic_committed');
+            } catch {
+              request.screenRelease?.(true);
+              flowScreenValidation({ session_id: flowSession, tool_name: flowTool(request.tool ?? '') }, 'execution_uncertain');
+              fail(msg, 'WARDEN: atomic execution result is uncertain; reconcile before retrying'); return;
+            }
+          }
           if (opts.flow && request.kind === 'call' && (msg.result !== undefined || msg.error !== undefined)) {
             // Record what the result brought into the session (outside text, private data) before anything else.
             try { flowPost({ session_id: flowSession, cwd: process.cwd(), tool_name: flowTool(request.tool ?? ''), tool_input: request.args ?? {}, tool_response: msg.error !== undefined ? { error: msg.error } : msg.result, ...(msg.error !== undefined ? { tool_error: msg.error } : {}) }); }
             catch (e) {
               log.warn(`flow guard could not record a result: ${e instanceof Error ? e.message : String(e)}`);
-              if (!opts.auditOnly) { fail(msg, 'WARDEN flow guard could not record this response; withheld to avoid untracked outside text'); return; }
+              if (!opts.auditOnly) { request.screenRelease?.(true); fail(msg, 'WARDEN flow guard could not record this response; withheld to avoid untracked outside text'); return; }
             }
           }
+          request.screenRelease?.();
           if (request.kind === 'call' && !opts.auditOnly && (quarantined || request.generation !== generation)) {
             fail(msg, 'tools changed, blocked by WARDEN; result withheld, execution may already have occurred'); return;
           }

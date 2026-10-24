@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // How small can the flow guard's key window be before ordinary text matches a piece of a key by chance?
 // Key-like values of eight real formats (made up here, same alphabet and structure) are cut into windows the way
-// src/flow-guard.ts does: letters and digits only, lower-cased, look-alikes folded, a letter and a digit in every
+// src/flow-guard-fingerprints.ts does: letters and digits only, lower-cased, look-alikes folded, a letter and a digit in every
 // window, none starting in the leading letters. Then every window of a large body of ordinary text, forwards and
 // backwards, is looked up. A hit is a false positive the guard would deny as "part of a credential".
 //

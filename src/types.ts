@@ -169,6 +169,12 @@ export interface PinnedServer {
    * missing value must not be read as a change. Re-approving fills it in.
    */
   identityHash?: string;
+  /**
+   * What the server said about itself in its initialize result when the operator approved it (`serverInfo`), as the
+   * client passed it. The server's own word: shown next to a review so a reviewer can see a version change, never
+   * hashed or trusted.
+   */
+  serverInfo?: { name?: string; version?: string };
 }
 
 /**

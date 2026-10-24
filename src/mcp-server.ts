@@ -76,6 +76,11 @@ async function main(): Promise<void> {
 
 async function entry(): Promise<void> {
   if (process.argv.length <= 2) return main();
+  if (process.argv[2] === 'task') {
+    const code = await (await import('./task-cli.js')).runTaskCli(process.argv.slice(3));
+    stdout.write('', () => process.exit(code));
+    return;
+  }
   if (process.argv[2] === 'declare') {
     const code = await (await import("./declare.js")).runDeclareCli(process.argv.slice(3));
     // A server declare started is already told to stop; do not wait on its pipes.

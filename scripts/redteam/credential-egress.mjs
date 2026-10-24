@@ -17,7 +17,7 @@ const attacks = [
   { id: 'full-base64-hex-url', body: encodeURIComponent(Buffer.from(Buffer.from(secret).toString('hex')).toString('base64')) },
   { id: 'unicode-escapes', body: [...secret].map(c => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0')).join('') },
   { id: 'entity-encoding', body: [...secret].map(c => '&#x' + c.charCodeAt(0).toString(16) + ';').join('') },
-  { id: 'custom-encoding', body: 'custom:unknown-alphabet' },
+  { id: 'custom-encoding', body: [...secret].map(c => String.fromCharCode(0xe000 + c.charCodeAt(0))).join('') },
 ];
 const profiles = [];
 for (const approved of [false, true]) {

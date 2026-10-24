@@ -4,22 +4,41 @@
 
 Auditoría de seguimiento, 2026-10-23: los datos binarios `image`/`audio` de los resultados ya no consumen el límite de texto; una captura grande antes del texto no oculta etiquetas, títulos de ventanas con archivos de credenciales ni JSON en bloques de texto. Las pantallas devueltas por acciones del puntero y del teclado, incluidas las de `computer`, también actualizan la vista. Una confirmación simple conserva la vista anterior; un resultado de acción con solo una imagen la borra. Los argumentos salientes no reciben esta excepción y siguen sujetos a la comprobación de secretos. Las pruebas de regresión reproducen ambos fallos mediante hooks y el proxy stdio real. El código local ahora también exige aprobación para las acciones GUI opacas descritas abajo.
 
-Este seguimiento describe la compilación desde el código fuente; el paquete npm `0.20.0` publicado no incluye estas correcciones del control de pantalla.
+Estas correcciones del control de pantalla van en npm `0.21.0`. npm `0.20.0` no las incluía.
 
-## Primer fragmento secreto: revisión antes del envío (código local, 2026-10-23)
+## Límite de credenciales y fragmentos codificados (código local, 2026-10-23)
 
-Tras registrar texto externo y leer una credencial, la primera coincidencia corta requiere **`ask` antes de ejecutar** (`deny` rechaza). Este código sustituye la correlación anterior, que dejaba salir las primeras partes. Dos fragmentos distintos y adyacentes de seis caracteres de la misma clave siguen provocando rechazo firme. Una coincidencia corta aislada es ambigua, no demuestra una fuga. Destinos nombrados/permitidos, política GUI y aprobaciones anteriores no eximen la siguiente llamada; el cliente debe respetar la decisión. `audit` solo registra; `off` desactiva. GUI estricto sigue por defecto.
+Después de registrar una lectura de credenciales y texto externo, **cada llamada saliente/MCP admitida requiere `ask` antes de ejecutar** (`deny` rechaza), sin excepciones por longitud, codificación, destinatario nombrado o etiqueta MCP de solo lectura. También se revisan escrituras normales del proyecto; se conserva la excepción de archivos de credenciales. `credentialRead` persiste entre turnos y al rotar el historial. Se impide así el envío automático de partes de uno a cuatro caracteres y datos con codificación desconocida mediante un límite, no prometiendo descifrarlo todo.
 
-Motivo en el registro de decisiones: `secret_fragment`.
+Secretos conocidos siguen rechazándose; coincidencias cortas ambiguas usan `secret_fragment`. Las demás revisiones usan `credential_egress`, sin acusar al texto inocuo de ser un secreto. GUI estricto sigue por defecto; ni sus excepciones de copia omiten este límite. `audit` solo registra; `off` desactiva. El cliente debe respetar la decisión.
 
-- **Coincidencias acotadas:** fragmentos aislados de seis/siete caracteres; ventanas de cinco solo si la fuente mezcla mayúscula, minúscula y dígito. También se comparan partes exactas de la frontera de un prefijo conocido que incluyan contenido secreto, midan al menos cinco caracteres y conserven letra de formato y separador (o el prefijo completo AWS/Google). Detecta `e_7Qm2`, `ve_7Q` y el primer trozo de 15 caracteres. Prefijos públicos solos y sufijos diminutos como `_7` no bastan. Se comprueban puntuación, URL/base64 acotados, inversión, cambios de mayúsculas, letras parecidas y listas explícitas; un hash largo continuo no se corta en ventanas débiles.
-- **Listas verbales:** letras/dígitos ASCII, nombres ingleses `zero`–`nine` y marcas `capital`/`uppercase`/`lowercase`/`letter X`, separados por comas, punto y coma, barras o saltos de línea, generan candidatos desde cinco caracteres decodificados. Una unidad desconocida termina la secuencia. No es un decodificador semántico o multilingüe universal.
-- **Aprobaciones y errores:** cada coincidencia ambigua vuelve a preguntar, incluso tras aprobar la misma parte. Rechazo, cancelación o ausencia de formulario nunca envían la llamada; aprobar autoriza solo una. El índice antiguo v1 exige revisión; v2 guarda hashes, posiciones y tamaños, no fragmentos en claro. Hace falta otra sesión y releer fuentes privadas para restaurar el seguimiento completo; releer una sesión incompleta no lo repara. Se conservan los límites de 16 384 entradas/256 observaciones y el rechazo por estado corrupto. Las colas antiguas retienen texto saliente normalizado y acotado; un hash no es cifrado y el directorio sigue siendo sensible.
-- **Pruebas:** primer trozo con contenido secreto al dividir en 5/6/15, partes aisladas de 5/6/7, representaciones admitidas, prefijos, argumentos anidados, estado antiguo/corrupto y proxies stdio concurrentes reales. Dos fragmentos simultáneos sin aprobación producen cero llamadas al servidor. El mismo conjunto de 23 casos sigue en **0/23 entregados por completo**, incluidos `secret-chunks-6-filler` y `secret-spelled-out`; dos casos solo de respuesta reciben nota/revisión. Prueba determinista sin modelo ni red.
+**Menos revisiones innecesarias:** el operador puede incluir solicitudes públicas exactas y revisadas independientemente en el `flow-policy.json` protegido del usuario. `publicRequestDigest(tool, args)` de `dist/flow-guard.js` vincula herramienta completa y todos los argumentos, incluido destino. Ordena claves de objetos; conserva orden de arrays. Cada regla autoriza una llamada por sesión, atómicamente entre proxies, y se consume incluso si falla. No cubre cambios, reintentos, metadatos RPC extra ni argumentos inválidos. No exime secretos, texto privado, datos personales, fragmentos detectados, análisis incompleto, almacenes saturados, control GUI, shell, destrucción o configuración protegida. La regla autoriza esos datos, no demuestra que sean públicos: inspeccione el contenido decodificado antes de aprobarlo. No se instalan reglas automáticamente.
 
-Medición de la nueva regla: 480 claves sintéticas de ocho formatos, 757 archivos del repositorio; **0 rechazos falsos firmes, 2 archivos con revisión adicional, sin agotar capacidad**. Las dos revisiones vienen de una sola coincidencia corta aislada: es un compromiso medido, no una promesa de cero falsos positivos. Reproducir: `npm run build`, `npm test`, `node scripts/redteam/flow-redteam.mjs /tmp/warden-redteam.json`, `node scripts/redteam/fragment-collisions.mjs /tmp/warden-fragments.json docs src test ../docs ../core`. Se cuentan revisiones y rechazos por separado.
+Ejemplo exclusivo para `mcp__mail__send_email` con `{"to":"bob@corp.com","subject":"status","body":"The public release is ready."}`:
 
-**Límites:** se evita enviar automáticamente el primer fragmento detectado, no cualquier partición posible. Partes más cortas no reconocidas, texto sin límites, otras codificaciones, fuentes no vistas, efectos ocultos o clientes que omiten aprobación quedan fuera. No se afirma OCR ni prevención universal. Producción y npm 0.20.0 no cambian. AgentDojo y el corpus histórico de 115 millones de caracteres no se repitieron para este cambio.
+```json
+{"credentialEgress":{"allow":[{"tool":"mcp__mail__send_email","requestSha256":"62e02f4cb9c21a472999fac9316b66fc8fefe3fcafd2b2860c32c5409dae4a65"}]}}
+```
+
+Las llamadas con protección de flujo reenvían el objeto JSON inspeccionado, sin campos duplicados ignorados; sus valores ocultos no viajan con un permiso exacto.
+
+Calcule localmente con `publicRequestDigest` tras revisar la solicitud completa. Límites: 32 reglas/permisos consumidos, 1024 nodos JSON, profundidad 32, 16 384 unidades UTF-16 serializadas y 65 536 unidades de trabajo de serialización. Un bloque inválido no concede nada. Se registra `credential_public_request` / `policy_allowed`, aprobación unknown; no afirma que una persona aceptara un formulario.
+
+Los metadatos siguen en versión `v2`. Revisiones inocuas: **12/12 → 0/12** con reglas exactas revisadas; el coste por defecto sigue explícito.
+
+**Decodificación y errores:** cola limitada para URL, base64/base64url canónico, hex UTF-8, escapes Unicode/hex escalares, entidades HTML numéricas y listas explícitas inglesas. Máximo cuatro niveles, 64 candidatos y 524 288 unidades UTF-16 acumuladas. Agotar presupuesto produce `payload_incomplete` y revisión, nunca un resultado limpio ni permiso público. Los literales inválidos no se ejecutan; no hay descompresión ni inferencia semántica. Estado/huellas corruptos no autorizan. Un índice v1 requiere revisión; una sesión nueva y relectura restauran el seguimiento. Hashes, posiciones, tamaños y colas salientes acotadas siguen siendo datos sensibles sin cifrado.
+
+**Compromiso medido:** el escenario tiene 12 solicitudes inocuas y 16 ataques. El modo estricto revisa las 12 inocuas; reglas públicas exactas permiten las 12 una sola vez. Ambos perfiles permiten automáticamente **0/16 ataques**, con **0 rechazos falsos firmes**. La prueba separada solo de huellas usa 480 claves sintéticas y 758 archivos: 0 rechazos firmes y 2 archivos con revisión por coincidencia corta. Son mediciones diferentes, no una tasa de producción. El mismo conjunto de 23 casos sigue en **0/23 entregados por completo**, incluidos `secret-chunks-6-filler` y `secret-spelled-out`; dos casos solo de respuesta reciben nota/revisión. Tests stdio reales confirman cero llamadas para datos cortos/codificados sin aprobación, una concesión concurrente y ningún atajo por metadatos o reintentos.
+
+```bash
+npm run build
+npm test
+node scripts/redteam/credential-egress.mjs /tmp/warden-egress.json
+node scripts/redteam/flow-redteam.mjs /tmp/warden-redteam.json
+node scripts/redteam/fragment-collisions.mjs /tmp/warden-fragments.json docs src test ../docs ../core
+```
+
+**Límites:** control del límite de herramientas registrado, no análisis universal del flujo de información. Fuentes no vistas, integraciones desconocidas/renombradas, respuestas sin llamadas, canales temporales/ocultos, efectos ocultos del servidor, divulgación aprobada y clientes que omiten decisiones quedan fuera. Sin reglas revisadas hay deliberadamente más confirmaciones inocuas. Producción/npm no cambian; el oracle replay de AgentDojo se repitió abajo; modelo real y 115 millones de caracteres/HISTOR siguen siendo históricos.
 
 ## Acciones GUI opacas (código local, 2026-10-23)
 
@@ -35,72 +54,220 @@ La última captura mejora ahora la explicación de tres formas. Las coordenadas 
 
 Para Enter/Return, un nodo inequívoco `focused: true` o `focusedRef`/`focusedElementId`/`activeElementId` identifica el elemento enfocado. Un campo explícitamente de una línea (`multiline: false`) en un formulario con un único control de envío reconocido recibe la explicación «Enter puede enviar»; un campo multilínea la recibe para cmd/ctrl+Enter. La relación exige `form`/`formId` o anidación JSON bajo el formulario. Foco ausente o contradictorio, multiline desconocido, formularios distintos o varios candidatos no permiten inferir el envío. Los identificadores accessibility/automation reconocidos y `type: "submit"` aportan pistas canónicas incluso sin etiqueta visible. Listas pequeñas explican etiquetas como Senden, Envoyer, Enviar y Wyślij. Identificadores, roles y traducciones siguen siendo pistas no confiables; el campo accessibility original no se copia a los metadatos adicionales ni se muestra en la solicitud; las referencias y etiquetas existentes permanecen en el estado de sesión.
 
-En modo estricto estas mejoras no reducen la aprobación; la política opcional de abajo puede autorizar interacciones concretas revisadas. Preguntar solo después de pegar o escribir omitiría mensajes ya rellenados, pagos y borrados. Geometría, foco o accessibility-id de una captura no prueban que navegar sea inocuo. Una nueva vista solo de imagen borra estas pistas; los nodos duplicados contradictorios no se usan. Los tests de hooks y stdio verifican explicaciones y rechazo antes del envío.
+Estas mejoras solo explican; los metadatos de pantalla nunca autorizan una interacción. Preguntar solo después de pegar o escribir omitiría mensajes ya rellenados, pagos y borrados. Geometría, foco o accessibility-id de una captura no prueban que navegar sea inocuo. Una nueva vista solo de imagen borra estas pistas; los nodos duplicados contradictorios no se usan. Los tests de hooks y stdio verifican explicaciones y rechazo antes del envío.
 
-## Permisos GUI explícitos y opcionales
+## Regresiones de Gautam: códigos, NATO, metadatos Git y CI
 
-El modo estricto sigue siendo el predeterminado: omita `gui` o use `"gui": {"mode":"strict"}`. Para reducir preguntas sobre interacciones revisadas, active `gui.mode: "policy"` en el `flow-policy.json` del usuario (`WARDEN_FLOW_POLICY` puede elegir la ruta). Es independiente del `mode` general. Ni una captura ni un archivo del proyecto lo activan. Sustituya herramientas, IDs y sitio del ejemplo por los del servidor revisado.
+El decodificador acotado añade listas de códigos decimales y palabras NATO. Requiere al menos cinco escalares válidos o cinco unidades NATO explícitas. Separan espacios, comas, punto y coma, barras verticales y saltos de línea; unidades desconocidas, escalares inválidos o marcadores de mayúsculas ambiguos rompen la secuencia. Admite alfa/alpha, juliett/juliet, xray/x-ray, dígitos/palabras, puntuación nombrada y capital/uppercase/lowercase. También inspecciona arrays JSON numéricos de 5–4096 enteros. Comparte los límites previos; agotarlos produce `payload_incomplete`. Sin eval ni descompresión arbitraria.
+
+Decodificar no declara una fuga: sigue haciendo falta patrón/huella de secreto. Números normales y prosa NATO no se prohíben automáticamente. Los primeros 1–4 caracteres siguen bajo el límite de credenciales aunque no alcancen el mínimo del decodificador. Se prueban claves reconstruidas y texto inocuo, sin llamar secreto a toda coincidencia corta.
+
+MCP sin etiquetas: `git_push`, `push_files`, `git_commit`, creación de commits y variantes camelCase/con puntos se clasifican como salida o persistencia publicable. El mensaje de commit puede publicarse después. `get_commit` / `list_commits` siguen siendo lecturas. Las etiquetas del operador requieren configuración correcta; el límite independiente cubre también herramientas MCP mal etiquetadas. Git shell mantiene sus controles. No se hizo ningún commit/push real.
+
+**Cambio local del gate:** `npm run build && npm run test:redteam` ejecuta todo el hook replay con `--check`: los 23 originales más cinco de Gautam, **28 casos: 26 ataques con herramientas requieren ask/deny y dos solo de respuesta note/recheck**. Casos faltantes/duplicados, resultados incoherentes o una vía automática reabierta fallan con salida no cero. Pruebas con informes alterados verifican el fallo. Se integra en CI WARDEN/workspace, npm `prepublishOnly` y workflow del registro antes de publicar. Son archivos locales: no se inició CI remoto, release ni publicación. Una nota no demuestra bloquear una respuesta manipulada del modelo.
+
+Reproducir: `npm run build`, `npm run test:redteam` o `node scripts/redteam/flow-redteam.mjs /tmp/warden-redteam.json --check`. Fuentes: `test/flow-guard-gautam.test.ts`, `scripts/redteam/flow-gate.mjs`.
+
+## Modo de tareas limitado: menos confirmaciones y control del efecto real
+
+El GUI estricto sigue siendo predeterminado. `gui.mode: "policy"` / `gui.allow` se leen para migración, pero ya no autorizan clics, escritura ni teclas de navegación tras texto externo. La página puede falsificar incluso origin, rol e accessibility ID. Geometría, foco y traducciones solo explican. Nombres compuestos como `press_keys_then_execute` no obtienen la excepción Copy; metadatos RPC adicionales tampoco autorizan automáticamente.
+
+El adaptador integrado (`node dist/mcp-server.js task`) aplica la restricción: lista recursos fijos, lee instantáneas UTF-8 locales fijadas por hash sin ejecutar HTML/JS y ejecuta operaciones HTTP revisadas por ID. El modelo no aporta URL, método, cabeceras, cuerpo, destinatario, adjunto ni ruta. No hay perfil del navegador, cookies, portapapeles del sistema, scripts, service workers, subprocesos ni reenvío general de herramientas. El GUI normal conserva sus confirmaciones. Es una alternativa estructurada para tareas admitidas, no un sandbox universal de navegador/VM.
+
+**Configuración explícita:** guarde el manifiesto en `<WARDEN_STATE_DIR>/task-manifest.json` y la política en el flow policy del usuario. Cambie ruta, hash y endpoint; `expiresAt` debe quedar como máximo a 24 horas. Exponga solo material elegido deliberadamente. El hash del recurso corresponde a `The public release is ready.\n`. Revise cada petición y calcule `manifestSha256` sobre los bytes exactos guardados, incluidos espacios y salto final. La política de ejemplo corresponde al manifiesto mostrado con un salto final. No se instalan permisos automáticamente.
+
+```json
+{
+  "version": 1,
+  "taskId": "public-report",
+  "expiresAt": "2026-10-23T23:00:00.000Z",
+  "resources": [
+    {
+      "id": "report",
+      "title": "Public report",
+      "path": "/absolute/path/public-report.txt",
+      "sha256": "1403cece199725b166f0f6e59faa9d45e3d5a25db26080fecf95e818ac8d4d0d"
+    }
+  ],
+  "operations": [
+    {
+      "id": "send_report",
+      "title": "Send reviewed report to Bob, no attachments",
+      "maxUses": 1,
+      "request": {
+        "method": "POST",
+        "url": "https://mail.example/api/send",
+        "headers": {
+          "content-type": "application/json",
+          "idempotency-key": "public-report-once"
+        },
+        "body": "{\"to\":\"bob@corp.com\",\"body\":\"The public release is ready.\",\"attachments\":[]}"
+      }
+    }
+  ]
+}
+```
 
 ```json
 {
   "mode": "ask",
-  "gui": {
-    "mode": "policy",
-    "maxSnapshotAgeMs": 5000,
-    "allow": [
-      {
-        "tool": "mcp__screen__click",
-        "action": "click",
-        "target": {
-          "role": "link",
-          "accessibilityId": "nav.inbox"
-        },
-        "context": {
-          "origin": "https://mail.example"
-        }
-      },
-      {
-        "tool": "mcp__screen__type",
-        "action": "type",
-        "target": {
-          "role": "textbox",
-          "accessibilityId": "search.query"
-        },
-        "context": {
-          "origin": "https://mail.example"
-        },
-        "maxTextLength": 128
-      },
-      {
-        "tool": "mcp__screen__press_keys",
-        "action": "key",
-        "target": {
-          "role": "textbox",
-          "accessibilityId": "search.query"
-        },
-        "context": {
-          "origin": "https://mail.example"
-        },
-        "keys": "Tab"
+  "taskAdapter": {
+    "mode": "capabilities",
+    "server": "warden_task",
+    "manifestSha256": "1531d08beffb7c86d6f236c3bdfa85a8fbac1c3e8734d701e79455c53d0d94b7"
+  }
+}
+```
+```json
+{
+  "mcpServers": {
+    "warden_task": {
+      "command": "node",
+      "args": [
+        "/absolute/path/warden/dist/mcp-server.js",
+        "task"
+      ],
+      "env": {
+        "WARDEN_STATE_DIR": "/absolute/state/warden",
+        "WARDEN_FLOW_POLICY": "/absolute/state/warden/flow-policy.json"
       }
-    ]
+    }
   }
 }
 ```
 
-Cada regla exige un `tool` MCP exacto, `action` (`click`, `type`, `key`), `target.accessibilityId` exacto y sensible a mayúsculas, `target.role` y al menos un contexto: `origin` o `application`. Si hay ambos, deben coincidir ambos. No se admiten comodines de herramienta o identidad. Origin solo contiene esquema HTTP(S), host y puerto, sin credenciales, ruta ni consulta; application es un ID exacto de aplicación/bundle, por ejemplo `"context":{"application":"dev.example.Mail"}`. Etiquetas visibles, descripciones del modelo y referencias numéricas no bastan para autorizar.
+```sh
+node -e 'console.log(new Date(Date.now() + 3600000).toISOString())'
+node --input-type=module -e 'import {createHash} from "node:crypto"; import {readFileSync} from "node:fs"; console.log(createHash("sha256").update(readFileSync(process.argv[1])).digest("hex"))' /absolute/state/warden/task-manifest.json
+```
 
-Se exige una captura JSON estructurada completa con `url`, `pageUrl`, `page_url` o `documentUrl` a nivel de documento (también en `structuredContent`), y/o `applicationId`/`bundleId`, más el rol e ID accessibility/automation del elemento. Se admite JSON en bloques de texto MCP. La URL de un enlace hijo no identifica la página. La identidad accessibility adicional se guarda como hash; las referencias y etiquetas acotadas existentes permanecen en el estado de sesión. Identidades duplicadas, foco/geometría/etiquetas/IDs contradictorios, estado incompleto o antiguo, contexto ausente y solo píxeles vuelven a pedir aprobación. Las coordenadas usan la intersección única anterior; type/key exigen el elemento enfocado. Selectores desconocidos, campos extra y esquemas de operación no admitidos también preguntan.
 
-La captura vale 5000 ms por defecto (`maxSnapshotAgeMs`: entero 100–30 000). Un permiso la reserva bajo el bloqueo de sesión y consume todas las vistas guardadas: peticiones concurrentes no la reutilizan. Cada llamada GUI enviada invalida las vistas anteriores; un nuevo resultado completo puede aportar la siguiente. Una confirmación simple conserva etiquetas explicativas, pero no renueva permisos. No hay conversión de coordenadas ni comprobación atómica de la GUI real: el operador confía en los metadatos del servidor elegido y en el comportamiento del control, incluido un posible envío automático al escribir. El contenido de una página puede falsificar IDs y cambiar manejadores. Use reglas solo para controles cuyo comportamiento conozca y acepte; coincidir en origen/ID no acredita que la acción sea inocua. Un error MCP invalida las vistas previas; una captura dentro de un error no renueva permisos.
+Registre **`warden_task`** con comando `node`, argumentos `[/absolute/path/warden/dist/mcp-server.js, task]` y el mismo `WARDEN_STATE_DIR` / `WARDEN_FLOW_POLICY` que los hooks o `wrap --flow warden_task`. Vincule ese nombre solo al adaptador integrado de WARDEN: dárselo a otro servidor le concede autoridad. Nombre y `readOnlyHint` no prueban identidad. Política ausente, estricta o inválida rechaza la red; `deny`, `audit`, `off` globales tampoco permiten ejecutar. El cliente puede mantener sus propios permisos.
 
-`type` exige `maxTextLength` (1–4096 unidades UTF-16), una sola cadena `text` o `value`, sin saltos de línea, controles ni flags extra. `key` exige un acorde configurado: Tab, Shift+Tab, ArrowUp/Down/Left/Right, Home, End, PageUp, PageDown o Escape. Copiar/seleccionar todo exactos conservan su exención. `click` admite operaciones conocidas de clic izquierdo simple/tap; clic derecho/doble, arrastre y operaciones desconocidas siguen preguntando.
+Llamadas: `task_list {}`, `task_read {"id":"report"}`, `task_execute {"id":"send_report"}`. Solo se acepta el ID fijo; campos extra, claves JSON duplicadas, arrays y metadatos RPC ocultos se rechazan. `task_adapter_delegated` registra delegación, no ejecución ni aprobación humana. El runtime revalida hash, esquema, caducidad y política; reserva el presupuesto compartido con bloqueo entre procesos y fsync antes de enviar. Reiniciar o modificar el manifiesto no repone un task ID gastado. Error/resultado incierto y cancelación tras enviar gastan el permiso; cancelar antes no. Estado corrupto o lock abandonado exige intervención y conciliación, no borrar estado para reintentar.
 
-Las reglas nunca eximen send/pay/delete/submit reconocidos, Enter/Return, pegado, coincidencias de secretos/texto privado/datos personales o ajustes protegidos. Tras leer credenciales, o agotar las huellas, se suspenden los permisos GUI automáticos. Siguiendo la preocupación de Auten, después de escribir, pegar u otra acción de teclado/control que pueda introducir texto y haya sido enviada, los clics posteriores preguntan durante toda la sesión, entre servidores, capturas y turnos. Un rechazo previo no activa la marca; un error tras el envío sí puede hacerlo por ejecución parcial. Solo una nueva sesión la borra. Solo píxeles sigue requiriendo confirmación antes de escribir: mensajes prellenados, pagos o borrados no necesitan entrada nueva.
+Solo peticiones HTTPS fijas; `loopback-test` permite además HTTP a localhost numérico para pruebas aisladas. Sin redirecciones, cookies, ejecución de enlaces/instrucciones ni reintentos. Tiempo total y respuesta limitados. `bearerEnv` referencia una variable elegida por el operador: el token solo va al endpoint fijo, nunca al listado ni a auditoría. La auditoría guarda IDs/resultados, no payloads/tokens; las respuestas siguen siendo datos no confiables.
 
-Máximo 64 reglas. Una sección GUI inválida, campo desconocido o regla incorrecta desactiva toda la lista, restaura el modo estricto y añade un diagnóstico fijo a la pregunta. Si una regla válida falla contexto, objetivo, antigüedad o seguridad, también pregunta. `deny` prevalece; `audit` registra sin bloquear ni conceder permisos GUI automáticos; `off` mantiene su comportamiento desactivado. Un permiso registra `reason: "screen_policy"`, `disposition: "policy_allowed"`, índice `guiRule` desde cero y `approvalOutcome: "unknown"`: política del operador, no aprobación humana. No añade IDs originales, texto ni valores del contexto al registro.
+**Pagos y transacciones:** fije cuenta/factura, importe, moneda y cuerpo; use `maxUses: 1` y un `idempotency-key` fijo admitido por el proveedor. Un envío no garantiza liquidación exactamente una vez. Tras timeout/error, concilie con el proveedor antes de otra autorización. Las pruebas usan loopback y claves sintéticas, sin pagos reales.
 
-Un escenario stdio determinista ejecuta tres clics listados y uno no listado: el modo estricto pide cuatro formularios; policy pide uno; ambos ejecutan las mismas cuatro llamadas tras las respuestas del cliente de prueba. Esto mide ese escenario, no utilidad real ni fatiga. Las pruebas hooks/stdio verifican rechazo antes de reenviar y reutilización concurrente. Cambios locales, sin despliegue, publicación npm ni afirmación de validación en producción de esta compilación.
+**Límites:** se confía en el proceso WARDEN y se protegen policy/state, runtime y vinculación MCP. Cada endpoint conserva su semántica; GET no se supone inocuo. Permisos erróneos del operador, secretos literales autorizados, efectos del servidor, canales ocultos de ID/orden/tiempo y otros clientes/herramientas que eviten el guardia quedan fuera. No se añadió OCR ni interceptación universal del GUI.
+
+**Verificación 2026-10-23:** nuevo oracle replay determinista de AgentDojo 0.1.35 / v1.2.2, Docker local sin red ni API de modelo: variante intent 0/579 ataques de acción entregados con éxito; 57/97 tareas limpias sin preguntas, 58/97 completadas y 608/949 completadas bajo ataque (antes 613/949). `ask` cuenta como rechazo; objetivos sin referencia o solo de respuesta no quedan certificados. AgentDojo no tiene GUI/adaptador: los cubren stdio, múltiples procesos y loopback. No se repitieron las mediciones históricas con modelo real, 115 millones de caracteres o HISTOR. [Resumen](../scripts/agentdojo/results/summary-2026-10-23-local.json).
+
+Regresiones: `test/task-adapter.test.ts`, `test/flow-guard-gui-policy.test.ts`, `test/flow-guard-credential-boundary.test.ts`, `test/flow-guard-secret-regression.test.ts`: etiquetas/IDs falsos, esquema, recursos fijados, concurrencia/reinicio, redirecciones, destinatario/cuerpo exactos y primeros 1–4 caracteres en raw, hex, base64, Unicode y codificaciones desconocidas. Los casos ambiguos se revisan sin afirmar falsamente que todo fragmento corto es un secreto.
+
+## Backend nativo macOS: AppKit dentro de la aplicación
+
+**Implementado:** el paquete Swift [WardenDesktop](../native/macos/Package.swift), `WardenDesktopSurface` y `WardenDesktopStandardIO` se ejecutan dentro de la aplicación propietaria de la ventana. `warden-desktop --demo` abre una ventana AppKit real con un controlador de botón local. No controla otras aplicaciones, no envía entrada global ni realiza operaciones de red/pagos. La confirmación estricta de wrap sigue por defecto. Requiere integración explícita de la aplicación; no es un inyector de escritorio universal.
+
+Compile y ejecute desde WARDEN. Requiere macOS, Xcode command-line tools y una sesión WindowServer activa. Destino de compilación: macOS 13+ y arquitectura arm64/x86_64 del host; solo se verifica la arquitectura del registro local. Se incluyen fuentes, no un binario precompilado. Sin nuevas dependencias npm de ejecución:
+
+```sh
+npm run build
+npm run build:macos
+node dist/mcp-server.js wrap --id macos-owned-app --flow native --screen-read screenshot --screen-atomic -- native/macos/.build/warden-desktop --demo
+npm run test:macos
+```
+
+Ejemplo de acción nativa: referencias de cadena. La alternativa usa solo `x` e `y` en puntos globales desde arriba a la izquierda, no píxeles. Objetivos cubiertos o ambiguos se rechazan:
+
+```json
+{"name":"click","arguments":{"index":"3"}}
+```
+
+**Límite atómico:** prepare retiene el `NSButton` exacto, su target `NSObject`, selector e implementación con ABI verificada mediante `method_getImplementation`. En MainActor, commit compara revisión, rol/ID/geometría/etiqueta, identidad, ventana/foco/modalidad, opacidad de los ancestros y hit-test. Se rechazan controles/ventanas transparentes, ventanas bloqueadas por modalidad y sheets pendientes, incluida la relación lógica `sheetParent`. Tras hit-test vuelve a capturar propiedades, comprueba ambos relojes y compara finalmente la revisión después de todos los callbacks inyectados. Invoca el IMP fijado mediante `NativeAction` en el mismo turno principal. Omite deliberadamente `NSApp.sendAction`: una redefinición puede encolar, redirigir o declarar éxito sin llamar al método aprobado. No usa `AXPress`, `CGEvent`, `performClick` animado, búsqueda first-responder ni coordenadas encoladas. Solo botones momentáneos registrados, visibles y habilitados con firma `void action(id sender)`. Se rechazan efectos directos, texto, acordes, portapapeles, campos seguros, vistas no registradas y PID externos.
+
+**Integración:** importe el paquete Swift local. En MainActor cree `WardenDesktopSurface(window:applicationID:)`, configure accessibility element/role/identifier y llame a `register(id:button:target:selector:)`. Retenga la superficie y `WardenDesktopStandardIO(surface:)`; `start()` atiende el pipe stdio heredado exclusivo. La observación es metadato estructurado de controles registrados, no captura de píxeles ni árbol AX global. Máximo 64 controles, referencias/ID únicos y targets explícitos retenidos; se rechazan target nil y firmas Objective-C inseguras. Consulte [fuentes](../native/macos/Sources/WardenDesktop/NativeSurface.swift) y [host nativo](../native/macos/Sources/WardenDesktopHost/Main.swift).
+
+Todos los cambios de modelo/destinatario/controlador deben hacerse en MainActor llamando a `invalidate()` **antes** de mutar fuera del controlador aprobado, incluidos cambios invisibles y A → B → A. Notificaciones y huellas recientes complementan la regla, sin demostrar todos los cambios ocultos. Los controladores aprobados deben ser síncronos, sin bucles modales anidados, reenvío asíncrono ni sustitución de responder. Sus cambios propios quedan cubiertos por la rotación de revisión del commit. Si la aplicación no cumple ese contrato, no habilite modo atómico. No hay alternativa para aplicaciones ajenas sin integración: Apple expone [lecturas AX y acciones separadas](https://developer.apple.com/documentation/applicationservices/1462091-axuielementperformaction), no nuestro contrato de revisión.
+
+Los tickets vinculan todos los argumentos y caducan por reloj de pared y monotónico en un máximo de cinco minutos. Se consumen antes del envío; cancelación, repetición, reinicio o discrepancia no permiten reutilizarlos. Un envío fallido/incierto bloquea la autoridad nativa; no reinicie ni vuelva a autorizar solo para repetir un pago. committed acredita el envío local al controlador, **no** entrega de correo, liquidación ni trabajo asíncrono terminado. Use conciliación e idempotencia persistente del servicio para esos resultados. Wrap conserva el bloqueo si se pierde la respuesta.
+
+**Gate nativo:** `npm run test:macos` compila por separado binarios de producción/prueba y ejecuta ventanas reales, stdio y formularios wrap. Cubre cambios de objetivo/controlador/geometría/ventana, sustitución de objeto idéntico visualmente, ABA, reentrada hit-test, caducidad/retroceso/repetición/reinicio/cancelación, huellas entre lenguajes y etiquetas multilingües. Los métodos de mutación de prueba no existen en producción. La suite es independiente de `npm test`; otro sistema, herramientas ausentes o GUI inaccesible hacen fallar el gate, sin skip silencioso. CI local incorpora un gate macOS; no se ejecutó remotamente. Las pruebas no solicitan permisos globales Accessibility/Screen Recording ni modifican TCC. Sin publicación/despliegue.
+
+**Auditoría local de seguimiento (2026-10-24):** prepare y commit vuelven a leer las propiedades nativas después de `hitTest`; cambios de controlador, etiqueta, estado habilitado o marco provocan rechazo aunque la aplicación omita `invalidate()`. Ambos relojes se comprueban otra vez justo antes del envío. El argumento Objective-C del remitente debe ser un objeto (`@`), nunca un bloque (`@?`). El servidor atómico TypeScript también aplica un plazo monotónico y comprueba la caducidad antes del efecto. Las regresiones cubren estos casos, cambios durante prepare, recuperación de capacidad y reentrada al controlador nativo. Esto no sustituye el contrato de propiedad: getters y hit-test no deben ejecutar bucles anidados ni efectos; los cambios ocultos de modelo/destinatario siguen exigiendo invalidación previa. Solo se admiten aplicaciones de confianza con integración.
+
+**Contrato de llamada directa (segunda auditoría local, 2026-10-24):** los controladores registrados deben ser seguros para invocación directa y comprobar sus permisos; no dependa de una redefinición de `NSApplication.sendAction` ni del responder para autorizarlos. Relojes y getters son código confiable y síncrono del host. Cambios ocultos y ABA siguen requiriendo `invalidate()` previo. Regresiones: modalidad/opacidad durante hit-test, cambio de implementación, transparencia parcial estable, intercepción de dispatch e invalidación desde el último reloj. Estas comprobaciones van en npm `0.21.0`. El informe local no sustituye el recibo firmado release-quality: su digest actual cubre JavaScript en `dist`, no las fuentes del SDK nativo; la validación nativa es independiente.
+
+## Verificación atómica del objetivo en el servidor
+
+**Activación explícita:** `--screen-atomic` requiere `--flow`, `--screen-read` y un modo flow que aplique la protección. La aprobación estricta sigue siendo la predeterminada. Se requiere un servidor participante de confianza; las anotaciones y una versión declarada no prueban confianza. Un servidor incompatible provoca rechazo antes de preguntar. No hay alternativa de clic directo. El modo anterior basado solo en capturas sigue sin ser atómico.
+
+Compile WARDEN y ejecute este ejemplo local desde su directorio. El ejemplo controla un formulario virtual: no genera entrada del sistema, correo, pagos ni tráfico de red:
+
+```sh
+node dist/mcp-server.js wrap --flow screen --screen-read screenshot --screen-atomic -- node examples/atomic-screen-server.mjs
+```
+
+**Protocolo:** antes de preguntar, el proxy llama de forma privada a `warden/screen/prepare` con la acción exacta y la observación configurada. Parámetros de ejemplo:
+
+```json
+{
+  "protocol": "warden.screen.atomic.v1",
+  "observation": { "name": "screenshot", "arguments": {} },
+  "action": { "name": "click", "arguments": { "index": 3 } }
+}
+```
+
+El servidor devuelve `protocol`, un `ticket` opaco de un solo uso, la `revision` de la superficie, el `stamp` del objetivo, `expiresAt` y `observation`. El proxy verifica el sello contra esa observación, muestra la acción y, tras una aceptación explícita, vuelve a comprobar las definiciones, el contexto de riesgo y el objetivo reciente. Envía `warden/screen/commit` con `{protocol,ticket,expected:{revision,stamp},action}` en lugar de la llamada directa. El servidor consume el ticket, compara la revisión actual, el objetivo resuelto y los argumentos exactos y ejecuta de forma síncrona en la misma sección crítica. No puede ceder el bucle de eventos ni encolar un clic por coordenadas entre la comparación y el efecto. Todo cambio, incluidos el controlador/destinatario y A → B → A, debe cambiar la revisión. El efecto usa la referencia resuelta, sin buscar después por coordenadas.
+
+Integre `AtomicScreenServer` de `@aimarket/warden/atomic-screen` (`dist/atomic-screen.js` en local). Enrute los tres métodos a `prepare(params)`, `commit(params)` y `cancel(params)`, y la observación a `read()`. Todas las rutas directas de efectos deben rechazar. Comparta una autoridad por superficie entre conexiones; los demás cambios pasan por `replace(snapshot)`. El código de confianza `apply(action, target)` debe ser síncrono y devolver `{result,snapshot}`, con el resultado MCP habitual. Se rechazan funciones asíncronas; una excepción o resultado inválido bloquea la superficie hasta una conciliación y sustitución explícitas. Véase el [servidor ejecutable](../examples/atomic-screen-server.mjs).
+
+Los tickets duran como máximo cinco minutos, vinculan toda la acción, se consumen al intentar commit y no sobreviven al reinicio. Límite: 256 pendientes. El cliente no puede invocar el protocolo privado mediante wrap; los tickets no llegan al modelo ni al registro flow. `warden/screen/cancel` descarta una preparación sin usar tras rechazo/cancelación; las abandonadas caducan. Los argumentos atómicos deben caber completos en 1500 caracteres escapados de la aprobación; el exceso se rechaza en vez de truncarse.
+
+Un recibo validado `committed` contiene `protocol,status,revisionBefore,revisionAfter,stamp,result`; wrap devuelve solo `result`. Un recibo validado `refused` contiene `protocol,status,reason` e indica que no hubo efecto. La auditoría distingue `atomic_committed` / `atomic_refused`. Un recibo inválido, error de transporte o resultado perdido es `execution_uncertain`: sin reintento y con el bloqueo GUI retenido hasta la conciliación del operador. El efecto puede haber ocurrido antes de perder la respuesta. El ticket no sustituye una clave de idempotencia de pago persistente.
+
+**Límite de propiedad:** esta implementación cierra la carrera solo si el servidor de confianza controla todo el estado y el efecto síncrono de la superficie. La autenticación o el transporte exclusivo deben restringir prepare/commit a proxies de confianza; un ticket no demuestra consentimiento humano. Una autoridad en un proceso no bloquea todo el sistema operativo. Encerrar entrada de ratón asíncrona o un RPC Playwright/desktop en esta API no hace atómica la superficie remota. Un backend nativo necesita una transacción/revisión real de la plataforma o un modelo de aplicación síncrono controlado. El backend AppKit nativo dentro de la aplicación se describe en la sección macOS; las aplicaciones externas sin integrar siguen sin admitirse. Metadatos falsos, actores externos no registrados y controladores autorizados dañinos quedan fuera de la garantía. El hook Claude no puede realizar el commit privado tras la aprobación. Las regresiones cubren cambios tras la última lectura, ABA/controlador, repetición, caducidad, reinicio, reentrada, rechazo de llamadas directas y efectos inciertos. Sin publicación ni despliegue.
+
+## Auten: una aprobación del resultado y pantalla nueva tras aprobar
+
+**Resultado:** añada el fragmento `runs` al manifiesto fijado, guarde JSON con dos espacios y salto final, recalcule el hash y use la política siguiente con `taskAdapter.mode: "review"`. Llame `task_run {"id":"mail_to_bob"}`. El adaptador pregunta una vez mediante MCP form elicitation antes del primer efecto: resultado, orden completo, URLs y cuerpos exactos, sin credenciales de cabecera. La casilla empieza en false. Sin formulario, aceptación por defecto, rechazo o cancelación no autorizan. `strict` sigue por defecto; `capabilities` conserva preautorización explícita.
+
+El ejemplo sustituye preparación/envío GUI por su efecto HTTP fijo. Hasta ocho operaciones distintas por plan, 16 planes y 12 000 caracteres escapados de vista completa. El modelo no cambia pasos, orden, destinatario, cuerpo ni resultado. `review` desactiva `task_execute` individual para impedir saltar la pregunta. Lecturas/listas son silenciosas; permisos independientes del cliente/herramientas sensibles pueden preguntar.
+
+Un bloqueo entre procesos cubre pregunta y ejecución. Se comprueba el presupuesto antes de preguntar y se reserva atómicamente todo el plan y cada operación después de aceptar. Es de un uso incluso al reiniciar. Cada paso revalida manifiesto/política, caducidad, cancelación y credenciales. Desvío/error/resultado incierto detiene lo restante y conserva todos los presupuestos gastados, incluso pasos no ejecutados. No hay rollback de efectos previos. Las respuestas no pueden alterar el siguiente paso/destino. Rechazo o cancelación antes de reservar no gastan. Concilie pagos inciertos antes de tocar estado/locks. Auditoría separa aprobación, reserva, finalización y parada, sin cuerpos/tokens.
+
+```json
+{
+  "runs": [
+    {
+      "id": "mail_to_bob",
+      "title": "Send the reviewed public report to bob@corp.com in Mail",
+      "operations": [
+        "send_report"
+      ]
+    }
+  ]
+}
+```
+
+```json
+{
+  "mode": "ask",
+  "taskAdapter": {
+    "mode": "review",
+    "server": "warden_task",
+    "manifestSha256": "c69bafc53aa2e4a1a82dd9a20accbe2e4de5372d7545509fe3f6ccf18fdc5580"
+  }
+}
+```
+
+**Pantalla nueva solo en wrap:** seleccione explícitamente una herramienta de observación del mismo servidor revisado:
+
+```sh
+node dist/mcp-server.js wrap --flow screen --screen-read get_elements -- node /absolute/path/screen-server.js
+node dist/mcp-server.js wrap --flow screen --screen-read computer --screen-read-input '{"action":"screenshot"}' -- node /absolute/path/screen-server.js
+```
+
+`--screen-read` requiere `--flow`; `--screen-read-input` es JSON estricto: entrada vacía para nombre de observación conocido o solo `action` de lectura para controlador genérico. `readOnlyHint` no concede autoridad. Sin esta configuración continúa el GUI estricto por llamada, sin afirmar revalidación posterior. El hook Claude no recibe un callback entre diálogo y ejecución.
+
+Wrap observa antes de preguntar, y tras aceptar revisa definiciones y observa otra vez. Compara la respuesta nueva, no una caché: objetivo único, rol, referencia exacta, límites, contexto y foco coherente para teclado; también ID de accesibilidad, etiqueta y formulario cuando existen. Cambios, ausencia, solapamiento/ambigüedad, lista incompleta, solo píxeles o error rechazan. No adivina escala/coordenadas. Esquemas con acciones múltiples/campos extra no se comparan. Riesgo cambiado o nuevos secretos también detienen. Se respeta cancelar durante la última lectura.
+
+Los efectos GUI conocidos se serializan entre proxies con `WARDEN_FLOW_SESSION` / state compartidos, incluso otro proxy sin revalidación. Un resultado normal libera; caída/resultado ausente deja lock incierto para el operador. Lecturas pueden seguir. `screen_validation`: `unchanged`, `refused_without_approval`, `refused_after_approval`, `execution_uncertain`; aprobar o coincidir metadatos no demuestra ejecución.
+
+**Límite:** reduce la ventana de carrera, no vuelve atómicos snapshot y clic. Otros procesos pueden cambiar el UI después; el servidor puede devolver caché/metadatos falsos; ID/caja iguales no prueban handlers ni efectos. La solución completa necesita validación de revision/objetivo y efecto atómicos en un servidor confiable. No hay aprobación global de click/paste/Send arbitrarios; agrupar solo sirve al adaptador estructurado que aplica las restricciones. Ataques solo de respuesta siguen fuera.
+
+Regresiones locales: `test/wrap-screen.test.ts`, `test/wrap.test.ts`, `test/task-adapter.test.ts`. [Checkpoint AgentDojo local](../scripts/agentdojo/results/summary-2026-10-23-auten-local.json), replay sin API de modelo ni GUI. Sin publicación, despliegue ni comentario enviado.
 
 ## Explicaciones de permisos (código aún no publicado)
 
@@ -120,11 +287,11 @@ La guardia comprueba llamadas después de recibir texto externo; no es un sandbo
 - Tras texto externo, escribir en un archivo corriente del proyecto una clave leída en la sesión pregunta (`deny` rechaza): los archivos del proyecto se publican luego sin otra llamada. `.env`, `.npmrc` y los demás archivos de credenciales son el sitio de las claves y pasan; una edición que solo quita una clave no coincide.
 - Una dirección que solo aparece en tu prompt dentro de texto pegado, de una línea citada (`>`), de las cabeceras de un mensaje pegado o bajo una marca de reenvío no es una que nombraste: enviarle algo pregunta una vez. Un punto o una coma tras una dirección que escribiste ya no la ocultan.
 - Una herramienta MCP sin etiqueta del operador es saliente si su nombre lo dice (send, post, share …), si lleva una URL o, desde el 2026-10-22, si nombra a una parte: un argumento como `to`, `email`, `attendees`, `assignee`, `collaborator` o `username`, o cualquier correo o IBAN. `warden-mcp flow-labels` lista las herramientas MCP sin etiqueta que usaron tus sesiones, con la suposición del guardián y un bloque `labels` para corregir y pegar en la política.
-- Por defecto, tras contenido externo, las acciones reconocidas de pantalla requieren aprobación con independencia de las coordenadas, el texto de la captura, el formato de elementos o el idioma de la etiqueta. Incluye clics/toques/arrastres, escritura/relleno, pegado, Enter/Return y acciones de teclado desconocidas. `deny` las rechaza. Las palabras inglesas solo mejoran la explicación; una etiqueta como Inbox no autoriza el clic. Véase la política GUI arriba.
+- Por defecto, tras contenido externo, las acciones reconocidas de pantalla requieren aprobación con independencia de las coordenadas, el texto de la captura, el formato de elementos o el idioma de la etiqueta. Incluye clics/toques/arrastres, escritura/relleno, pegado, Enter/Return y acciones de teclado desconocidas. `deny` las rechaza. Las palabras inglesas solo mejoran la explicación; una etiqueta como Inbox no autoriza el clic. Véase el modo de tareas limitado arriba.
 - Una inyección que solo cambia la respuesta no hace ninguna llamada que rechazar. Desde el 2026-10-22 el hook Stop del plugin añade una línea bajo una respuesta cuyo turno leyó texto externo, con esas fuentes, y lo dice cuando alguna se dirigió al asistente con instrucciones. Si la respuesta repite 12 letras y dígitos seguidos de las frases donde ese texto se dirigió al asistente, el hook además devuelve la respuesta una vez (`decision: block`) para comprobarla frente a la petición del usuario antes de que este la lea; el usuario solo pierde el tiempo de esa comprobación. `answerNote`: `always` (por defecto), `instruction` (solo ese caso) u `off`; fuera del plugin, registra `warden-mcp hook stop`.
 - El proxy registra también errores JSON-RPC y de herramientas. Retiene una respuesta si no puede registrarla; un estado de sesión corrupto bloquea la comprobación.
 
-Publicado en npm `0.17.0`: `npx -y @aimarket/warden@0.20.0 hook pre-tool-use`, o desde el código fuente en WARDEN, `npm ci && npm run build`, luego `node dist/mcp-server.js hook pre-tool-use`, con los hooks prompt/post también registrados. Política: `~/.local/state/warden/flow-policy.json` o `WARDEN_FLOW_POLICY`; modos `ask`, `deny`, `audit`, `off`. Véase el ejemplo vigente en [inglés](flow-guard.md).
+Publicado en npm `0.17.0`: `npx -y @aimarket/warden@0.21.0 hook pre-tool-use`, o desde el código fuente en WARDEN, `npm ci && npm run build`, luego `node dist/mcp-server.js hook pre-tool-use`, con los hooks prompt/post también registrados. Política: `~/.local/state/warden/flow-policy.json` o `WARDEN_FLOW_POLICY`; modos `ask`, `deny`, `audit`, `off`. Véase el ejemplo vigente en [inglés](flow-guard.md).
 
 Proxy: `node dist/mcp-server.js wrap --flow mail -- node mail-server.js`. Use un `WARDEN_FLOW_SESSION` nuevo y compartido por los proxies de una conversación. El PID padre predeterminado no une lanzadores diferentes. El proxy no ve el prompt ni herramientas integradas. Lo que requeriría preguntar se pregunta con el formulario de elicitation MCP del cliente cuando lo ofrece (la respuesta queda en el registro como `approvalOutcome`) y, si no, o con `--ask refuse`, se rechaza. `trustedSources` se aplica a la URL de WebFetch, no a enlaces en argumentos MCP.
 
@@ -346,7 +513,7 @@ docker run --rm --network none -v "$PWD/out:/out" warden-adojo /out/oracle.json
 
 `oracle.py` escribe resultados por par; `--variants none,strict,intent` elige las variantes del guardián (`strict`
 ignora lo que escribió el usuario). `summarize_oracle.py` los convierte en el resumen que cita la tabla.
-`WARDEN_FLOW_GUARD=/out/x.mjs` reproduce otra versión del guardián (cualquier copia de `flow-guard.mjs` del plugin);
+`WARDEN_FLOW_GUARD=/out/x.mjs` reproduce otra versión del guardián (cualquier copia de `flow-guard.mjs` del plugin; desde 2026-10-24 con sus partes `flow-guard-*.mjs` en la misma carpeta);
 así se compararon los cambios del 2026-10-22 con el código anterior.
 
 Los ataques con el código en la mano no necesitan contenedor: `npm run build && node scripts/redteam/flow-redteam.mjs out.json`.

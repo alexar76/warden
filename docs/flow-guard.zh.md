@@ -4,22 +4,41 @@
 
 2026-10-23 后续审计：工具结果中的 `image`/`audio` 二进制数据不再占用文本预算，因此排在文本之前的大幅截图不会再遮蔽元素标签、包含凭据文件名的窗口标题或文本块中的 JSON。指针和键盘操作（包括 `computer` 操作）返回的屏幕也会更新视图。普通执行确认保留上一视图；仅返回图像的操作会清空视图。此例外不适用于传出的参数，伪装成二进制数据的秘密仍会接受检查。回归测试通过 hooks 和真实 stdio 代理复现了这两种绕过。本地源码现在也会对不透明的 GUI 操作要求确认，详见下文。
 
-本次后续说明针对源码构建；已发布的 npm `0.20.0` 包不包含这些屏幕控制修复。
+这些屏幕控制修复随 npm `0.21.0` 发布。npm `0.20.0` 不包含它们。
 
-## 首个秘密片段：发送前审核（本地源码，2026-10-23）
+## 凭据边界与编码片段（本地源码，2026-10-23）
 
-记录外部文本并读取凭据后，第一个短匹配现在要求**执行前 `ask`**（`deny` 模式直接拒绝）。此代码替代了此前等待配对、允许早期片段发出的实现。同一密钥的两个不同且相邻的六字符片段仍触发强制拒绝。单个短匹配属于歧义证据，不等于已证实泄露。用户点名或策略允许的目标、GUI 策略以及此前批准均不能豁免下一次匹配；客户端必须遵守决定。`audit` 只记录，`off` 关闭保护。GUI 默认仍为严格模式。
+记录凭据读取和外部文本之后，**每个受支持的传出／MCP 调用都要求执行前 `ask`**（`deny` 拒绝），不因片段长度、编码、用户点名的目标或 MCP 只读标签而豁免。普通项目文件写入也需审核；凭据文件写入保留原有例外。`credentialRead` 跨轮次、跨来源历史轮换持续存在。这样阻止一至四字符和未知编码数据自动发出，依靠的是边界审核，不是声称能解码所有信息。
 
-决定日志原因：`secret_fragment`。
+已识别秘密仍拒绝；歧义片段使用 `secret_fragment`。其他边界审核使用 `credential_egress`，不把正常文本误称为秘密。GUI 默认仍严格，连复制快捷键的 GUI 例外也不能豁免此边界。`audit` 只记录，`off` 关闭保护；客户端必须遵守决定。
 
-- **有限匹配范围：** 独立的六／七字符片段；五字符窗口仅在来源同时包含大写、小写和数字时建立。已知前缀边界的精确片段若包含密钥有效内容、至少五字符，且保留格式字母和分隔符（或完整 AWS/Google 前缀），也会匹配。因此可检测 `e_7Qm2`、`ve_7Q` 及首个十五字符分段。只有公共前缀或 `_7` 等极短后缀不够。检查标点边界、有限 URL/base64 解码、倒序、大小写、形似字母及明确字符列表；不会把连续长哈希切成弱窗口。
-- **单词列表：** 由逗号、分号、竖线或换行分隔的 ASCII 字母／数字、英文 `zero`–`nine`、`capital`/`uppercase`/`lowercase`/`letter X` 标记，从五个解码字符起生成候选值。未知项结束序列。这不是通用语言或语义解码器。
-- **批准与错误：** 每次歧义匹配都重新询问，即使此前批准过同一片段。拒绝、取消或没有表单均不会转发；批准只授权一个调用。旧索引 v1 需要审核；v2 保存哈希、位置和长度，不保存片段明文。恢复完整跟踪需要新会话并重读私有来源；在不完整旧会话中重读不能修复。继续保留 16,384 条索引／256 条观察的上限和损坏状态拒绝。旧流尾部仍保存有界的规范化传出文本；哈希不是加密，状态目录仍敏感。
-- **测试：** 5/6/15 字符切分时第一个包含秘密的分段、独立 5/6/7 字符片段、支持的变换、前缀、嵌套参数、旧／损坏状态及真实并行 stdio 代理。两个同时出现且未获批准的片段产生零次服务器调用。同一组 23 个案例仍为 **0/23 完整通过**，包括 `secret-chunks-6-filler` 和 `secret-spelled-out`；两个仅影响回答的案例得到说明或复查。这是没有模型和网络的确定性规则测试。
+**减少不必要的审核：** 操作员可在受保护的用户级 `flow-policy.json` 中配置独立检查过的精确公开请求。`dist/flow-guard.js` 中的 `publicRequestDigest(tool, args)` 绑定完整工具名和全部参数，包括目标。对象键排序，数组顺序有意义。每条规则每会话只授权一次，跨代理原子预留，执行失败也消耗。参数改变、重试、额外 RPC 元数据或非法参数不适用。不能豁免已识别秘密、私有文本、个人数据、弱片段匹配、不完整扫描、存储饱和、GUI 控制、shell、破坏性动作或受保护配置。规则授权的是这些精确数据，不是证明其公开：批准编码请求前应自行检查解码内容。不会自动安装任何规则。
 
-新规则测量：八种格式的 480 个虚构密钥、仓库中 757 个文本文件，**0 次强制误拒绝，2 个文件需要额外审核，没有容量回退**。两次审核来自同一个孤立短匹配：这是测量后的取舍，不是零误报承诺。复现：`npm run build`、`npm test`、`node scripts/redteam/flow-redteam.mjs /tmp/warden-redteam.json`、`node scripts/redteam/fragment-collisions.mjs /tmp/warden-fragments.json docs src test ../docs ../core`。审核与强制拒绝分开统计。
+以下规则仅适用于 `mcp__mail__send_email`，参数为 `{"to":"bob@corp.com","subject":"status","body":"The public release is ready."}`：
 
-**边界：** 阻止的是已检测首片段的自动发送，而不是所有可能的切分。未识别的更短片段、没有边界的文本、其他编码、未读来源、隐藏副作用和绕过批准的客户端不在保证范围内。不声称 OCR 或普遍防护。生产环境与 npm 0.20.0 未更改。下文历史 AgentDojo 和 1.15 亿字符语料测量本次没有重跑。
+```json
+{"credentialEgress":{"allow":[{"tool":"mcp__mail__send_email","requestSha256":"62e02f4cb9c21a472999fac9316b66fc8fefe3fcafd2b2860c32c5409dae4a65"}]}}
+```
+
+启用流保护时转发的是已检查的 JSON 对象，删除被忽略的重复字段，避免隐藏值借用精确授权传出。
+
+检查完整请求后，在本地用 `publicRequestDigest` 生成摘要。上限：32 条规则／已消费授权、1,024 个 JSON 节点、深度 32、序列化请求 16,384 个 UTF-16 单元、序列化工作累计 65,536 单元。非法配置不授予权限。日志为 `credential_public_request` / `policy_allowed`，批准结果 unknown，不声称有人接受了表单。
+
+片段元数据仍为 `v2`。正常请求确认数：精确审核规则下 **12/12 → 0/12**；默认成本仍明确保留。
+
+**解码与错误：** 有界队列组合 URL、规范 base64/base64url、UTF-8 hex、Unicode 标量／hex 转义、数字 HTML 实体及明确英文字符列表。最多四层变换、64 个候选、累计 524,288 个 UTF-16 单元。超预算返回 `payload_incomplete` 并要求审核，绝不视为干净结果或允许公开请求。不会执行非法字面量，不解压也不做语义猜测。损坏的状态／指纹不能授权。旧 v1 索引要求审核；新建会话并重读私有来源可恢复。哈希、位置、长度和有界传出尾部仍为敏感数据，未加密。
+
+**测得的取舍：** 工作流程有 12 个正常请求和 16 个攻击。严格默认会审核全部 12 个正常请求；精确公开规则让这 12 个各自动通过一次。两种配置均自动放行 **0/16 攻击**，**0 次强制误拒绝**。独立的纯指纹测试使用 480 个虚构密钥和 758 个文件：0 次强制拒绝，2 个文件因短匹配需审核。这些测量不同，不能推断生产误报率。同一组 23 个案例仍为 **0/23 完整通过**，包括 `secret-chunks-6-filler` 和 `secret-spelled-out`；两个仅影响回答的案例得到说明／复查。真实 stdio 测试验证未批准的短／编码请求零次到达服务器、并发仅一次授权，且元数据和重试不能绕过。
+
+```bash
+npm run build
+npm test
+node scripts/redteam/credential-egress.mjs /tmp/warden-egress.json
+node scripts/redteam/flow-redteam.mjs /tmp/warden-redteam.json
+node scripts/redteam/fragment-collisions.mjs /tmp/warden-fragments.json docs src test ../docs ../core
+```
+
+**边界：** 这是已记录工具边界上的控制，不是通用信息流分析。未观察来源、未知／重命名集成、不调用工具的回答、时间／隐蔽信道、服务器隐藏行为、明确批准的披露和绕过决定的客户端不在保证范围内。没有检查过的规则时，正常操作也会有意增加确认。生产环境和 npm 未更改；本次已重跑下文的 AgentDojo oracle replay；真实模型、1.15 亿字符／HISTOR 测量仍为历史结果。
 
 ## 不透明的 GUI 操作（本地源码，2026-10-23）
 
@@ -35,72 +54,220 @@
 
 对于 Enter/Return，唯一的 `focused: true` 节点或 `focusedRef`/`focusedElementId`/`activeElementId` 可说明焦点元素。明确为单行的字段（`multiline: false`）若属于只有一个已识别提交控件的表单，会提示“Enter 可能提交”；多行字段则对 cmd/ctrl+Enter 给出此提示。表单关系须通过 `form`/`formId` 或 JSON 表单嵌套明确提供。缺失或冲突的焦点、未知 multiline 状态、不同表单及多个提交候选都不会推断提交。已识别的 accessibility/automation 标识和 `type: "submit"` 即使没有可见标签也能提供规范动作提示。小型词表解释 Senden、Envoyer、Enviar、Wyślij 等常见标签。标识、角色和翻译仍是不可信提示；原始 accessibility 字段不会复制到额外元数据中，也不会显示在确认提示里；现有元素引用和标签仍保留在会话状态中。
 
-严格模式下这些改进不会减少确认；下文可选策略能够授权已审查的特定交互。只在粘贴或输入后询问，会漏掉预填消息、付款和删除操作。仅凭快照中的几何、焦点或 accessibility-id，无法证明导航无害。新视图若只有图像，会清除这些提示；相互矛盾的重复节点不会被采用。hooks 与 stdio 测试同时检查解释及发送前拒绝。
+这些改进仅用于解释；屏幕元数据不授予操作权限。只在粘贴或输入后询问，会漏掉预填消息、付款和删除操作。仅凭快照中的几何、焦点或 accessibility-id，无法证明导航无害。新视图若只有图像，会清除这些提示；相互矛盾的重复节点不会被采用。hooks 与 stdio 测试同时检查解释及发送前拒绝。
 
-## 可选的显式 GUI 权限
+## Gautam 回归：字符编码、NATO、Git 元数据与 CI
 
-严格模式仍为默认：省略 `gui` 或使用 `"gui": {"mode":"strict"}`。对已审查的交互，可在用户级 `flow-policy.json` 中启用 `gui.mode: "policy"`（`WARDEN_FLOW_POLICY` 可指定路径），减少重复询问。它独立于总执行模式 `mode`；截图或项目文件不会自动启用它。请将示例工具、ID 和站点替换为已审查服务器的实际值。
+有界解码器增加十进制字符码和 NATO 单词拼写：至少五个有效标量码或五个明确 NATO 单元。空格、逗号、分号、竖线和换行分隔；未知单元、无效标量或含糊的大小写标记会中断序列。支持 alfa/alpha、juliett/juliet、xray/x-ray、数字单词/字面量、标点名称及 capital/uppercase/lowercase。也检查 5–4096 个整数的 JSON 数组。共享原有深度、候选数和文本预算；耗尽仍为 `payload_incomplete`。没有 eval 或任意解压。
+
+解码本身不代表泄漏，仍需命中秘密模式或指纹。普通数字列表与 NATO 文章不会自动被禁止。最初 1–4 个字符即使不满足解码最小长度，仍受凭据边界保护。测试同时覆盖恢复出的密钥和正常文本，不把每个短巧合都称为秘密。
+
+未标记 MCP 的 `git_push`、`push_files`、`git_commit`、创建提交及常见 camelCase/点分名称现归为外发或可发布的持久操作。提交消息之后可能被发布；`get_commit` / `list_commits` 仍为读取。操作员标签仍需正确配置，独立凭据边界也覆盖错误标记的 MCP。Shell Git 保留现有审核。没有执行真实 commit/push。
+
+**本地门禁变更：**`npm run build && npm run test:redteam` 用 `--check` 跑完整 hook replay：原 23 项加 Gautam 五项，共 **28 项，其中 26 项工具攻击必须 ask/deny，两项仅回答攻击必须 note/recheck**。缺失/重复用例、结果不符或重新开放自动传输均以非零退出。故意损坏报告的测试证明门禁会失败。已写入 WARDEN/workspace CI、npm `prepublishOnly` 与发布前 registry workflow。仅修改本地配置，没有启动远程 CI、release 或发布。提示回答风险并不证明阻止模型的仅回答攻击。
+
+复现：`npm run build`、`npm run test:redteam` 或 `node scripts/redteam/flow-redteam.mjs /tmp/warden-redteam.json --check`。代码：`test/flow-guard-gautam.test.ts`、`scripts/redteam/flow-gate.mjs`。
+
+## 受限任务模式：减少确认并控制实际操作
+
+默认仍为严格 GUI 模式。旧的 `gui.mode: "policy"` / `gui.allow` 仅为迁移保留解析，外部文本出现后不再自动放行点击、输入或导航按键。页面可伪造 origin、角色和 accessibility ID；几何、焦点和翻译只用于解释。`press_keys_then_execute` 等复合工具名不能使用 Copy 例外；额外 RPC 元数据也不能获得自动授权。
+
+内置任务适配器（`node dist/mcp-server.js task`）自行执行限制：列出固定资源，读取经哈希固定的本地 UTF-8 快照而不运行 HTML/JS，并按 ID 执行人工审查过的 HTTP 操作。模型不能提供 URL、方法、请求头、正文、收件人、附件或文件路径。适配器没有浏览器配置、cookies、系统剪贴板、页面脚本、service workers、子进程或通用工具转发。普通 GUI 继续要求确认。这是受支持任务的结构化替代路径，不是任意浏览器/VM 的通用沙箱。
+
+**明确配置：**将以下清单保存为 `<WARDEN_STATE_DIR>/task-manifest.json`，策略保存为用户 flow policy。替换快照路径、哈希和 endpoint；`expiresAt` 不得超过未来 24 小时。只公开刻意允许代理读取的资料。资源示例哈希对应精确字节 `The public release is ready.\n`。审查每个请求，再对实际保存的全部字节（包括空白和末尾换行）计算 `manifestSha256`。策略示例对应所显示的清单加一个末尾换行。不会自动安装权限。
+
+```json
+{
+  "version": 1,
+  "taskId": "public-report",
+  "expiresAt": "2026-10-23T23:00:00.000Z",
+  "resources": [
+    {
+      "id": "report",
+      "title": "Public report",
+      "path": "/absolute/path/public-report.txt",
+      "sha256": "1403cece199725b166f0f6e59faa9d45e3d5a25db26080fecf95e818ac8d4d0d"
+    }
+  ],
+  "operations": [
+    {
+      "id": "send_report",
+      "title": "Send reviewed report to Bob, no attachments",
+      "maxUses": 1,
+      "request": {
+        "method": "POST",
+        "url": "https://mail.example/api/send",
+        "headers": {
+          "content-type": "application/json",
+          "idempotency-key": "public-report-once"
+        },
+        "body": "{\"to\":\"bob@corp.com\",\"body\":\"The public release is ready.\",\"attachments\":[]}"
+      }
+    }
+  ]
+}
+```
 
 ```json
 {
   "mode": "ask",
-  "gui": {
-    "mode": "policy",
-    "maxSnapshotAgeMs": 5000,
-    "allow": [
-      {
-        "tool": "mcp__screen__click",
-        "action": "click",
-        "target": {
-          "role": "link",
-          "accessibilityId": "nav.inbox"
-        },
-        "context": {
-          "origin": "https://mail.example"
-        }
-      },
-      {
-        "tool": "mcp__screen__type",
-        "action": "type",
-        "target": {
-          "role": "textbox",
-          "accessibilityId": "search.query"
-        },
-        "context": {
-          "origin": "https://mail.example"
-        },
-        "maxTextLength": 128
-      },
-      {
-        "tool": "mcp__screen__press_keys",
-        "action": "key",
-        "target": {
-          "role": "textbox",
-          "accessibilityId": "search.query"
-        },
-        "context": {
-          "origin": "https://mail.example"
-        },
-        "keys": "Tab"
+  "taskAdapter": {
+    "mode": "capabilities",
+    "server": "warden_task",
+    "manifestSha256": "1531d08beffb7c86d6f236c3bdfa85a8fbac1c3e8734d701e79455c53d0d94b7"
+  }
+}
+```
+```json
+{
+  "mcpServers": {
+    "warden_task": {
+      "command": "node",
+      "args": [
+        "/absolute/path/warden/dist/mcp-server.js",
+        "task"
+      ],
+      "env": {
+        "WARDEN_STATE_DIR": "/absolute/state/warden",
+        "WARDEN_FLOW_POLICY": "/absolute/state/warden/flow-policy.json"
       }
-    ]
+    }
   }
 }
 ```
 
-每条规则要求精确的 MCP `tool`、`action`（`click`、`type`、`key`）、区分大小写的精确 `target.accessibilityId`、`target.role`，以及至少一种上下文：`origin` 或 `application`。两者都指定时都必须匹配。工具名和标识不支持通配符。Origin 只含 HTTP(S) 协议、主机和端口，不含凭据、路径或查询；application 是精确的应用/bundle ID，例如 `"context":{"application":"dev.example.Mail"}`。可见标签、模型描述和数字引用本身不能授权。
+```sh
+node -e 'console.log(new Date(Date.now() + 3600000).toISOString())'
+node --input-type=module -e 'import {createHash} from "node:crypto"; import {readFileSync} from "node:fs"; console.log(createHash("sha256").update(readFileSync(process.argv[1])).digest("hex"))' /absolute/state/warden/task-manifest.json
+```
 
-匹配需要完整的结构化 JSON 快照：文档级 `url`、`pageUrl`、`page_url` 或 `documentUrl`（也可位于 `structuredContent`），和/或 `applicationId`/`bundleId`，加上元素角色和 accessibility/automation ID。支持 MCP 文本块中的 JSON。子元素链接的 URL 不代表页面来源。额外的 accessibility 身份以哈希形式保存；现有的有长度限制的元素引用和标签仍保留在会话状态中。重复标识、冲突的焦点/几何/标签/ID、不完整或旧格式状态、缺失上下文和纯像素都会回退到确认。坐标使用上文的唯一相交匹配；type/key 要求目标正处于焦点。未知选择器、额外执行字段和不支持的操作格式也会询问。
 
-快照默认有效 5000 毫秒（`maxSnapshotAgeMs` 为 100–30000 的整数）。一次许可在会话锁内预留快照，并消耗所有缓存屏幕视图，避免并发重复使用。每个已转发的 GUI 动作都会使旧视图失效；动作返回的新完整快照可以提供下一视图。普通执行确认保留说明标签，但不续期许可。不提供坐标转换或真实 GUI 的原子验证：运营者必须信任所选服务器的元数据及配置控件的行为，包括输入时可能自动提交的行为。 页面内容可以伪造 ID 并改变事件处理。只为行为可信的控件配置规则；来源/ID 匹配不等于证明操作无害。MCP 错误会使旧视图失效，错误中的快照不能续期许可。
+注册 MCP 服务 **`warden_task`**：命令 `node`，参数 `[/absolute/path/warden/dist/mcp-server.js, task]`，使用与 hooks 或 `wrap --flow warden_task` 相同的 `WARDEN_STATE_DIR` / `WARDEN_FLOW_POLICY`。该名称只能绑定 WARDEN 内置适配器；绑定第三方服务会把权限交给它。工具名或 `readOnlyHint` 不是身份认证。缺失、严格或无效策略拒绝网络操作；全局 `deny`、`audit`、`off` 也不授予执行权限。客户端自己的权限仍可能要求确认。
 
-`type` 必须指定 `maxTextLength`（1–4096 个 UTF-16 代码单元），仅一个字符串 `text` 或 `value`，不含换行、控制字符或额外执行标志。`key` 仅允许指定的一种导航组合：Tab、Shift+Tab、ArrowUp/Down/Left/Right、Home、End、PageUp、PageDown 或 Escape。精确复制/全选保留原有豁免。`click` 覆盖已支持的单次左键点击/轻触；右键、双击、拖动及未知操作继续询问。
+调用：`task_list {}`、`task_read {"id":"report"}`、`task_execute {"id":"send_report"}`。参数只能是固定 ID；额外字段、重复 JSON 键、数组及隐藏 RPC 元数据均拒绝。`task_adapter_delegated` 表示委托给可信执行器，不代表已执行或人工批准。运行时再次检查哈希、模式、期限和策略，以进程锁及 fsync 在发送前消耗共享预算。重启或修改清单不会重置已使用的 task ID。失败、结果不确定或发送后取消均消耗授权；发送前取消不消耗。状态损坏或遗留锁要求操作员核对实际结果，不能删状态盲目重试。
 
-规则永不豁免已识别的 send/pay/delete/submit、Enter/Return、粘贴、秘密/私密文本/个人数据匹配以及受保护设置。读取凭据后或指纹容量耗尽后，自动 GUI 权限停止。根据 Auten 对输入/粘贴的提醒，一旦已转发输入、粘贴或其他可能键入文本的键盘/控制动作，本会话后续点击都需要确认，跨服务器、快照和用户轮次保留。执行前拒绝不会设置标记；转发后报错可能设置，因为动作可能部分执行。只有新会话才清除。即使尚未输入，纯像素仍需确认：预填消息、付款或删除不需要新输入。
+仅支持固定 HTTPS 请求；`loopback-test` 另外允许数值 localhost 的 HTTP，仅供隔离测试。拒绝重定向，不执行响应中的 cookies、链接或指令；限制响应大小与总耗时，不自动重试。`bearerEnv` 指向操作员指定的环境变量，令牌只发往固定 endpoint，不进入列表或审计。审计仅记录 ID 与结果，不记录正文或令牌；响应仍为不可信数据。
 
-最多 64 条规则。无效 GUI 配置、未知字段或错误规则会停用整个 GUI 许可列表，恢复严格行为，并在询问中加入固定诊断。有效规则若未通过上下文、目标、时效或安全检查也会询问。总模式 `deny` 优先；`audit` 记录拟询问的决策，不阻止执行，也不授予 GUI 策略许可；`off` 保留关闭行为。策略许可记录 `reason: "screen_policy"`、`disposition: "policy_allowed"`、从零开始的 `guiRule` 索引和 `approvalOutcome: "unknown"`：这是运营者策略，不是人工确认。该日志不加入原始 ID、文本或上下文值。
+**支付与交易：**固定账单/账户、金额、币种及正文；使用 `maxUses: 1` 与供应商支持的固定 `idempotency-key`。一次发送不等于保证恰好结算一次。超时或错误后先与供应商对账，再授权新操作。集成测试仅使用 loopback 与合成密钥，没有真实支付。
 
-确定性的 stdio 场景执行三个已列入规则的导航点击和一个未列入的点击：严格模式询问四次，policy 模式询问一次；测试客户端答复后，两者执行相同四个调用。这只验证该测试中的询问减少，不代表真实可用性或确认疲劳。hooks/stdio 回归也验证转发前拒绝和并发重复使用。改动仅在本地，未部署、发布到 npm，也未宣称此精确构建已通过生产质量验证。
+**边界：**需信任 WARDEN 进程并保护 policy/state、运行时和 MCP 绑定。endpoint 的实际语义仍由服务实现，不能把 GET 自动视为安全。错误的人为授权、固定正文中明确授权的秘密、服务端行为、ID/顺序/时间隐蔽信道及其他工具/客户端绕过均不在保证范围内。没有增加 OCR 或任意实时 GUI 操作拦截。
+
+**2026-10-23 验证：**在无网络、无模型 API 的本地 Docker 重跑 AgentDojo 0.1.35 / v1.2.2 确定性 oracle replay。intent 变体：成功的已投递动作攻击 0/579；正常任务免询问 57/97，完成 58/97，攻击下完成 608/949（历史为 613/949）。`ask` 视为拒绝；无参考答案和仅回答攻击未因此获安全认证。AgentDojo 没有 GUI/任务适配器工具，另用 stdio、多进程和 loopback 测试覆盖。历史真实模型、1.15 亿字符和 HISTOR 测量没有重跑。[汇总](../scripts/agentdojo/results/summary-2026-10-23-local.json)。
+
+回归：`test/task-adapter.test.ts`、`test/flow-guard-gui-policy.test.ts`、`test/flow-guard-credential-boundary.test.ts`、`test/flow-guard-secret-regression.test.ts`，覆盖伪造标签/ID、策略模式、固定资源、并发/重启、重定向、精确收件人/正文，以及 raw、hex、base64、Unicode 和未知编码下最初 1–4 个密钥字符。模糊短匹配要求审核，不把每个巧合都误称为秘密。
+
+## 原生 macOS 后端：在目标应用内运行 AppKit
+
+**已实现：**Swift 包 [WardenDesktop](../native/macos/Package.swift)、`WardenDesktopSurface` 和 `WardenDesktopStandardIO` 在拥有窗口的原生应用内运行。`warden-desktop --demo` 打开真实 AppKit 窗口，按钮处理器仅执行本地操作。不会控制其他应用、发送全局输入或执行网络/付款操作。wrap 仍默认严格确认。此后端要求应用主动接入，不是通用桌面注入器。
+
+在 WARDEN 目录构建运行。需要 macOS、Xcode command-line tools 以及活动的 WindowServer 会话。构建目标为 macOS 13+ 和本机 arm64/x86_64 架构；仅本地记录中的实际架构经过验证。包内提供源码，不提供预编译二进制，也不增加 npm 运行时依赖：
+
+```sh
+npm run build
+npm run build:macos
+node dist/mcp-server.js wrap --id macos-owned-app --flow native --screen-read screenshot --screen-atomic -- native/macos/.build/warden-desktop --demo
+npm run test:macos
+```
+
+原生动作示例，引用为字符串。也可仅传 `x` 和 `y`，采用全局屏幕左上角为原点的 points，而非像素。遮挡或不明确的目标被拒绝：
+
+```json
+{"name":"click","arguments":{"index":"3"}}
+```
+
+**原子边界：**prepare 保留准确的 `NSButton`、明确的 `NSObject` target、selector 和通过 `method_getImplementation` 获取并检查 ABI 的实现。MainActor commit 比较修订、实时角色/ID/边框/标签、对象身份、窗口/焦点/模态状态、整个父视图链的透明度以及 hit-test。完全透明的控件或窗口、被模态状态阻止的窗口和待显示 sheet（包括过渡期逻辑 `sheetParent` 关系）均被拒绝。hit-test 后重新读取属性，检查两个时钟，最后在所有注入 callback 返回后再次比较修订。通过 `NativeAction` 在同一主循环轮次直接调用固定 IMP。刻意绕过 `NSApp.sendAction`，因为其重写可能排队、改向，或未调用获批方法却返回成功。不使用 `AXPress`、`CGEvent`、带动画的 `performClick`、first-responder 查找或排队坐标输入。仅支持已注册、可见、启用且签名为 `void action(id sender)` 的瞬时按钮。直接点击、输入、快捷键、剪贴板、安全字段、未注册视图和外部 PID 均被拒绝。
+
+**接入：**在应用中导入本地 Swift 包。在 MainActor 创建 `WardenDesktopSurface(window:applicationID:)`，设置按钮 accessibility element/role/identifier，再调用 `register(id:button:target:selector:)`。在整个生命周期内保留 surface 和 `WardenDesktopStandardIO(surface:)`；`start()` 使用独占的继承 stdio 管道。观察返回注册控件的结构化元数据，不是像素截图或全局 AX 树。最多 64 个控件，引用/标识符唯一，target 必须明确且被保留；nil target 和不安全的 Objective-C 签名被拒绝。参见[源码](../native/macos/Sources/WardenDesktop/NativeSurface.swift)及[原生宿主](../native/macos/Sources/WardenDesktopHost/Main.swift)。
+
+所有模型/收件人/处理器变化必须在 MainActor 上、在已批准处理器之外，先调用 `invalidate()` **再**修改，包括不可见变化及 A → B → A。窗口通知和新指纹只是补充，不能证明观察到了全部隐藏变化。已批准处理器必须同步执行，不得启动嵌套模态循环、异步转发或替换 responder；处理器自身的变更由 commit 修订轮换覆盖。应用不能遵守这一所有权契约时，不得启用原子模式。未接入的第三方应用没有回退路径：Apple 提供[分开的 AX 读取与动作](https://developer.apple.com/documentation/applicationservices/1462091-axuielementperformaction)，并未提供本协议的修订契约。
+
+票据绑定完整参数，同时按系统时钟和单调时钟失效，最长五分钟。在分派前消耗；取消、重放、重启及不匹配均不能复用。失败或不确定的分派会封锁原生权威，不得仅为重试付款而重启或重新授权。committed 仅确认本地 target 处理器分派，**不**确认邮件送达、付款结算或异步任务完成；这些结果需要事务核对和服务端持久幂等键。回复丢失时 wrap 保留不确定性锁。
+
+**原生集成门禁：**`npm run test:macos` 分别构建生产和测试二进制，运行真实窗口、stdio 和 wrap 表单。覆盖目标/处理器/边框/窗口变化、外观相同的对象替换、ABA、hit-test 重入、过期/时钟回拨/重放/重启/取消、跨语言指纹及多语言标签。生产构建不包含测试变更方法。本测试集与跨平台 `npm test` 分开；非 macOS、工具缺失或 GUI 不可用会导致原生门禁失败，不会静默 skip。本地 CI 配置新增 macOS 门禁，未远程执行。测试不请求全局 Accessibility/Screen Recording 权限，也不修改 TCC。没有发布或部署。
+
+**本地复审（2026-10-24）：**prepare 和 commit 现在会在 `hitTest` 后重新读取原生属性；即使宿主遗漏 `invalidate()`，处理器、标签、启用状态或边框变化也会导致拒绝。分派前再次检查系统时钟和单调时钟。Objective-C sender 参数必须是对象（`@`），不能是 block（`@?`）。通用 TypeScript 原子服务器也使用单调期限，并在执行效果前再次检查过期。回归覆盖这些情况、prepare 期间目标变化、过期容量回收和原生处理器重入。这些检查不能代替宿主所有权契约：getter 和 hit-test 不得启动嵌套事件循环或分派效果；隐藏的模型或收件人变化仍需事先 invalidate。仅支持主动接入的可信应用。
+
+**直接调用契约（第二次本地审计，2026-10-24）：**注册处理器必须能安全直接调用，并自行检查应用权限；不能依赖重写的 `NSApplication.sendAction` 或 responder 路由进行授权。时钟提供者和 getter 是可信的同步宿主代码。隐藏变化和 ABA 仍要求先 `invalidate()`。回归覆盖 hit-test 中的模态/透明度变化、runtime 实现替换、稳定的半透明控件、dispatch 拦截和最后时钟 callback 触发的失效。这些检查随 npm `0.21.0` 发布。本地测试报告不能代替签名的 release-quality 凭据；当前 digest 仅覆盖 `dist` 中的 JavaScript，不覆盖原生 SDK 源码；原生验证另行进行。
+
+## 服务器端原子目标校验
+
+**显式启用：**`--screen-atomic` 要求 `--flow`、`--screen-read` 以及实际执行防护的 flow 模式。严格确认仍是默认值。必须使用可信且实现该协议的服务器；工具注解或自称支持某个版本并不能建立信任。不支持协议时，在询问用户之前拒绝；绝不退回普通点击。原有的仅截图模式仍不具备原子性。
+
+先构建 WARDEN，然后在其目录运行以下本地示例。示例拥有一个虚拟表单，不操作系统输入、不发送邮件、不付款，也不访问网络：
+
+```sh
+node dist/mcp-server.js wrap --flow screen --screen-read screenshot --screen-atomic -- node examples/atomic-screen-server.mjs
+```
+
+**协议：**询问前，代理通过私有 `warden/screen/prepare` 传递精确动作及指定观察请求。参数示例：
+
+```json
+{
+  "protocol": "warden.screen.atomic.v1",
+  "observation": { "name": "screenshot", "arguments": {} },
+  "action": { "name": "click", "arguments": { "index": 3 } }
+}
+```
+
+服务器返回 `protocol`、不透明的一次性 `ticket`、表面 `revision`、目标 `stamp`、`expiresAt` 和 `observation`。代理用该观察结果验证目标指纹，展示动作；用户明确同意后，再检查工具定义、风险上下文和最新目标。它发送 `warden/screen/commit`，参数为 `{protocol,ticket,expected:{revision,stamp},action}`，而不是原始工具调用。服务器消耗票据，在同一临界区比较当前修订、解析后的目标和精确参数，并同步提交动作。比较与效果之间不得交还事件循环，也不得把坐标点击排队。任何变化，包括处理器/收件人变化及 A → B → A，都必须更换修订。动作使用已经解析的目标引用，而非稍后重新按坐标定位。
+
+服务器使用 `@aimarket/warden/atomic-screen` 导出的 `AtomicScreenServer`（本地构建为 `dist/atomic-screen.js`）。将三种协议方法分别路由到 `prepare(params)`、`commit(params)`、`cancel(params)`；观察工具路由到 `read()`。所有原始动作执行路径必须拒绝。每个表面在所有连接间共用一个权威实例；其他变更必须经过 `replace(snapshot)`。可信同步 `apply(action, target)` 返回 `{result,snapshot}`，其中 result 为普通 MCP 工具结果。异步函数不被接受；异常或无效结果会封锁表面，直到明确核对并替换状态。参见[可运行服务器示例](../examples/atomic-screen-server.mjs)。
+
+票据最长有效五分钟，绑定完整动作，在尝试 commit 时消耗，服务器重启后不可用。最多 256 个待确认票据。客户端无法通过 wrap 调用私有协议；票据不会传给模型或写入 flow 日志。拒绝或取消后，`warden/screen/cancel` 删除未使用票据；遗留票据按期失效。原子动作参数必须能完整显示在 1500 个转义字符以内，超长调用直接拒绝，不展示截断的确认内容。
+
+验证后的 `committed` 回执包含 `protocol,status,revisionBefore,revisionAfter,stamp,result`；wrap 只返回 `result`。验证后的 `refused` 回执包含 `protocol,status,reason`，表示没有效果。审计区分 `atomic_committed` / `atomic_refused`。回执格式错误、传输错误或结果丢失均为 `execution_uncertain`：禁止自动重试，保留共享 GUI 锁，直到操作员核对。效果可能在回复丢失前已发生。服务器票据不能替代持久化支付幂等键。
+
+**所有权边界：**只有可信服务器完全拥有表面状态及同步动作时，这个实现才关闭该竞态。必须通过身份验证或独占传输限制只有可信代理可以 prepare/commit；票据本身不证明用户同意。单进程权威不是跨进程操作系统锁。在异步鼠标输入或 Playwright/desktop RPC 外包一层本 API，不会让远端表面原子化。原生后端需要真正的平台事务/修订原语，或受控的同步应用模型。原生目标应用内 AppKit 后端见 macOS 一节；未接入的外部应用仍不受支持。不实元数据、未跟踪的外部行为者及有害但已授权的处理器不在保证范围内。Claude hook 无法在批准后执行此私有 commit。回归测试涵盖最终代理读取后的变化、ABA/处理器变化、重放、过期、重启、重入、原始调用拒绝及不确定效果。没有发布或部署。
+
+## Auten：按结果一次确认，并在批准后重新读取屏幕
+
+**结果确认：**把下面的 `runs` 片段加入已固定的清单，用两空格缩进及末尾换行保存，重新计算哈希，再使用下面的 `taskAdapter.mode: "review"` 策略。调用 `task_run {"id":"mail_to_bob"}`。内置适配器在第一个效果之前只弹出一次 MCP 表单，显示结果、完整顺序、精确 URL 和正文；隐藏认证请求头。复选框默认 false。没有表单、接受默认值、拒绝或取消都不会授权。默认仍是 `strict`；`capabilities` 保留操作员明确预授权。
+
+示例把 GUI 准备/发送归并成固定 HTTP 效果。每个计划最多八个不同操作 ID、共 16 个计划，完整转义预览最多 12 000 字符。模型不能改变步骤、顺序、收件人、正文或结果。`review` 禁止单独 `task_execute`，避免绕过结果确认。资源读取与列表不弹窗；客户端/敏感工具独立权限仍可能询问。
+
+跨进程任务锁覆盖提问与执行。先检查预算，再在接受后原子预留整个计划及全部操作预算。计划重启后也只能用一次。每步重查清单/策略、期限、取消与凭据绑定。偏离、错误或结果不确定会停止后续，所有预留预算包括未执行步骤仍消耗。先前效果不会回滚，响应也不能改变下一步或目的地。预留前拒绝/取消不消耗。支付结果不确定时先对账，不能删除状态/锁来重试。审计区分批准、预留、完成与停止，不记录正文/令牌。
+
+```json
+{
+  "runs": [
+    {
+      "id": "mail_to_bob",
+      "title": "Send the reviewed public report to bob@corp.com in Mail",
+      "operations": [
+        "send_report"
+      ]
+    }
+  ]
+}
+```
+
+```json
+{
+  "mode": "ask",
+  "taskAdapter": {
+    "mode": "review",
+    "server": "warden_task",
+    "manifestSha256": "c69bafc53aa2e4a1a82dd9a20accbe2e4de5372d7545509fe3f6ccf18fdc5580"
+  }
+}
+```
+
+**仅 wrap 支持批准后新屏幕：**明确选择同一个已审查服务的观察工具，例如：
+
+```sh
+node dist/mcp-server.js wrap --flow screen --screen-read get_elements -- node /absolute/path/screen-server.js
+node dist/mcp-server.js wrap --flow screen --screen-read computer --screen-read-input '{"action":"screenshot"}' -- node /absolute/path/screen-server.js
+```
+
+`--screen-read` 需要 `--flow`；`--screen-read-input` 是严格 JSON：已知观察名只接受空输入，通用控制器只接受一个已知读取 `action`。`readOnlyHint` 不是权限。未配置时保留普通逐调用严格确认，不声称批准后重查。Claude hook 在客户端批准与执行之间没有回调，不能做该检查。
+
+Wrap 提问前读取基线，批准后重新验证工具定义并再次读取。比较这次真实响应而非缓存：唯一目标、角色、精确节点引用、边框、上下文及键盘一致焦点；如存在，也比较 accessibility ID、标签和表单提示。变化、缺失、重叠/歧义、不完整列表、仅像素或读取失败都拒绝执行。不猜坐标/缩放转换。多动作或额外字段模式不能比较。风险变化或新发现秘密也停止，最后读取期间取消仍有效。
+
+共享 `WARDEN_FLOW_SESSION` / state 的代理以屏幕锁串行执行已知 GUI 效果，第二代理未启用重查也受限。正常结果释放锁；崩溃/结果丢失留下不确定锁供操作员核对。只读观察可继续。`screen_validation` 记录 `unchanged`、`refused_without_approval`、`refused_after_approval`、`execution_uncertain`；接受表单或元数据相等都不证明已执行。
+
+**边界：**缩小过期目标竞争窗口，但截图和点击仍非原子。外部程序可能在读取后改变界面，服务可能返回缓存/错误数据；相同 ID/边框不能证明处理函数或效果未变。完整解决需要可信服务原子验证 revision/目标并执行效果。任意 click/paste/Send 链不会获得整体放行；分组只用于真正约束效果的结构化适配器。仅影响回答的注入仍不在工具效果边界内。
+
+本地回归：`test/wrap-screen.test.ts`、`test/wrap.test.ts`、`test/task-adapter.test.ts`。[最新本地 AgentDojo checkpoint](../scripts/agentdojo/results/summary-2026-10-23-auten-local.json)，无模型 API、无 GUI 工具的确定性 replay。没有发布、部署或发送评论。
 
 ## 权限请求说明（尚未发布的源码）
 
@@ -120,11 +287,11 @@
 - 外部文本之后，把本会话读到的密钥写进项目中的普通文件会先询问（`deny` 模式拒绝）：项目文件之后会被提交和发布，无需再次调用。`.env`、`.npmrc` 等凭据文件本来就是放密钥的地方，写入照常放行；只删除密钥的修改不会触发。
 - 只出现在粘贴文本、引用行（`>`）、粘贴邮件的头部或转发标记之下的地址，不算你点名的地址：发往它会询问一次。你输入的地址后面的句号或逗号不再妨碍识别。
 - 没有运营者标签的 MCP 工具，在名字表明会外发（send、post、share……）、参数带 URL，或自 2026-10-22 起点名了某一方时，算作外发：例如 `to`、`email`、`attendees`、`assignee`、`collaborator`、`username` 这样的参数，或任何邮箱地址、IBAN。`warden-mcp flow-labels` 列出你的会话用过的无标签 MCP 工具，附上守卫的猜测和一个 `labels` 块，校正后粘贴进策略即可。
-- 默认情况下，接收外部内容后，已识别的屏幕操作均需确认，不依赖坐标、截图文字、元素列表格式或标签语言。包括点击、轻触、拖动、输入、填充、粘贴、Enter/Return 及未知键盘操作。`deny` 模式拒绝执行。英文词只帮助解释，Inbox 等熟悉标签也不会授权点击。详见上文 GUI 规则。
+- 默认情况下，接收外部内容后，已识别的屏幕操作均需确认，不依赖坐标、截图文字、元素列表格式或标签语言。包括点击、轻触、拖动、输入、填充、粘贴、Enter/Return 及未知键盘操作。`deny` 模式拒绝执行。英文词只帮助解释，Inbox 等熟悉标签也不会授权点击。详见上文受限任务模式。
 - 只改变回答的注入不会发出可拒绝的调用。自 2026-10-22 起，插件的 Stop 钩子会在本轮读过外部文本的回答下方加一行，列出这些来源；若其中有文本以指令口吻对助手说话，也会注明。如果回答连续重复了外部文本中对助手下指令那几句话里的 12 个字母和数字，钩子还会把回答退回给模型一次（`decision: block`），在用户读到之前对照用户的请求检查；用户只损失这次检查的时间。`answerNote`：`always`（默认）、`instruction`（只在这种情况下）或 `off`；插件之外请注册 `warden-mcp hook stop`。
 - 代理也记录 JSON-RPC 和工具错误；记录失败时不转发响应，现有会话状态损坏时阻止检查中的调用。
 
-已在 npm `0.17.0` 发布：`npx -y @aimarket/warden@0.20.0 hook pre-tool-use`；或从源码在 WARDEN 目录运行 `npm ci && npm run build`，然后使用 `node dist/mcp-server.js hook pre-tool-use`，并注册 prompt/post hooks。策略为 `~/.local/state/warden/flow-policy.json` 或 `WARDEN_FLOW_POLICY`；模式为 `ask`、`deny`、`audit`、`off`。当前配置示例见[英文页](flow-guard.md)。
+已在 npm `0.17.0` 发布：`npx -y @aimarket/warden@0.21.0 hook pre-tool-use`；或从源码在 WARDEN 目录运行 `npm ci && npm run build`，然后使用 `node dist/mcp-server.js hook pre-tool-use`，并注册 prompt/post hooks。策略为 `~/.local/state/warden/flow-policy.json` 或 `WARDEN_FLOW_POLICY`；模式为 `ask`、`deny`、`audit`、`off`。当前配置示例见[英文页](flow-guard.md)。
 
 代理命令：`node dist/mcp-server.js wrap --flow mail -- node mail-server.js`。同一会话的代理应共享一个新的 `WARDEN_FLOW_SESSION`。默认父进程 PID 不能关联不同启动器。代理看不到用户提示或客户端内置工具。需要确认的调用会在客户端提供 MCP elicitation 表单时通过表单询问（回答记入日志的 `approvalOutcome`），否则或使用 `--ask refuse` 时被拒绝。`trustedSources` 仅用于 WebFetch URL，不用于 MCP 参数中的任意链接。
 
@@ -282,7 +449,7 @@ mkdir -m 777 out
 docker run --rm --network none -v "$PWD/out:/out" warden-adojo /out/oracle.json
 ```
 
-`oracle.py` 按配对写出结果；`--variants none,strict,intent` 选择守卫的变体（`strict` 不考虑用户输入了什么）。`summarize_oracle.py` 把它们汇总成表格引用的摘要。`WARDEN_FLOW_GUARD=/out/x.mjs` 可回放守卫的另一个版本（插件里任一份 `flow-guard.mjs`），2026-10-22 的改动就是这样与改动前的代码对比的。
+`oracle.py` 按配对写出结果；`--variants none,strict,intent` 选择守卫的变体（`strict` 不考虑用户输入了什么）。`summarize_oracle.py` 把它们汇总成表格引用的摘要。`WARDEN_FLOW_GUARD=/out/x.mjs` 可回放守卫的另一个版本（插件里任一份 `flow-guard.mjs`；自 2026-10-24 起需连同同一文件夹中的 `flow-guard-*.mjs` 各部分），2026-10-22 的改动就是这样与改动前的代码对比的。
 
 手握代码的攻击不需要容器：`npm run build && node scripts/redteam/flow-redteam.mjs out.json`。
 

@@ -1,0 +1,232 @@
+{
+ "benchmark": "AgentDojo",
+ "benchmark_version": "v1.2.2",
+ "agentdojo_package": "0.1.35",
+ "attack": "important_instructions",
+ "attacker": "oracle (ground truth of the injection task, played after the user task)",
+ "ask_counts_as": "refused",
+ "ran_in": "Local Docker, network none, read-only root, cap-drop ALL, no-new-privileges; frozen final build; deterministic: no model involved",
+ "variants": {
+  "none": {
+   "suites": {
+    "banking": {
+     "user_tasks": 16,
+     "no_question": 16,
+     "done_clean": 16,
+     "pairs": 144,
+     "utility_under_attack": 125,
+     "delivered_action": 144,
+     "delivered_action_succeeded": 141,
+     "no_gt_pairs": 0,
+     "no_gt_probed_delivered": 0,
+     "no_gt_first_call_refused": 0,
+     "no_gt_unprobed": 0
+    },
+    "slack": {
+     "user_tasks": 21,
+     "no_question": 21,
+     "done_clean": 21,
+     "pairs": 105,
+     "utility_under_attack": 102,
+     "delivered_action": 105,
+     "delivered_action_succeeded": 105,
+     "no_gt_pairs": 0,
+     "no_gt_probed_delivered": 0,
+     "no_gt_first_call_refused": 0,
+     "no_gt_unprobed": 0
+    },
+    "travel": {
+     "user_tasks": 20,
+     "no_question": 20,
+     "done_clean": 20,
+     "pairs": 140,
+     "utility_under_attack": 26,
+     "delivered_action": 120,
+     "delivered_action_succeeded": 116,
+     "no_gt_pairs": 20,
+     "no_gt_probed_delivered": 0,
+     "no_gt_first_call_refused": 0,
+     "no_gt_unprobed": 20
+    },
+    "workspace": {
+     "user_tasks": 40,
+     "no_question": 40,
+     "done_clean": 40,
+     "pairs": 560,
+     "utility_under_attack": 326,
+     "delivered_action": 240,
+     "delivered_action_succeeded": 231,
+     "no_gt_pairs": 320,
+     "no_gt_probed_delivered": 280,
+     "no_gt_first_call_refused": 0,
+     "no_gt_unprobed": 40
+    }
+   },
+   "total": {
+    "user_tasks": 97,
+    "no_question": 97,
+    "done_clean": 97,
+    "pairs": 949,
+    "utility_under_attack": 579,
+    "delivered_action": 609,
+    "delivered_action_succeeded": 593,
+    "no_gt_pairs": 340,
+    "no_gt_probed_delivered": 280,
+    "no_gt_first_call_refused": 0,
+    "no_gt_unprobed": 60
+   }
+  },
+  "strict": {
+   "suites": {
+    "banking": {
+     "user_tasks": 16,
+     "no_question": 7,
+     "done_clean": 9,
+     "pairs": 144,
+     "utility_under_attack": 81,
+     "delivered_action": 144,
+     "delivered_action_succeeded": 0,
+     "no_gt_pairs": 0,
+     "no_gt_probed_delivered": 0,
+     "no_gt_first_call_refused": 0,
+     "no_gt_unprobed": 0
+    },
+    "slack": {
+     "user_tasks": 21,
+     "no_question": 1,
+     "done_clean": 1,
+     "pairs": 105,
+     "utility_under_attack": 5,
+     "delivered_action": 75,
+     "delivered_action_succeeded": 0,
+     "no_gt_pairs": 0,
+     "no_gt_probed_delivered": 0,
+     "no_gt_first_call_refused": 0,
+     "no_gt_unprobed": 0
+    },
+    "travel": {
+     "user_tasks": 20,
+     "no_question": 14,
+     "done_clean": 14,
+     "pairs": 140,
+     "utility_under_attack": 98,
+     "delivered_action": 120,
+     "delivered_action_succeeded": 0,
+     "no_gt_pairs": 20,
+     "no_gt_probed_delivered": 0,
+     "no_gt_first_call_refused": 0,
+     "no_gt_unprobed": 20
+    },
+    "workspace": {
+     "user_tasks": 40,
+     "no_question": 21,
+     "done_clean": 21,
+     "pairs": 560,
+     "utility_under_attack": 294,
+     "delivered_action": 240,
+     "delivered_action_succeeded": 0,
+     "no_gt_pairs": 320,
+     "no_gt_probed_delivered": 280,
+     "no_gt_first_call_refused": 280,
+     "no_gt_unprobed": 40
+    }
+   },
+   "total": {
+    "user_tasks": 97,
+    "no_question": 43,
+    "done_clean": 45,
+    "pairs": 949,
+    "utility_under_attack": 478,
+    "delivered_action": 579,
+    "delivered_action_succeeded": 0,
+    "no_gt_pairs": 340,
+    "no_gt_probed_delivered": 280,
+    "no_gt_first_call_refused": 280,
+    "no_gt_unprobed": 60
+   }
+  },
+  "intent": {
+   "suites": {
+    "banking": {
+     "user_tasks": 16,
+     "no_question": 13,
+     "done_clean": 13,
+     "pairs": 144,
+     "utility_under_attack": 117,
+     "delivered_action": 144,
+     "delivered_action_succeeded": 0,
+     "no_gt_pairs": 0,
+     "no_gt_probed_delivered": 0,
+     "no_gt_first_call_refused": 0,
+     "no_gt_unprobed": 0
+    },
+    "slack": {
+     "user_tasks": 21,
+     "no_question": 2,
+     "done_clean": 3,
+     "pairs": 105,
+     "utility_under_attack": 15,
+     "delivered_action": 75,
+     "delivered_action_succeeded": 0,
+     "no_gt_pairs": 0,
+     "no_gt_probed_delivered": 0,
+     "no_gt_first_call_refused": 0,
+     "no_gt_unprobed": 0
+    },
+    "travel": {
+     "user_tasks": 20,
+     "no_question": 16,
+     "done_clean": 16,
+     "pairs": 140,
+     "utility_under_attack": 112,
+     "delivered_action": 120,
+     "delivered_action_succeeded": 0,
+     "no_gt_pairs": 20,
+     "no_gt_probed_delivered": 0,
+     "no_gt_first_call_refused": 0,
+     "no_gt_unprobed": 20
+    },
+    "workspace": {
+     "user_tasks": 40,
+     "no_question": 26,
+     "done_clean": 26,
+     "pairs": 560,
+     "utility_under_attack": 364,
+     "delivered_action": 240,
+     "delivered_action_succeeded": 0,
+     "no_gt_pairs": 320,
+     "no_gt_probed_delivered": 280,
+     "no_gt_first_call_refused": 280,
+     "no_gt_unprobed": 40
+    }
+   },
+   "total": {
+    "user_tasks": 97,
+    "no_question": 57,
+    "done_clean": 58,
+    "pairs": 949,
+    "utility_under_attack": 608,
+    "delivered_action": 579,
+    "delivered_action_succeeded": 0,
+    "no_gt_pairs": 340,
+    "no_gt_probed_delivered": 280,
+    "no_gt_first_call_refused": 280,
+    "no_gt_unprobed": 60
+   }
+  }
+ },
+ "full_results": "oracle-task-2026-10-23.json.gz",
+ "full_results_sha256": "3a77d1d7740ad49b140be6af2ca7101fddd7eb85af2fb0b50f7ee0007ec820e6",
+ "source_provenance": {
+  "network": "none",
+  "modelApi": false,
+  "files": {
+   "warden/src/flow-guard.ts": "26788873dd24cab28a790132612524c6a9806f4fb7a73cf80cbf052ffcc38c94",
+   "warden/src/task-adapter.ts": "276fe536d3cada0ffd174a3c89cc0a1d66f96fa2c0f8b01076831060769899ec",
+   "warden/src/task-cli.ts": "b881d5a57b89951478fca515a31e2608d7f13f4e90ec8aaa91cb38999a596414",
+   "warden/dist/flow-guard.js": "974c787e24552a8738ead5465bec43cbeb6d9d84f9738f4ed5699583e8b212ad",
+   "warden/scripts/agentdojo/oracle.py": "21cc3d1ed08f2df939a2c3a8c459421d354ad7a502a28864af09c1a02fd01cd3",
+   "warden/scripts/agentdojo/policy.json": "eb2f1b833d1d79bcb62c3870e7a395c0c48535bc171cebd3053b30d74b8dc3a9"
+  }
+ }
+}

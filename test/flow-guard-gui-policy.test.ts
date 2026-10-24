@@ -39,58 +39,66 @@ function setup(policy: unknown = { gui: gui() }, extra: Record<string, string> =
 }
 
 describe('GUI policy: explicit scoped permissions', () => {
+  it.each(['press_keys_then_execute', 'press_keys_then_transfer', 'keyboard_run_script', 'copy_and_press_keys'])('never interprets a composite tool %s as a passive Copy shortcut', name => {
+    const s = setup({}); s.view();
+    expect(s.pre(`mcp__screen__${name}`, { keys: 'cmd+c' })).toBe('ask');
+  });
+
+  it('does not grant a matching GUI request when the proxy reports additional RPC fields', () => {
+    const s = setup(); s.view();
+    const d = flowPre({ session_id: 'gui-policy', cwd: '/work/proj', tool_name: click.tool, tool_input: { index: 3 }, public_request_eligible: false }, s.env);
+    expect(d?.permissionDecision).toBe('ask');
+    expect(s.state().screens?.screen?.policyConsumed).toBeUndefined();
+  });
   it('keeps strict behavior by default and when only an allow list is configured', () => {
     for (const policy of [{}, { gui: { allow: [click] } }, { gui: { mode: 'strict', allow: [click] } }]) {
       const s = setup(policy); s.view(); expect(s.pre()).toBe('ask');
     }
   });
 
-  it('allows one exact scoped click per complete fresh snapshot, and records a policy grant rather than human approval', () => {
+  it('never grants from a matching fresh snapshot, identity, origin or a repeated screen read', () => {
     const s = setup(); s.view();
-    expect(s.pre()).toBeUndefined();
-    const grant = s.logs().find(e => e.disposition === 'policy_allowed');
-    expect(grant).toMatchObject({ event: 'pre', decision: 'allow', reason: 'screen_policy', guiRule: 0, approvalOutcome: 'unknown' });
-    expect(JSON.stringify(grant)).not.toContain('nav.inbox');
-    expect(s.pre()).toBe('ask');
-    s.view(); expect(s.pre()).toBeUndefined();
+    expect(s.pre()).toBe('ask'); expect(s.pre()).toBe('ask');
+    s.view(); expect(s.pre()).toBe('ask');
+    expect(s.logs().some(e => e.disposition === 'policy_allowed')).toBe(false);
     expect(JSON.stringify(s.state().screens?.screen?.elements)).not.toContain('nav.inbox');
   });
 
-  it.each([{ x: 120, y: 60 }, { coordinate: [120, 60] }, { position: { x: 120, y: 60 } }])('allows a uniquely resolved coordinate click %j only through the matching rule', input => {
-    const s = setup(); s.view(); expect(s.pre(click.tool, input)).toBeUndefined();
+  it.each([{ x: 120, y: 60 }, { coordinate: [120, 60] }, { position: { x: 120, y: 60 } }])('requires review for a uniquely resolved coordinate click %j only through the matching rule', input => {
+    const s = setup(); s.view(); expect(s.pre(click.tool, input)).toBe('ask');
     const strict = setup({}); strict.view(); expect(strict.pre(click.tool, input)).toBe('ask');
   });
 
   it('supports exact application scope, and requires both scopes when both are set', () => {
     const rule = { ...click, context: { application: 'dev.example.Mail' } };
-    const s = setup({ gui: gui([rule]) }); s.view({ ...snapshot(), url: undefined }); expect(s.pre()).toBeUndefined();
+    const s = setup({ gui: gui([rule]) }); s.view({ ...snapshot(), url: undefined }); expect(s.pre()).toBe('ask');
     const both = setup({ gui: gui([{ ...rule, context: { ...rule.context, origin: 'https://mail.example' } }]) });
     both.view({ ...snapshot(), url: 'https://other.example' }); expect(both.pre()).toBe('ask');
   });
 
   it('supports a generic controller with an exact known action and scoped tool name', () => {
     const s = setup({ gui: gui([{ ...click, tool: 'mcp__screen__computer' }]) }); s.view();
-    expect(s.pre('mcp__screen__computer', { action: 'left_click', index: 3 })).toBeUndefined();
+    expect(s.pre('mcp__screen__computer', { action: 'left_click', index: 3 })).toBe('ask');
   });
 
   it('supports document context in structuredContent and canonical origin ports', () => {
     const s = setup({ gui: gui([{ ...click, context: { origin: 'https://mail.example:443/' } }]) });
-    s.view({ structuredContent: snapshot() }); expect(s.pre()).toBeUndefined();
+    s.view({ structuredContent: snapshot() }); expect(s.pre()).toBe('ask');
   });
 
   it('counts UTF-16 units when limiting typed text', () => {
     const s = setup({ gui: gui([{ ...type, maxTextLength: 1 }]) }); s.view(snapshot(9));
     expect(s.pre(type.tool, { text: '🙂' })).toBe('ask');
-    expect(s.pre(type.tool, { text: 'a' })).toBeUndefined();
+    expect(s.pre(type.tool, { text: 'a' })).toBe('ask');
   });
 
-  it.each(['Tab', ['shift', 'Tab']])('allows only the explicitly configured navigation chord %j on the reported focus', keys => {
+  it.each(['Tab', ['shift', 'Tab']])('requires review even for the explicitly configured navigation chord %j on the reported focus', keys => {
     const s = setup({ gui: gui([{ ...key, keys: Array.isArray(keys) ? 'Shift+Tab' : keys }]) }); s.view();
-    expect(s.pre(key.tool, { keys })).toBeUndefined();
+    expect(s.pre(key.tool, { keys })).toBe('ask');
   });
 
-  it.each([{ text: 'status' }, { value: 'status', index: 9 }])('allows bounded plain text %j only into the identified focused field', input => {
-    const s = setup(); s.view(snapshot(9)); expect(s.pre(type.tool, input)).toBeUndefined();
+  it.each([{ text: 'status' }, { value: 'status', index: 9 }])('requires review for bounded plain text %j only into the identified focused field', input => {
+    const s = setup(); s.view(snapshot(9)); expect(s.pre(type.tool, input)).toBe('ask');
   });
 
   it.each([
@@ -140,7 +148,7 @@ describe('GUI policy: explicit scoped permissions', () => {
     s.post('mcp__screen__screenshot', {}, { isError: true, structuredContent: snapshot() });
     expect(s.state().screens?.screen?.revision).toBe(revision);
     expect(s.pre()).toBe('ask');
-    s.view(); expect(s.pre()).toBeUndefined();
+    s.view(); expect(s.pre()).toBe('ask');
   });
 
   it.each(['expired', 'future', 'invalid', 'legacy', 'partial'])('rejects %s snapshot state', kind => {
@@ -161,7 +169,7 @@ describe('GUI policy: explicit scoped permissions', () => {
     s.view({ ...data, elements: [data.elements[0], { ...data.elements[0], name: 'Different' }] }); expect(s.pre()).toBe('ask');
     s.view({ ...data, elements: [{ ...data.elements[0], accessibility_id: 'other' }] }); expect(s.pre()).toBe('ask');
     s.view({ ...data, elements: [{ ...data.elements[0], index: 'Nav' }] }); expect(s.pre(click.tool, { ref: 'nav' })).toBe('ask');
-    expect(s.pre(click.tool, { ref: 'Nav' })).toBeUndefined();
+    expect(s.pre(click.tool, { ref: 'Nav' })).toBe('ask');
   });
 
   it('does not grant from overlapping geometry or a truncated element list', () => {
@@ -196,18 +204,18 @@ describe('GUI policy: explicit scoped permissions', () => {
     expect(s.state().guiInputSeen).toBe(true); expect(s.pre()).toBe('ask');
   });
 
-  it('records allowed typing as pending input and never treats a refused attempt as executed input', () => {
-    const s = setup(); s.view(snapshot(9)); expect(s.pre(type.tool, { text: 'status' })).toBeUndefined();
+  it('records forwarded typing as pending input and never treats a refused attempt as executed input', () => {
+    const s = setup(); s.view(snapshot(9)); expect(s.pre(type.tool, { text: 'status' })).toBe('ask');
     s.post(type.tool, { text: 'status' }); s.view(); expect(s.pre()).toBe('ask');
     const refused = setup(); refused.view(); expect(refused.pre(type.tool, { text: 'status' })).toBe('ask');
-    refused.view(); expect(refused.pre()).toBeUndefined();
+    refused.view(); expect(refused.pre()).toBe('ask');
   });
 
-  it('invalidates all screen servers on a grant and on forwarded acknowledgments', () => {
+  it('keeps every screen server gated across forwarded acknowledgments', () => {
     const s = setup({ gui: gui([click, { ...click, tool: 'mcp__other__click' }]) }); s.view(snapshot(), 'mcp__other__screenshot'); s.view();
-    expect(s.pre()).toBeUndefined(); expect(s.pre('mcp__other__click')).toBe('ask');
+    expect(s.pre()).toBe('ask'); expect(s.pre('mcp__other__click')).toBe('ask');
     s.view(); s.post('mcp__other__click', { index: 99 }); expect(s.pre()).toBe('ask');
-    s.view(); s.post('mcp__screen__press_keys', { keys: 'cmd+c' }); s.view(); expect(s.pre()).toBeUndefined();
+    s.view(); s.post('mcp__screen__press_keys', { keys: 'cmd+c' }); s.view(); expect(s.pre()).toBe('ask');
   });
 
   it('never turns deny or audit into silent policy authorization', () => {
@@ -222,7 +230,7 @@ describe('GUI policy: explicit scoped permissions', () => {
     expect(flowPre({ session_id: 'gui-policy', tool_name: click.tool, tool_input: { index: 3 } }, s.env, 'audit')?.permissionDecision).toBe('ask');
     expect(s.state().screens?.screen?.policyConsumed).toBeUndefined();
     expect(s.logs().at(-1)).toMatchObject({ disposition: 'audit_only', reason: 'screen_action' });
-    expect(s.pre()).toBeUndefined();
+    expect(s.pre()).toBe('ask');
   });
 });
 

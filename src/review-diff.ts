@@ -25,7 +25,18 @@ export interface FieldChange {
   words?: WordOp[];
   /** Only digits, separators or whitespace differ (a counter, a date, a limit). Still a change. */
   numbersOnly: boolean;
+  /** Text this change adds about the user's approval or about which tool to use (see Attention). */
+  attention?: Attention[];
 }
+
+/**
+ * What a reviewer should read first: text a change ADDS about the user's approval ("without asking", "the user has
+ * already approved") or about which tool the model should pick ("prefer this over web search", "never use another
+ * tool"). A reader asked for it (dev.to, 2026-10-23); in HISTOR's 20 October snapshot, 12 of 23,821 changes added or
+ * dropped such a routing hint, 9 of them in nothing but the description. It marks; it never approves or refuses.
+ * English phrasing only.
+ */
+export type Attention = "approval" | "tool choice";
 
 export interface ToolChange {
   tool: string;
@@ -36,6 +47,8 @@ export interface ToolChange {
   definition?: ToolDef;
   /** A changed tool whose every field change is numbers only. */
   numbersOnly: boolean;
+  /** For `changed`: every Attention its fields add. For `added`: every Attention in the new tool's text. */
+  attention?: Attention[];
 }
 
 export interface DefinitionDiff {
@@ -45,6 +58,8 @@ export interface DefinitionDiff {
   changed: number;
   /** Changed tools whose changes are numbers only. */
   numbersOnly: number;
+  /** Added or changed tools whose new text is about the user's approval or about tool choice. */
+  attention: number;
 }
 
 const NUMERIC_TEXT = /^[\s\d.,:\-/+%]*$/;
@@ -158,7 +173,7 @@ function walk(path: string, before: unknown, after: unknown, out: FieldChange[])
       const hasB = Object.prototype.hasOwnProperty.call(before, key), hasA = Object.prototype.hasOwnProperty.call(after, key);
       if (hasB && hasA) walk(p, before[key], after[key], out);
       else if (hasB) out.push({ path: p, before: before[key], numbersOnly: false });
-      else out.push({ path: p, after: after[key], numbersOnly: false });
+      else out.push({ path: p, after: after[key], numbersOnly: false, ...flag(addedAttention("", textsOf(after[key]))) });
       if (out.length >= MAX_FIELDS_PER_TOOL) return;
     }
     return;
@@ -167,7 +182,7 @@ function walk(path: string, before: unknown, after: unknown, out: FieldChange[])
     const n = Math.max(before.length, after.length);
     for (let i = 0; i < n; i++) {
       const p = joinPath(path, i);
-      if (i >= before.length) out.push({ path: p, after: after[i], numbersOnly: false });
+      if (i >= before.length) out.push({ path: p, after: after[i], numbersOnly: false, ...flag(addedAttention("", textsOf(after[i]))) });
       else if (i >= after.length) out.push({ path: p, before: before[i], numbersOnly: false });
       else walk(p, before[i], after[i], out);
       if (out.length >= MAX_FIELDS_PER_TOOL) return;
@@ -176,7 +191,7 @@ function walk(path: string, before: unknown, after: unknown, out: FieldChange[])
   }
   if (typeof before === "string" && typeof after === "string") {
     const words = wordDiff(before, after);
-    out.push({ path, before, after, words, numbersOnly: textNumbersOnly(words) });
+    out.push({ path, before, after, words, numbersOnly: textNumbersOnly(words), ...flag(addedAttention(before, after)) });
     return;
   }
   const numbersOnly = typeof before === "number" && typeof after === "number";
@@ -190,12 +205,14 @@ export function diffToolDefinitions(before: readonly ToolDef[], after: readonly 
   const changes: ToolChange[] = [];
   for (const name of names) {
     const b = old.get(name), a = next.get(name);
-    if (!b && a) changes.push({ tool: name, kind: "added", fields: [], definition: a, numbersOnly: false });
+    if (!b && a) changes.push({ tool: name, kind: "added", fields: [], definition: a, numbersOnly: false,
+      ...flag(addedAttention("", textsOf([a.description, a.inputSchema, a.outputSchema]))) });
     else if (b && !a) changes.push({ tool: name, kind: "removed", fields: [], definition: b, numbersOnly: false });
     else if (b && a && !same(b, a)) {
       const fields: FieldChange[] = [];
       walk("", b, a, fields);
-      changes.push({ tool: name, kind: "changed", fields, numbersOnly: fields.length > 0 && fields.every(f => f.numbersOnly) });
+      const attention = ATTENTION_ORDER.filter(k => fields.some(f => f.attention?.includes(k)));
+      changes.push({ tool: name, kind: "changed", fields, numbersOnly: fields.length > 0 && fields.every(f => f.numbersOnly), ...flag(attention) });
     }
   }
   return {
@@ -204,6 +221,7 @@ export function diffToolDefinitions(before: readonly ToolDef[], after: readonly 
     removed: changes.filter(c => c.kind === "removed").length,
     changed: changes.filter(c => c.kind === "changed").length,
     numbersOnly: changes.filter(c => c.numbersOnly).length,
+    attention: changes.filter(c => c.attention?.length).length,
   };
 }
 
@@ -217,12 +235,16 @@ export function formatDefinitionDiff(diff: DefinitionDiff): string[] {
   if (diff.changes.length === 0) return ["Tool definitions: unchanged."];
   const lines = [`Tool definitions: ${diff.changed} changed, ${diff.added} added, ${diff.removed} removed` +
     (diff.numbersOnly ? ` (${diff.numbersOnly} changed only in numbers: still a change, a number can be a limit)` : "")];
+  if (diff.attention) {
+    const names = diff.changes.filter(c => c.attention?.length).map(c => `${c.tool} (${c.attention!.join(", ")})`);
+    lines.push(`Read first: ${diff.attention} ${diff.attention === 1 ? "tool gains" : "tools gain"} text about the user's approval or about which tool to use: ${names.join("; ")}`);
+  }
   for (const c of diff.changes) {
-    if (c.kind === "added") { lines.push(`+ ${c.tool}  (new tool)`, `    ${show(c.definition, 4000)}`); continue; }
+    if (c.kind === "added") { lines.push(`+ ${c.tool}  (new tool${attentionNote(c.attention)})`, `    ${show(c.definition, 4000)}`); continue; }
     if (c.kind === "removed") { lines.push(`- ${c.tool}  (removed)`); continue; }
     lines.push(`~ ${c.tool}${c.numbersOnly ? "  (numbers only)" : ""}`);
     for (const f of c.fields) {
-      const tag = f.numbersOnly && !c.numbersOnly ? "  (numbers only)" : "";
+      const tag = (f.numbersOnly && !c.numbersOnly ? "  (numbers only)" : "") + (f.attention?.length ? `  (adds text about ${f.attention.map(k => k === "approval" ? "the user's approval" : "tool choice").join(" and ")})` : "");
       if (f.words) {
         const rendered = f.words.map(([op, text]) => op === "=" ? text : op === "-" ? `[-${text}-]` : `{+${text}+}`).join("");
         lines.push(`    ${f.path}: ${rendered}${tag}`);
@@ -237,6 +259,151 @@ export function formatDefinitionDiff(diff: DefinitionDiff): string[] {
       } else lines.push(`    ${f.path}: ${show(f.before)} → ${show(f.after)}${tag}`);
     }
     if (c.fields.length >= MAX_FIELDS_PER_TOOL) lines.push(`    … more than ${MAX_FIELDS_PER_TOOL} changed values; see the full definitions below`);
+  }
+  return lines;
+}
+
+// ── What a reviewer should read first ─────────────────────────────────────
+
+const ATTENTION_ORDER: readonly Attention[] = ["approval", "tool choice"];
+const ATTENTION: ReadonlyArray<readonly [Attention, RegExp]> = [
+  // Asking the model to act without the user, or telling it the user already agreed.
+  ["approval", /\bwithout\s+(?:asking|confirm(?:ing|ation)|(?:the\s+)?user'?s?\s+(?:approval|consent|permission)|approval|permission|(?:telling|informing|notifying)\s+(?:the\s+)?user)\b/gi],
+  ["approval", /\b(?:do\s+not|don'?t|never|no\s+need\s+to)\s+(?:ask|confirm\s+with|check\s+with|prompt)\s+(?:the\s+)?user(?:\s+(?:for\s+(?:confirmation|approval|permission|consent)|before|first|again)\b|\s*(?:[.;!,]|$))/gim],
+  ["approval", /\b(?:do\s+not|don'?t|never)\s+(?:tell|inform|notify|alert)\s+(?:the\s+)?user\b/gi],
+  ["approval", /\b(?:skip|bypass|avoid|suppress|disable)\s+(?:the\s+|any\s+)?(?:user\s+)?(?:confirmation|approval|consent)(?:\s+(?:step|prompt|dialog))?\b/gi],
+  ["approval", /\b(?:auto[-\s]?approved?|pre[-\s]?approved|already\s+(?:been\s+)?(?:approved|confirmed|authori[sz]ed))\b/gi],
+  ["approval", /\b(?:the\s+)?user\s+(?:has\s+)?(?:already\s+)?(?:approved|consented|agreed\s+to|authori[sz]ed)\b/gi],
+  // Steering the model towards this tool or away from others.
+  ["tool choice", /\b(?:prefer|use|call|choose|pick|select)\s+(?:this|these)\s+(?:tool|tools|server|function|one)\b[^.\n]{0,60}?\b(?:over|instead|rather\s+than|first|before|always)\b/gi],
+  ["tool choice", /\b(?:prefer(?:red)?|use|call)\b[^.\n]{0,40}?\b(?:over|instead\s+of|rather\s+than)\s+(?:the\s+|any\s+|your\s+|a\s+)?(?:web[\s_-]?search|search(?:ing)?|fetch(?:ing)?|brows(?:er|ing)|built[\s-]?in|other\s+(?:tools?|servers?|sources?)|another\s+(?:tool|server)|(?:your\s+)?(?:own\s+)?knowledge|training\s+data)\b/gi],
+  ["tool choice", /\bprefer\s+(?:this|it)\s+over\b/gi],
+  ["tool choice", /\b(?:always|only)\s+(?:use|call)\s+(?:this|the\s+[\w-]+)\s+(?:tool|server|function)\b/gi],
+  ["tool choice", /\b(?:do\s+not|don'?t|never)\s+(?:use|call)\s+(?:any\s+)?(?:other|another|the\s+built[\s-]?in|web[\s_-]?search|fetch)\b/gi],
+  ["tool choice", /\bbefore\s+(?:using|calling)\s+any\s+other\s+(?:tool|server)\b/gi],
+];
+const MAX_ATTENTION_TEXT = 200_000;
+
+function phrases(text: string): Map<Attention, Set<string>> {
+  const out = new Map<Attention, Set<string>>();
+  const body = text.slice(0, MAX_ATTENTION_TEXT);
+  for (const [kind, re] of ATTENTION) {
+    for (const m of body.matchAll(re)) {
+      const set = out.get(kind) ?? new Set<string>();
+      set.add(m[0].toLowerCase().replace(/\s+/g, " ").trim());
+      out.set(kind, set);
+    }
+  }
+  return out;
+}
+
+/** The kinds of Attention whose phrasing appears in `after` and not in `before`. */
+export function addedAttention(before: string, after: string): Attention[] {
+  const was = phrases(before), now = phrases(after);
+  return ATTENTION_ORDER.filter(kind => [...(now.get(kind) ?? [])].some(p => !was.get(kind)?.has(p)));
+}
+
+/** Every string inside a value (descriptions nested in a schema), bounded. */
+function textsOf(value: unknown, out: string[] = [], depth = 0): string {
+  if (out.length > 2_000 || depth > 20) return out.join("\n");
+  if (typeof value === "string") out.push(value);
+  else if (Array.isArray(value)) for (const v of value) textsOf(v, out, depth + 1);
+  else if (isPlainObject(value)) for (const v of Object.values(value)) textsOf(v, out, depth + 1);
+  return out.join("\n");
+}
+
+function flag(attention: Attention[]): { attention?: Attention[] } {
+  return attention.length ? { attention } : {};
+}
+
+function attentionNote(attention: Attention[] | undefined): string {
+  return attention?.length ? `; text about ${attention.map(k => k === "approval" ? "the user's approval" : "tool choice").join(" and ")}` : "";
+}
+
+// ── Where a change came from: the launch command and the version ───────────
+
+/** A package a launcher fetches by name at each start (`npx pkg`, `uvx pkg`), and whether the command names an
+ *  exact version. Without one, the code can change between two starts while the command stays the same, and so
+ *  does the server's identity hash. */
+export interface LaunchSpec {
+  runner: string;
+  ecosystem: "npm" | "pypi";
+  package: string;
+  /** The version or range in the command, if any (`1.4.2`, `latest`, `^1`, `>=2`). */
+  requested?: string;
+  pinned: boolean;
+}
+
+const VALUE_FLAGS = new Set(["--registry", "--cache", "--userconfig", "--prefix", "--python", "--with", "--with-requirements",
+  "--index-url", "--extra-index-url", "--index", "--pip-args", "--suffix", "-w", "--workspace", "-c", "--call"]);
+const SPEC_FLAGS = new Set(["-p", "--package", "--from", "--spec"]);
+const EXACT_NPM = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
+const EXACT_PY = /^\d+(?:\.\d+)*(?:(?:a|b|rc|\.post|\.dev)\d+)*$/;
+
+export function launchSpec(server: { command?: string; args?: readonly string[] }): LaunchSpec | undefined {
+  const command = (server.command ?? "").split(/[\\/]/).pop()?.replace(/\.(?:cmd|exe)$/i, "") ?? "";
+  const args = [...(server.args ?? [])];
+  let runner: string; let ecosystem: LaunchSpec["ecosystem"];
+  if (["npx", "bunx", "pnpx"].includes(command)) { runner = command; ecosystem = "npm"; }
+  else if (command === "npm" && args[0] === "exec") { runner = "npm exec"; ecosystem = "npm"; args.shift(); }
+  else if ((command === "pnpm" || command === "yarn") && args[0] === "dlx") { runner = `${command} dlx`; ecosystem = "npm"; args.shift(); }
+  else if (command === "uvx") { runner = "uvx"; ecosystem = "pypi"; }
+  else if (command === "uv" && args[0] === "tool" && args[1] === "run") { runner = "uv tool run"; ecosystem = "pypi"; args.splice(0, 2); }
+  else if (command === "pipx" && args[0] === "run") { runner = "pipx run"; ecosystem = "pypi"; args.shift(); }
+  else return undefined;
+  let spec: string | undefined;
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i]!;
+    if (a === "--") { spec ??= args[i + 1]; break; }
+    const [flagName, inline] = a.startsWith("--") && a.includes("=") ? [a.slice(0, a.indexOf("=")), a.slice(a.indexOf("=") + 1)] : [a, undefined];
+    if (SPEC_FLAGS.has(flagName) && !(ecosystem === "pypi" && flagName === "-p")) { spec = inline ?? args[++i]; continue; }
+    if (VALUE_FLAGS.has(flagName) || (ecosystem === "pypi" && flagName === "-p")) { if (inline === undefined) i++; continue; }
+    if (a.startsWith("-")) continue;
+    spec ??= a;
+    break;
+  }
+  if (!spec) return undefined;
+  return ecosystem === "npm" ? npmSpec(runner, spec) : pySpec(runner, spec);
+}
+
+function npmSpec(runner: string, spec: string): LaunchSpec | undefined {
+  // Paths, git and tarball URLs are not a registry name: what they run is a different question.
+  if (/^(?:[.~/]|file:|git[+:]|github:|gitlab:|bitbucket:|https?:)/i.test(spec) || (spec.includes("/") && !spec.startsWith("@"))) return undefined;
+  const at = spec.indexOf("@", spec.startsWith("@") ? 1 : 0);
+  const name = at > 0 ? spec.slice(0, at) : spec, requested = at > 0 ? spec.slice(at + 1) : undefined;
+  if (!/^(?:@[a-z0-9][\w.-]*\/)?[a-z0-9][\w.-]*$/i.test(name)) return undefined;
+  return { runner, ecosystem: "npm", package: name, ...(requested ? { requested } : {}), pinned: !!requested && EXACT_NPM.test(requested) };
+}
+
+function pySpec(runner: string, spec: string): LaunchSpec | undefined {
+  const m = /^([A-Za-z0-9][\w.-]*)(\[[\w,.-]+\])?\s*(?:(==|===|@)\s*([^\s;,]+)|((?:~=|!=|>=|<=|>|<)\s*[^\s;]+))?$/.exec(spec);
+  if (!m) return undefined;
+  const requested = m[4] ?? m[5]?.replace(/\s+/g, "");
+  return { runner, ecosystem: "pypi", package: m[1]! + (m[2] ?? ""), ...(requested ? { requested } : {}), pinned: !!m[4] && EXACT_PY.test(m[4]) };
+}
+
+/** A version string a server reports about itself, if it is short and plain; anything else is not shown. */
+export function plainVersion(v: unknown): string | undefined {
+  return typeof v === "string" && /^[0-9A-Za-z][0-9A-Za-z.+_-]{0,63}$/.test(v) ? v : undefined;
+}
+
+/** Review lines on where a change came from: the version the server reported at approval and now, and whether
+ *  the launch command pins one. The reported version is the server's own word; the launch command is not. */
+export function formatOriginLines(launch: LaunchSpec | undefined, approved: string | undefined, current: string | undefined, toolsChanged: boolean): string[] {
+  const lines: string[] = [];
+  if (approved || current) {
+    const both = approved && current;
+    lines.push(`Version the server reports (initialize serverInfo): ${both ? (approved === current ? `${current}, unchanged since the approval` : `${approved} at the approval, ${current} now`) : current ? `${current} now; none was stored with the approval` : `${approved} at the approval; none reported now`}`);
+    if (both && approved === current && toolsChanged) lines.push(`The tool definitions changed while the reported version stayed ${current}.`);
+  }
+  if (launch) {
+    const how = `${launch.runner} ${launch.package}${launch.requested ? (launch.ecosystem === "npm" ? "@" : launch.requested.match(/^[<>=!~]/) ? "" : "==") + launch.requested : ""}`;
+    if (launch.pinned) lines.push(`Launch: ${how} (an exact version).`);
+    else {
+      const which = launch.ecosystem === "npm" ? "the version npm tags latest" : "the newest version on the index";
+      const pin = current ? `; to pin it: ${launch.package}${launch.ecosystem === "npm" ? "@" : "=="}${current}` : "";
+      lines.push(`Launch: ${how} (no exact version: each start runs ${which}, so the code can change while this command stays the same${pin}).`);
+    }
   }
   return lines;
 }

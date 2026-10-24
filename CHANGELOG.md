@@ -1,6 +1,71 @@
 # Changelog
 
-## Local source — first-fragment review, 2026-10-23
+## Local source — flow guard split into modules, 2026-10-24
+
+- `src/flow-guard.ts` (2,286 lines) is now the public API and the hook entry point. The code moved unchanged into `src/flow-guard-*.ts`: types, paths, policy, text, classify, screen, destinations, fingerprints, decode, fragments, leak, state, pre, post, answer and labels. Exports and behaviour are the same: the existing tests pass unchanged, and the code-aware red team writes the same report as before (0 of 28 delivered).
+- The Claude Code plugin carries `scripts/flow-guard.mjs` and its `flow-guard-*.mjs` parts. `npm run build` writes them; a test checks every copy against its compiled file and refuses any import other than node: built-ins and the guard's own parts. The parts sit in `dist/` beside the other modules, so the MOMUS release gate's build digest (`dist/*.js`) still covers the whole guard. Replaying another build with `WARDEN_FLOW_GUARD` needs the parts in the same folder.
+
+## 0.21.0 — 2026-10-24
+
+Ships the local source recorded below. npm `0.20.0` did not include it.
+
+## Local source — second native macOS audit, 2026-10-24
+
+- Bind native target opacity through its ancestor chain and refuse fully transparent windows/controls, blocked modality and pending sheets, including logical sheetParent transitions before attachedSheet is populated. Observe sheet/minimize transitions before effects.
+- Pin ABI-checked method_getImplementation and invoke that exact IMP directly. NSApp.sendAction overrides can reroute, defer or return success without the approved handler, so they are no longer a dispatch authority. Registered handlers must enforce their own permissions and support direct invocation.
+- Recheck the revision after injected clocks and prepare callbacks; allocate the receipt revision before effects and guard monotonic deadline overflow. Add real-window regressions for these paths and preserve strict defaults. Update five languages; no npm publication or remote release gate.
+
+## Local source — follow-up atomic backend audit, 2026-10-24
+
+- Refuse native target changes during overridable hit-test in both prepare and commit by recapturing target state; recheck wall and monotonic expiry immediately before dispatch. Hidden application mutations still require explicit invalidation.
+- Reject Objective-C block sender signatures (`@?`) rather than accepting the object prefix. Add real AppKit regressions for stale preparation, handler/title/enabled/frame drift without invalidation, both clocks and reentrant handlers.
+- Add a monotonic deadline to the generic TypeScript atomic server, reclaim expired pending capacity with either clock and recheck expiry after target validation. Keep strict mode and local-only scope; update five languages.
+
+## Local source — native target-side macOS backend, 2026-10-23
+
+- Add the local Swift WardenDesktop package, WardenDesktopSurface and bounded exclusive-stdio transport. Compare live registered AppKit button/target/selector/implementation, window/focus, metadata and hit-test on MainActor; recheck revision after overridable hit-test; dispatch directly to the retained target without AX/CGEvent/performClick or responder routing. Validate void target-action signatures, bounds and unique identities; retain targets and consume five-minute wall/monotonic tickets before effects.
+- Provide a real native demo window and local build:macos / test:macos commands. This is an application-embedded backend, not an injector for unmodified third-party apps. MainActor model invalidation before mutations and synchronous non-modal handlers are required; receipts attest local dispatch, not external payment/mail completion. Raw effects and unsupported typing/keyboard/clipboard paths refuse. No TCC or global input changes.
+- Add a separate real macOS integration gate with production/test binaries, cross-language stamp parity, Unicode, target/handler/object/frame/window drift, ABA, hit-test reentrancy, clock rollback, replay/cancel/restart and actual wrap forms. Compile test endpoints out of production; fail rather than silently skip when native prerequisites are absent. Configure macOS CI jobs locally and update five languages. No remote CI, publication or deployment.
+
+## Local source — atomic screen target CAS, 2026-10-23
+
+- Add opt-in `wrap --screen-atomic`: private prepare/commit/cancel protocol binds a one-use ticket to the full action, target stamp and surface revision. Require enforcement and a supported server; never fall back to raw GUI dispatch. Validate receipts, hide tickets, refuse oversized incomplete previews, preserve uncertainty leases and never retry effects.
+- Add exported `@aimarket/warden/atomic-screen` server runtime. A shared server-owned surface compares and synchronously commits to the resolved target in one critical section. Rotate revisions on every mutation/commit, including hidden handler changes and ABA; consume tickets before effects, expire pending capacity and invalidate uncertain state. Reject async callback registration and reentrancy. Other mutation paths and transport authentication remain the backend's responsibility.
+- Include a runnable virtual-form server with no OS/network/payment effects. This is not a native desktop adapter: asynchronous OS/browser RPC, cached snapshots or untracked external mutations cannot satisfy the atomic ownership contract. Strict remains default; hooks and snapshot-only mode retain their previous limits.
+- Add server and real stdio regressions for the final-read/commit race, same-metadata revisions, exact argument binding, replay, expiry, restart, cancellation, raw-call refusal and malformed/uncertain receipts. Update all five languages. Local only, no publication/deployment.
+
+## Local source — Auten outcome approval and fresh target checks, 2026-10-23
+
+- Add explicit taskAdapter review mode and one-use ordered task_run plans. Show one unchecked MCP outcome form before the first effect with all fixed destinations/bodies; disallow caller-supplied steps and individual task_execute in review mode. Refuse missing form support and non-explicit acceptance.
+- Hold a task execution lease across approval/run and atomically reserve the entire plan plus operation budgets after acceptance. Recheck pin/policy, expiry, cancellation and authentication binding before every fixed step; stop the rest on drift/error, preserve spent reservations and never claim rollback of earlier effects. Record approval separately from execution outcomes.
+- Add opt-in wrap --screen-read / --screen-read-input for an operator-selected same-server observation schema. Observe before the question and after acceptance, recheck definitions and risk context, and compare the fresh response's target role/reference/accessibility identity/bounds/context. Refuse unsupported/ambiguous schemas, pixels-only results, changed targets, failed reads and cancellation.
+- Serialize known GUI effects across enforcing proxies in one flow session; an uncertain missing result leaves a non-reclaimable lease for operator review. Audit unchanged/refused/uncertain screen checks separately from user approval. Hooks cannot revalidate between the client's dialog and execution.
+- Strict remains default. Structured plans do not grant arbitrary GUI chains. Snapshot and click remain separate calls; cached/false server metadata, external actors and unchanged event handlers require a trusted atomic server-side revision/effect contract for stronger guarantees. Update all five languages and prepare an unsent Auten reply. No publishing/deployment.
+
+## Local source — Gautam regressions and failing replay gate, 2026-10-23
+
+- Add bounded decimal scalar-code and NATO-word candidates, including explicit numeric arrays and case markers for nested encodings. Unknown items break a run; candidates share existing limits. Decoding alone never denies ordinary numbers/prose. First 1–4 character encodings still require review at the credential boundary.
+- Classify unlabelled MCP Git commit/push and GitHub push_files, with common camelCase/dotted names, as outbound/persistent effects. Keep get_commit/list_commits as reads. Add regression fixtures without performing any real commit or push.
+- Extend the original 23 end-to-end scenarios with five Gautam cases. `test:redteam` now fails on reopened delivery, missing/duplicate cases or inconsistent outcomes: 26 tool attacks and two answer-only note/recheck cases, never conflated. Fault-injected reports prove the gate exits nonzero.
+- Wire the gate into local WARDEN/workspace CI, npm prepublishOnly and registry publication workflow. No remote workflows or publication were triggered. Update all five languages and prepare an unsent response.
+
+## Local source — constrained task capabilities, 2026-10-23
+
+- Keep strict GUI behavior by default and retire automatic permissions based on untrusted snapshots, including legacy `gui.mode: "policy"`. A spoofed Close/role/accessibility ID cannot authorize Send. Geometry/focus/translated labels remain explanation only.
+- Add opt-in `warden-mcp task`: a built-in MCP effect adapter with pinned UTF-8 resources and exact operator-reviewed HTTP requests, selected only by fixed IDs. No arbitrary GUI forwarding, browser profile, clipboard, page scripts or dynamic payloads. Bind its MCP name explicitly in protected `taskAdapter` policy and pin the manifest bytes.
+- Validate the entire manifest and RPC schema, reject duplicate JSON keys/extra metadata, bound expiry, request/response size and time, deny redirects and retries. Persist per-task budgets before dispatch under a cross-process lock and fsync; restart, uncertain outcomes, cancellation after dispatch or manifest edits cannot replenish a spent task ID. Keep audit free of payloads/tokens.
+- Narrow Copy exceptions to exact known keyboard tool names. Regressions cover policy spoofing, first 1–4 secret characters/encodings, exact request bodies, independent server processes, redirects, state corruption and uncertain payment outcomes.
+- Rerun deterministic AgentDojo locally without network/model API: intent 0/579 delivered action attacks, 57/97 clean tasks without a question, 58/97 clean completion, 608/949 completion under attack (historically 613/949). This does not measure GUI usability or recertify live-model results. Five-language docs cover setup, migration, payment semantics and limits. Nothing published or deployed.
+
+## Local source — credential boundary and layered encodings, 2026-10-23
+
+- Require review after credentials plus outside text for supported outbound/MCP calls, including read-only labels and one-character/unknown-encoded arguments, and ordinary project-file writes. Keep a sticky credential flag across prompts and bounded source-history rotation. This supersedes the former length-dependent automatic-pass behavior.
+- Add optional exact public-request rules to protected user policy. Bind full tool/all canonical JSON arguments; consume each rule once per session under the shared lock. Never waive detected leaks, incomplete scans, saturated stores, GUI controls, shell/destructive actions or protected settings. Reject extra RPC metadata and malformed arguments for automatic grants.
+- Compose bounded URL, canonical base64/base64url, UTF-8 hex, Unicode/hex escapes, numeric entities and English character-list candidates. Report depth/variant/text exhaustion explicitly; never interpret it as clean data. Validate corrupt fingerprint files, preserve standalone PII checks, and bound e-mail matching to prevent long non-address payloads from causing quadratic scans.
+- Real stdio regressions check tiny/encoded arguments, concurrent once-only public rules, retry/metadata bypass and no delivery without approval. Workflow fixture: 0/16 automatic attacks in both profiles; strict default reviews 12/12 benign calls, exact reviewed rules 0/12. The fingerprint-only corpus reports 0 hard false denials and 2 reviewed files among 758; these are distinct measurements, not a production rate.
+- Five-language docs include the same validated policy example, approval semantics, bounded decoding and explicit usability costs. No public rules are installed, and no publishing or deployment occurs.
+
+## Earlier local iteration — first-fragment review, 2026-10-23
 
 - Stop the first matching short credential fragment with per-call `ask` before execution (`deny` refuses). Preserve hard denial for two distinct adjacent six-character pieces. Earlier approval never whitelists a repeated or later call.
 - Add narrow five/seven-character and known-prefix-boundary fingerprints, excluding public prefixes and tiny suffixes. Decode short supported URL/base64/character-list candidates and delimit atoms without weakly scanning long uninterrupted hashes.
@@ -17,7 +82,7 @@
 
 ## Unreleased
 
-- **Optional GUI policy mode** (`gui.mode: "policy"`) reduces questions only for explicit exact tool/action/role/accessibility-ID rules scoped to a site origin and/or application ID. Strict behavior remains the default. Validated coordinates and focus resolve the target; visible labels never grant permission. Bounded plain typing and configured navigation keys are supported, with snapshot age and one-use reservations under the session lock. Unknown/malformed policy or call shapes fall back to strict behavior with a diagnostic. Send/pay/delete/submit, Enter, paste, sensitive-data matches and credential reads retain their checks. Forwarded input/paste gates later clicks for the rest of the session. Local stdio tests compare four strict forms with one policy form for the same four fixture calls; this is not a real-world utility measurement. Five language docs include the same validated configuration example.
+- **Superseded by the constrained task mode above: optional GUI policy mode** (`gui.mode: "policy"`) reduces questions only for explicit exact tool/action/role/accessibility-ID rules scoped to a site origin and/or application ID. Strict behavior remains the default. Validated coordinates and focus resolve the target; visible labels never grant permission. Bounded plain typing and configured navigation keys are supported, with snapshot age and one-use reservations under the session lock. Unknown/malformed policy or call shapes fall back to strict behavior with a diagnostic. Send/pay/delete/submit, Enter, paste, sensitive-data matches and credential reads retain their checks. Forwarded input/paste gates later clicks for the rest of the session. Local stdio tests compare four strict forms with one policy form for the same four fixture calls; this is not a real-world utility measurement. Five language docs include the same validated configuration example.
 
 
 The local source closes automatic-pass paths for coordinate clicks, pixel-only screens, Enter in a focused field and non-English labels. By default, after untrusted content, every recognized GUI pointer action, text input/fill, paste and non-exempt keyboard action requires approval (`screen_action`; `deny` refuses). Target labels and element-list formats no longer decide whether approval is required. English target words only improve the explanation. A user-named or policy-allowed destination does not exempt GUI actions.
@@ -29,7 +94,7 @@ The local source closes automatic-pass paths for coordinate clicks, pixel-only s
 - Hook and real stdio-proxy integration tests cover coordinates, pixels, multilingual labels, Enter, unknown schemas and per-action approval, asserting refused calls never reach the server. Five language documents explain the behavior and limitations.
 - This deliberately increases confirmation frequency, including benign navigation and message-body clicks. No OCR or visual instruction classifier was added; answer-only pixel injection, arbitrary renamed tools and hidden server behavior remain outside this rule. It requires recorded untrusted content, enabled enforcement and a client that honors hook decisions. See [the flow guard documentation](docs/flow-guard.md#opaque-gui-actions-local-source-2026-10-23).
 
-These changes are local and have not been deployed or published to npm. Published npm `0.20.0` does not include the screen-control fixes.
+npm `0.20.0` did not include the screen-control fixes. They ship in 0.21.0.
 
 ## 0.20.0 — 2026-10-22
 

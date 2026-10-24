@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { mkdtempSync, rmSync, readFileSync, writeFileSync, mkdirSync, existsSync, symlinkSync } from 'node:fs';
+import { mkdtempSync, rmSync, readFileSync, readdirSync, writeFileSync, mkdirSync, existsSync, symlinkSync } from 'node:fs';
 import { tmpdir, homedir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -12,7 +12,7 @@ import {
 } from '../src/flow-guard.js';
 import { preToolUse, postToolUse } from '../src/claude-hook.js';
 // @ts-expect-error — plain .mjs build helper, no types
-import { pluginCopy } from '../scripts/sync-flow-guard.mjs';
+import { pluginCopy, pluginFiles } from '../scripts/sync-flow-guard.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const dirs: string[] = [];
@@ -476,7 +476,18 @@ describe('flow guard: wiring', () => {
   it('the plugin runs a byte-identical copy of the compiled guard', () => {
     const dist = join(root, 'dist/flow-guard.js');
     if (!existsSync(dist)) execFileSync('npx', ['tsc', '-p', 'tsconfig.json'], { cwd: root });
-    expect(readFileSync(join(root, 'claude-plugin/scripts/flow-guard.mjs'), 'utf8')).toBe(pluginCopy(readFileSync(dist, 'utf8')));
+    const files = pluginFiles(root);
+    expect(files.map(f => f.name)).toContain('flow-guard.mjs');
+    // No part missing from the plugin, and none left over from an older layout.
+    expect(readdirSync(join(root, 'claude-plugin/scripts')).filter(n => /^flow-guard(?:-[a-z]+)?\.mjs$/.test(n)).sort()).toEqual(files.map(f => f.name));
+    for (const f of files) expect(readFileSync(join(root, 'claude-plugin/scripts', f.name), 'utf8')).toBe(f.text);
+  });
+
+  it('the plugin copy refuses imports other than node: built-ins and its own parts', () => {
+    expect(pluginCopy("import { x } from './flow-guard-paths.js';\n")).toContain("from './flow-guard-paths.mjs'");
+    expect(() => pluginCopy("import { x } from './wrap.js';\n")).toThrow(/node: built-ins and flow-guard parts only/);
+    expect(() => pluginCopy("export { x } from 'some-package';\n")).toThrow(/node: built-ins and flow-guard parts only/);
+    expect(() => pluginCopy("import 'some-package';\n")).toThrow(/node: built-ins and flow-guard parts only/);
   });
 
   it('registers the guard on every tool, before and after the call', () => {

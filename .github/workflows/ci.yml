@@ -10,6 +10,19 @@ permissions:
   contents: read
 
 jobs:
+  macos-desktop:
+    runs-on: macos-14
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - name: Real native AppKit target-side integration gate
+        run: npm run test:macos
+
   test:
     runs-on: ubuntu-latest
     strategy:
@@ -26,6 +39,8 @@ jobs:
       - run: npm run typecheck
       - run: npm run build
       - run: npm test
+      - name: End-to-end flow red-team release gate
+        run: npm run test:redteam
       # A published version must mean exactly one rule table. See
       # scripts/check-published-ruleset.mjs — 0.3.0 shipped ruleset v2 while its
       # own bundled README documented v3, and nothing noticed for weeks.
