@@ -12,6 +12,7 @@ const STRIDE = 4;
 const TOKEN_WINDOW = 8;
 const HEX_TOKEN_WINDOW = 10;
 export const TOKEN_WINDOWS = [TOKEN_WINDOW, HEX_TOKEN_WINDOW] as const;
+const NORMALIZED_CREDENTIAL_PREFIX = /^(?:[rs]k(?:live|test)|skantapi[0-9]+|skant|skproj|sk|gh[pousr]|githubpat|glpat|npm|xox[abprs]|akia|asia|aiza)/;
 // Text every key of a kind shares, so it is no piece of any one key: the RSA, EC and signature algorithm
 // identifiers of DER keys and certificates, in letters and digits.
 export const KEY_STRUCTURE = ['anbgkqhkig9w0baqefaa', 'a0gcsqgsib3dqebcwua', 'a0gcsqgsib3dqebbquaa', 'byqgsm49ageg', 'ccqgsm49aweh', 'bsubbaaiq', 'mcowbqydk2vw', 'mcowbqydk2vu'];
@@ -116,14 +117,23 @@ export function secretTokens(text: string, credentialFile: boolean): string[] {
   return [...new Set(secretValues(text, credentialFile).map(alnum))];
 }
 
-/** Windows that hold both a letter and a digit, so an ordinary word is never a piece of a key. A window never
- * starts in the key's leading letters ("sk-ant-api03" or "rk_live" is a format every such key shares), never in the
- * first 48 characters of a DER key or certificate (its header and algorithm), and never lies inside KEY_STRUCTURE. */
+/** Known providers' alphabetic payload prefixes are still secret: do not skip them merely because the first
+ * digit comes late. Keep every previously indexed window. Generic values retain the old conservative start:
+ * public word-based environment values ending in a year must not gain new hard-denial substrings. */
+export function tokenFingerprintStart(a: string): number {
+  const leading = /^[a-z]*/.exec(a)![0].length;
+  if (/^(mii|mig|mhc|mc4|mco)/.test(a)) return Math.max(48, leading);
+  const prefix = NORMALIZED_CREDENTIAL_PREFIX.exec(a)?.[0];
+  return prefix ? Math.min(leading, prefix.length) : leading;
+}
+
+/** Windows hold both a letter and a digit; alphabetic-only words are not strong credential evidence.
+ * Public format/DER structure is excluded. The 8/10-character thresholds and stored hash format are unchanged. */
 export function tokenFingerprints(tokens: readonly string[]): string[] {
   const out = new Set<string>();
   for (const a of tokens) {
     const size = /^[0-9a-f]+$/.test(a) ? HEX_TOKEN_WINDOW : TOKEN_WINDOW;
-    const start = /^(mii|mig|mhc|mc4|mco)/.test(a) ? Math.max(48, /^[a-z]*/.exec(a)![0].length) : /^[a-z]*/.exec(a)![0].length;
+    const start = tokenFingerprintStart(a);
     for (let i = start; i + size <= a.length; i++) {
       const w = a.slice(i, i + size);
       if (/\d/.test(w) && /[a-z]/.test(w) && !KEY_STRUCTURE.some(k => k.includes(w))) out.add(fpHash(w));

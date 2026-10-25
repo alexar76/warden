@@ -4,7 +4,8 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
-import { candidates, publicRequestDigest, flowPaths, flowPre, fragmentFingerprints, readFlowState, runFlowHook, secretTokens, spelledCandidates } from '../src/flow-guard.js';
+import { candidates, publicRequestDigest, flowPaths, flowPre, fragmentFingerprints, readFlowState, runFlowHook, secretTokens, spelledCandidates, tokenFingerprints } from '../src/flow-guard.js';
+import { fpHash, tokenFingerprintStart } from '../src/flow-guard-fingerprints.js';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const dirs: string[] = [];
@@ -36,6 +37,41 @@ function setup(policy: unknown = {}, secret = token, taint = true, sourcePath = 
 }
 
 describe('short-secret fragment correlation', () => {
+  it('denies an embedded eight-character payload when the key has a long alphabetic beginning', () => {
+    const value = 'AbCdEfGhIjKlMnOpQrStUvWxYzAbCdEfGh1234';
+    const key = ['ghp', value].join('_');
+    const s = setup({}, key);
+    const piece = value.slice(-8);
+    expect(tokenFingerprints(secretTokens(key, true))).toContain(fpHash(piece.toLowerCase()));
+    expect(s.pre(`helloworld${piece}kindregards`)?.permissionDecision).toBe('deny');
+  });
+
+  it('keeps existing eight-character on-disk stores valid for a known provider', () => {
+    const value = 'AbCdEfGhIjKlMnOpQrStUvWxYzAbCdEfGh1234';
+    const s = setup({}, ['ghp', value].join('_'));
+    const piece = value.slice(-8).toLowerCase();
+    expect(s.pre(`helloworld${piece}kindregards`)?.permissionDecision).toBe('deny');
+    // Same old on-disk 12-hex fingerprint format and the same eight-character matcher.
+    writeFileSync(s.paths.tok, fpHash(piece) + '\n');
+    expect(s.pre(`helloworld${piece}kindregards`)?.permissionDecision).toBe('deny');
+  });
+
+  it('does not expand generic word-based configuration into a false hard denial of a reviewed public request', () => {
+    const value = 'AcmeIntegrationToken2026', body = 'Public build Token2026';
+    const tool = 'mcp__mail__send_email', input = { to: 'bob@corp.com', body };
+    const s = setup({ credentialEgress: { allow: [{ tool, requestSha256: publicRequestDigest(tool, input) }] } }, value);
+    expect(tokenFingerprintStart(value.toLowerCase())).toBe(value.length - 4);
+    expect(s.pre(body)).toBeUndefined();
+  });
+
+  it('keeps old windows from numeric provider prefixes and leaves DER boundaries unchanged', () => {
+    const value = ['sk', 'ant', 'api03', '7Qm2ZpX9vLw4Kt8RbN3cYs6HdJ1fGa5E'].join('-');
+    const normalized = secretTokens(value, true)[0]!;
+    expect(tokenFingerprintStart(normalized)).toBe(8);
+    expect(tokenFingerprints([normalized])).toContain(fpHash(normalized.slice(8, 16)));
+    expect(tokenFingerprintStart('miievqibadanbgkqhki9w0baqefaa' + 'a'.repeat(50))).toBe(48);
+  });
+
   it.each([1, 2, 3, 4])('requires review before even a %i-character first fragment can leave', size => {
     const s = setup();
     expect(s.pre(`note: ${payload.slice(0, size)} done`)?.permissionDecision).toBe('ask');

@@ -1,9 +1,10 @@
+# Node security baseline: 22.23.4 (2026-10-21 security release).
 # WARDEN — stdio MCP server for Glama / Claude Desktop / Cursor
 #
 # Local:  docker build -t warden-mcp . && docker run --rm -i warden-mcp
 # Glama:  does not use this file as-is — paste the Build steps / CMD from
 #         docs/GLAMA.md into the admin form after submitting the GitHub repo.
-FROM node:22-slim
+FROM node:22.23.4-slim
 WORKDIR /app
 
 LABEL org.opencontainers.image.title="warden"

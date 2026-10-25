@@ -6,6 +6,12 @@ Follow-up audit, 2026-10-23: binary `image`/`audio` data in tool results no long
 
 These screen-control fixes ship in npm `0.21.0`. npm `0.20.0` did not include them.
 
+## Credential windows (local source, 2026-10-25)
+
+Strong windows remain **8 non-hex / 10 hex** after the Linux 6/7/8 comparison. The local index now includes mixed letter/digit windows before a key's first digit after recognized normalized provider prefixes, while keeping generic/DER exclusions and all old hashes. A credential reread is needed for an existing session to gain those windows. Six-character pieces inside longer words still rely on the credential boundary when not otherwise recognized.
+
+On 14,400 attack fixtures the change converts 717 decisions from ask to deny; none execute automatically before or after. The 7,680 benign requests per profile keep their decisions: all ask by default, all pass once with exact reviewed public rules. Deliberately selected public-text controls show false hard denials at 6 and a known example at 7; these are not production rates. The [study and raw evidence](../../docs/growth/warden-thresholds-2026-10-25.ru.md) separate corpus substring hits, hook decisions and detector-only results. The change is local and unreleased.
+
 ## Credential boundary and encoded fragments (local source, 2026-10-23)
 
 After a recorded credential/key read and outside text, **every supported outbound/MCP call requires `ask` before execution** (`deny` refuses), regardless of fragment length, encoding, user-named destination or read-only MCP label. Ordinary project writes are reviewed too; credential-file writes retain their existing exemption. The sticky `credentialRead` flag survives source-history rotation and user turns. This closes automatic transmission of one-to-four-character pieces and unknown encoded blobs by enforcing a boundary, not by claiming to decode arbitrary information.

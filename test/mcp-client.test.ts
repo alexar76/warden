@@ -84,6 +84,15 @@ describe('MCP client: streamable HTTP', () => {
     await expect(fetchServer(ref(base), { ...opts, publicOnly: true })).rejects.toMatchObject({ kind: 'refused' });
     await expect(fetchServer(ref(base.replace('127.0.0.1', 'localhost')), { ...opts, publicOnly: true })).rejects.toMatchObject({ kind: 'refused' });
   });
+
+  it.each(['http', 'sse'] as const)('--public-only rejects canonical IPv4-mapped literals before any %s request', async transport => {
+    let requests = 0;
+    const base = await listen((_req, res) => { requests++; res.writeHead(500).end(); });
+    for (const address of ['[::ffff:127.0.0.1]', '[::ffff:7f00:1]', '[0:0:0:0:0:ffff:7f00:1]']) {
+      await expect(fetchServer(ref(base.replace('127.0.0.1', address), transport), { ...opts, publicOnly: true })).rejects.toMatchObject({ kind: 'refused' });
+    }
+    expect(requests).toBe(0);
+  });
 });
 
 describe('MCP client: legacy HTTP+SSE', () => {
@@ -144,6 +153,19 @@ describe('address policy and SSE parsing', () => {
   it('classifies non-public addresses', () => {
     for (const a of ['127.0.0.1', '10.1.2.3', '172.16.0.1', '192.168.0.1', '169.254.169.254', '100.64.0.1', '0.0.0.0', '::1', 'fd00:ec2::254', 'fe80::1', '::ffff:10.0.0.1']) expect(isNonPublicAddress(a), a).toBe(true);
     for (const a of ['8.8.8.8', '1.1.1.1', '2606:4700::1111']) expect(isNonPublicAddress(a), a).toBe(false);
+  });
+  it('compares numeric IPv6 groups and checks embedded IPv4 destinations', () => {
+    for (const address of [
+      '::ffff:7f00:1', '0:0:0:0:0:ffff:a00:1', '::ffff:169.254.169.254',
+      '64:ff9b::a00:1', '0064:ff9b:0:0:0:0:7f00:1', '64:ff9b:1::1',
+      '2002:7f00:1::1', '2002:ac10:1::1', '2002:c0a8:1::',
+      '0:0:0:0:0:0:0:1', 'fec0::1', 'fe80::1%lo0', '2001:db8::1',
+      '2001:0::1', '2001:2::1', '2001:10::1', '2001:20::1', '3fff::1',
+      '192.0.2.1', '198.51.100.1', '203.0.113.1', '198.19.1.1', 'invalid',
+    ]) expect(isNonPublicAddress(address), address).toBe(true);
+    for (const address of ['::ffff:808:808', '::ffff:8.8.8.8', '64:ff9b::808:808', '2002:808:808::1', '2001:4860:4860::8888']) {
+      expect(isNonPublicAddress(address), address).toBe(false);
+    }
   });
   it('parses multi-line data, CRLF and comments', () => {
     const p = new SseParser();

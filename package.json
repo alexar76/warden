@@ -1,7 +1,7 @@
 {
   "name": "@aimarket/warden",
   "version": "0.21.0",
-  "description": "WARDEN \u2014 MCP security firewall. Stdio wrap proxy, inspection tools and library. Vets definitions before model exposure. Zero runtime dependencies.",
+  "description": "WARDEN — MCP security firewall. Stdio wrap proxy, inspection tools and library. Vets definitions before model exposure. Zero runtime dependencies.",
   "type": "module",
   "license": "MIT",
   "author": "AICOM (alexar76)",
@@ -96,8 +96,8 @@
   },
   "devDependencies": {
     "@types/node": "^26.6.4",
-    "@vitest/coverage-v8": "^4.1.11",
+    "@vitest/coverage-v8": "^4.1.12",
     "typescript": "^5.7.2",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.12"
   }
 }
