@@ -2,6 +2,8 @@
 
 > 🌐 **English** · [Русский](flow-guard.ru.md) · [Español](flow-guard.es.md) · [Français](flow-guard.fr.md) · [中文](flow-guard.zh.md)
 
+See [measurement limits and version evidence](scan-limits.md) for billing, package pins, launcher comparisons and what approval counts establish.
+
 Follow-up audit, 2026-10-23: binary `image`/`audio` data in tool results no longer consumes the text budget, so a large screenshot before its text does not hide element labels, credential-file window titles or JSON text blocks. Screens returned by pointer and keyboard actions (including `computer` actions) update the view too. A plain acknowledgment keeps the previous view; an image-only action result clears it. Outgoing arguments receive no binary exemption and remain subject to secret checks. Regression tests cover both bypasses through the hooks and the real stdio proxy. The local source now also gates opaque GUI actions as described below.
 
 These screen-control fixes ship in npm `0.21.0`. npm `0.20.0` did not include them.

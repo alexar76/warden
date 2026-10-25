@@ -2,6 +2,8 @@
 
 > 🌐 [English](flow-guard.md) · [Русский](flow-guard.ru.md) · **Español** · [Français](flow-guard.fr.md) · [中文](flow-guard.zh.md)
 
+Consulte los [límites de medición y pruebas de versión](scan-limits.es.md) sobre facturación, versiones fijas, comparaciones de launchers y significado de los recuentos de aprobación.
+
 ## Anotaciones y revisión de la respuesta (código local, 2026-10-25)
 
 La política opcional del usuario `{"annotationReview":"first-use"}` añade una pregunta de primer uso **solo en `wrap --flow NAME`**. El valor predeterminado es `off`; wrap normal y los hooks por sí solos no cambian. Para una herramienta sin etiqueta del operador, `readOnlyHint`, `destructiveHint` y `openWorldHint` son afirmaciones no verificadas del servidor: cualquier booleano, o un tipo inválido de un hint conocido, puede exigir revisión. `readOnlyHint: true` no demuestra ausencia de escritura ni gratuidad. Las etiquetas explícitas y capability bindings exactos por identidad/conjunto completo de tools tienen prioridad; destinos permitidos y anotaciones en argumentos no conceden derechos.

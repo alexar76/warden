@@ -2,6 +2,8 @@
 
 > 🌐 [English](scan.md) · [Русский](scan.ru.md) · [Español](scan.es.md) · **Français** · [中文](scan.zh.md)
 
+Les appels de découverte peuvent entraîner des frais ; consultez les [limites des mesures et preuves de version](scan-limits.fr.md) avant d’interpréter un scan ou une version déclarée.
+
 `warden-mcp scan` lit la configuration MCP que vous avez déjà, se connecte à chaque serveur qu’elle démarre et vérifie les définitions d’outils avant qu’un modèle ne les voie. C’est la même chaîne de portes que [`wrap`](../README-fr.md) et la [bibliothèque](integration.fr.md), exécutée une fois sur vos configurations au lieu de se placer devant un seul serveur.
 
 ```bash

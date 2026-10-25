@@ -2,6 +2,8 @@
 
 > 🌐 [English](flow-guard.md) · [Русский](flow-guard.ru.md) · [Español](flow-guard.es.md) · [Français](flow-guard.fr.md) · **中文**
 
+关于账单、包版本固定、launcher 比较及批准计数的含义，请参见[测量边界与版本证据](scan-limits.zh.md)。
+
 ## 首次注解审核与回答复查（本地源码，2026-10-25）
 
 用户策略可选择 `{"annotationReview":"first-use"}`，**仅在 `wrap --flow NAME` 中**增加首次使用确认。默认 `off`；普通 wrap 或单独 hooks 不增加要求。对没有操作员标签的工具，`readOnlyHint`、`destructiveHint`、`openWorldHint` 都是未经验证的服务器声明：任意布尔值，或已知 hint 的非法类型，都可能要求审核。`readOnlyHint: true` 既不能证明无写入，也不能证明免费。操作员明确标签及与精确身份／完整 tools 快照匹配的 capability bindings 优先；目标白名单和调用参数中的注解不授予权限。

@@ -2,6 +2,8 @@
 
 > 🌐 **English** · [Русский](scan.ru.md) · [Español](scan.es.md) · [Français](scan.fr.md) · [中文](scan.zh.md)
 
+Discovery calls can incur costs; see [measurement limits and version evidence](scan-limits.md) before interpreting a scan or trusting a version hint.
+
 `warden-mcp scan` reads the MCP configuration you already have, connects to every server it starts, and vets the tool definitions before a model sees them. It is the same gate chain as [`wrap`](../README.md#protect-claude-desktop-or-cursor-with-one-wrapper) and the [library](integration.md), run once over your configs instead of in front of one server.
 
 ```bash

@@ -2,6 +2,8 @@
 
 > 🌐 [English](scan.md) · [Русский](scan.ru.md) · [Español](scan.es.md) · [Français](scan.fr.md) · **中文**
 
+发现调用也可能产生费用；解读扫描结果或信任版本提示前，请阅读[测量边界与版本证据](scan-limits.zh.md)。
+
 `warden-mcp scan` 读取你已有的 MCP 配置，连接其中启动的每个服务器，并在模型看到工具定义之前对其进行审查。它与 [`wrap`](../README-zh.md) 和[库](integration.zh.md)使用同一条关卡链，只是对你的配置运行一次，而不是挡在单个服务器前面。
 
 ```bash
