@@ -4,8 +4,9 @@ import { randomUUID } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { flowPaths, stateDir } from './flow-guard-paths.mjs';
 import { globMatch, loadPolicy } from './flow-guard-policy.mjs';
-import { MAX_TEXT, responseStrings } from './flow-guard-text.mjs';
-import { INJECTION_HINTS, classifyCall, resultTaints } from './flow-guard-classify.mjs';
+import { responseStrings } from './flow-guard-text.mjs';
+import { classifyCall, resultTaints } from './flow-guard-classify.mjs';
+import { instructionSignals } from './flow-guard-instructions.mjs';
 import { MAX_SCREENS, screenCall, screenFromResult, screenSecretRead, screenServer } from './flow-guard-screen.mjs';
 import { MAX_RESOLVED, resolvedContacts } from './flow-guard-destinations.mjs';
 import { alnum, fingerprints, fpHash, piiTokens, secretValues, tokenFingerprints } from './flow-guard-fingerprints.mjs';
@@ -43,7 +44,8 @@ export function flowPost(input, env = process.env) {
     const values = t.private && text ? secretValues(text, c.secret) : [];
     const tokens = [...new Set(values.map(alnum))];
     const shortIndex = fragmentFingerprints(values);
-    const looksLikeInstruction = t.untrusted && INJECTION_HINTS.test(text.slice(0, MAX_TEXT));
+    const signals = t.untrusted ? instructionSignals(text) : { matches: [], limited: false };
+    const looksLikeInstruction = signals.matches.length > 0;
     if (looksLikeInstruction)
         appendFp(paths.hint, hintWindows(instructionText(text)));
     const at = new Date().toISOString();
@@ -106,7 +108,12 @@ export function flowPost(input, env = process.env) {
         }
     });
     if (t.untrusted)
-        log(paths, { event: 'taint', tool: toolName, src: t.src.slice(0, 200) });
+        log(paths, { event: 'taint', tool: toolName, src: t.src.slice(0, 200),
+            instructionSignal: looksLikeInstruction,
+            signalKinds: [...new Set(signals.matches.map(signal => signal.kind))],
+            signalScanLimited: signals.limited,
+            warningKind: policy.mode === 'audit' ? 'suppressed-audit' : looksLikeInstruction ? 'instruction' : 'source',
+            semanticCompliance: 'not-assessed' });
     if (!t.untrusted || policy.mode === 'audit')
         return undefined;
     const where = t.src.length > 80 ? t.src.slice(0, 77) + '...' : t.src;

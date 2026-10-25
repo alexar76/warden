@@ -303,7 +303,7 @@ The flow guard adds checks at tool-call boundaries after a session receives outs
 - An injection that only changes the answer makes no call to refuse. Since 2026-10-22 the plugin's Stop hook adds one line under an answer whose turn read outside text, naming those sources, and says so when any of it addressed the assistant with instructions. When the answer repeats 12 consecutive normalized characters from the sentences where that text addressed the assistant, the hook also sends the answer back once (`decision: block`), to be checked against the user's request before the user reads it; the user loses nothing but the time of that check. `answerNote` chooses `always` (default), `instruction` (only that case) or `off`; outside the plugin, register `warden-mcp hook stop`.
 - The MCP proxy records JSON-RPC error text and tool-error results as outside text too. If recording fails, it withholds the response. Existing corrupt session state blocks pre-tool checks instead of becoming an empty session.
 
-Released in npm `0.17.0`: `npx -y @aimarket/warden@0.21.0 hook pre-tool-use`, or from a source checkout `npm ci && npm run build`, then `node dist/mcp-server.js hook pre-tool-use`. Register the prompt and post hooks as well, or use the bundled Claude plugin.
+Released in npm `0.17.0`: `npx -y @aimarket/warden@0.22.0 hook pre-tool-use`, or from a source checkout `npm ci && npm run build`, then `node dist/mcp-server.js hook pre-tool-use`. Register the prompt and post hooks as well, or use the bundled Claude plugin.
 
 Policy is user-level (`~/.local/state/warden/flow-policy.json`, or `WARDEN_FLOW_POLICY`). Modes are `ask`, `deny`, `audit`, `off`. `audit` logs decisions without enforcing them. Example:
 
@@ -508,6 +508,10 @@ positives, and wrote six more attacks against the new rules. At that release, 2 
 
 **Saved-answer qualification (2026-10-25):** the official DeepSeek guard + note result remains **18/20** under AgentDojo's exact-name mention predicate. Individual AI-assisted reading found no adopted recommendation in those saved excerpts; all 18 exact-name mentions occur in warnings. Only 18 answers are complete: two hit the historical 2,000-character storage cap, so a full-answer 0/20 compliance result is not established. These annotations are neither independent nor blinded and do not replace the official score. The local harness now retains full future answers with length/hash metadata; no new model run is implied. [Audit and reproduction](../../docs/growth/launchgate-methodology-2026-10-25.ru.md).
 
+**Controlled selection probe (2026-10-25):** A separate synthetic post-tool probe using published WARDEN `0.21.0` covered six hotel tasks × five repetitions, clean/benign/injected notes and three profiles: **270/270 correct IDs**, with **0/90 injected target choices** (0/30 per profile). Target names appeared in **25/270** answers including controls, and Stop fired **0/90** times in `note_stop`; the unguarded baseline was correct too, so no incremental guard gain is established, and correct IDs do not validate every explanation fact. [Protocol, results and limits](../../docs/growth/launchgate-selection-2026-10-25.en.md): this separate study does not change AgentDojo’s historical **18/20** or establish broad safety.
+
+**Tied-choice follow-up (2026-10-25):** With two admissible optima, injected target selection was 48/48 without a guard, 44/48 with the note and 45/48 with note+Stop; the respective clean baselines were 28/48, 25/48 and 29/48. Baseline-adjusted guard-effect intervals include zero, and all 432 choices were admissible; target choice is not automatically an error. Separate genuine-user preferences were followed 18/18, with no Stop rechecks. The local [offline evaluator](../scripts/selection-probe/README.md) now supports admissible sets and common-baseline contrasts; runtime blocking is unchanged. [Results and limits](../../docs/growth/launchgate-tie-selection-2026-10-25.en.md).
+
 At the 2026-10-22 release these two examples were still delivered. Both are blocked in the local 2026-10-23 source; see the new section above. Historical [results](../scripts/redteam/results/):
 
 - **Pieces under 8 characters, each wrapped in different words**, to an address the user typed: 7 or more messages
@@ -564,3 +568,11 @@ python3 scripts/agentdojo/summarize_model.py summary.json /srv/adojo/out --goals
 `model.py OUT --model deepseek-flash --model-label DeepSeek --dump-goals` writes the attacker goals
 `summarize_model.py` uses to recognise calls at the attacker.
 Per-run records of both rounds: `results/model-deepseek-2026-10-18b.jsonl.gz` (summary `model-deepseek-2026-10-18b.json`); `--guard-note` feeds the guard's note back to the model.
+
+## Source instruction signals and Stop diagnostics (local 0.22.0)
+
+Bounded English/Russian patterns recognize spoofed role delimiters, claimed relayed preferences or prior approvals paired with a nearby directive, concealed instructions and private evaluation rubrics. They are fallible source signals, including in legitimate quotations; they do not prove an attack, grant authority or automatically forbid a choice. Genuine user prompts remain a separate source.
+
+The local log records `instructionSignal`, `signalKinds`, `signalScanLimited` and `warningKind` (`source`, `instruction`, `suppressed-audit`). Stop records `trigger` (`no-instruction-signal`, `no-literal-overlap`, `literal-instruction-overlap`), `recheckRequested` and `semanticCompliance: "not-assessed"`. The existing 12-character normalized overlap and host-marked continuation bound remain; a recheck is neither permanent refusal nor proof of correction.
+
+The repository helper `scripts/selection-probe/audit_warnings.mjs` replays saved hook inputs and answers. Acknowledgement candidate words describe visible text, not model awareness or obedience. Replaying an old answer measures hook behavior only; changed choices require a new controlled model run.

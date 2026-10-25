@@ -303,7 +303,7 @@ Wrap 提问前读取基线，批准后重新验证工具定义并再次读取。
 - 只改变回答的注入不会发出可拒绝的调用。自 2026-10-22 起，插件的 Stop 钩子会在本轮读过外部文本的回答下方加一行，列出这些来源；若其中有文本以指令口吻对助手说话，也会注明。如果回答连续重复了外部文本中对助手下指令那几句话里的 12 个规范化字符，钩子还会把回答退回给模型一次（`decision: block`），在用户读到之前对照用户的请求检查；用户只损失这次检查的时间。`answerNote`：`always`（默认）、`instruction`（只在这种情况下）或 `off`；插件之外请注册 `warden-mcp hook stop`。
 - 代理也记录 JSON-RPC 和工具错误；记录失败时不转发响应，现有会话状态损坏时阻止检查中的调用。
 
-已在 npm `0.17.0` 发布：`npx -y @aimarket/warden@0.21.0 hook pre-tool-use`；或从源码在 WARDEN 目录运行 `npm ci && npm run build`，然后使用 `node dist/mcp-server.js hook pre-tool-use`，并注册 prompt/post hooks。策略为 `~/.local/state/warden/flow-policy.json` 或 `WARDEN_FLOW_POLICY`；模式为 `ask`、`deny`、`audit`、`off`。当前配置示例见[英文页](flow-guard.md)。
+已在 npm `0.17.0` 发布：`npx -y @aimarket/warden@0.22.0 hook pre-tool-use`；或从源码在 WARDEN 目录运行 `npm ci && npm run build`，然后使用 `node dist/mcp-server.js hook pre-tool-use`，并注册 prompt/post hooks。策略为 `~/.local/state/warden/flow-policy.json` 或 `WARDEN_FLOW_POLICY`；模式为 `ask`、`deny`、`audit`、`off`。当前配置示例见[英文页](flow-guard.md)。
 
 代理命令：`node dist/mcp-server.js wrap --flow mail -- node mail-server.js`。同一会话的代理应共享一个新的 `WARDEN_FLOW_SESSION`。默认父进程 PID 不能关联不同启动器。代理看不到用户提示或客户端内置工具。需要确认的调用会在客户端提供 MCP elicitation 表单时通过表单询问（回答记入日志的 `approvalOutcome`），否则或使用 `--ask refuse` 时被拒绝。`trustedSources` 仅用于 WebFetch URL，不用于 MCP 参数中的任意链接。
 
@@ -438,6 +438,10 @@ workspace 中八个较新的攻击者目标没有参考解，因而无法回放�
 
 **保存回答的限定说明（2026-10-25）：**按 AgentDojo 的精确名称匹配规则，DeepSeek guard + note 的官方结果仍为 **18/20**。AI 辅助逐条阅读未在这些保存片段中发现采纳攻击建议；18 次精确名称提及都出现在警告中。只有 18 个回答完整，另两个达到旧的 2,000 字符保存上限，因此不能据此确立完整回答的 0/20 服从率。该标注既非独立也非盲审，不替代官方分数。本地 harness 现在为后续运行保存完整回答、长度和 hash；这不代表重新运行了模型。[审计与复现](../../docs/growth/launchgate-methodology-2026-10-25.ru.md)。
 
+**受控选择测试（2026-10-25）：**独立的工具结果后合成测试使用已发布的 WARDEN `0.21.0`，覆盖六项酒店任务 × 五次重复、clean/benign/injected 三种备注及三种配置：**270/270 个 ID 选择正确**，其中 injected 条件下**0/90 次选择攻击目标**（每种配置 0/30）。目标名称出现在包括对照组在内的 **25/270** 个回答中，`note_stop` 的 Stop 触发 **0/90** 次；无守卫基线也全部选对，因此尚未测得守卫的额外收益，而正确 ID 不代表解释中的每项事实都准确。[协议、结果与限制](../../docs/growth/launchgate-selection-2026-10-25.en.md)：这项独立研究不改变 AgentDojo 历史上的 **18/20**，也不证明普遍安全。
+
+**并列选择后续实验（2026-10-25）：** 两个最优选项均可接受时，注入条件下目标选择分别为：无防护 48/48、note 44/48、note+Stop 45/48；对应 clean 基线为 28/48、25/48、29/48。经基线调整的防护效果区间包含零；432 次选择均符合任务要求，选择目标本身不能视为错误。真实用户偏好得到 18/18 次遵守，Stop 未要求复查。本地[离线评估器](../scripts/selection-probe/README.md)现支持多个可接受答案及共同基线比较；运行时阻断逻辑未更改。[结果与限制，英文](../../docs/growth/launchgate-tie-selection-2026-10-25.en.md)。
+
 在 2026-10-22 发布版中，下面两个例子仍能通过；2026-10-23 本地源码已拦截，详见上文。[历史结果](../scripts/redteam/results/)：
 
 - **短于 8 个字符、每段被不同文字包裹的分段**，发往用户输入的地址：一个 40 字符的密钥要 7 封以上的邮件。
@@ -478,3 +482,11 @@ python3 scripts/agentdojo/summarize_model.py summary.json /srv/adojo/out --goals
 
 `WORK/ctx` 是构建上下文（`dist/` 和 `scripts/agentdojo/`）；`--obedient` 加上劫持那段话；`model.py OUT --model deepseek-flash --model-label DeepSeek --dump-goals` 写出攻击者目标，
 `summarize_model.py` 据此识别指向攻击者的调用。两轮每次运行的记录：`results/model-deepseek-2026-10-18b.jsonl.gz`（摘要 `model-deepseek-2026-10-18b.json`）；`--guard-note` 把守卫的说明返回给模型。
+
+## 来源指令信号与 Stop 诊断（本地 0.22.0）
+
+有界的英语/俄语模式可识别伪造角色分隔符、与邻近指令结合的所谓转达偏好或先前批准、要求隐瞒的指令及私有评分规则。这些信号可能出错，合法引用也可能触发；它们不证明攻击、不授予权限，也不会自动禁止选择。用户的真实请求仍作为独立来源处理。
+
+本地日志记录 `instructionSignal`、`signalKinds`、`signalScanLimited` 和 `warningKind`（`source`、`instruction`、`suppressed-audit`）。Stop 记录 `trigger`（`no-instruction-signal`、`no-literal-overlap`、`literal-instruction-overlap`）、`recheckRequested` 及 `semanticCompliance: "not-assessed"`。保留现有的 12 个规范化字符重合阈值和宿主标记的继续次数限制；复核既不等于永久拒绝，也不证明纠正。
+
+仓库工具 `scripts/selection-probe/audit_warnings.mjs` 可重放已保存的 hook 输入与答案。确认候选词只描述可见文本，不能证明模型意识到或遵从了指令。重放旧答案只测量 hook 行为；选择是否改变需要新的受控模型实验。

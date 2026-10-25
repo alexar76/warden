@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.22.0 — 2026-10-25
+
+Ships the local source recorded below. npm `0.21.0` did not include it. The entries below describe changes since 0.21.0.
+
+- Add opt-in `annotationReview: "first-use"` for unverified MCP tool annotations. Server hints remain untrusted and never authorize effects or payments; the default remains off.
+- Distinguish a requested package version from the version reported by a server when reviewing launch changes.
+- Include the credential-window and flow-guard module changes recorded below.
+- Add a repository-only selection evaluator with admissible choice sets, matched baseline comparisons and separate selection/mention metrics. The tie experiment does not establish reliable added guard benefit; no new runtime selection-blocking behavior is claimed. The evaluator is outside the npm package file list.
+- Expand bounded source instruction signals for role/authority spoofing and add source-warning and Stop-trigger diagnostics. Keep semantic compliance unassessed and the existing overlap/continuation contract; saved-answer hook replay cannot establish changed model behavior. Local candidate only, not published by this change.
+
 ## Local source — credential-window measurement and prefix indexing, 2026-10-25
 
 - Retain non-hex/hex strong windows at 8/10 after Linux hook comparisons at 6/7/8. Recognized normalized provider prefixes no longer cause alphabetic payload before the first digit to be skipped. Preserve generic/DER starts, every previous fingerprint and the existing storage format; existing sessions need a credential reread to gain new windows.

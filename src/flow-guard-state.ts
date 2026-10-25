@@ -1,7 +1,7 @@
 /** Flow guard: per-session state under a lock, fingerprint files and the session log. */
 import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import type { FlowState, FragmentRecord } from './flow-guard-types.js';
-import { flowPaths, stateDir } from './flow-guard-paths.js';
+import { flowPaths, stateDir, sessionKey } from './flow-guard-paths.js';
 import { MAX_TEXT } from './flow-guard-text.js';
 import { secretPattern } from './flow-guard-fingerprints.js';
 import { MAX_FRAGMENT_INDEX, MAX_FRAGMENT_SEEN, SHORT_SIZES } from './flow-guard-fragments.js';
@@ -89,6 +89,11 @@ export function log(paths: ReturnType<typeof flowPaths>, entry: Record<string, u
 
 export function safeToolName(name: string): string {
   return /^[A-Za-z0-9_.:-]{1,100}$/.test(name) && !secretPattern([name]) ? name : '[unrecognized tool name]';
+}
+
+/** Display correlation only, never a pin or authority. No server-authored words. */
+export function warningSourceId(name: string): string {
+  return `source-${sessionKey(name).slice(0, 16)}`;
 }
 
 export function flowStateExists(sessionId: string, env: NodeJS.ProcessEnv = process.env): boolean {

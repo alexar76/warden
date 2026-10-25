@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "npx --yes @aimarket/warden@0.21.0 hook session-start",
+            "command": "npx --yes @aimarket/warden@0.22.0 hook session-start",
             "timeout": 180
           }
         ]

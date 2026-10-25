@@ -8,6 +8,7 @@ import { globMatch, hostMatches } from './flow-guard-policy.js';
 import { MAX_TEXT, hostsIn, strings } from './flow-guard-text.js';
 import { screenOperation } from './flow-guard-screen.js';
 import { namesParty } from './flow-guard-destinations.js';
+import { INJECTION_HINTS } from './flow-guard-instructions.js';
 
 // Shell commands. A segment is one command between ; && || | and newlines.
 const NETWORK_CMDS = new Set(['curl', 'wget', 'nc', 'ncat', 'netcat', 'socat', 'telnet', 'ssh', 'scp', 'sftp', 'ftp', 'rsync',
@@ -162,8 +163,8 @@ export function classifyCall(toolName: string, input: Record<string, unknown>, c
   return result;
 }
 
-// Short phrases that make a local file's text count as outside text. A source signal only.
-export const INJECTION_HINTS = /ignore (all |any |the )?(previous|prior|above) (instructions|messages)|disregard (the|your|all) (previous|prior|system)|<\/?(important|system|instructions?|critical[_-]?requirement)\b|do not (tell|show|inform|mention to) the user|you are now|new instructions:|assistant must|before (any|every) (reply|response), (call|run|use)/i;
+// These source signals never authorize actions or establish semantic compliance.
+export { INJECTION_HINTS } from './flow-guard-instructions.js';
 
 export function resultTaints(toolName: string, input: Record<string, unknown>, responseText: string, cwd: string, policy: FlowPolicy, classified: Classified): { untrusted: boolean; private: boolean; src: string } {
   const labels = classified.labels;
