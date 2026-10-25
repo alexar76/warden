@@ -16,6 +16,19 @@ export interface Observation {
   /** serverInfo from the initialize result, when the proxy recorded it: shown in a review, never trusted. */
   serverInfo?: { name?: string; version?: string };
 }
+
+/** A bounded copy of the child's self-reported metadata, never an installed-artifact identity. */
+export function observedServerInfo(value: unknown): Observation['serverInfo'] {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const raw = value as Record<string, unknown>, out: NonNullable<Observation['serverInfo']> = {};
+  for (const key of ['name', 'version'] as const) {
+    const text = raw[key];
+    // In Unicode mode this matches only unpaired UTF-16 surrogates, not valid non-BMP code points.
+    // Optional metadata must not poison the full-pin RFC 8785 revision used by review CAS.
+    if (typeof text === 'string' && text.length <= 200 && !/[\uD800-\uDFFF]/u.test(text)) out[key] = text;
+  }
+  return Object.keys(out).length ? out : undefined;
+}
 /** A refusal WARDEN decided, as opposed to a check that could not run (timeout, lock, child error). */
 export class WardenBlock extends Error {}
 
@@ -36,11 +49,12 @@ export async function observe(dir: string, value: Observation): Promise<void> {
 
 /** One lock spans TOFU's read/vet/approve, as well as human review's final CAS. */
 export async function vetAndPin(dir: string, server: McpServerRef, tools: ToolDef[], policy: WardenPolicy,
-  store: FilePinStore, warden: Warden, feed: ThreatFeed, auditOnly: boolean, isCurrent: () => boolean, record: (v: WardenVerdict) => void): Promise<WardenVerdict> {
+  store: FilePinStore, warden: Warden, feed: ThreatFeed, auditOnly: boolean, isCurrent: () => boolean, record: (v: WardenVerdict) => void,
+  serverInfo?: Observation['serverInfo']): Promise<WardenVerdict> {
   const path = observationPath(dir, server.id);
   return withStateLock(path, async () => {
     const previous = await readState<Observation>(path);
-    await writeState(path, { server, tools, policy, revoked: previous?.revoked });
+    await writeState(path, { server, tools, policy, revoked: previous?.revoked, ...(serverInfo ? { serverInfo } : {}) });
     const verdict = await warden.vet(server, tools);
     record(verdict);
     if (!auditOnly && !isCurrent()) throw new WardenBlock('tools changed, blocked by WARDEN during verification');
@@ -48,7 +62,8 @@ export async function vetAndPin(dir: string, server: McpServerRef, tools: ToolDe
     if (!auditOnly && !policy.requireApproval && verdict.allow && policy.pinToolDefs && !previous?.revoked && !await store.getPin(server.id)) {
       // Use the published approve API with a CAS adapter: other hosts may share this store.
       const firstContact = Warden.create({ policy, threatFeed: feed,
-        store: { getPin: id => store.getPin(id), putPin: pin => store.replace(server.id, null, pin) } });
+        store: { getPin: id => store.getPin(id),
+          putPin: pin => store.replace(server.id, null, { ...pin, ...(serverInfo ? { serverInfo } : {}) }) } });
       await firstContact.approve(server, tools, 'automatic');
     }
     return verdict;

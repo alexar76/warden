@@ -155,7 +155,8 @@ export async function runPins(opts: WrapOptions): Promise<void> {
       const verdict = await warden.vet(current!.server, tools);
       if (!verdict.allow) throw new Error(`Approval blocked: ${verdict.findings.map(f => f.code).join(', ')}`);
       await store.replace(id, pinRevision(previous), { serverId: id, tools, toolsHash: pinToolsHash(tools), toolsHashVersion: 2,
-        identityHash: serverIdentityHash(current!.server), toolNames: tools.map(t => t.name).sort(), approvedAt: new Date().toISOString(), approvalMode: 'operator' });
+        identityHash: serverIdentityHash(current!.server), toolNames: tools.map(t => t.name).sort(), approvedAt: new Date().toISOString(), approvalMode: 'operator',
+        ...(current!.serverInfo ? { serverInfo: current!.serverInfo } : {}) });
       await writeState(path, { ...current, revoked: false });
     }
   });

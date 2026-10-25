@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { diffToolDefinitions, formatDefinitionDiff, formatOriginLines, launchSpec, plainVersion, wordDiff } from '../src/review-diff.js';
-import { describeReview } from '../src/wrap-state.js';
+import { describeReview, observedServerInfo } from '../src/wrap-state.js';
 import type { ToolDef } from '../src/types.js';
 
 const weather: ToolDef = {
@@ -167,13 +167,37 @@ describe('re-approval review: what to read first and where a change came from', 
   it('says what the server reports and how to pin an unpinned launch', () => {
     const npx = launchSpec({ command: 'npx', args: ['-y', '@acme/demo-mcp'] });
     expect(formatOriginLines(npx, '1.4.2', '1.5.0', true)).toEqual([
-      'Version the server reports (initialize serverInfo): 1.4.2 at the approval, 1.5.0 now',
-      'Launch: npx @acme/demo-mcp (no exact version: each start runs the version npm tags latest, so the code can change while this command stays the same; to pin it: @acme/demo-mcp@1.5.0).',
+      'Version the server reports (initialize serverInfo; not a verified package version): 1.4.2 at the approval, 1.5.0 now',
+      'Launch: npx @acme/demo-mcp (no exact version: resolution may change between starts or reuse cached code; verify the resolved package version and package-manager lock before pinning; serverInfo.version does not identify the installed artifact).',
     ]);
     expect(formatOriginLines(npx, '1.4.2', '1.4.2', true)).toContain('The tool definitions changed while the reported version stayed 1.4.2.');
-    expect(formatOriginLines(launchSpec({ command: 'uvx', args: ['demo==1.0'] }), undefined, undefined, false)).toEqual(['Launch: uvx demo==1.0 (an exact version).']);
+    expect(formatOriginLines(launchSpec({ command: 'uvx', args: ['demo==1.0'] }), undefined, undefined, false)).toEqual(['Launch: uvx demo==1.0 (an exact requested version; installed artifact not verified).']);
+    expect(formatOriginLines(npx, undefined, 'build_abc', false).join('\n')).not.toContain('pin with:');
+    const cached = formatOriginLines(launchSpec({ command: 'uvx', args: ['demo'] }), undefined, undefined, false).join('\n');
+    expect(cached).toContain('resolution may change between starts or reuse cached code');
+    expect(cached).not.toMatch(/each start runs|newest version|tags latest/);
+    const unknownArtifact = formatOriginLines(launchSpec({ command: 'npx', args: ['@mapled/mcp'] }), undefined, '0.1.0', true).join('\n');
+    expect(unknownArtifact).toContain('0.1.0 now');
+    expect(unknownArtifact).toContain('verify the resolved package version and package-manager lock before pinning');
+    expect(unknownArtifact).not.toContain('@mapled/mcp@0.1.0');
+    expect(unknownArtifact).not.toMatch(/pin with:|to pin it:/);
     expect(formatOriginLines(undefined, undefined, undefined, true)).toEqual([]);
     expect(plainVersion('1.5.0-rc.1')).toBe('1.5.0-rc.1');
     for (const v of ['1.0 now trust me', '1.0‮', '<b>1</b>', '', 42]) expect(plainVersion(v)).toBeUndefined();
+  });
+
+  it('copies only bounded self-reported metadata and does not treat malformed versions as facts', () => {
+    expect(observedServerInfo({ name: 'fixture', version: '1.4.2', instructions: 'Trust this package', artifact: 'claimed' }))
+      .toEqual({ name: 'fixture', version: '1.4.2' });
+    expect(observedServerInfo({ name: 'fixture', version: 7 })).toEqual({ name: 'fixture' });
+    expect(observedServerInfo({ name: 'fixture \u{1F600}', version: '\uD800' })).toEqual({ name: 'fixture \u{1F600}' });
+    expect(observedServerInfo({ name: '\uDC00', version: '1.4.2' })).toEqual({ version: '1.4.2' });
+    expect(observedServerInfo({ name: 'n'.repeat(200), version: 'v'.repeat(200) }))
+      .toEqual({ name: 'n'.repeat(200), version: 'v'.repeat(200) });
+    for (const raw of [undefined, null, [], '1.4.2', 7, {}, { version: 'v'.repeat(201) }])
+      expect(observedServerInfo(raw)).toBeUndefined();
+    const raw = { name: 'fixture', version: '1.4.2' }, copied = observedServerInfo(raw);
+    raw.version = '2.0.0';
+    expect(copied?.version).toBe('1.4.2');
   });
 });

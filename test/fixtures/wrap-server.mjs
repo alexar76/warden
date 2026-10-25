@@ -30,7 +30,9 @@ rl.on('line', async body => {
     if (msg.id === 'sampling-request') send({ jsonrpc: '2.0', method: 'fixture/sampled', params: msg.result });
     return;
   }
-  if (msg.method === 'initialize') return ok({ protocolVersion: '2025-03-26', serverInfo: { name: 'fixture', version: '1' }, capabilities: { tools: {}, resources: {} }, instructions: cfg.instructions ?? 'Use notes to read notes.' });
+  if (msg.method === 'initialize') return ok({ protocolVersion: '2025-03-26',
+    ...(cfg.omitServerInfo ? {} : { serverInfo: cfg.serverInfo ?? { name: 'fixture', version: cfg.reportedVersion ?? '1' } }),
+    capabilities: { tools: {}, resources: {} }, instructions: cfg.instructions ?? 'Use notes to read notes.' });
   if (atomic) {
     const revision = JSON.stringify([cfg.callResult, cfg.atomicRevision]);
     if (revision !== atomicRevision) { atomic.replace(cfg.callResult); atomicRevision = revision; }

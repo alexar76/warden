@@ -322,9 +322,9 @@ function attentionNote(attention: Attention[] | undefined): string {
 
 // ── Where a change came from: the launch command and the version ───────────
 
-/** A package a launcher fetches by name at each start (`npx pkg`, `uvx pkg`), and whether the command names an
- *  exact version. Without one, the code can change between two starts while the command stays the same, and so
- *  does the server's identity hash. */
+/** A registry package named by a launcher (`npx pkg`, `uvx pkg`), and whether the command names an exact version.
+ *  Without one, resolution can change between starts while the command and server identity hash stay the same.
+ *  A launch may reuse cached code; neither its requested version nor serverInfo verifies the installed artifact. */
 export interface LaunchSpec {
   runner: string;
   ecosystem: "npm" | "pypi";
@@ -393,16 +393,14 @@ export function formatOriginLines(launch: LaunchSpec | undefined, approved: stri
   const lines: string[] = [];
   if (approved || current) {
     const both = approved && current;
-    lines.push(`Version the server reports (initialize serverInfo): ${both ? (approved === current ? `${current}, unchanged since the approval` : `${approved} at the approval, ${current} now`) : current ? `${current} now; none was stored with the approval` : `${approved} at the approval; none reported now`}`);
+    lines.push(`Version the server reports (initialize serverInfo; not a verified package version): ${both ? (approved === current ? `${current}, unchanged since the approval` : `${approved} at the approval, ${current} now`) : current ? `${current} now; none was stored with the approval` : `${approved} at the approval; none reported now`}`);
     if (both && approved === current && toolsChanged) lines.push(`The tool definitions changed while the reported version stayed ${current}.`);
   }
   if (launch) {
     const how = `${launch.runner} ${launch.package}${launch.requested ? (launch.ecosystem === "npm" ? "@" : launch.requested.match(/^[<>=!~]/) ? "" : "==") + launch.requested : ""}`;
-    if (launch.pinned) lines.push(`Launch: ${how} (an exact version).`);
+    if (launch.pinned) lines.push(`Launch: ${how} (an exact requested version; installed artifact not verified).`);
     else {
-      const which = launch.ecosystem === "npm" ? "the version npm tags latest" : "the newest version on the index";
-      const pin = current ? `; to pin it: ${launch.package}${launch.ecosystem === "npm" ? "@" : "=="}${current}` : "";
-      lines.push(`Launch: ${how} (no exact version: each start runs ${which}, so the code can change while this command stays the same${pin}).`);
+      lines.push(`Launch: ${how} (no exact version: resolution may change between starts or reuse cached code; verify the resolved package version and package-manager lock before pinning; serverInfo.version does not identify the installed artifact).`);
     }
   }
   return lines;

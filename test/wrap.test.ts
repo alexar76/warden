@@ -123,6 +123,61 @@ describe('wrap proxy', () => {
     expect(ttyPins(dir, 'approve')).toContain('Read updated notes.');
     const third = harness({ dir }); expect((await ready(third)).result.tools).toHaveLength(1); await third.stop();
   }, 20_000);
+  it('captures initialize versions through real wrap and TTY approval, without treating metadata as identity or tools', async () => {
+    const dir = state(), store = new FilePinStore(join(dir, 'pins'));
+    const first = harness({ dir, flags: ['--require-approval'], config: { reportedVersion: '1.4.2' } });
+    expect((await ready(first)).error.message).toContain('TOOL_DEF_APPROVAL_REQUIRED'); await first.stop();
+    expect(JSON.parse(readFileSync(observationPath(dir, 'fixture'), 'utf8')).serverInfo)
+      .toEqual({ name: 'fixture', version: '1.4.2' });
+    expect(ttyPins(dir, 'approve')).toContain('1.4.2 now; none was stored with the approval');
+    const approved = (await store.getPin('fixture'))!;
+    expect(approved.serverInfo).toEqual({ name: 'fixture', version: '1.4.2' });
+
+    const changed = harness({ dir, flags: ['--require-approval'], config: { reportedVersion: '1.5.0', description: 'Read updated notes.' } });
+    expect((await ready(changed)).error.message).toContain('TOOL_DEF_DRIFT'); await changed.stop();
+    const review = ttyPins(dir, 'status');
+    expect(review).toContain('initialize serverInfo; not a verified package version');
+    expect(review).toContain('1.4.2 at the approval, 1.5.0 now');
+    expect(review).toContain('description: Read {+updated +}notes.');
+    expect(pinRevision(await store.getPin('fixture'))).toBe(pinRevision(approved));
+    ttyPins(dir, 'approve');
+    const reapproved = (await store.getPin('fixture'))!;
+    expect(reapproved.serverInfo?.version).toBe('1.5.0');
+    expect(reapproved.identityHash).toBe(approved.identityHash);
+    expect(reapproved.toolsHash).not.toBe(approved.toolsHash);
+
+    const metadataOnly = harness({ dir, flags: ['--require-approval'], config: { reportedVersion: '1.6.0', description: 'Read updated notes.' } });
+    expect((await ready(metadataOnly)).result.tools).toHaveLength(1); await metadataOnly.stop();
+    expect(ttyPins(dir, 'status')).toContain('1.5.0 at the approval, 1.6.0 now');
+    expect(pinRevision(await store.getPin('fixture'))).toBe(pinRevision(reapproved));
+    const missing = harness({ dir, flags: ['--require-approval'], config: { omitServerInfo: true, description: 'Read updated notes.' } });
+    expect((await ready(missing)).result.tools).toHaveLength(1); await missing.stop();
+    expect(JSON.parse(readFileSync(observationPath(dir, 'fixture'), 'utf8')).serverInfo).toBeUndefined();
+    expect(ttyPins(dir, 'status')).toContain('1.5.0 at the approval; none reported now');
+  }, 30_000);
+  it('keeps a TOFU-reported version while flagging actual tool drift at the same version', async () => {
+    const dir = state(), first = harness({ dir, config: { reportedVersion: '1.4.2' } });
+    await ready(first); await first.stop();
+    const store = new FilePinStore(join(dir, 'pins')), approved = (await store.getPin('fixture'))!;
+    expect(approved.approvalMode).toBe('automatic');
+    expect(approved.serverInfo).toEqual({ name: 'fixture', version: '1.4.2' });
+    const next = harness({ dir, config: { reportedVersion: '1.4.2', description: 'Read updated notes.' } });
+    expect((await ready(next)).error.message).toContain('TOOL_DEF_DRIFT'); await next.stop();
+    expect(ttyPins(dir, 'status')).toContain('The tool definitions changed while the reported version stayed 1.4.2.');
+    expect(pinRevision(await store.getPin('fixture'))).toBe(pinRevision(approved));
+  }, 20_000);
+  it('does not overwrite an approval when only the observed version changes during TTY review', async () => {
+    const dir = state(), h = harness({ dir, config: { reportedVersion: '1.4.2' } });
+    await ready(h); await h.stop();
+    const store = new FilePinStore(join(dir, 'pins')), before = pinRevision(await store.getPin('fixture'));
+    const path = observationPath(dir, 'fixture');
+    const mutate = `import json; candidate_path=${JSON.stringify(path)}; candidate=json.load(open(candidate_path)); candidate['serverInfo']['version']='1.5.0'; open(candidate_path,'w').write(json.dumps(candidate))`;
+    let failure: unknown;
+    try { ttyPins(dir, 'approve', mutate); } catch (err) { failure = err; }
+    expect(failure).toBeDefined();
+    expect((failure as { stdout: string }).stdout).toContain('Observed definitions changed since review; inspect status again');
+    expect(pinRevision(await store.getPin('fixture'))).toBe(before);
+  }, 20_000);
   it.each(['status', 'approve', 'revoke'])('refuses pins %s without TTY, without changing the pin', async action => {
     const h = harness(); await ready(h); await h.stop();
     const store = new FilePinStore(join(h.dir, 'pins')), before = pinRevision(await store.getPin('fixture'));

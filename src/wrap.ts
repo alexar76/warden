@@ -7,7 +7,7 @@ import { Warden, FilePinStore, pinToolsHash, displaySafe, StaticScanGate, isSens
 import type { ToolDef, WardenVerdict } from './types.js';
 import { WrapFrames, readFrames } from './wrap-wire.js';
 import { loadWrapFeed, wrapLogger, wrapServer, type WrapOptions } from './wrap-cli.js';
-import { observe, vetAndPin, observationPath, WardenBlock, type Observation } from './wrap-state.js';
+import { observe, observedServerInfo, vetAndPin, observationPath, WardenBlock, type Observation } from './wrap-state.js';
 import { readState } from './state.js';
 import { listAllTools } from './tool-list.js';
 import { screenResult, annotateResult } from './result-screen.js';
@@ -67,6 +67,8 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
   let activeChecks = 0;
   // What the client said it can do in its initialize request: `elicitation` is how this proxy asks a person.
   let clientCapabilities: Record<string, unknown> = {};
+  // Reported by this connection's child, shown in review separately from tool/launch hashes.
+  let serverInfo: Observation['serverInfo'];
   // Questions this proxy put to the client (elicitation/create), by their reserved ids, and the calls that are not
   // sent on yet, by the client's ids: a cancelled one must never reach the child.
   const questions = new Map<string, { resolve: (answer: Answer) => void; timer: NodeJS.Timeout }>();
@@ -174,7 +176,7 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
       const epoch = generation;
       const work = (async () => {
         const tools = await listAll();
-        const verdict = await vetAndPin(opts.stateDir, server, tools, opts.policy, store, warden, feed, opts.auditOnly, () => epoch === generation && !closing, record);
+        const verdict = await vetAndPin(opts.stateDir, server, tools, opts.policy, store, warden, feed, opts.auditOnly, () => epoch === generation && !closing, record, serverInfo);
         if (!opts.auditOnly && epoch !== generation) throw new WardenBlock('tools changed, blocked by WARDEN during verification');
         if (!opts.auditOnly && !verdict.allow) throw new WardenBlock(reason(verdict));
         if (closing) throw new Error('MCP connection closing');
@@ -429,6 +431,7 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
             }
           }
           if (request.kind === 'initialize' && msg.result && typeof msg.result === 'object') {
+            serverInfo = observedServerInfo(msg.result.serverInfo);
             msg.result.capabilities = { ...msg.result.capabilities, tools: { ...msg.result.capabilities?.tools, listChanged: true } };
             if (typeof msg.result.instructions === 'string') {
               const scan = new Warden({ policy: opts.policy, gates: [new StaticScanGate()] });

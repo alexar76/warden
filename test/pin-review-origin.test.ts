@@ -37,8 +37,9 @@ it('shows the reported versions, the unpinned launch and the added routing hint 
   expect(review.origin).toMatchObject({ approvedVersion: '1.4.2', currentVersion: '1.5.0' });
   expect(review.changes.attention).toBe(1);
   const text = review.reviewText.split('\n');
-  expect(text[0]).toBe('Version the server reports (initialize serverInfo): 1.4.2 at the approval, 1.5.0 now');
-  expect(text[1]).toContain('to pin it: @acme/demo-mcp@1.5.0');
+  expect(text[0]).toBe('Version the server reports (initialize serverInfo; not a verified package version): 1.4.2 at the approval, 1.5.0 now');
+  expect(text[1]).toContain('verify the resolved package version and package-manager lock before pinning');
+  expect(text[1]).not.toContain('@acme/demo-mcp@1.5.0');
   expect(text).toContain('Read first: 1 tool gains text about the user\'s approval or about which tool to use: get_facts (tool choice)');
 
   // Without serverInfo the launch line still says the command pins nothing.
