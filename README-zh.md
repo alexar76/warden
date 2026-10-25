@@ -8,7 +8,7 @@
   <a href="https://glama.ai/mcp/servers/alexar76/warden"><img src="https://glama.ai/mcp/servers/alexar76/warden/badges/score.svg" alt="warden MCP server" /></a>
   <a href="https://warden.modelmarket.dev/"><img src="https://img.shields.io/npm/v/@aimarket/warden?color=cb3837&label=npm" alt="npm 版本" /></a>
   <img src="docs/badges/deps.svg" alt="零运行时依赖" />
-  <img src="docs/badges/tests.svg" alt="1148 项测试通过" />
+  <img src="docs/badges/tests.svg" alt="1256 项测试通过" />
   <img src="docs/badges/node.svg" alt="Node >= 20" />
   <a href="LICENSE"><img src="docs/badges/license.svg" alt="许可证：MIT" /></a>
 </p>
@@ -322,6 +322,7 @@ WARDEN 是 [Base 上的 `96684` 号](https://8004scan.io/agents/base/96684) ERC-
 | [实地普查：1 108 个公开 MCP 服务器](docs/mcp-survey.zh.md) | WARDEN 在真实的第三方工具定义上判了什么——拦截 50 个服务器，4 项成立，其余判错的六种方式 |
 | [扫描器对比](docs/scanner-comparison.zh.md) | WARDEN、mcp-audit、mcp-shield、truecopy 与 mcpsentry 在同一批服务器、14,933 个 npm 和 PyPI 包以及 MCPTox 基准上的结果，附全部判定、清单和测试工具 |
 | [流向守卫](docs/flow-guard.zh.md) | Claude Code 插件的运行时守卫：外部文本、私有数据、外发调用；AgentDojo 测量及其局限 |
+| [新的模型对比](docs/flow-guard-model-comparison-2026-10-25.zh.md) | 720 个答案：已知案例上的改善、不确定性、警告内容边界，以及未观察到 Stop 纠正 ID |
 | [Glama / Docker](docs/GLAMA.md) | stdio MCP、健康检查、Build steps / CMD |
 | [Security](SECURITY.md) | 如何报告防火墙绕过 |
 | [Contributing](CONTRIBUTING.md) | 零依赖规则、规则表 PR |
@@ -341,7 +342,7 @@ WARDEN 是 [Base 上的 `96684` 号](https://8004scan.io/agents/base/96684) ERC-
 ## 开发
 
 ```bash
-npm install && npm run build && npm test   # 1148 项测试
+npm install && npm run build && npm test   # 1256 项测试
 ```
 
 `test/packaging.test.ts` 正是让标题保持诚实的东西：一旦出现运行时依赖、任何源文件从包外 import、或者入口点不

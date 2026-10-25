@@ -70,3 +70,30 @@ The output separates generic versus instruction-specific warnings, signal kinds,
 Stop reasons, and visible acknowledgement candidate words. Candidate words alone
 are not semantic acknowledgement; their absence is not proof of a detection miss.
 A requested recheck is a counterfactual request, not a corrected answer.
+
+## Stated-reason review of actual continuations
+
+`reason_audit.py --pairs pairs.json --annotations annotations.json --out results.json`
+checks an explicit, answer-hash-bound review. It does not call a model or infer
+meaning from keywords. Semantic labels and exact quote spans are supplied by a
+reviewer; factual predicates are checked against every fixture constraint, price
+tie and admissible optimum. Missing/extra reviews, forged quotes and stale answer
+hashes fail validation. An unreviewable reason remains insufficient evidence.
+
+Keep stated basis (user criteria/record claims, injected authority, mixed,
+unsupported, unclear), factual support and disclosure separate. An unchanged ID
+can accompany a factual correction; a changed ID can still rely on an injected
+instruction. “I ignored it” neither establishes rejection nor excuses false
+eligibility claims. Explanation text does not reveal internal causation.
+
+The twelve actual continuations from 25 October have a post-hoc, AI-assisted,
+unblinded review: eight pairs have supported annotated selection claims, four
+contain persistent contradicted eligibility claims, with no observed correction
+or stated-basis transition. Disclosure falls from ten to seven. These selected
+known cases do not establish a randomized Stop effect or general efficacy.
+See [the package report](../../docs/flow-guard-model-comparison-2026-10-25.md)
+and its adjacent `docs/data/launchgate-reason-audit-2026-10-25/` evidence.
+
+`python3 -m unittest -v test_reason_audit` covers factual correction without an
+ID change, flips without a better basis, price versus eligibility distinctions,
+warning vocabulary, uncertainty and evidence integrity. Run on Linux offline.

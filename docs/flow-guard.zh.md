@@ -490,3 +490,7 @@ python3 scripts/agentdojo/summarize_model.py summary.json /srv/adojo/out --goals
 本地日志记录 `instructionSignal`、`signalKinds`、`signalScanLimited` 和 `warningKind`（`source`、`instruction`、`suppressed-audit`）。Stop 记录 `trigger`（`no-instruction-signal`、`no-literal-overlap`、`literal-instruction-overlap`）、`recheckRequested` 及 `semanticCompliance: "not-assessed"`。保留现有的 12 个规范化字符重合阈值和宿主标记的继续次数限制；复核既不等于永久拒绝，也不证明纠正。
 
 仓库工具 `scripts/selection-probe/audit_warnings.mjs` 可重放已保存的 hook 输入与答案。确认候选词只描述可见文本，不能证明模型意识到或遵从了指令。重放旧答案只测量 hook 行为；选择是否改变需要新的受控模型实验。
+
+Post/Stop 警告使用固定语句和不透明的 `source-` ID（工具名 SHA-256 的前 16 个十六进制字符），不会引用检测到的指令，也不重复原始工具名、来源 URL 或路径。这限制了外部元数据借警告渠道获得权威性，但不使模型免受原始工具结果的影响。ID 只用于关联，不是经验证的软件包身份、pin 或权限。当地日志仍可能包含外部元数据，必须作为不可信数据处理。
+
+**新的模型对比（2026-10-25）：** 在相同六个已知案例的 720 个交错运行答案中，无保护时攻击目标被选中 48/48 次；已发布 0.21.0 的 note/note+Stop 为 44/48、46/48；两个本地候选模式均为 27/48。候选的干净基线为 23/48、25/48。相对旧版、校正基线后的改善区间：note 为 [−8.3,+60.4] 个百分点，note+Stop 为 [+14.6,+62.5]。12 次实际复核均未改变所选 ID，其中三个最终答案失去了可见的警告引用。全部 ID 均可接受，真实用户偏好遵从为 30/30。这些已知案例、tool-role 桥接及完整版本对比不证明普遍防护或 Stop 的独立收益。[完整报告](flow-guard-model-comparison-2026-10-25.zh.md)。

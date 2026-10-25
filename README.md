@@ -348,6 +348,7 @@ check them: [ERC-8004 identities](https://github.com/alexar76/aicom/blob/main/do
 | [Field survey: 1 108 public MCP servers](docs/mcp-survey.md) | What WARDEN decided on real third-party tool definitions — 50 servers blocked, 4 substantiated, and the six ways the rest were wrong |
 | [Scanner comparison](docs/scanner-comparison.md) | WARDEN, mcp-audit, mcp-shield, truecopy and mcpsentry on the same servers, on 14,933 npm and PyPI packages and on the MCPTox benchmark, with every judgment, the manifest and the harness |
 | [Flow guard](docs/flow-guard.md) | The Claude Code plugin's runtime guard: outside text, private data, outbound calls; the AgentDojo measurement and its limits |
+| [Fresh model comparison](docs/flow-guard-model-comparison-2026-10-25.md) | 720 answers; known-case improvement, uncertainty, warning custody and no observed Stop choice correction |
 | [Glama / Docker](docs/GLAMA.md) | stdio MCP server, health check, admin Build steps / CMD |
 | [MCP registries](docs/REGISTRIES.md) | Official Registry, mcp.so / Pulse |
 | [Security](SECURITY.md) | How to report a firewall bypass |
@@ -371,7 +372,7 @@ check them: [ERC-8004 identities](https://github.com/alexar76/aicom/blob/main/do
 ## Development
 
 ```bash
-npm install && npm run build && npm test   # 1148 tests
+npm install && npm run build && npm test   # 1256 tests
 ```
 
 `test/packaging.test.ts` is what keeps the headline honest: it fails if an npm runtime dependency

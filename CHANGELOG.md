@@ -9,6 +9,8 @@ Ships the local source recorded below. npm `0.21.0` did not include it. The entr
 - Include the credential-window and flow-guard module changes recorded below.
 - Add a repository-only selection evaluator with admissible choice sets, matched baseline comparisons and separate selection/mention metrics. The tie experiment does not establish reliable added guard benefit; no new runtime selection-blocking behavior is claimed. The evaluator is outside the npm package file list.
 - Expand bounded source instruction signals for role/authority spoofing and add source-warning and Stop-trigger diagnostics. Keep semantic compliance unassessed and the existing overlap/continuation contract; saved-answer hook replay cannot establish changed model behavior. Local candidate only, not published by this change.
+- Keep Post/Stop warnings free of raw tool/source metadata and detected-text quotes. Use stable opaque source IDs for correlation only; add hostile identifier/URL regressions and update source-identification tests. This is warning-channel custody, not semantic prevention.
+- Record a fresh 720-answer, five-profile model comparison on Linux: injected target choices 48/48 unguarded, 44/48 and 46/48 published, 27/48 in both local candidate profiles; keep different clean baselines and six-cluster intervals visible. Twelve actual Stop continuations change no selected IDs. All 30 genuine-user controls pass; admissible IDs do not prove factual explanations. No independent holdout, native-client or broad security claim; no npm publication. Evidence: `docs/evidence/launchgate-live-comparison-2026-10-25/` in the monorepo.
 
 ## Local source — credential-window measurement and prefix indexing, 2026-10-25
 

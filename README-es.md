@@ -8,7 +8,7 @@
   <a href="https://glama.ai/mcp/servers/alexar76/warden"><img src="https://glama.ai/mcp/servers/alexar76/warden/badges/score.svg" alt="warden MCP server" /></a>
   <a href="https://warden.modelmarket.dev/"><img src="https://img.shields.io/npm/v/@aimarket/warden?color=cb3837&label=npm" alt="npm version" /></a>
   <img src="docs/badges/deps.svg" alt="Cero dependencias de ejecución" />
-  <img src="docs/badges/tests.svg" alt="1148 pruebas en verde" />
+  <img src="docs/badges/tests.svg" alt="1256 pruebas en verde" />
   <img src="docs/badges/node.svg" alt="Node >= 20" />
   <a href="LICENSE"><img src="docs/badges/license.svg" alt="Licencia: MIT" /></a>
 </p>
@@ -340,6 +340,7 @@ comprobarlas: [Identidades ERC-8004](https://github.com/alexar76/aicom/blob/main
 | [Estudio de campo: 1 108 servidores MCP públicos](docs/mcp-survey.es.md) | Qué decidió WARDEN sobre definiciones de herramienta reales de terceros — 50 servidores bloqueados, 4 sustentados, y las seis formas en que el resto se equivocó |
 | [Comparación de escáneres](docs/scanner-comparison.es.md) | WARDEN, mcp-audit, mcp-shield, truecopy y mcpsentry sobre los mismos servidores, sobre 14 933 paquetes de npm y PyPI y sobre el benchmark MCPTox, con cada juicio, el manifiesto y el banco de pruebas |
 | [Guardián de flujos](docs/flow-guard.es.md) | La protección en ejecución del plugin de Claude Code: texto ajeno, datos privados, llamadas salientes; la medición en AgentDojo y sus límites |
+| [Nueva comparación del modelo](docs/flow-guard-model-comparison-2026-10-25.es.md) | 720 respuestas: mejora en casos conocidos, incertidumbre, canal de avisos y ninguna corrección de ID observada por Stop |
 | [Glama / Docker](docs/GLAMA.md) | MCP stdio, health check, Build steps / CMD |
 | [Security](SECURITY.md) | Cómo informar de un bypass del cortafuegos |
 | [Contributing](CONTRIBUTING.md) | Regla de cero dependencias, PRs de la tabla de reglas |
@@ -363,7 +364,7 @@ comprobarlas: [Identidades ERC-8004](https://github.com/alexar76/aicom/blob/main
 ## Desarrollo
 
 ```bash
-npm install && npm run build && npm test   # 1148 pruebas
+npm install && npm run build && npm test   # 1256 pruebas
 ```
 
 `test/packaging.test.ts` es lo que mantiene honesto el titular: falla si aparece una dependencia de

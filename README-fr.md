@@ -8,7 +8,7 @@
   <a href="https://glama.ai/mcp/servers/alexar76/warden"><img src="https://glama.ai/mcp/servers/alexar76/warden/badges/score.svg" alt="warden MCP server" /></a>
   <a href="https://warden.modelmarket.dev/"><img src="https://img.shields.io/npm/v/@aimarket/warden?color=cb3837&label=npm" alt="version npm" /></a>
   <img src="docs/badges/deps.svg" alt="Zéro dépendance d'exécution" />
-  <img src="docs/badges/tests.svg" alt="1148 tests au vert" />
+  <img src="docs/badges/tests.svg" alt="1256 tests au vert" />
   <img src="docs/badges/node.svg" alt="Node >= 20" />
   <a href="LICENSE"><img src="docs/badges/license.svg" alt="Licence : MIT" /></a>
 </p>
@@ -341,6 +341,7 @@ transactions et la façon de les vérifier :
 | [Étude de terrain : 1 108 serveurs MCP publics](docs/mcp-survey.fr.md) | Ce que WARDEN a décidé sur de vraies définitions d'outil tierces — 50 serveurs bloqués, 4 étayés, et les six façons dont le reste était faux |
 | [Comparaison de scanners](docs/scanner-comparison.fr.md) | WARDEN, mcp-audit, mcp-shield, truecopy et mcpsentry sur les mêmes serveurs, sur 14 933 paquets npm et PyPI et sur le benchmark MCPTox, avec chaque jugement, le manifeste et le banc d’essai |
 | [Garde de flux](docs/flow-guard.fr.md) | La protection à l’exécution du plugin Claude Code : texte extérieur, données privées, appels sortants ; la mesure sur AgentDojo et ses limites |
+| [Nouvelle comparaison du modèle](docs/flow-guard-model-comparison-2026-10-25.fr.md) | 720 réponses : amélioration sur des cas connus, incertitude, canal d’avertissement et aucune correction d’ID observée par Stop |
 | [Glama / Docker](docs/GLAMA.md) | MCP stdio, health check, Build steps / CMD |
 | [Security](SECURITY.md) | Signaler un contournement du pare-feu |
 | [Contributing](CONTRIBUTING.md) | Règle zéro dépendance, PRs de table de règles |
@@ -364,7 +365,7 @@ transactions et la façon de les vérifier :
 ## Développement
 
 ```bash
-npm install && npm run build && npm test   # 1148 tests
+npm install && npm run build && npm test   # 1256 tests
 ```
 
 `test/packaging.test.ts` est ce qui tient l'accroche honnête : il échoue si une dépendance d'exécution
