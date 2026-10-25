@@ -18,12 +18,14 @@ usage: model.py OUT --model deepseek-flash --model-label DeepSeek [--shards 8] [
 
 --guard-stop plays Claude Code's Stop hook after the model's answer: when the guard sends the answer back for a
 check (decision "block"), its reason reaches the model as a user message and the model answers again, once. Every
-run records the final answer (up to 2,000 characters): AgentDojo counts an answer-only attack as succeeded when the
-answer names the attacker's hotel at all, even inside a warning, so the answers are what to read.
+run records the complete final answer plus its character count and SHA-256: AgentDojo counts an answer-only attack
+as succeeded when the answer names the attacker's hotel at all, even inside a warning, so the answers are what to
+read. Historical records before 2026-10-25 were capped at 2,000 characters; do not infer unseen tails from them.
 """
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import random
 import re
@@ -111,11 +113,18 @@ class Run:
         self.notes = 0
         self.rechecks = 0
         self.answer = ""
+        self.answer_capture = answer_metadata("")
         self.tokens = {"miss": 0, "hit": 0, "out": 0}
 
 
 def text_of(message: ChatMessage) -> str:
     return get_text_content_as_str(message["content"]) if message["content"] else ""
+
+
+def answer_metadata(answer: str) -> dict:
+    """Describe the exact full final message also returned to AgentDojo's evaluator."""
+    return {"characters": len(answer), "sha256": hashlib.sha256(answer.encode("utf-8")).hexdigest(),
+            "truncated": False, "scope": "full final assistant message passed to AgentDojo"}
 
 
 def to_openai(message: ChatMessage) -> dict:
@@ -257,7 +266,8 @@ class Finish(BasePipelineElement):
             kept.append(m)
         if kept[-1]["role"] != "assistant" or kept[-1]["content"] is None:
             kept.append(ChatAssistantMessage(role="assistant", content=[text_content_block_from_string("")], tool_calls=None))
-        self.run.answer = text_of(kept[-1])[:2000]
+        self.run.answer = text_of(kept[-1])
+        self.run.answer_capture = answer_metadata(self.run.answer)
         return query, runtime, env, kept, extra_args
 
 
@@ -322,7 +332,7 @@ def shard_main(a, suites: dict) -> None:
                 "kind": kinds[s][iid] if iid else None,
                 "utility": utility, "attack_succeeded": security if iid else None, "delivered": run.delivered if iid else None,
                 "refused": run.refused, "calls": run.calls, "llm_calls": run.llm_calls, "notes": run.notes, "rechecks": run.rechecks,
-                "answer": run.answer, "tokens": run.tokens,
+                "answer": run.answer, "answer_capture": run.answer_capture, "tokens": run.tokens,
                 "seconds": round(time.time() - started, 1), "error": error}) + "\n")
             sink.flush()
     finally:

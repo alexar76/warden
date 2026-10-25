@@ -6,7 +6,7 @@ import type { AnswerNote, CredentialEgressPolicy, FlowLabel, FlowMode, FlowPolic
 import { stateDir } from './flow-guard-paths.js';
 import { parseGuiPolicy } from './flow-guard-screen.js';
 
-export const DEFAULT_POLICY: FlowPolicy = { mode: 'ask', labels: {}, trustedSources: [], allowedDestinations: [], taintLocalFiles: false, destinationArgs: {}, answerNote: 'always' };
+export const DEFAULT_POLICY: FlowPolicy = { mode: 'ask', annotationReview: 'off', labels: {}, trustedSources: [], allowedDestinations: [], taintLocalFiles: false, destinationArgs: {}, answerNote: 'always' };
 
 export const LABELS: readonly FlowLabel[] = ['private', 'untrusted', 'outbound', 'destructive'];
 const MODES: readonly FlowMode[] = ['ask', 'deny', 'audit', 'off'];
@@ -21,6 +21,7 @@ export function loadPolicy(env: NodeJS.ProcessEnv = process.env): FlowPolicy {
   if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
     const r = raw as Record<string, unknown>;
     if (typeof r.mode === 'string' && (MODES as readonly string[]).includes(r.mode)) policy.mode = r.mode as FlowMode;
+    if (r.annotationReview === 'first-use' || r.annotationReview === 'off') policy.annotationReview = r.annotationReview;
     if (r.labels && typeof r.labels === 'object' && !Array.isArray(r.labels)) {
       for (const [k, v] of Object.entries(r.labels as Record<string, unknown>)) {
         if (Array.isArray(v)) policy.labels[k] = v.filter((x): x is FlowLabel => (LABELS as readonly string[]).includes(x as string));

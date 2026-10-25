@@ -55,14 +55,17 @@ export const FOREIGN_DIRS = /(^|\/)(node_modules|vendor|\.venv|venv|site-package
 
 /** Files that, if the agent could change them, would let it switch the guard off. */
 export function isProtectedPath(path: string, cwd: string, env: NodeJS.ProcessEnv = process.env): boolean {
-  const home = homedir().replace(/\\/g, '/');
+  // join also normalizes a root home: `${home}/...` would produce a double slash
+  // for HOME=/ and fail to match the normalized /.claude.json or plugin path.
+  const homeConfig = join(homedir(), '.claude.json').replace(/\\/g, '/');
+  const homePlugins = join(homedir(), '.claude', 'plugins').replace(/\\/g, '/');
   return [path, physicalPath(path)].some(candidate => {
     const p = candidate.replace(/\\/g, '/');
     if (inside(p, physicalPath(resolve(stateDir(env))).replace(/\\/g, '/'))) return true;
     if (env.WARDEN_FLOW_POLICY && p === physicalPath(resolve(env.WARDEN_FLOW_POLICY)).replace(/\\/g, '/')) return true;
     if (/(^|\/)\.claude\/settings(\.local)?\.json$/.test(p)) return true;
-    if (p === `${home}/.claude.json` || /(^|\/)\.mcp\.json$/.test(p)) return true;
-    if (inside(p, `${home}/.claude/plugins`) || /(^|\/)\.claude\/hooks(\/|$)/.test(p)) return true;
+    if (p === homeConfig || /(^|\/)\.mcp\.json$/.test(p)) return true;
+    if (inside(p, homePlugins) || /(^|\/)\.claude\/hooks(\/|$)/.test(p)) return true;
     if (/(^|\/)\.git\/(?:config$|hooks(?:\/|$))/.test(p)) return true;
     if (/(^|\/)warden\.lock\.json$/.test(p) && inside(p, cwd.replace(/\\/g, '/'))) return true;
     return false;

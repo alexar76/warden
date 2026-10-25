@@ -13,10 +13,6 @@ import { log, readFlowState, safeToolName, updateFlowState } from './flow-guard-
 const HINT_WINDOW = 12;
 const MAX_HINT_TEXT = 8192;
 const MAX_TRANSCRIPT_TAIL = 4 * 1_048_576;
-// A sentence that reports the attempt is the answer the guard's note asks for, not one that follows it. A model run
-// on 2026-10-22 named the attacker's hotel in 19 of 20 answers, every time to warn about it; checking those again
-// cost a model pass and added nothing. Any language the model warns in can be added here; a miss costs one check.
-const WARNS = /inject|instruct|ignor|manipulat|suspicious|not\s+(?:a\s+)?genuine|spam|phishing|tried\s+to|attempt|flag|инъекц|указани|игнор|подозр|попытк|inyecci|instrucci|injection|instruction|注入|指令/i;
 const MAX_INTENT = 65_536;
 /** UserPromptSubmit: remember what the user asked for, so destinations they named are theirs. */
 /**
@@ -172,8 +168,9 @@ export function flowStop(input, env = process.env) {
         for (const sentence of lastAnswer(input).slice(0, MAX_TEXT).split(/(?<=[.!?。])\s+|\n+/)) {
             if (repeats)
                 break;
-            if (WARNS.test(sentence))
-                continue;
+            // Warning words do not prove an answer rejected the instruction: the same sentence can
+            // warn about an injection and still follow it. Even a genuine warning pays one recheck;
+            // the host's stop_hook_active flag above bounds that cost without a semantic exemption.
             const n = normalizeText(sentence);
             for (let i = 0; i + HINT_WINDOW <= n.length && !repeats; i++)
                 if (hints.has(fpHash(n.slice(i, i + HINT_WINDOW))))

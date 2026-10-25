@@ -5,7 +5,7 @@ import { closeSync, constants, fstatSync, openSync, readFileSync, readSync } fro
 import { join } from 'node:path';
 import { stateDir } from './flow-guard-paths.mjs';
 import { parseGuiPolicy } from './flow-guard-screen.mjs';
-export const DEFAULT_POLICY = { mode: 'ask', labels: {}, trustedSources: [], allowedDestinations: [], taintLocalFiles: false, destinationArgs: {}, answerNote: 'always' };
+export const DEFAULT_POLICY = { mode: 'ask', annotationReview: 'off', labels: {}, trustedSources: [], allowedDestinations: [], taintLocalFiles: false, destinationArgs: {}, answerNote: 'always' };
 export const LABELS = ['private', 'untrusted', 'outbound', 'destructive'];
 const MODES = ['ask', 'deny', 'audit', 'off'];
 const ANSWER_NOTES = ['always', 'instruction', 'off'];
@@ -24,6 +24,8 @@ export function loadPolicy(env = process.env) {
         const r = raw;
         if (typeof r.mode === 'string' && MODES.includes(r.mode))
             policy.mode = r.mode;
+        if (r.annotationReview === 'first-use' || r.annotationReview === 'off')
+            policy.annotationReview = r.annotationReview;
         if (r.labels && typeof r.labels === 'object' && !Array.isArray(r.labels)) {
             for (const [k, v] of Object.entries(r.labels)) {
                 if (Array.isArray(v))

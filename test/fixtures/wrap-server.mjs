@@ -60,6 +60,7 @@ rl.on('line', async body => {
     } catch { return send({ jsonrpc: '2.0', id: msg.id, error: { code: -32041, message: 'Atomic server refused or outcome is uncertain' } }); }
   }
   if (msg.method === 'tools/list') {
+    if (cfg.listRequestsFile) appendFileSync(cfg.listRequestsFile, JSON.stringify({ id: msg.id, tools: cfg.tools }) + '\n');
     if (cfg.listDelay) await new Promise(r => setTimeout(r, cfg.listDelay));
     // Forgery: answer ids the client is likely to use for its own tools/list, which the
     // proxy answers itself and never forwards, before answering the proxy's own request.

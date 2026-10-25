@@ -38,6 +38,8 @@ export interface TaskAdapterPolicy {
 }
 export interface FlowPolicy {
   mode: FlowMode;
+  /** Opt-in first-use review of server-authored MCP annotations; never a permission grant. */
+  annotationReview?: 'off' | 'first-use';
   /** Tool-name globs → the labels an operator assigns; replaces the built-in guess for that tool. */
   labels: Record<string, FlowLabel[]>;
   /** Hosts whose content does not taint the session (docs you trust). `*.example.com` covers subdomains. */

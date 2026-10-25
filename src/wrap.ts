@@ -14,6 +14,7 @@ import { screenResult, annotateResult } from './result-screen.js';
 import { flowPre, flowPost, flowApproval, flowScreenValidation, screenCall, screenResponseStamp, screenObservation, loadPolicy } from './flow-guard.js';
 import { screenLease } from './wrap-screen.js';
 import { ATOMIC_SCREEN_PROTOCOL, ATOMIC_SCREEN_PREPARE, ATOMIC_SCREEN_COMMIT, ATOMIC_SCREEN_CANCEL, atomicScreenPrepared, atomicScreenReceipt, type AtomicScreenPrepared } from './atomic-screen.js';
+import { annotationReview } from './annotation-review.js';
 
 type Message = { jsonrpc: '2.0'; id?: string | number | null; method?: string; params?: Record<string, unknown>; result?: any; error?: unknown };
 // How long a call waits for a person to answer the approval form before it is refused.
@@ -64,6 +65,8 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
   // process, which started them all — so outside text read through one server taints a send through another.
   const flowSession = opts.flow ? (process.env.WARDEN_FLOW_SESSION || `wrap-${process.ppid}`) : '';
   const flowTool = (tool: string) => `mcp__${opts.flow}__${tool}`;
+  // Local to this child connection, never a persisted allowlist or a replacement for per-call guards.
+  const reviewedAnnotations = new Set<string>();
   let activeChecks = 0;
   // What the client said it can do in its initialize request: `elicitation` is how this proxy asks a person.
   let clientCapabilities: Record<string, unknown> = {};
@@ -171,8 +174,8 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
       catch (err) { clearTimeout(timer); pending.delete(id); reject(err); }
     });
     const listAll = (): Promise<ToolDef[]> => listAllTools(requestPage);
-    const check = (): Promise<ToolDef[]> => {
-      if (refresh) return refresh;
+    const check = (forceFresh = false): Promise<ToolDef[]> => {
+      if (refresh && !forceFresh) return refresh;
       const epoch = generation;
       const work = (async () => {
         const tools = await listAll();
@@ -190,6 +193,12 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
         blockReason = e instanceof Error ? e.message : String(e); log.warn(blockReason);
       });
       return work;
+    };
+    // A pre-approval list may already be in flight with an old snapshot. Wait for
+    // it to finish, then issue a NEW RPC; approving that old refresh is not fresh review.
+    const checkAfterApproval = async (): Promise<ToolDef[]> => {
+      if (refresh) await refresh;
+      return check(true);
     };
     // Batches (allowed by protocol 2025-03-26, removed in 2025-06-18) are refused per request,
     // as an array of errors, rather than ending the session: each element would need its own
@@ -290,9 +299,20 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
               // A call that needs a person's yes: a tool the operator marked sensitive, or a send the flow guard asks about.
               const reasons: string[] = [];
               if (isSensitiveTool(tool, opts.policy)) reasons.push(`${displaySafe(tool, 200)} matches policy.sensitiveToolPatterns: every call to it needs a person's approval.`);
+              const flowPolicy = opts.flow ? loadPolicy() : undefined;
+              const annotation = flowPolicy && opts.flow ? annotationReview(server, current, tool, opts.flow, flowPolicy, opts.policy.capabilityBindings) : undefined;
+              const firstAnnotationUse = annotation && !reviewedAnnotations.has(annotation.key) ? annotation : undefined;
+              const annotationEnforced = firstAnnotationUse && !opts.auditOnly && flowPolicy?.mode !== 'audit';
+              if (firstAnnotationUse && !annotationEnforced) log.warn(`would ask before first use of ${displaySafe(tool, 200)}: unverified MCP annotations`);
+              if (annotationEnforced) {
+                if (flowPolicy?.mode === 'deny') throw new Error('tool blocked by WARDEN: unreviewed MCP annotations in deny mode; the tool was not run');
+                reasons.push(firstAnnotationUse.reason);
+              }
               let flowAsked = false;
+              let initialFlowBasis: ReturnType<typeof flowPre>;
               if (opts.flow) {
                 const d = flowPre({ session_id: flowSession, cwd: process.cwd(), tool_name: flowTool(tool), tool_input: args, public_request_eligible: Object.keys(msg.params ?? {}).every(k => ['name', 'arguments'].includes(k)) && Object.keys(msg).every(k => ['jsonrpc', 'id', 'method', 'params'].includes(k)) }, process.env, opts.auditOnly ? 'audit' : canAsk() ? 'elicit' : 'refuse');
+                initialFlowBasis = d;
                 if (d && !opts.auditOnly) {
                   if (d.permissionDecision === 'deny' || !canAsk()) throw new Error(`${d.permissionDecisionReason}${d.permissionDecision === 'ask' ? ` Refused: wrap cannot ask you${cannotAsk()}; name the destination in the flow policy (allowedDestinations) or make the call yourself.` : ''}`);
                   reasons.push(d.permissionDecisionReason); flowAsked = true;
@@ -301,7 +321,7 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
               }
               if (reasons.length && opts.auditOnly) log.warn(`would ask a person before ${displaySafe(tool, 200)} runs (sensitive tool)`);
               else if (reasons.length) {
-                if (!canAsk()) throw new Error(`tool blocked by WARDEN: ${displaySafe(tool, 200)} matches policy.sensitiveToolPatterns, so every call needs a person's approval, and wrap cannot ask you${cannotAsk()}; it was not run`);
+                if (!canAsk()) throw new Error(`tool blocked by WARDEN: ${displaySafe(tool, 200)} needs a person's approval (${annotationEnforced ? 'unreviewed MCP annotations' : 'policy.sensitiveToolPatterns'}), and wrap cannot ask you${cannotAsk()}; it was not run`);
                 const targetBefore = atomicTarget ?? (isGui && opts.screenRead ? await observeTarget() : undefined);
                 let approvedBasis: ReturnType<typeof flowPre>;
                 if (targetBefore) {
@@ -319,8 +339,8 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
                 humanApproved = true;
                 // The person approved the definition the client was shown; it must still be the one that runs.
                 if (quarantined || epoch !== generation) throw new Error('tool blocked by WARDEN: definitions changed while waiting for approval; list tools again');
-                if (targetBefore) {
-                  const reviewed = await check();
+                if (targetBefore || annotationEnforced) {
+                  const reviewed = await checkAfterApproval();
                   if (quarantined || epoch !== generation || pinToolsHash(reviewed) !== pinToolsHash(current)) throw new Error('WARDEN: definitions changed since the approval prompt; action was not run');
                 }
                 if (targetBefore && await observeTarget() !== targetBefore) throw new Error('WARDEN: screen target or context changed since approval was requested; action was not run');
@@ -330,10 +350,19 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
                   if (JSON.stringify(updated) !== JSON.stringify(approvedBasis)) throw new Error('WARDEN: the risk context changed while approval was pending; action was not run');
                   flowScreenValidation({ session_id: flowSession, tool_name: flowTool(tool) }, 'unchanged');
                 }
+                if (annotationEnforced && opts.flow && !targetBefore) {
+                  // Another proxy can read credentials/outside text while this form is
+                  // open. A yes to annotation review never authorizes newly discovered risk.
+                  const updated = flowPre({ session_id: flowSession, cwd: process.cwd(), tool_name: flowTool(tool), tool_input: args,
+                    public_request_eligible: Object.keys(msg.params ?? {}).every(k => ['name', 'arguments'].includes(k)) && Object.keys(msg).every(k => ['jsonrpc', 'id', 'method', 'params'].includes(k)) }, process.env, 'elicit');
+                  if (updated?.permissionDecision === 'deny') throw new Error(updated.permissionDecisionReason);
+                  if (updated && JSON.stringify(updated) !== JSON.stringify(initialFlowBasis)) throw new Error('WARDEN: the risk context changed while annotation approval was pending; a new review is required and the action was not run');
+                }
               }
               if (wait.cancelled) throw new CallCancelled();
               if (quarantined || epoch !== generation) throw new Error('WARDEN: definitions changed before execution');
               if (atomic && atomic.expiresAt <= Date.now()) throw new Error('Atomic approval expired; action was not run');
+              if (annotationEnforced && humanApproved) reviewedAnnotations.add(firstAnnotationUse.key);
               tracked.set(msg.id, { kind: 'call', generation, tool, args, screenRelease: releaseScreen, atomic });
               releaseScreen = undefined;
               // Forward the inspected object: ignored duplicate JSON fields must not carry hidden bytes.
