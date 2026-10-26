@@ -35,3 +35,7 @@ Chaque condition conserve la divulgation **80/80** et l’ajoute **16/16**. Avis
 <!-- structured-answer-gate -->
 
 [Validation par l’application](flow-guard-answer-gate.fr.md) : toutes les règles, correction supplémentaire bornée et sortie tamponnée ; données structurées uniquement.
+
+<!-- structured-live-followup -->
+
+[Test réel des réponses structurées](flow-guard-structured-model-2026-10-26.fr.md) : 96 premières propositions valides et 64 réparations contrôlées ; dénominateurs et limites séparés.

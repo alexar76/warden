@@ -39,3 +39,7 @@
 На Linux factory-vps прошли сборка, проверка типов, **791 тест в 24 наборах**, включая **43 теста нового SDK/stdio**, и прежние 28 red-team сценариев. Среди 384 исторических проекций: отклонены 50 ложных явных списков, разрешены 75 корректных, 259 ответов с неподдерживаемой прозой остались неизвестными; непроверенные кандидаты не выданы. Это перенос размеченных данных, не новый результат исправлений модели. Проверены 289 хешей выходных файлов; синхронизированы 276 локальных файлов Linux-сборки. Оба прежних запуска с синтаксическими ошибками тестов сохранены.
 
 [results.json](data/launchgate-answer-gate-2026-10-26/results.json) · [execution.json](data/launchgate-answer-gate-2026-10-26/execution.json) · [historical-replay.json](data/launchgate-answer-gate-2026-10-26/historical-replay.json) · [stubborn-transcript.json](data/launchgate-answer-gate-2026-10-26/stubborn-transcript.json) · [manifest.json](data/launchgate-answer-gate-2026-10-26/manifest.json)
+
+<!-- structured-live-followup -->
+
+[Живой прогон структурированных ответов](flow-guard-structured-model-2026-10-26.ru.md): 96 правильных первых предложений и 64 исправления контролируемых ошибок; отдельные знаменатели и границы.

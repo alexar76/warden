@@ -588,3 +588,7 @@ Post/Stop warning text uses fixed sentences and opaque `source-` identifiers (th
 <!-- structured-answer-gate -->
 
 [Host-owned answer gate](flow-guard-answer-gate.md): all constraints, bounded extra correction and buffered final delivery; structured data only.
+
+<!-- structured-live-followup -->
+
+[Live structured-model test](flow-guard-structured-model-2026-10-26.md): 96 valid first proposals and 64 controlled-seed repairs; separate denominators and limits.

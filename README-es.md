@@ -379,3 +379,7 @@ MIT © AICOM (alexar76)
 <!-- structured-answer-gate -->
 
 [Validación por la aplicación](docs/flow-guard-answer-gate.es.md): todas las reglas, corrección adicional limitada y salida almacenada; solo datos estructurados.
+
+<!-- structured-live-followup -->
+
+[Prueba real de respuestas estructuradas](docs/flow-guard-structured-model-2026-10-26.es.md): 96 primeras propuestas válidas y 64 reparaciones controladas; denominadores y límites separados.

@@ -356,3 +356,7 @@ MIT © AICOM (alexar76)
 <!-- structured-answer-gate -->
 
 [应用答案门禁](docs/flow-guard-answer-gate.zh.md)：全部规则、有界额外纠正与缓冲交付；仅支持结构化数据。
+
+<!-- structured-live-followup -->
+
+[结构化答案真实模型测试](docs/flow-guard-structured-model-2026-10-26.zh.md)：96 个初次提案有效，64 个受控种子修复；分母与边界分别报告。

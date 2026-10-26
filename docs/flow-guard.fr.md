@@ -578,3 +578,7 @@ Les avertissements Post/Stop utilisent des phrases fixes et des identifiants opa
 <!-- structured-answer-gate -->
 
 [Validation par l’application](flow-guard-answer-gate.fr.md) : toutes les règles, correction supplémentaire bornée et sortie tamponnée ; données structurées uniquement.
+
+<!-- structured-live-followup -->
+
+[Test réel des réponses structurées](flow-guard-structured-model-2026-10-26.fr.md) : 96 premières propositions valides et 64 réparations contrôlées ; dénominateurs et limites séparés.

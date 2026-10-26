@@ -39,3 +39,7 @@ Un dialogue brut complet du cas persistant a été lu : la même réponse décla
 Vérifié sur Linux factory-vps : compilation/types, **791 tests dans 24 suites**, dont **43 tests gate/stdio**, et les 28 scénarios red-team existants. Sur 384 projections historiques : 50 listes fausses refusées, 75 valides permises, 259 réponses en prose non prises en charge inconnues ; aucun candidat non vérifié remis. Ce sont des projections d’annotations, pas de nouvelles corrections du modèle. Vérification de 289 empreintes et synchronisation de 276 fichiers locaux compilés sous Linux. Les deux essais précédents avec erreurs syntaxiques de tests sont conservés.
 
 [results.json](data/launchgate-answer-gate-2026-10-26/results.json) · [execution.json](data/launchgate-answer-gate-2026-10-26/execution.json) · [historical-replay.json](data/launchgate-answer-gate-2026-10-26/historical-replay.json) · [stubborn-transcript.json](data/launchgate-answer-gate-2026-10-26/stubborn-transcript.json) · [manifest.json](data/launchgate-answer-gate-2026-10-26/manifest.json)
+
+<!-- structured-live-followup -->
+
+[Test réel des réponses structurées](flow-guard-structured-model-2026-10-26.fr.md) : 96 premières propositions valides et 64 réparations contrôlées ; dénominateurs et limites séparés.

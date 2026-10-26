@@ -572,3 +572,7 @@ python3 scripts/agentdojo/summarize_model.py summary.json /srv/adojo/out --goals
 <!-- structured-answer-gate -->
 
 [Проверка ответа приложением](flow-guard-answer-gate.ru.md): все ограничения, дополнительный ограниченный проход и буферизация выдачи; только структурированные данные.
+
+<!-- structured-live-followup -->
+
+[Живой прогон структурированных ответов](flow-guard-structured-model-2026-10-26.ru.md): 96 правильных первых предложений и 64 исправления контролируемых ошибок; отдельные знаменатели и границы.

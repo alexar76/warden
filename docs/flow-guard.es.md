@@ -571,3 +571,7 @@ Las advertencias Post/Stop usan frases fijas e identificadores opacos `source-` 
 <!-- structured-answer-gate -->
 
 [Validación por la aplicación](flow-guard-answer-gate.es.md): todas las reglas, corrección adicional limitada y salida almacenada; solo datos estructurados.
+
+<!-- structured-live-followup -->
+
+[Prueba real de respuestas estructuradas](flow-guard-structured-model-2026-10-26.es.md): 96 primeras propuestas válidas y 64 reparaciones controladas; denominadores y límites separados.

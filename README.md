@@ -388,3 +388,7 @@ MIT © AICOM (alexar76)
 <!-- structured-answer-gate -->
 
 [Host-owned answer gate](docs/flow-guard-answer-gate.md): all constraints, bounded extra correction and buffered final delivery; structured data only.
+
+<!-- structured-live-followup -->
+
+[Live structured-model test](docs/flow-guard-structured-model-2026-10-26.md): 96 valid first proposals and 64 controlled-seed repairs; separate denominators and limits.

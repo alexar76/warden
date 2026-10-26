@@ -72,3 +72,7 @@ We also retained and read a complete stubborn-case transcript: its final explana
 Verified on Linux factory-vps: build/typecheck, **791 tests in 24 suites**, including **43 gate/stdio tests**, plus the existing 28-scenario red-team gate. Across 384 historical projections: 50 false explicit lists denied, 75 valid explicit lists allowed, 259 unsupported prose answers unknown; no unverified candidate forwarded. These are post-hoc structured projections, not new model correction results. Verified 289 output hashes and synchronized 276 Linux-generated local files. Both earlier test-syntax failures are retained in the evidence directory.
 
 [results.json](data/launchgate-answer-gate-2026-10-26/results.json) · [execution.json](data/launchgate-answer-gate-2026-10-26/execution.json) · [historical-replay.json](data/launchgate-answer-gate-2026-10-26/historical-replay.json) · [stubborn-transcript.json](data/launchgate-answer-gate-2026-10-26/stubborn-transcript.json) · [manifest.json](data/launchgate-answer-gate-2026-10-26/manifest.json)
+
+<!-- structured-live-followup -->
+
+[Live structured-model test](flow-guard-structured-model-2026-10-26.md): 96 valid first proposals and 64 controlled-seed repairs; separate denominators and limits.

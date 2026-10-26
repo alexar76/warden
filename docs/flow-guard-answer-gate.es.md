@@ -39,3 +39,7 @@ Leímos un diálogo completo del caso persistente: el mismo texto declara C admi
 Verificado en Linux factory-vps: compilación/tipos, **791 pruebas en 24 suites**, incluidas **43 del gate/stdio**, y los 28 escenarios red-team existentes. De 384 proyecciones históricas: 50 listas falsas rechazadas, 75 válidas permitidas y 259 respuestas de prosa no soportada desconocidas; ningún candidato no verificado fue entregado. Son proyecciones de anotaciones, no nuevas correcciones del modelo. Se verificaron 289 hashes y sincronizaron 276 archivos locales compilados en Linux. Se conservan los dos intentos anteriores con errores sintácticos en pruebas.
 
 [results.json](data/launchgate-answer-gate-2026-10-26/results.json) · [execution.json](data/launchgate-answer-gate-2026-10-26/execution.json) · [historical-replay.json](data/launchgate-answer-gate-2026-10-26/historical-replay.json) · [stubborn-transcript.json](data/launchgate-answer-gate-2026-10-26/stubborn-transcript.json) · [manifest.json](data/launchgate-answer-gate-2026-10-26/manifest.json)
+
+<!-- structured-live-followup -->
+
+[Prueba real de respuestas estructuradas](flow-guard-structured-model-2026-10-26.es.md): 96 primeras propuestas válidas y 64 reparaciones controladas; denominadores y límites separados.

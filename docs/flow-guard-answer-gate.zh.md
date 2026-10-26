@@ -39,3 +39,7 @@
 Linux factory-vps 已通过编译／类型检查、**24 个测试套件的 791 项测试**（其中 **43 项为新门禁／stdio 测试**）及原有 28 个 red-team 场景。384 个历史投影中：50 个错误显式列表被拒绝，75 个正确列表获准，259 个不支持的自由文本答案保持未知；未交付未经验证的候选答案。这是标注数据投影，不是新的模型纠正率。已校验 289 个输出文件哈希并同步 276 个 Linux 生成的本地文件。先前两次测试语法失败的记录均保留。
 
 [results.json](data/launchgate-answer-gate-2026-10-26/results.json) · [execution.json](data/launchgate-answer-gate-2026-10-26/execution.json) · [historical-replay.json](data/launchgate-answer-gate-2026-10-26/historical-replay.json) · [stubborn-transcript.json](data/launchgate-answer-gate-2026-10-26/stubborn-transcript.json) · [manifest.json](data/launchgate-answer-gate-2026-10-26/manifest.json)
+
+<!-- structured-live-followup -->
+
+[结构化答案真实模型测试](flow-guard-structured-model-2026-10-26.zh.md)：96 个初次提案有效，64 个受控种子修复；分母与边界分别报告。
