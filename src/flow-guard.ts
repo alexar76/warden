@@ -52,6 +52,8 @@ export type { FlowPostOutput } from './flow-guard-post.js';
 export { flowPost } from './flow-guard-post.js';
 export type { FlowStopOutput } from './flow-guard-answer.js';
 export { ownWords, flowPrompt, instructionText, lastAnswer, flowStop } from './flow-guard-answer.js';
+export type { AnswerConstraintCheck, ConstraintViolation, ConstraintEvidence } from './flow-guard-constraints.js';
+export { checkAnswerConstraints } from './flow-guard-constraints.js';
 export { unlabeledTools, flowLabelsReport } from './flow-guard-labels.js';
 
 /** Hook runner shared by the CLI and the plugin script: `pre`, `post`, `prompt` or `stop`, hook JSON on stdin, decision JSON on stdout. */

@@ -38,7 +38,10 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run build
+      # Vitest 5 needs Node 22.12+. On Node 20 the package still builds, passes the
+      # red-team gate below and is imported from its tarball in the packaging job.
       - run: npm test
+        if: matrix.node != '20'
       - name: End-to-end flow red-team release gate
         run: npm run test:redteam
       # A published version must mean exactly one rule table. See

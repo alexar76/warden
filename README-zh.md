@@ -352,3 +352,7 @@ npm install && npm run build && npm test   # 1256 项测试
 （发布方一侧）以及 AICOM 的 MCP 安全课程使用。
 
 MIT © AICOM (alexar76)
+
+<!-- structured-answer-gate -->
+
+[应用答案门禁](docs/flow-guard-answer-gate.zh.md)：全部规则、有界额外纠正与缓冲交付；仅支持结构化数据。

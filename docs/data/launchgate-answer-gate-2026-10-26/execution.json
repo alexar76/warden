@@ -1,0 +1,56 @@
+{
+  "startedAt": "2026-10-26T08:19:10.570111+00:00",
+  "host": "factory-vps",
+  "image": "sha256:a85c8ea75b21b6031dd94f06fcb70aa8366956133a0a6ea4f81c64c6b5424fd2",
+  "runtime": "runc",
+  "testNetwork": "none",
+  "dependencyNetwork": "bridge",
+  "inputFiles": 171,
+  "newModelCalls": 0,
+  "githubWrites": false,
+  "npmPublished": false,
+  "completed": true,
+  "checks": [
+    {
+      "name": "dependencies",
+      "exitCode": 0,
+      "logSha256": "2728a46dbcd03b3f145f198bf9d7659999108c1fa409cf3452ea1132085057cc"
+    },
+    {
+      "name": "build",
+      "exitCode": 0,
+      "logSha256": "0abd196caecdbbb2e8957204b9ca864336af5cd73f3773e22e6e917f368d0931"
+    },
+    {
+      "name": "typecheck",
+      "exitCode": 0,
+      "logSha256": "a818fb3e3339c5c34560fd34ceca66dbff446b2a9bc3517c47d30325d86851e2"
+    },
+    {
+      "name": "answer-gate-tests",
+      "exitCode": 0,
+      "logSha256": "364beb77917ddd8979f4b2362542bd119ce1b26be2968f5bb8a843e9b93bb5af"
+    },
+    {
+      "name": "warden-tests",
+      "exitCode": 0,
+      "logSha256": "443f19bd4521912025ddfc879676498cfb56a6c23952262c7171f8ab309db22f"
+    },
+    {
+      "name": "redteam",
+      "exitCode": 0,
+      "logSha256": "34b60edf74b4d75890caf6554291958c85dc003b96afe3d5d7e4de571d12d395"
+    },
+    {
+      "name": "historical-replay",
+      "exitCode": 0,
+      "logSha256": "4741b03ea2a373e54a1459a6d09c09536ce3b536eb3b0b14e54d0900f45dbf7f"
+    },
+    {
+      "name": "collect-generated",
+      "exitCode": 0,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "finishedAt": "2026-10-26T08:21:36.050381+00:00"
+}

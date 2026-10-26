@@ -99,3 +99,11 @@ Bootstrap пересэмплирует **шесть целых кластеро�
 **16 регрессионных тестов прошли на Linux без сети**: исправление факта при том же ID, смена ID с сохранением внедрённого основания, маскировка словами о предупреждении, пропущенная разметка и поддельные свидетельства. Новых вызовов модели и изменений runtime-блокировки не было.
 
 Свидетельства: [pairs.json](data/launchgate-reason-audit-2026-10-25/pairs.json), [annotations.json](data/launchgate-reason-audit-2026-10-25/annotations.json), [results.json](data/launchgate-reason-audit-2026-10-25/results.json), [execution.json](data/launchgate-reason-audit-2026-10-25/execution.json), [manifest.json](data/launchgate-reason-audit-2026-10-25/manifest.json).
+
+<!-- constraint-evidence-runtime-followup -->
+
+[Проверка на Linux — 26 октября 2026](flow-guard-constraint-evidence.ru.md).
+
+<!-- fresh-recheck-results -->
+
+[Свежие перепроверки модели: конкретные факты и раскрытие](flow-guard-fresh-rechecks-2026-10-26.ru.md).

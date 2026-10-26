@@ -494,3 +494,11 @@ python3 scripts/agentdojo/summarize_model.py summary.json /srv/adojo/out --goals
 Post/Stop 警告使用固定语句和不透明的 `source-` ID（工具名 SHA-256 的前 16 个十六进制字符），不会引用检测到的指令，也不重复原始工具名、来源 URL 或路径。这限制了外部元数据借警告渠道获得权威性，但不使模型免受原始工具结果的影响。ID 只用于关联，不是经验证的软件包身份、pin 或权限。当地日志仍可能包含外部元数据，必须作为不可信数据处理。
 
 **新的模型对比（2026-10-25）：** 在相同六个已知案例的 720 个交错运行答案中，无保护时攻击目标被选中 48/48 次；已发布 0.21.0 的 note/note+Stop 为 44/48、46/48；两个本地候选模式均为 27/48。候选的干净基线为 23/48、25/48。相对旧版、校正基线后的改善区间：note 为 [−8.3,+60.4] 个百分点，note+Stop 为 [+14.6,+62.5]。12 次实际复核均未改变所选 ID，其中三个最终答案失去了可见的警告引用。全部 ID 均可接受，真实用户偏好遵从为 30/30。这些已知案例、tool-role 桥接及完整版本对比不证明普遍防护或 Stop 的独立收益。[完整报告](flow-guard-model-comparison-2026-10-25.zh.md)。
+
+<!-- constraint-evidence-followup -->
+
+[确定性答案证据与披露保留](flow-guard-constraint-evidence.zh.md).
+
+<!-- structured-answer-gate -->
+
+[应用答案门禁](flow-guard-answer-gate.zh.md)：全部规则、有界额外纠正与缓冲交付；仅支持结构化数据。

@@ -1,5 +1,17 @@
 # Changelog
 
+## Local follow-up — host-owned structured answer gate, 2026-10-26
+
+- Add opt-in `createAnswerGate`: host-frozen numeric/boolean rules, safe record/field references, complete eligible-set and optional ranking checks. After every proposal, recheck every admitted alternative against all rules; C-to-D substitution is a new violation, not success.
+- Buffer delivery through an explicit host SDK: initial proposal plus at most two corrections, fixed independent notice, and withholding after unresolved/unknown input. One output reservation per instance; no automatic retries after provider, cancellation, timeout or uncertain output failure. An ordinary Stop hook remains a one-continuation request, not a final-display owner.
+- Include an actual stdio host example and regressions; arbitrary prose, source truth, native-client GUI rendering and new model repair efficacy are outside this check. Clarify source-record numbering in legacy constraint feedback. Five-language [contract and limits](docs/flow-guard-answer-gate.md). Local 0.22.0 only; no publication.
+
+## Local follow-up — deterministic answer evidence, 2026-10-26
+
+- Add optional host-owned `answer_check` and exported `checkAnswerConstraints`: exact answer/session/turn binding, finite numeric/boolean rules, selected and explicitly eligible items, partial/invalid status and fixed numerical counterevidence. Constraints must originate in real user/operator policy; source data remains conditional, and native hooks do not automatically extract this contract.
+- Preserve a guard-owned source-instruction notice after a host-marked Stop continuation without requesting a second recheck. Keep any existing model disclosure in the review instruction. A host must display `systemMessage`; this does not guarantee model-prose preservation or native-client rendering.
+- Add a closed-schema synthetic-probe claim adapter and saved-pair replay. Linux build/typecheck, 743 WARDEN tests in 21 files, 24 Python tests and the existing 28-scenario deterministic gate pass. Replay detects all four known eligibility contradictions and emits continuation notices for all twelve saved pairs, including the three prior disclosure losses; it does not regenerate or correct model answers. Verify 276 output hashes and synchronize the Linux-generated local build/plugin. No npm publication, GitHub write or public article change. See [contract, results and limits](docs/flow-guard-constraint-evidence.md), also in RU/ES/FR/ZH.
+
 ## 0.22.0 — 2026-10-25
 
 Ships the local source recorded below. npm `0.21.0` did not include it. The entries below describe changes since 0.21.0.

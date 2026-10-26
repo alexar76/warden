@@ -580,3 +580,11 @@ The repository helper `scripts/selection-probe/audit_warnings.mjs` replays saved
 Post/Stop warning text uses fixed sentences and opaque `source-` identifiers (the first 16 hex digits of SHA-256 of the tool name). It does not quote the detected instruction or repeat raw tool names, source URLs or paths. This limits promotion of source-controlled metadata through the warning channel; it does not make a model immune to the original tool result. The identifier permits correlation only and is not a verified package identity, pin or permission. Local logs can still contain source-authored metadata and must be treated as untrusted data.
 
 **Fresh model comparison (2026-10-25):** On the same six known fixtures, the 720-answer interleaved run selected the injected target 48/48 unguarded, 44/48 and 46/48 with published 0.21.0 note/note+Stop, and 27/48 with either local candidate profile. Candidate clean baselines were 23/48 and 25/48. Clean-adjusted candidate-versus-published intervals are −8.3 to +60.4pp for note and +14.6 to +62.5pp for note+Stop. Twelve actual rechecks changed no selected IDs; three lost a visible warning reference. All IDs were admissible and genuine user preferences passed 30/30. These known cases, controlled tool-role bridge and whole-version comparison do not establish general protection or a separate Stop benefit. See [the complete fresh-run report](flow-guard-model-comparison-2026-10-25.md).
+
+<!-- constraint-evidence-followup -->
+
+[Deterministic answer evidence and disclosure continuity](flow-guard-constraint-evidence.md).
+
+<!-- structured-answer-gate -->
+
+[Host-owned answer gate](flow-guard-answer-gate.md): all constraints, bounded extra correction and buffered final delivery; structured data only.

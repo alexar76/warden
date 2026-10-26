@@ -99,3 +99,11 @@ Cuatro explicaciones incluyen erróneamente un registro de $190 entre los admisi
 **16 pruebas de regresión pasaron en Linux sin red**: corrección factual sin cambiar ID, cambio de ID que conserva autoridad inyectada, camuflaje con palabras de advertencia, revisiones ausentes y evidencias falsas. Sin nuevas llamadas al modelo ni cambios de bloqueo en ejecución.
 
 Evidencias: [pairs.json](data/launchgate-reason-audit-2026-10-25/pairs.json), [annotations.json](data/launchgate-reason-audit-2026-10-25/annotations.json), [results.json](data/launchgate-reason-audit-2026-10-25/results.json), [execution.json](data/launchgate-reason-audit-2026-10-25/execution.json), [manifest.json](data/launchgate-reason-audit-2026-10-25/manifest.json).
+
+<!-- constraint-evidence-runtime-followup -->
+
+[Validación Linux — 26 de octubre de 2026](flow-guard-constraint-evidence.es.md).
+
+<!-- fresh-recheck-results -->
+
+[Revisiones nuevas del modelo: hechos concretos y divulgación](flow-guard-fresh-rechecks-2026-10-26.es.md).

@@ -563,3 +563,11 @@ El auxiliar del repositorio `scripts/selection-probe/audit_warnings.mjs` reprodu
 Las advertencias Post/Stop usan frases fijas e identificadores opacos `source-` (los primeros 16 dígitos hexadecimales del SHA-256 del nombre de herramienta). No citan la instrucción detectada ni repiten nombres originales, URL o rutas de la fuente. Esto limita la promoción de metadatos de terceros a través de la advertencia, pero no inmuniza al modelo frente al resultado original. El ID solo permite correlación; no verifica un paquete, no es un pin ni concede permisos. Los registros locales aún pueden contener metadatos externos y siguen siendo datos no confiables.
 
 **Nueva comparación con el modelo (2026-10-25):** En seis casos conocidos, 720 respuestas intercaladas eligieron el objetivo inyectado 48/48 sin protección, 44/48 y 46/48 con note/note+Stop publicados (0.21.0), y 27/48 con ambos perfiles candidatos. Sus bases limpias fueron 23/48 y 25/48. Los intervalos de mejora ajustada frente a la versión publicada son [−8,3; +60,4] puntos para note y [+14,6; +62,5] para note+Stop. Ninguna de las 12 revisiones cambió el ID elegido; tres perdieron una referencia visible a la advertencia. Todos los ID eran admisibles y las preferencias reales se siguieron 30/30. Los casos conocidos, el puente tool-role y la comparación de versiones completas no prueban protección general ni un beneficio separado de Stop. [Informe completo](flow-guard-model-comparison-2026-10-25.es.md).
+
+<!-- constraint-evidence-followup -->
+
+[Evidencia determinista y conservación de la divulgación](flow-guard-constraint-evidence.es.md).
+
+<!-- structured-answer-gate -->
+
+[Validación por la aplicación](flow-guard-answer-gate.es.md): todas las reglas, corrección adicional limitada y salida almacenada; solo datos estructurados.

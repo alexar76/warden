@@ -17,6 +17,12 @@ export function readFlowState(path: string): FlowState {
     const s = JSON.parse(readFileSync(path, 'utf8')) as FlowState;
     if (!s || s.v !== 1 || !Array.isArray(s.untrusted) || !Array.isArray(s.private)) throw new Error('invalid flow state');
     if (s.credentialRead !== undefined && s.credentialRead !== true || s.credentialGrants !== undefined && (!Array.isArray(s.credentialGrants) || s.credentialGrants.length > 32 || !s.credentialGrants.every(v => typeof v === 'string' && /^[0-9a-f]{64}$/.test(v)))) throw new Error('invalid credential egress state');
+    if (s.answerReview !== undefined) {
+      const review = s.answerReview;
+      if (!review || !Number.isSafeInteger(review.turn) || review.turn < 1 || typeof review.discloseInstruction !== 'boolean' || !Array.isArray(review.sources) || review.sources.length > 4 ||
+          !review.sources.every(source => typeof source === 'string' && /^source-[0-9a-f]{16}$/.test(source)) || review.factsSha256 !== undefined && (typeof review.factsSha256 !== 'string' || !/^[0-9a-f]{64}$/.test(review.factsSha256))) throw new Error('invalid answer review state');
+      if (review.constraintViolations !== undefined && (!Number.isSafeInteger(review.constraintViolations) || review.constraintViolations < 0 || review.constraintViolations > 2064)) throw new Error('invalid answer review constraints');
+    }
     if (s.fragments !== undefined) {
       const f = s.fragments;
       if (!f || ![1, 2].includes(f.v)) throw new Error('invalid fragment state');

@@ -384,3 +384,7 @@ Used by [ARGUS](https://github.com/alexar76/argus) (the reference host), [MOMUS]
 (the publisher side), and the AICOM MCP-security course.
 
 MIT © AICOM (alexar76)
+
+<!-- structured-answer-gate -->
+
+[Host-owned answer gate](docs/flow-guard-answer-gate.md): all constraints, bounded extra correction and buffered final delivery; structured data only.

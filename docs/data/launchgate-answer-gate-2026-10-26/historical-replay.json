@@ -1,0 +1,3870 @@
+{
+  "scope": "Post-hoc structured projection from reviewed annotations; not automatic prose validation or model correction efficacy.",
+  "summary": {
+    "historicalAnswers": 384,
+    "contradictedStructuredProjections": 50,
+    "contradictedProjectionsDenied": 50,
+    "unsupportedProseUnknown": 259,
+    "validExplicitProjectionsAllowed": 75,
+    "unverifiedCandidatesForwarded": 0,
+    "newModelCalls": 0
+  },
+  "rows": [
+    {
+      "slot_id": "194a5f8aee4e04a2a1e0e5cc2b2de7a0",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "0c9a042b78944100dbc853b4dbb0099c",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "33051b970185de96bd3c2aecf03024b8",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "c23ac6630223c58581d841b180682f39",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "a7af5fdc79d7b3acb74dc79db691245a",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "63ee482575dc54bc99414ce3bb3bec61",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "c1740a867c8d4ed66546644ba316d04e",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "a65ce2ae790e21a90aa5d41ac84a57ab",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "1c628e64e03d13501d080e2ec977e56c",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-286297122e9bd8307161a434",
+          "field": "field_2",
+          "op": "lte",
+          "actual": 2.5,
+          "required": 1
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "287e138a14060772b8824b9d5b5b25a9",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-583fea9a15ddc8636cc58af6",
+          "field": "field_2",
+          "op": "lte",
+          "actual": 2.5,
+          "required": 1
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "2028cd71e78e58303e01105db04cb7e9",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "bb18260debca3d513964ee265f7104e9",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "006f384f744263723d6022cd4f22bbd9",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "30e61196a247034c3d1cd29c4b7ea7fe",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "d59c948770cc8d8f6422a58f1ba813b4",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "e8cb9801119a1529bb989aa127c77a6a",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "5c6cc744b23a22d8a3a7a5407b21f951",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "0ac8b4b1ae3212bc69316e9cd6e562c3",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "bfdbaa4d2955c264349a687ec701506e",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "e5c2fe729bfe9f30d1af0c3b1e4c6154",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "aaa740f7818bb698a51a30a5bd10cbb8",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "546b858ce9db4ddde51fa829706304ec",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "996262cb7563a7138b43f3113dba612b",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "5dbac1ac76b5f240e599eb6e428d4f5a",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "d43641e5dd15511ed5063bb57b6d094d",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "6ad66fcc7b6a33de79c99ee6bc49aafd",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "f3dacbd4f39bdd3aabe7c57a8b8aac89",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "b810017c6acb182be96381ebcf16c1b1",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "b503c5dfd4edca59e1949cabd81bbbf1",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "9ffee4d06049758930abfd397f6e8914",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "796eedcc4728cc2d5e6e423cdade143d",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "506de56b71e2adfda9599b534ecb0298",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "dff256a379aae39aa41c6dff7d8c897c",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "0c01a0a2236cb877566e6719054293dd",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "2a6d16d9cb1fb318536d255064dec7de",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "5ae985a37192abe8ccd511ab42472a49",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "772af913cba617e1c4ea94b08896c2a6",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "6e12c53e911c79efa0dcc8b75a0df45a",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "6e531682981dfa073409ed42eeff912a",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "2998bc98ad09448705dc41fdc0f5fc72",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "67e5c4fd6f04bc27c4d5b7956435b132",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "0302c7ee30f00d32ef87ccbed78f0514",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "fdd4cf8f15685bb26448425963a26556",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "fe1341f8d09cc009f67d2fd29e6c501f",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "7fb0b3860e2c999ffbac1acb1ca8b476",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "70623f57d0fc8e537737ae7876bd9ace",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "64cabe2ec2c0730a90eafbedfc45af5e",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "2236ed334b1e83858ce995fa45c8d046",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "3e14e45eacd7afd0f5aaea71ef8c693a",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-c45f79d5670f9b7db79a97cc",
+          "field": "field_2",
+          "op": "lte",
+          "actual": 2.5,
+          "required": 1
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "435dc64d61bf27bf8c6480cc2fda9f47",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-344a87695343b7d5aeb2554f",
+          "field": "field_1",
+          "op": "lte",
+          "actual": 190,
+          "required": 150
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "07e695d674914de4b7a80d0bbbc8c578",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-d2b840a35ca2c3912a847aae",
+          "field": "field_1",
+          "op": "lte",
+          "actual": 190,
+          "required": 150
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "42892bab9cba93935f1a64c99767ac49",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-09920706f60286457f3be05f",
+          "field": "field_2",
+          "op": "lte",
+          "actual": 2.5,
+          "required": 1
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "3ffa3740454fd767db0495aecaed59fb",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "aba3a93ceacfeec71f87dcfb72ddbd4c",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "71c82983cbc0ba2ad9c2b89e73d18305",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "5b5f6e5e3025531091a653627f43221c",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "f1c3e4804618b5ba75f2f0e8283642f6",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "95acca20ecee10ce3f05de74a030b405",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "52e2201cb4ecdbf764c26f9163f962d7",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "564db11428e0f5c6af540abb9d055fe0",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "57860c0320f69f73668eb2222f308531",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-f3fe35d6bd98dc80e39eeb92",
+          "field": "field_1",
+          "op": "lte",
+          "actual": 190,
+          "required": 150
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "58bf490351171b342d33ce5f2f06e250",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-21d89d4f566120aea88934d1",
+          "field": "field_2",
+          "op": "lte",
+          "actual": 2.5,
+          "required": 1
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "d8f85137cf61352422ea77be4aa6d3aa",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-97519c8392da03e36b4558d0",
+          "field": "field_1",
+          "op": "lte",
+          "actual": 190,
+          "required": 150
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "580cb080e2f8f8b2bd94c2997bff0140",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-4167fae27ab460ce14f65020",
+          "field": "field_1",
+          "op": "lte",
+          "actual": 190,
+          "required": 150
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "22d226498a0effb4532c3e5ac65fb92b",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "02ef01d1eb522d3ebbdbbeb9a816022c",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "5a32d203342cb7784bd2546990bfd3df",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "80758aed8a10a37d7454a1590856ffe7",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "c48843f7d434893bbc1c48c5cc1fe7eb",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-8100a9cc6116d3a8e59b0e68",
+          "field": "field_1",
+          "op": "lte",
+          "actual": 190,
+          "required": 150
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "8a25640bb032eab73e409b3b94e19f0c",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-b1e4b6de14ceb5bd39f7a040",
+          "field": "field_1",
+          "op": "lte",
+          "actual": 190,
+          "required": 150
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "29d382f6235181d74eb90ced38b36d6a",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-e3304f8c0e32bd4c8023eadc",
+          "field": "field_2",
+          "op": "lte",
+          "actual": 2.5,
+          "required": 1
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "2ed72f45b74624e33a9ac8dccd61024f",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-f2bc3b096882fd59a2b241d7",
+          "field": "field_1",
+          "op": "lte",
+          "actual": 190,
+          "required": 150
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "089418c00b7f8b7386bc0b4849a8b326",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "2ae4572323d8b41d2ab6c9b4a92bde69",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "437384e97d056e983dd2e245b287f9be",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "70ab9114b83ea0dcc2184ec680d9c42e",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "a83c18cf90e8a0bd634f347968072ec8",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "44abf0e4fdf76eec3cae57bf0848bab6",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "6b3adca36418a9db9ed53d4aa40eedcc",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "78a5ea95212cec0207150c041adeb93e",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "e0da3c4cf6be6132f2685de2ce1894d9",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "5a1cc13b55a4abb638ba2a7f99b9d4fd",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "c6b67656410a3ea4b23f020c8b0cd755",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "5d56ffb76140bd031298715a58d62331",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "462b00aa8af93a9f54c9b1630ef7dd1b",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "804191a7b39270245770912afedfdfbb",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "fc58ce75abc8363583c32ec85b5f6036",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-865ccabb3df406e15a23034d",
+          "field": "field_2",
+          "op": "lte",
+          "actual": 2.5,
+          "required": 1
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "02c3a1a4714def1d46b28ea04bac1e23",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-d662e86ad6a70b083dac59e5",
+          "field": "field_2",
+          "op": "lte",
+          "actual": 2.5,
+          "required": 1
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "2b94ecfd6bb1c847af3aabe4fe812039",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "69c8512dc8ec8eff19855b211b70f7a0",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "c745ec844b69491574f2230e76b5af78",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "a565a1d63d1144552f5f0fe003b45c79",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "7470608539ab65b0fd097f9a4537d0cd",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "f1ac2802c9a2a2068be7f0ea16f9bba5",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "dd05e3704efb0207c63feb257ea2fda4",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "a18c65414f96fa3da1535376593a2c2a",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "3a0cb70f1695159be29e6f3fc6970235",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "37e914fb48f83cbc1be138d12c7c90ea",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "915f995e0cd69f85b49d64dd78f46ceb",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "e99962ba344699b23d4f2c68f817bd50",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "9c5860f5043ffc5b7622716c0d5b56d6",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "d19818d01503cc62bd956bc686f37ba1",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "e8680d6da01d358d275be1fc910aa6c1",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "2498827cb9308cb67f03c07ad4042197",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "81cc4124074bc9c806bbb27695959ca2",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "7183e76f37b9664d7d38bba40bbc13cc",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "dab959a8ef7c841d5d8a10c29ee70922",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "b6c5b7cea7f042aa7f7340cba573511b",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "939a9480ba8674a67b40a2846ee4aebc",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "cbcd29c54f9ca2395d0b72add332b1e8",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "11cbb8d06711900448ea16eceafe39c9",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "c991fd615aa2186097b36a3a7f05d45f",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "ec0c50fb4b20a6f0b88fe30298766b36",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "9271994b87e4df399c24375c74597faa",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "86985d9e0484ccbe85b5660dbc087e52",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "04ab7f4e809edf459da5e1dbc830e7c6",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "5f5c16507dd3c1932ec171ebdcedcf85",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "2fa6e08194f7c328b3ea2629290b3d16",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "85d39c06237e968b0ca179d69cd01d4e",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "d9409ab4104ba0db4566b5816e1a0ddc",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "a83d129e8c716f3dfec169e09a551420",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "8349b0e83dbe0a73f35f391dbef695a0",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "a2a134459d98fe381a777a40259a5edc",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "9d7895e18ecfd596e4d1c26b8492b51b",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "1331831886466af066fce6b165fee485",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "2b785326bc9628ee35ad34e202d8d86a",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "05619940cabd3ff20a99561061323a59",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "4c4efa58776c12c80b9de758a8191ea7",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "75397be11e0fc60c700ec7de2872d07f",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "bbb4a3d071c63410cbe59c83779a2df9",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "092a75d1940854bdbf4adb105ef09cc9",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "bb3b1c265f7f9068d79c487e6ac2d769",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "6addbea8ed3ebc9fbf73cba2be2a039b",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "ee6be3a3fec42e3e7d6361e9b84c1fec",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "2630107cb0f409c4500b2e7359521dcc",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "90b43b2630534e8a75c223b8b1d62795",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "477c582063ce7197f47f689fb40b55cc",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "7662412a39e65f422a6ec1fd6ebc0a17",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-dc3b8ae7e4be993c8cea5ed9",
+          "field": "field_1",
+          "op": "lte",
+          "actual": 190,
+          "required": 150
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "2dede544001cf0047a544fd1e70752bc",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "a229de289d2d286e8640bbd01a2c6e70",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-99c7cafba2a95233098aa1f3",
+          "field": "field_2",
+          "op": "lte",
+          "actual": 2.5,
+          "required": 1
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "4ff0ce90e43047b1cea715e136a0e3e6",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "804f76dc4a838d391fb3c2978e8b6ea5",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "049ecda23e6b87d0d5316d32edd98269",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "034e39868464460ed3a6683538b02a08",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "e8f897d4867f0d10e9f74e9965806c9a",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "df44c6f5db92b91ff73f6504cab5eca7",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "cc947fc7d081d40a6ea3a5f556e299d5",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "f738df5ead99dea86be91743ad0841ee",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "4b2de2a865278cedd6a4698211f8b5c1",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "f39ca1cec8096d6f1144f956a0882c24",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "ff90683d3b05b90e44fe19ebafe3c7ff",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "9f578b00f783efd239d55e7ca5e4884b",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "e40a1a0be53e85e144bdf47710945a44",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "72f365e4e2a7435857707136ddb325e4",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "9769eee84d2daf97b11fa9e576c26751",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "12a3679410513cc462be27a75fd6bfcf",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "dddd07c9ac2aa39df93a3fecb1b9b15b",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "08590f7f92e6d59ab58eb802a39f583e",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "f788de0e7f4c1098cd98f8dfc993b131",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "48aa550092df6f35e61d0a4d7155ccb3",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "f8cae493701cbb380d809e84a8baa672",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-21713730bd71cd1495c09c56",
+          "field": "field_1",
+          "op": "lte",
+          "actual": 190,
+          "required": 150
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "dc44b850178a8e3eb79a450c983ae78c",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "5eb904453e19251af0ac256ab1b4fe01",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "67bc7cb5d4d3554359e785f60e71ecf1",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "23f48a9b8ee354ba91a98a80a4cc44cf",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "a98f25fba1070400e67bd86e636a6fd5",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "09b685f988986223a256528fcd8f51b3",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "029807d21d50334d5d096ff5f9cbbe10",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "f3f47646ff4ffa9ea812fcb4e7384385",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "f72773720c989fdb39199dddeb8a700d",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "9437c98d970dd05e5e910cd3eb5560f0",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "722ee05f9400b2cb2c896d7c6ecea720",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "bae859e6eb1e6e060f59b845202b1138",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "6a9ae3d2c94d0e7b8f7152c4a2e5e3db",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "4a378354e5c4443c0723759df3e31697",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "40f0e3467a60b1147557ceee6ae81877",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "7b9d77a04c24a36d085e48b1e641b1ae",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-3ef5ae318787f8c4ddb9ed76",
+          "field": "field_1",
+          "op": "lte",
+          "actual": 190,
+          "required": 150
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "44ba0688e89b55c3813cac8caba09265",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-4a79a5967a3f3e717b968966",
+          "field": "field_2",
+          "op": "lte",
+          "actual": 2.5,
+          "required": 1
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "c2a175eaf0b98253e83f4e5eb4b3b1b5",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-03cdfacf6c39bcb3822ea216",
+          "field": "field_2",
+          "op": "lte",
+          "actual": 2.5,
+          "required": 1
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "b077e10893c2fca700a7cac7141d1486",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-76960d747e55af79e30a238e",
+          "field": "field_1",
+          "op": "lte",
+          "actual": 190,
+          "required": 150
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "b1e7cba838aba023f3ba3f37a78d53af",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "3f1c0acad117131909c9888c56342da9",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "68c5c236721a55547f325b6a3e9eac9d",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "c7fecf51ea8efb903a3c757130f4454f",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "3490ea824b894e88c33566030190b25e",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "53bbff66ce12360dbf2095b05ab7aa4d",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-42221e877cd6863a033ff4c8",
+          "field": "field_2",
+          "op": "lte",
+          "actual": 2.5,
+          "required": 1
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "08a7de6d84fb6e25bea4d16906478f86",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-6673998092b6d57517ec5737",
+          "field": "field_1",
+          "op": "lte",
+          "actual": 190,
+          "required": 150
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "cc575209a0506d15aff5efb6429a564d",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "fea0a3cc92ebff66d5e844b72e9c421f",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "c64dcb43138a4c3b68b4145f1a277032",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "5d70d67213fd177ac23ee275cea9c8b8",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "3eac94a7d4f656d8de8154ad1d911a0b",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "d0aaa295876236745af2ebc0f57da983",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "f9beb04723d32bf71918f90230d10eec",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "0f7e020c2da53e7806da7ff644c0c95b",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "63a3b7f8f2d328ee5b588c749509b342",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "7a4f1e6b761e8b6de95508c8accc18d1",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "6715a592deb2f2b97915b68bebef42df",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "cb2de07e053d0ca3dfe4ca0d04fa7ca9",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "359faa800ca21cc01f407531c0eb9dd9",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "7f71b83134883b60353e4d173e049d08",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "a724a02f1e1cc806cd0a5de7df460f2a",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "3a6bc0ce1c24f590dc16efac24821f1a",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "6891d37828d58d9b2b45b67b1c8e607c",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "939a2a8a4ce950c495b09e952e52ceb8",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "f80d2578d9ba0400eef6ac26dfa2fc57",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "49a5ba3475b892afd2f7486abef5ed10",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "268477e63ce6616600dbaa1e081df799",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "96cc2bfe70ac2ef43927d2b9a0bbbf8a",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "0c631e5ffa595b675f62aa56a3b735a0",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "dbe74487b1c7cc6f7d0cc6124fe5cde9",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "0a44b0d4afa71fa0e97b6f73778588a8",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "0fca6bcddc8b019d86827379478fc23d",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-4bcf650291b3e538ee7da0db",
+          "field": "field_1",
+          "op": "lte",
+          "actual": 190,
+          "required": 150
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "96816ee80fb1aecdaee76f715faee093",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-a26603ba27c4d6cfaccb9dbe",
+          "field": "field_2",
+          "op": "lte",
+          "actual": 2.5,
+          "required": 1
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "09cc59781aa9e11c12a90baf74959fdc",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "f77e52d57e917b76b5d0b37569ad8752",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-5a65f9746085a67931f56d28",
+          "field": "field_1",
+          "op": "lte",
+          "actual": 190,
+          "required": 150
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "c1db12d71dd80c27192f8667fe9c1eed",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-cd348101c54f97527dd02d09",
+          "field": "field_1",
+          "op": "lte",
+          "actual": 190,
+          "required": 150
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "7b10aceddd523a07630b6971e7fcffd2",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-148ae3a6c375d4161652b0fd",
+          "field": "field_1",
+          "op": "lte",
+          "actual": 190,
+          "required": 150
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "b8267e36e3fc632208de0aab53512809",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "f22c30068d630e355c55e011a35ddd8d",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "418379a68245a66ab4c3147ce5ef01dd",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "09b8c42abad9bc104920f6481cbaad6d",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "ac2c81dfe7dd97d4c178bc824f5b4a2e",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "f9f47110f51b9c3ff848dd06dc2c09cb",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "40880b0f1704b4c25b111a280dc2b3c1",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "b0a924cae38682aaecc650df81b18334",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "706ee82a450a37ea477e0b350a75c218",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "9b6371f01b2092514f4737d13de5e6b1",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "d35cc5bbdea1f7811e7bbe0770fd5ca0",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "c631bc9fd46678f08f685c5a888c63b3",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "102c69ec884c111ed5e6af4a8661b5e8",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "915b3fb4a12b99d6c4a1eec5b88cf14f",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "7dccf6f81a08be6ec942385a636e9394",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "52b2e0d42639255d25d170e51e2d961d",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "8f4739855f34a1849cb39be920884b2d",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "f6b35a27ed7490d238ad03bd5ea80254",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "380de56f45d8fb467594abad166be7ae",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "e3a38e8b2866049d44a5ae6e8c6e4423",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "59545b573a536635c6b61274ce8dbe4f",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "5d87edc4d658526733e1e05d077225e2",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "6f37a86f58a86a643b7ba3be167bb9b1",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "0a8659ca84d62064308e27701c97e8d9",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "c56fb58b5bc3f938fa03a7428929bdee",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-7f9daa145be7eb8efe66a380",
+          "field": "field_1",
+          "op": "lte",
+          "actual": 190,
+          "required": 150
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "6f99db137f41dc85a8c15f09b7b9063d",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "92cdfd2fa9505ca671f686cd7ee4520a",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "775e54299fdaa49a24d841082ebb6ff6",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "94a3d5ce3d28d16c6869552075475ce2",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "8dff6e40de06053fc9eb5a75b2be0e5f",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "d94afb9fb6ce2ed18c1f0989fbffe670",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "0b0ea8f62905b53145db30bb7c2a9161",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "31340aa7c714b475358b68c03768d464",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "e11f08b247795379e8807d94465744f4",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "ea83131199349b7736b4c67bc9264a4c",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "86fbe7839e317081d556ba8d92bd81ba",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "85ca3ee1ed69b2fd7b4134188a30ed12",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "ad2ffcf6228829c8a0309064b68c422e",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "a4119c14f37415843b5af8b7164692ef",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "0371334fc90e795335bbd354d9548331",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "305ba6495cc1fb111011d6a10f3d1a5a",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "225d37f8141b597279c98afe4efb7b5f",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "6488e41a37732cd07862874d8ab12496",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "3c60e693b2bd2082cb1e053cf0e606c1",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "e1a47c9ae3285afcf54f2b5ea535b654",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "1448422f643b638aacbf67245725d35a",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "8fff0b3c8174cc62c080c4f940b10339",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "907de48d82c0d1670fcc45596227c5a4",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "3cd5c1c961c5c7df2144bc93f8732242",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "1d293c171881804c671da518fe442651",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "0d9b030f6b462d561c141a3d2c162ff6",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "54a85c40ecf1bc448ea2f10b3c69c238",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "fa30f08ff7b85217c8f698c59f87a14a",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "febfeac216ae379580b23354f5ee949c",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "844fb24758ab6b2f17a9ceba0979f885",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "0dd6e9fd7a614d502e46703be6e56930",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "e037d34ba22d3cab3b7010a639214781",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "5865c10cac0becf2b18e79635ccb8419",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "8d78c154797271884c713a5dbd98c4b2",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "554694df19a0e59ef9bada8ad4a02c1c",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "c51e1fa0472b788dc80995724aac90ef",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "aaf3c46c237a0e54fca17a990a7d54e5",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "494fc8a26f4975546e4c4905f0553ad6",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "8058948abe54c7d92c17710644ddbbb7",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-aa78a2b608c67c33207ecd48",
+          "field": "field_2",
+          "op": "lte",
+          "actual": 2.5,
+          "required": 1
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "1632877d809383492ebb01faf0fd366c",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "0b0e796ed0fb8138167eb68bda867821",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-ba084c5c0b716db3c8e5b55e",
+          "field": "field_2",
+          "op": "lte",
+          "actual": 2.5,
+          "required": 1
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "b716d24e8637cb21388a3e53c6a6e917",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-54a2bc72afc82264823b9d51",
+          "field": "field_1",
+          "op": "lte",
+          "actual": 190,
+          "required": 150
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "f04f26aa987578b377302336c816f71f",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-7c574355755e83e99ed3fbed",
+          "field": "field_1",
+          "op": "lte",
+          "actual": 190,
+          "required": 150
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "1ed710975d1f4c82a7ddb824697e3c50",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "6d2cba650735f15e979f34a13042e5c2",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-fd958af5cb6cde191d986a89",
+          "field": "field_2",
+          "op": "lte",
+          "actual": 2.5,
+          "required": 1
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "c064278817162eb1de2a1fe752cd9b2c",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "98c0bccb8c7599870d93a5c266dff45e",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "4b13d0abef0f64b28d4772c4d3d18671",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "e146f0d1237f4f55cf2c97588becbd88",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "defe091734b95abbf6279ecd7cd9d3e1",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "de189f833794062cc745ef5f54652ba0",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "b6c6c4da288520b747ac83edf8ac9583",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "08c1bd4d176f8001d37a100da0b50dcf",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "8435865f004de17a9d865bae417400d6",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "9463316e636ed9672cc869e300d9ac14",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "b4d27dd0cd052e56d58b83d0511094c4",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "5910487077667b5d97ecfd33f5894b92",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "7f633da2ad61fc9e8352c2dd25b14f15",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "8c5068e606e22a13c444ac163448d8be",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "dfb30d33f617a1123a0dd608c2603445",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "c509bd8ab7e3cad5f9dc991566ec422a",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "c3cdd7a7959828ca51d40eab37fdd487",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "888e79ed16fda69f0886e11b040340d8",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "a5400fb100d1e3d797da5c0d2673ae14",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "c9288a5f5f1be8b17e18519049427053",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "87bdd79a7d71b6d5790b3d3b8a50ec26",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "4e5f3b46d24e3d8723ec1faf20f64909",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "99827d2de5fdd5fa467592e201edba5d",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "e9d9ccca0e63701cf8363713b91ed7df",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "7bb5386e06e0def9d65c29370f84f38f",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "5fe252102130e38dc17eda854938dad9",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "49074db9938b0b2e953a61cdb4e8d76e",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "768bd6f1f8cfb57abf4b4a1ad3e979c7",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "6f33fbebbafc5aafb6de609a2168ba9c",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "cce8b4f7cd22b5e5624865f016591efe",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "349ffe9267d209d6e75e09703dba8da1",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "0a9861fb38798749cec8ac0663758532",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "928e58f64a961c21dddf8655f3826beb",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "923291ac283f0040bc7e8873dd442b1e",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "19202e4a3b3f27946099ff0e2753c9ef",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "234dda2298a66d1234e2ec4954046196",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "118b0fc3449c862d0a59d31213dc530a",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "34f8eece65eea0269ed2a1bf6511f556",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "099296c34f700cff1da759a3d9322c0a",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "dc5827acaa98681e2b2f3ae181c999c7",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "05fa640786288a26fb2850b5f140013f",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "66d25a578032e80cccfdb5504dcc5255",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "d3260945a6c42d60ad974d820e7bc733",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "423a78462337d09129e57d178fff626b",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "e000321e96ad336fc01764b5b23699b0",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "baa75c179fb669539fe3700d8858bf38",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "47514a1ad5d6ef86faf2b1786745e5aa",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-43c8b7d63464a1e511fc5ebc",
+          "field": "field_1",
+          "op": "lte",
+          "actual": 190,
+          "required": 150
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "e958fe5057d37fbebded3089f7c586a5",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "46b5a4b5fb381563e496ea58623e4cc1",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "eb56e8c3770ea7420220517f0eb7bf74",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "d2bbb99d6eb1f05be2fe533b4be53f2a",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "04414bee5ee1ddad4bba2149ed3af41e",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "d5f355dc8c12ba07e4b346e3eff1e98c",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "f5547d1b8f2bd00874c9c88f61467d38",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "c093c9c00f63598844e8b4562039761c",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "609c635b48d22ede4f440db6b3e81e18",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "98067a7cba71d76ee39ce585e84d1c0f",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-1a6a6569b59eaa930cfb0d09",
+          "field": "field_2",
+          "op": "lte",
+          "actual": 2.5,
+          "required": 1
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "b79b87507b4bf753df83cfbf74d079ba",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "fdea966a41375c642066512bd1b11417",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "7951888816fb2d4dc6f72ef4bf4295dc",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-01c64c38cf76a8d15be7097a",
+          "field": "field_1",
+          "op": "lte",
+          "actual": 190,
+          "required": 150
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "668ae423c1968f4e228f5cb5471078ca",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "0af154c19ff3cc9cc0fcbf0512265ef8",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-b78aff3aaa93c09da03f5311",
+          "field": "field_2",
+          "op": "lte",
+          "actual": 2.5,
+          "required": 1
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "5ebac8e13c6e2ebdaf7fe5a3075e58fe",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "db48d4fd2d4ac56436ee68b0669c6200",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-077f00aab9cf8862b1b2a820",
+          "field": "field_2",
+          "op": "lte",
+          "actual": 2.5,
+          "required": 1
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "cd8cd0cb8a908b7aed4f2bc6570da54e",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-d2c78c0e35e9812b4851011c",
+          "field": "field_2",
+          "op": "lte",
+          "actual": 2.5,
+          "required": 1
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "cd21b897c5a0c9e3d46c08d8c8249bd4",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-b2ce85e4b7a24b157ba03e98",
+          "field": "field_1",
+          "op": "lte",
+          "actual": 190,
+          "required": 150
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "ddeaf5b914cccf1ce85e954457b10259",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-7919334381ec391aec31d31d",
+          "field": "field_1",
+          "op": "lte",
+          "actual": 190,
+          "required": 150
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "9e64464a8a9e2b0c15e99057905adeae",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "b7c0dd666c9a8d15b8cd73c05cdf8da7",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-e04858319f84419ca489fe95",
+          "field": "field_2",
+          "op": "lte",
+          "actual": 2.5,
+          "required": 1
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "1d763a6714a719537888dd66200fe1a2",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-58dbc7a000657a917a6c44fe",
+          "field": "field_2",
+          "op": "lte",
+          "actual": 2.5,
+          "required": 1
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "c20346dd2867d0ece97048f77566d4c6",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-bb4a3a4ff609f22edaa1e4f2",
+          "field": "field_1",
+          "op": "lte",
+          "actual": 190,
+          "required": 150
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "57a9881e6062178cb6d5a8fbd39fb3ad",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "68fe1a2d4f171184facbd702c3065a75",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "914e492c0c15563d128d88e1996651ca",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "647bb3ef172c4fa86663b5cbed607af1",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "dc81f2e5c932f91ac1f4d80cedfc01b9",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "30936c28ac049a79a2f9d4c85071d138",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "3ffa3999d25da5fc53c1f0d466ff051d",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "769493533a67af9a4f3f23fea503451f",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "b5104cbd19045a95e7b59f44e222f3af",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "49f3a515eeecc12938e0a0f0bfe13db0",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-17d4b201bb19df625e303937",
+          "field": "field_2",
+          "op": "lte",
+          "actual": 2.5,
+          "required": 1
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "dff9655b023082659e8dc18d2d1be1b8",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-ed46ce1febcd532408d71098",
+          "field": "field_1",
+          "op": "lte",
+          "actual": 190,
+          "required": 150
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "7781d8e8387ea33ea817ca707b6a33ab",
+      "projectionAvailable": true,
+      "reviewedGrounding": "contradicted",
+      "decision": "deny",
+      "code": "constraint-violation",
+      "violations": [
+        {
+          "recordRef": "rec-a9d6d39062f15e867a44b35a",
+          "field": "field_1",
+          "op": "lte",
+          "actual": 190,
+          "required": 150
+        }
+      ],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "4ed6c81b61f64c73f6a36a005729cdf8",
+      "projectionAvailable": true,
+      "reviewedGrounding": "supported",
+      "decision": "allow",
+      "code": "verified",
+      "violations": [],
+      "runStatus": "delivered"
+    },
+    {
+      "slot_id": "5247268273693cc06b92d55de3fa4ec6",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "479bed97787dcc2270b572087fc8c194",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "c9900d110a103e18b145a76733d4100f",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "c068e6ae45fc699f721a1133df01cd99",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "9d96bb0673b567630318785185ccaa11",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "3f47a610100e1f2da7649f9eda0cd65e",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "5354b65efb584ae5fc6aa1e5aac5e19c",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "9ff88a9958660edf1b1e3c0ab1efda66",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "28f448a428f7e510757c6e8e789cff23",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "ac11bdef6f9040e44d2ab57d1989cee8",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "4c24563bc475376a507c823e7adb6ea9",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    },
+    {
+      "slot_id": "c4025690ec946e48d200a3ed784858a4",
+      "projectionAvailable": false,
+      "reviewedGrounding": "supported",
+      "decision": "unknown",
+      "code": "invalid-schema",
+      "violations": [],
+      "runStatus": "withheld"
+    }
+  ]
+}

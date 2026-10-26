@@ -375,3 +375,7 @@ Usado por [ARGUS](https://github.com/alexar76/argus) (el host de referencia),
 [MOMUS](https://github.com/alexar76/momus) (el lado editor) y el curso de seguridad MCP de AICOM.
 
 MIT © AICOM (alexar76)
+
+<!-- structured-answer-gate -->
+
+[Validación por la aplicación](docs/flow-guard-answer-gate.es.md): todas las reglas, corrección adicional limitada y salida almacenada; solo datos estructurados.

@@ -50,6 +50,7 @@ describe("packaging — the standalone claim", () => {
   it("exports the full enforcement surface from the entry point", () => {
     for (const name of [
       "Warden",
+      "createAnswerGate",
       "StaticScanGate",
       "ThreatFeed",
       "ThreatGate",

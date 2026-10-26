@@ -95,6 +95,8 @@ export interface FlowState {
   credentialRead?: true;
   /** Exact public-request grants already consumed; never reset by prompts. */
   credentialGrants?: string[];
+  /** Guard-authored review receipt; sources are opaque IDs, never source-authored text. */
+  answerReview?: { turn: number; sources: string[]; discloseInstruction: boolean; factsSha256?: string; constraintViolations?: number };
 }
 
 export interface Classified {

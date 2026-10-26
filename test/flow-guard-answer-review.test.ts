@@ -54,8 +54,10 @@ describe('Stop answer review does not trust warning vocabulary', () => {
     // `block` here asks Claude Code to continue and check its answer. It does not
     // refuse a tool call, book a hotel, or prove that the model corrected itself.
     expect(first?.reason).toContain('give it again exactly as it was');
-    expect(fixture.stop(answer, true)).toBeUndefined();
-    expect(fixture.stop(answer, true)).toBeUndefined();
+    const reviewed = fixture.stop(answer, true);
+    expect(reviewed?.decision).toBeUndefined();
+    expect(reviewed?.systemMessage).toContain('source contained text addressed to the assistant as instructions');
+    expect(fixture.stop(answer, true)?.decision).toBeUndefined();
     expect(fixture.events().filter(event => event.event === 'stop')).toHaveLength(1);
   });
 

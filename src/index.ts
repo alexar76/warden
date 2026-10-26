@@ -42,6 +42,10 @@ export { displaySafe, DEFAULT_DISPLAY_MAX } from "./sanitize.js";
 export { diffToolDefinitions, formatDefinitionDiff, wordDiff } from "./review-diff.js";
 export type { DefinitionDiff, ToolChange, FieldChange, WordOp } from "./review-diff.js";
 export { wildcardMatch } from "./glob.js";
+export { checkAnswerConstraints } from "./flow-guard-constraints.js";
+export { createAnswerGate } from "./answer-gate.js";
+export type { AnswerGate, AnswerGateOptions, AnswerRule, AnswerRecord, AnswerScalar, AnswerCatalog, StructuredAnswer, AnswerGateCode, AnswerGateViolation, AnswerGateDecision, AnswerGateRequest, AnswerGateRunOptions, AnswerGateRunResult } from "./answer-gate.js";
+export type { AnswerConstraintCheck, ConstraintEvidence, ConstraintViolation } from "./flow-guard-constraints.js";
 export * from "./types.js";
 
 const SEVERITY_RANK: Record<Severity, number> = {

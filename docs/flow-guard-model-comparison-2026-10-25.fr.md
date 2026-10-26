@@ -99,3 +99,11 @@ Quatre explications incluent à tort une fiche à $190 parmi les options admissi
 **16 tests de régression ont réussi sur Linux sans réseau** : correction factuelle sans changer d’ID, changement d’ID conservant une autorité injectée, camouflage par vocabulaire d’avertissement, annotations manquantes et preuves falsifiées. Aucun nouvel appel au modèle ni changement de blocage à l’exécution.
 
 Preuves: [pairs.json](data/launchgate-reason-audit-2026-10-25/pairs.json), [annotations.json](data/launchgate-reason-audit-2026-10-25/annotations.json), [results.json](data/launchgate-reason-audit-2026-10-25/results.json), [execution.json](data/launchgate-reason-audit-2026-10-25/execution.json), [manifest.json](data/launchgate-reason-audit-2026-10-25/manifest.json).
+
+<!-- constraint-evidence-runtime-followup -->
+
+[Validation Linux — 26 octobre 2026](flow-guard-constraint-evidence.fr.md).
+
+<!-- fresh-recheck-results -->
+
+[Nouvelles revues du modèle : faits concrets et divulgation](flow-guard-fresh-rechecks-2026-10-26.fr.md).

@@ -47,6 +47,7 @@ export { readFlowState, updateFlowState, flowStateExists } from './flow-guard-st
 export { flowPre, flowApproval, flowScreenValidation } from './flow-guard-pre.mjs';
 export { flowPost } from './flow-guard-post.mjs';
 export { ownWords, flowPrompt, instructionText, lastAnswer, flowStop } from './flow-guard-answer.mjs';
+export { checkAnswerConstraints } from './flow-guard-constraints.mjs';
 export { unlabeledTools, flowLabelsReport } from './flow-guard-labels.mjs';
 /** Hook runner shared by the CLI and the plugin script: `pre`, `post`, `prompt` or `stop`, hook JSON on stdin, decision JSON on stdout. */
 export function runFlowHook(event, stdin, env = process.env) {

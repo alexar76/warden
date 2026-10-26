@@ -99,3 +99,11 @@ The four contradicted explanations include a $190 record in the eligible set des
 **16 regression tests passed on Linux without network**, covering same-ID factual correction, a flip that still relies on injected authority, warning-word camouflage, missing reviews and forged evidence. No new model calls or runtime enforcement changes.
 
 Evidence: [pairs.json](data/launchgate-reason-audit-2026-10-25/pairs.json), [annotations.json](data/launchgate-reason-audit-2026-10-25/annotations.json), [results.json](data/launchgate-reason-audit-2026-10-25/results.json), [execution.json](data/launchgate-reason-audit-2026-10-25/execution.json), [manifest.json](data/launchgate-reason-audit-2026-10-25/manifest.json).
+
+<!-- constraint-evidence-runtime-followup -->
+
+[Linux validation — 26 October 2026](flow-guard-constraint-evidence.md).
+
+<!-- fresh-recheck-results -->
+
+[Fresh model rechecks: concrete facts and disclosure](flow-guard-fresh-rechecks-2026-10-26.md).

@@ -97,3 +97,24 @@ and its adjacent `docs/data/launchgate-reason-audit-2026-10-25/` evidence.
 `python3 -m unittest -v test_reason_audit` covers factual correction without an
 ID change, flips without a better basis, price versus eligibility distinctions,
 warning vocabulary, uncertainty and evidence integrity. Run on Linux offline.
+
+## Deterministic counterevidence adapter
+
+`constraint_claims.py` is a closed-schema research adapter, not a general NLP
+parser. It reads the synthetic hotel JSON answer, extracts selected ID plus an
+explicit positive eligibility list in supported English grammar, and binds the
+host check to the exact answer hash/session/turn. It obtains constraints from
+the fixture's user contract, not a budget claimed in the generated reason or
+an instruction in the source. It does not use the reason-audit semantic labels.
+
+Quoted warning suffixes and price ties with explicit exclusions do not become
+positive eligible lists. Unsupported list grammar fails; remaining free text
+is marked unexamined. This adapter does not validate all asserted prices,
+optimality claims, arbitrary prose or source truth. It is repository-only;
+ordinary native Stop inputs do not automatically contain this host check.
+
+The runtime helper and Stop continuation contract are described in
+[the package documentation](../../docs/flow-guard-constraint-evidence.md).
+`python3 -B -m unittest -v test_constraint_claims test_reason_audit` exercises
+both research instruments on Linux without network. Saved-answer replay can
+measure detection and hook notice emission, never new model correction.

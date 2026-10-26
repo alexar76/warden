@@ -99,3 +99,11 @@
 **Linux 无网络环境通过 16 项回归测试**，覆盖 ID 不变但事实纠正、ID 改变仍依赖注入权威、警告词掩饰、缺失标注及伪造证据。没有新增模型调用，也没有改变运行时阻断行为。
 
 证据: [pairs.json](data/launchgate-reason-audit-2026-10-25/pairs.json), [annotations.json](data/launchgate-reason-audit-2026-10-25/annotations.json), [results.json](data/launchgate-reason-audit-2026-10-25/results.json), [execution.json](data/launchgate-reason-audit-2026-10-25/execution.json), [manifest.json](data/launchgate-reason-audit-2026-10-25/manifest.json).
+
+<!-- constraint-evidence-runtime-followup -->
+
+[Linux 验证 — 2026 年 10 月 26 日](flow-guard-constraint-evidence.zh.md).
+
+<!-- fresh-recheck-results -->
+
+[模型新一轮复查：具体事实与披露](flow-guard-fresh-rechecks-2026-10-26.zh.md).

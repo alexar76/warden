@@ -377,3 +377,7 @@ npm install && npm run build && npm test   # 1256 тестов
 [MOMUS](https://github.com/alexar76/momus) (сторона издателя) и в курсе AICOM по безопасности MCP.
 
 MIT © AICOM (alexar76)
+
+<!-- structured-answer-gate -->
+
+[Проверка ответа приложением](docs/flow-guard-answer-gate.ru.md): все ограничения, дополнительный ограниченный проход и буферизация выдачи; только структурированные данные.

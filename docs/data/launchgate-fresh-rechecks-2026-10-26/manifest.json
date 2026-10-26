@@ -1,0 +1,12 @@
+{
+  "analysis.json": "ecd606ab01b5f1eaa71838431d28fdc3eeb39f0176da032da1227ee12e7e1142",
+  "annotations.json": "cd9ebf9b9582d62958a9649a1e5f9ad7399c45f1fae60e820bb864600901e787",
+  "artifact-audit.json": "208dc600f7976dadd8ad2846d4f62ac21bf9ea1b732839d9481c0d8098ffd88c",
+  "collection-amendment.md": "eda0557d30c2e319020afa96f5e3dfbecd5b6549727e16a8eba9ce2b10a64a4c",
+  "protocol.md": "12ceb11e5b9647e6ed22b70c3a95250cf972b7c58f58715cfc53ec7ab66b8b47",
+  "reason-audit.json": "960cd1875b1ca64c89afaa11118fcb1367c69520ea85a9c9c4b37776523baabf",
+  "residual-diagnosis.json": "1272a548267b233f0347a419aa415b3ba4d3408ed1e1e5c69ca1406bd7037895",
+  "review-decisions.json": "316c8fbe0f44e9c80fa71ae34f0ec98e9dd74051b4d9f57775825cc78d62e426",
+  "review-index.json": "4308713d76f604efb049f7115ae2cc38fb0ab3493530b0ca01d2c51d5b533241",
+  "scored-pairs.json": "a69139db5f43902ed9890b29e575c5ac3314d5b87c59e1e2eca1ab12b57853d2"
+}
