@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.22.1 — 2026-10-26
+
+Ships the local source recorded below. npm `0.22.0` did not include it.
+
+- Add an opt-in host-owned structured answer gate and captured-fact repair feedback for numeric ranking and missing eligible sets, as recorded below. Frozen experiment snapshots retain their original 0.22.0 identity; the version bump does not rerun or alter those results.
+
+<!-- final-ranking-witness -->
+## Local final ranking-feedback validation — 2026-10-26
+
+The unchanged candidate completed a separate 120-call Linux comparison: old feedback repaired 6/40 known-failure continuations, explicit selected-versus-best feedback repaired 40/40; valid controls remained 20/20 per nominal arm. All delivered frames passed arithmetic audit. This closes the selected-cohort series, not a new holdout. Production repair bounds and local unpublished 0.22.0 are unchanged. [Report](docs/flow-guard-final-witness-2026-10-26.md).
+<!-- /final-ranking-witness -->
+
+## Local follow-up — ranking and missing-set counterevidence, 2026-10-26
+
+- After a frozen prospective 24-fixture run, add bounded captured-fact feedback for `not-optimal` and `incomplete-eligible-set`: selected/best numeric values, direction, a safe optimal record reference, counts and at most eight missing eligible references. Never copy source labels, IDs or prose. Schema, validation rules, output decisions and two-correction limit stay unchanged.
+- Linux build/typecheck, 798 WARDEN tests (50 gate/stdio) and 28 red-team scenarios pass. Replay of 210 saved proposals/156 trajectories preserves all decisions and final frames; no new model call tests the improved messages.
+- Keep frozen live outcomes separate: natural first 89/96, five of seven errors repaired/two withheld; controlled final 45/48/three withheld. Seven second repairs produce two successes/five withholdings. No invalid delivered result in the sample; synthetic supported types and same-author limitations apply. [Five-language report](docs/flow-guard-prospective-holdout-2026-10-26.md). Local 0.22.0 only, not published.
+
 ## Local follow-up — host-owned structured answer gate, 2026-10-26
 
 - Add opt-in `createAnswerGate`: host-frozen numeric/boolean rules, safe record/field references, complete eligible-set and optional ranking checks. After every proposal, recheck every admitted alternative against all rules; C-to-D substitution is a new violation, not success.

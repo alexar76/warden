@@ -141,10 +141,10 @@ export function createAnswerGate(options: AnswerGateOptions): AnswerGate {
     const best = publicRanking.direction === 'min' ? Math.min(...values) : Math.max(...values);
     optimal = eligible.filter(ref => map.get(ref)!.attributes[publicRanking.field] === best);
   }
-  function decision(raw: string, kind: AnswerGateDecision['decision'], code: AnswerGateCode, violations: AnswerGateViolation[] = [], answer?: StructuredAnswer): AnswerGateDecision {
+  function decision(raw: string, kind: AnswerGateDecision['decision'], code: AnswerGateCode, violations: AnswerGateViolation[] = [], answer?: StructuredAnswer, comparison = ''): AnswerGateDecision {
     const details = violations.slice(0, 16).map(v => `Record ${v.recordRef}, ${v.field}: actual ${scalarText(v.actual)}; required ${v.op === 'lte' ? '<=' : v.op === 'gte' ? '>=' : '==='} ${scalarText(v.required)}.`).join(' ');
     const feedback = code === 'verified' ? 'WARDEN: all declared structured checks passed against this frozen snapshot.'
-      : `WARDEN structured answer check: ${code}. ${details}${violations.length > 16 ? ` ${violations.length - 16} further violations recorded.` : ''} Recompute the complete eligible set from every declared rule and the frozen catalog. Preserve the host-owned disclosure. Return only the declared structured schema; do not add prose.`;
+      : `WARDEN structured answer check: ${code}. ${details}${violations.length > 16 ? ` ${violations.length - 16} further violations recorded.` : ''}${comparison ? ` ${comparison}` : ''} Recompute the complete eligible set from every declared rule and the frozen catalog. Preserve the host-owned disclosure. Return only the declared structured schema; do not add prose.`;
     return freeze({ decision: kind, code, answerSha256: hash(typeof raw === 'string' ? raw : ''), feedback, violations, ...(answer ? { answer } : {}) });
   }
   function evaluate(raw: string): AnswerGateDecision {
@@ -165,8 +165,20 @@ export function createAnswerGate(options: AnswerGateOptions): AnswerGate {
     }
     if (violations.length) return decision(raw, 'deny', 'constraint-violation', violations);
     // Complete eligible sets prevent a model from silently dropping inconvenient alternatives.
-    if (claimed.length !== eligible.length || !eligible.every(ref => claimed.includes(ref))) return decision(raw, 'deny', 'incomplete-eligible-set');
-    if (!optimal.includes(selected)) return decision(raw, 'deny', 'not-optimal');
+    if (claimed.length !== eligible.length || !eligible.every(ref => claimed.includes(ref))) {
+      const missing = eligible.filter(ref => !claimed.includes(ref));
+      // Only generated references from this verified snapshot; never raw source labels or model prose.
+      const comparison = `Expected ${eligible.length} eligible references; received ${claimed.length}. Missing verified eligible references: ${missing.slice(0, 8).join(', ')}.${missing.length > 8 ? ` ${missing.length - 8} further eligible references omitted.` : ''}`;
+      return decision(raw, 'deny', 'incomplete-eligible-set', [], undefined, comparison);
+    }
+    if (!optimal.includes(selected)) {
+      const ranking = publicRanking!;
+      const actual = map.get(selected)!.attributes[ranking.field] as number;
+      const witness = optimal[0]!;
+      const best = map.get(witness)!.attributes[ranking.field] as number;
+      const comparison = `Ranking ${ranking.direction} for ${ranking.field} among ${eligible.length} eligible records: selected ${selected} has value ${scalarText(actual)}; optimal value is ${scalarText(best)}, attained by eligible reference ${witness}. Any equally optimal eligible reference is acceptable.`;
+      return decision(raw, 'deny', 'not-optimal', [], undefined, comparison);
+    }
     return decision(raw, 'allow', 'verified', [], { schema: 'warden-selection/1', catalogSha256: digest, selectedRef: selected, eligibleRefs: [...eligible] });
   }
   let used = false;

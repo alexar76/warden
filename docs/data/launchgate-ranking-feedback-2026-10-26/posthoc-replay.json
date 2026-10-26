@@ -1,0 +1,794 @@
+{
+  "scope": "Changed feedback on saved proposals only; no live-model repair efficacy claim.",
+  "summary": {
+    "trajectories": 156,
+    "proposals": 210,
+    "rankingWitnesses": 31,
+    "setWitnesses": 12,
+    "unchangedDecisions": true,
+    "unchangedFinalFrames": 156,
+    "newModelCalls": 0
+  },
+  "outputs": [
+    {
+      "slot_id": "17c1d5f05cb1a06d271f116930ebeac5",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "1a1ab8e1f4ca7880f377b2a7273e7669",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "8820b33c95160d9b82fff779cbf27c1b",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "b2ec65d7e2b83c8e939e40c417cb7621",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "9b69d50b0f2cfc1f224e22e1ef6c4646",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "37db6727e5d64946656efcdcd3389ebf",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "02309fba1c9529b688c99f746c0693c0",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "014b6bfb0404ec3ee241fa29e20cc01b",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "91b488e969521b7beae6ef860b582912",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "b67318df7e7a3c63b6aa77d11fc763cb",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "b7e1d3bde7bb9a37051557b6a234ca88",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "224c5dccb2740fcdf6a706f0719c463f",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "35a45b52751f0ba1df273da7af6a50d0",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "c0b4638bb6ba4d63a7086e63cc269a55",
+      "status": "withheld",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "56a524dca151ada84ab9c99a56f3ea84",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "99ade8336df1b2c4b665eddcd642b7fb",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "dda417558afb4b2fa70f110e07411121",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "9374062a0485e9a1bc0775b9663690f8",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "860672db3e9abc33c1a0971a74f2933b",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "1f6cc48758b7a8719cdfd4aa3918d588",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "aa2d046953460c77a8639ee1dd1626ee",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "7d4b15ae9d834cc75c0dc133ea98e305",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "47bf0658bfb4b3a2492ead732c7a8e83",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "32f532a3b09c695ab1132c69918b215f",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "aa94599b946afe3e9202c159fec0af43",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "fafabc1c6c1cdde8b3a24aba37cae86b",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "afd37a4b1e8b693a0354fceb4cd6dad7",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "bf412a270ea45fd611a6abe44993d0e8",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "603861488b881810b27e08b41b783de2",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "381fd2f44025fe06140e816bf60132cd",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "a546585ed763f8c6298636101615bb4c",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "f8c58ed472151979ecee7d6966792787",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "fabe96a3a014d5d170f01d4bde2fad52",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "601a96819261873da5dd6b9a60bafade",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "03a8c033bf15d00a785fb16c04953609",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "5767a8408541991ed1029b6257c67d81",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "3cba400275309dcfb37c034a45318084",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "b416f51a037835efed2a03f735f4e181",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "0ebe0e2f0a01c93bf7b1591e0be7ed2e",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "df5a68b85ff0672f4ed079bc5a370b68",
+      "status": "withheld",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "38b4a504618c0cb6577d678270b4f55d",
+      "status": "withheld",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "23c5bba828c3e744dcf1568ec17fa08c",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "4ca42667f663ca756552faf53881ea86",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "0956fd8bcc7eb4e3e6b07d829158aa29",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "2ce87716640de398f78999c4e26975f2",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "da1309dc19a4af5830401ba87fb1f5ac",
+      "status": "withheld",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "40ce77dc106c57d5f5099a73a8b8aaa9",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "c478bb2145e8d24c0a8197b4cee52906",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "4d867ac0b6000fcd8ac69915acde4897",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "f2ea0873a2be2730795410e3340794ee",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "70310b71084f05373f4dff6a27389c5b",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "6e45f7b31abc54e44d125598c63cb071",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "087ba638b3b95f5306fee25603a3215f",
+      "status": "withheld",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "fbe623f126e17ee308422c5ee05a42c8",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "b9651e78a3439c80c41d8da9c5f932a7",
+      "status": "withheld",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "326f32bd13db561092aeef915f55f0bb",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "05eb399042399e29dd9b16a9c36b007b",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "3a4750fc0db6e6e3d4151d68aab811e8",
+      "status": "withheld",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "78ef935d9cfcff4a7175074575121db2",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "6c90ff229aea1ca4375f3d04a5204e39",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "04ce05d5dd6a2e99f17f4969fede9ceb",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "a3a474151d13b48a2f5ec7546d924327",
+      "status": "withheld",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "4c0c490e2acffb4b7292a04b7840b3d1",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "13a41efa342e12b688a11b9f82b25409",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "3f0b088ce7374b24816e5f3d420c1aad",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "2263c57e878621bab22f2c6ca915f6a4",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "9ba443a27ef95cb97376e6337691d915",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "6cf1ed76aea2c5319f3cdd82ed9d7a3c",
+      "status": "withheld",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "61ac6509c997d8c93a63c3400961cd43",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "3fe3b5a00f2e260bed78db6c287c1e83",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "d22ad45cacf2f644c2017fd43fb28404",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "9d292981cc92a3f06c419a624f9b6ca7",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "f4c3fa1bc17f5e3accc8b242aa5214e5",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "fab6c23fd2ae43802a8f6e2b2c604b2c",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "81b2644110531200b6a39ddeccca474a",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "f7d0fe5839adfbad17be43788bb46e11",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "1fc6c58ee2ca1bec999e61d0897e333a",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "b847fa9d68435dea8be9fcc6c17b8f53",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "cc5c9f5877edcedbe5fbff38a458b51f",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "ddb21138f61213773292cbf5506c0d35",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "4903bec02d01cb202ac268c96ec6c2fd",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "8707897230dfa537c1145a67686f2fcf",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "d993bad768cad1506cab57d1d956a01b",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "77d9139ef938dc9ef4c96e8e789162b9",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "aa018c3bd8f5ea1758fcf4599a939f3b",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "2937126d7a523f27d331478248eb479e",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "f7a86265263a7ed7eb30f1f16c737a1b",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "4d62071f450d9d326a585ea3b347cea4",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "5d81f64bad3bc43d1fe0af83e2480c91",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "d4d51c2f71a716fc77498856526d0548",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "9e4821bbe1660de4431a346129433a6a",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "b22b0935e04edd64da3442a9fd3ceb77",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "35912ad0151a7d1ab090cd4780e13398",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "3a2e3767c77b32501434347a0be8ba0e",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "d0695a7a756ee9034697d7094a6558b6",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "045e86800edf918ac4f37949534123a5",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "ef9ac0b808c01cbba854e9c0ffbf3e13",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "3191133edc90c2b3a0d18f34b8d73495",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "c2ec16b7f20de64612025bd332499a84",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "eed9088caf16f7caf96c75742bfeee8e",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "63ca363c8fd6ff4431c7c429b27165d7",
+      "status": "withheld",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "e2dd7217c328e345714a08824798bf0a",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "efc875997706996d6dc35814e2938cef",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "8f71744b6103f3957c8116664f0fe16b",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "347d3db46428e673df612b321421446c",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "5d7c7353ca1bd8b2ec3d49c0023c4667",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "efe7867bd29769fb1760b10d92fa744d",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "0bde246f3da57280a3d99b2420aefe5a",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "73888e21acdd4c0339207fe6eb5c818f",
+      "status": "withheld",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "b4f2fb04f23847fd3a6861d1839955fd",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "96dca375b2c82d464c853d2f3ced7815",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "7e4dacbd283b6ca487331550aa7abbe6",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "3a020e6c0e8ba705053a1054f37acef7",
+      "status": "withheld",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "12a113bdeda7b0d852693bf1b6edbf97",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "c37525d9051948e8516e562e3f879a5c",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "ea0a51c3abc084d03d37150ebc395df9",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "b84d4ed53c773643fd9065f374a5a706",
+      "status": "withheld",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "0c797b21f36040675b250813a2e2641f",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "a229074ccd2af5991b3bf94e7d1d42d6",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "3af14a2fbdae9922fa99de1fdacfd206",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "a64e1ec787382040bd89be82fd51f9cb",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "fe31ac6564c634967d8a58bd21f2dee1",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "9457fff1feb10f24a5524d766f84e95f",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "ad498d2cbb5cfb7210b5fd151030ff2b",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "b02e270bb0a43e01a0b743ddc1a063f9",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "ac6ef72cb97dabd775d0f57b7919c7bd",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "370215f19246b4c2b89a0a52701fa72a",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "5fe3a92888cab2d5f77318db0a028f33",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "90b0ff300969715ee81d100261801926",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "86e5bc4bc3d10f50c0ae9c113bb63aad",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "81a67ff60e5176fe4e42f105f51764b8",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "56659759f1087f6aeea50822fc4bceee",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "2421574025b72efca8500ca10d21afe4",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "fe66a33ab6b469e48c97a5d488f6f6c5",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "e3c0f8d373829623e6999455efbb457b",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "57d41e81b83cd364f9afc7e7caa2eb2c",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "720f895544fc7e639a2768f57bfe4455",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "8ec3d8aa386b9db3eaaaec90920af9aa",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "cb50f7e596ab65b8a6784a9d6f5fb64f",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "40d61bbff9c1ca657e512354a4d7392b",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "d1671dfba73a8279543b9fd5972455ee",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "fba83361a3b1644ad5d942fd3b8b857a",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "a3d873d01b31d39f51508941f843602d",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "58193f45a60f8d4aaa3e03e3cc69061e",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "18059e9563ec2e6e8227aa0f7104e77c",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "99fab288bf616d20d57001814f2c4343",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "32a3fb4943511b06129ecc36b34d55ed",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "0521431e99a874f5f68c0519132561d0",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "aea0b121fc2ae057f4f7af966a56dc7c",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "ce42438064f458815906c499c0bac312",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "7001ec149cb6535a71bed0088d839342",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "c09ce64e31d9235b7e6278e5230a38d1",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "5b487559a1a85a8282227fc7a682b3c4",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "9542195b0b9c70b23756838fa895788a",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "d45c89ad595559f212923f26dd98939f",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    },
+    {
+      "slot_id": "32e84cb896d09f67f5e09ea0b6f6a7ea",
+      "status": "delivered",
+      "unchangedFinalFrame": true
+    }
+  ]
+}

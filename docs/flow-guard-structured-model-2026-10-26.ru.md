@@ -40,3 +40,7 @@
 Подготовка и разбор выполнены с AI, без слепой независимой проверки человеком. Ничего не опубликовано в GitHub/npm, комментарий не отправлен.
 
 [analysis.json](data/launchgate-structured-model-2026-10-26/analysis.json) · [protocol.md](data/launchgate-structured-model-2026-10-26/protocol.md) · [execution.json](data/launchgate-structured-model-2026-10-26/execution.json) · [output-audit.json](data/launchgate-structured-model-2026-10-26/output-audit.json) · [trajectories.jsonl](data/launchgate-structured-model-2026-10-26/trajectories.jsonl) · [manifest.json](data/launchgate-structured-model-2026-10-26/manifest.json)
+
+<!-- prospective-holdout-followup -->
+
+[Новые случаи после заморозки](flow-guard-prospective-holdout-2026-10-26.ru.md): 89/96 первых естественных ответов правильны, пять из семи ошибок исправлены, два удержаны; контролируемые 45/48. Отдельные подсказки ранжирования/неполного списка проверены офлайн, без нового запуска модели.

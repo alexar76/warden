@@ -1,5 +1,9 @@
 # 由应用拥有的结构化答案门禁
 
+<!-- final-ranking-witness -->
+**[10月26日最终排序反馈对照](flow-guard-final-witness-2026-10-26.zh.md).** 在全部五个此前被拦截的上下文中，旧反馈修复了6/40次续答，明确比较所选项与最优项的新反馈修复了40/40次。每个名义组的有效对照均保持20/20。本系列到此结束，结果针对已知失败案例，并非新的留出测试。此结果更新了此前仅离线验证的排序反馈限制；缺失合格项反馈的模型修复效果仍未测量。
+<!-- /final-ranking-witness -->
+
 [en](flow-guard-answer-gate.md) · [ru](flow-guard-answer-gate.ru.md) · [es](flow-guard-answer-gate.es.md) · [fr](flow-guard-answer-gate.fr.md) · [zh](flow-guard-answer-gate.zh.md)
 
 本地候选版本 **0.22.0**，2026 年 10 月 26 日；尚未发布 npm。这是[四条件继续回答实验](flow-guard-review-factors-2026-10-26.zh.md)的后续：去掉 C 的价格错误，有时会引入 D 的距离错误。消除一个矛盾并不等于完整纠正。
@@ -43,3 +47,7 @@ Linux factory-vps 已通过编译／类型检查、**24 个测试套件的 791 �
 <!-- structured-live-followup -->
 
 [结构化答案真实模型测试](flow-guard-structured-model-2026-10-26.zh.md)：96 个初次提案有效，64 个受控种子修复；分母与边界分别报告。
+
+<!-- prospective-holdout-followup -->
+
+[冻结后的新案例](flow-guard-prospective-holdout-2026-10-26.zh.md)：自然初次有效 89/96，七个错误中五个纠正、两个保留；受控纠正 45/48。后续排序／缺失集合证据已离线验证，未重新调用模型。

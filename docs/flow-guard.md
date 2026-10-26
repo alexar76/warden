@@ -1,5 +1,9 @@
 # Flow guard: tool-call checks after outside text
 
+<!-- final-ranking-witness -->
+**[Final ranking-feedback comparison, 26 October](flow-guard-final-witness-2026-10-26.md).** On all five previously withheld contexts, old feedback repaired 6/40 continuations and explicit selected-versus-best feedback repaired 40/40. Valid controls stayed valid 20/20 per nominal arm. This completes the series on selected known failures, not a new holdout. The earlier offline-only statement is superseded for ranking feedback on this cohort; missing-set feedback efficacy remains unmeasured.
+<!-- /final-ranking-witness -->
+
 > 🌐 **English** · [Русский](flow-guard.ru.md) · [Español](flow-guard.es.md) · [Français](flow-guard.fr.md) · [中文](flow-guard.zh.md)
 
 See [measurement limits and version evidence](scan-limits.md) for billing, package pins, launcher comparisons and what approval counts establish.
@@ -303,7 +307,7 @@ The flow guard adds checks at tool-call boundaries after a session receives outs
 - An injection that only changes the answer makes no call to refuse. Since 2026-10-22 the plugin's Stop hook adds one line under an answer whose turn read outside text, naming those sources, and says so when any of it addressed the assistant with instructions. When the answer repeats 12 consecutive normalized characters from the sentences where that text addressed the assistant, the hook also sends the answer back once (`decision: block`), to be checked against the user's request before the user reads it; the user loses nothing but the time of that check. `answerNote` chooses `always` (default), `instruction` (only that case) or `off`; outside the plugin, register `warden-mcp hook stop`.
 - The MCP proxy records JSON-RPC error text and tool-error results as outside text too. If recording fails, it withholds the response. Existing corrupt session state blocks pre-tool checks instead of becoming an empty session.
 
-Released in npm `0.17.0`: `npx -y @aimarket/warden@0.22.0 hook pre-tool-use`, or from a source checkout `npm ci && npm run build`, then `node dist/mcp-server.js hook pre-tool-use`. Register the prompt and post hooks as well, or use the bundled Claude plugin.
+Released in npm `0.17.0`: `npx -y @aimarket/warden@0.22.1 hook pre-tool-use`, or from a source checkout `npm ci && npm run build`, then `node dist/mcp-server.js hook pre-tool-use`. Register the prompt and post hooks as well, or use the bundled Claude plugin.
 
 Policy is user-level (`~/.local/state/warden/flow-policy.json`, or `WARDEN_FLOW_POLICY`). Modes are `ask`, `deny`, `audit`, `off`. `audit` logs decisions without enforcing them. Example:
 
@@ -592,3 +596,7 @@ Post/Stop warning text uses fixed sentences and opaque `source-` identifiers (th
 <!-- structured-live-followup -->
 
 [Live structured-model test](flow-guard-structured-model-2026-10-26.md): 96 valid first proposals and 64 controlled-seed repairs; separate denominators and limits.
+
+<!-- prospective-holdout-followup -->
+
+[Prospective new-fixture results](flow-guard-prospective-holdout-2026-10-26.md): 89/96 natural first proposals valid, five of seven repaired, two withheld; controlled repair 45/48. Separate post-hoc ranking/missing-set facts passed offline checks, without a new model run.

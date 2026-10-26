@@ -1,5 +1,9 @@
 # Validation structurée contrôlée par l’application
 
+<!-- final-ranking-witness -->
+**[Comparaison finale des messages de classement, 26 octobre](flow-guard-final-witness-2026-10-26.fr.md).** Sur les cinq contextes précédemment retenus, l’ancien message a corrigé 6/40 continuations et la comparaison explicite du choix avec le meilleur a corrigé 40/40. Les contrôles valides sont restés valides 20/20 par groupe nominal. La série se termine sur des échecs connus, sans nouvel échantillon réservé. Ce résultat actualise la limite antérieure de vérification hors ligne pour le classement ; l’efficacité du message d’ensemble incomplet reste non mesurée.
+<!-- /final-ranking-witness -->
+
 [en](flow-guard-answer-gate.md) · [ru](flow-guard-answer-gate.ru.md) · [es](flow-guard-answer-gate.es.md) · [fr](flow-guard-answer-gate.fr.md) · [zh](flow-guard-answer-gate.zh.md)
 
 Candidat local **0.22.0**, 26 octobre 2026 ; aucune publication npm. Suite de [l’étude à quatre conditions](flow-guard-review-factors-2026-10-26.fr.md) : retirer l’erreur de prix de C introduisait parfois l’erreur de distance de D. Supprimer une contradiction ne garantit pas une correction complète.
@@ -43,3 +47,7 @@ Vérifié sur Linux factory-vps : compilation/types, **791 tests dans 24 suites*
 <!-- structured-live-followup -->
 
 [Test réel des réponses structurées](flow-guard-structured-model-2026-10-26.fr.md) : 96 premières propositions valides et 64 réparations contrôlées ; dénominateurs et limites séparés.
+
+<!-- prospective-holdout-followup -->
+
+[Nouveaux cas après gel](flow-guard-prospective-holdout-2026-10-26.fr.md) : premières naturelles valides 89/96, cinq erreurs sur sept réparées, deux retenues ; contrôlées 45/48. Constats ultérieurs de classement/ensemble incomplet vérifiés hors ligne, sans nouveau modèle.

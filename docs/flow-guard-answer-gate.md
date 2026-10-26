@@ -1,5 +1,9 @@
 # Host-owned structured answer gate
 
+<!-- final-ranking-witness -->
+**[Final ranking-feedback comparison, 26 October](flow-guard-final-witness-2026-10-26.md).** On all five previously withheld contexts, old feedback repaired 6/40 continuations and explicit selected-versus-best feedback repaired 40/40. Valid controls stayed valid 20/20 per nominal arm. This completes the series on selected known failures, not a new holdout. The earlier offline-only statement is superseded for ranking feedback on this cohort; missing-set feedback efficacy remains unmeasured.
+<!-- /final-ranking-witness -->
+
 [en](flow-guard-answer-gate.md) · [ru](flow-guard-answer-gate.ru.md) · [es](flow-guard-answer-gate.es.md) · [fr](flow-guard-answer-gate.fr.md) · [zh](flow-guard-answer-gate.zh.md)
 
 Local candidate **0.22.0**, 26 October 2026. Not published to npm. This opt-in host SDK follows the [four-condition continuation study](flow-guard-review-factors-2026-10-26.md). Removing C's price error sometimes introduced D's distance error: removing one contradiction did not establish a correct explanation.
@@ -76,3 +80,7 @@ Verified on Linux factory-vps: build/typecheck, **791 tests in 24 suites**, incl
 <!-- structured-live-followup -->
 
 [Live structured-model test](flow-guard-structured-model-2026-10-26.md): 96 valid first proposals and 64 controlled-seed repairs; separate denominators and limits.
+
+<!-- prospective-holdout-followup -->
+
+[Prospective new-fixture results](flow-guard-prospective-holdout-2026-10-26.md): 89/96 natural first proposals valid, five of seven repaired, two withheld; controlled repair 45/48. Separate post-hoc ranking/missing-set facts passed offline checks, without a new model run.

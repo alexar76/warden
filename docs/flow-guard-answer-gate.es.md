@@ -1,5 +1,9 @@
 # Validación estructurada bajo control de la aplicación
 
+<!-- final-ranking-witness -->
+**[Comparación final de mensajes de clasificación, 26 de octubre](flow-guard-final-witness-2026-10-26.es.md).** En los cinco contextos previamente retenidos, el mensaje anterior corrigió 6/40 continuaciones y la comparación explícita entre la opción elegida y la mejor corrigió 40/40. Los controles válidos se conservaron 20/20 por grupo nominal. La serie termina sobre fallos conocidos, no sobre un nuevo conjunto reservado. Este resultado actualiza la limitación anterior de evaluación solo sin conexión para la clasificación; la eficacia del mensaje de conjunto incompleto sigue sin medirse.
+<!-- /final-ranking-witness -->
+
 [en](flow-guard-answer-gate.md) · [ru](flow-guard-answer-gate.ru.md) · [es](flow-guard-answer-gate.es.md) · [fr](flow-guard-answer-gate.fr.md) · [zh](flow-guard-answer-gate.zh.md)
 
 Candidato local **0.22.0**, 26 de octubre de 2026; sin publicación en npm. Sigue al [estudio de cuatro condiciones](flow-guard-review-factors-2026-10-26.es.md): eliminar el error de precio de C a veces introdujo el error de distancia de D. Quitar una contradicción no demuestra corrección completa.
@@ -43,3 +47,7 @@ Verificado en Linux factory-vps: compilación/tipos, **791 pruebas en 24 suites*
 <!-- structured-live-followup -->
 
 [Prueba real de respuestas estructuradas](flow-guard-structured-model-2026-10-26.es.md): 96 primeras propuestas válidas y 64 reparaciones controladas; denominadores y límites separados.
+
+<!-- prospective-holdout-followup -->
+
+[Nuevos casos tras congelación](flow-guard-prospective-holdout-2026-10-26.es.md): primeras naturales válidas 89/96, cinco de siete reparadas y dos retenidas; controladas 45/48. Evidencia posterior de clasificación/conjunto incompleto probada offline, sin volver a llamar al modelo.

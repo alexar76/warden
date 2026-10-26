@@ -1,5 +1,9 @@
 # 流守卫：接收外部文本后的工具调用检查
 
+<!-- final-ranking-witness -->
+**[10月26日最终排序反馈对照](flow-guard-final-witness-2026-10-26.zh.md).** 在全部五个此前被拦截的上下文中，旧反馈修复了6/40次续答，明确比较所选项与最优项的新反馈修复了40/40次。每个名义组的有效对照均保持20/20。本系列到此结束，结果针对已知失败案例，并非新的留出测试。此结果更新了此前仅离线验证的排序反馈限制；缺失合格项反馈的模型修复效果仍未测量。
+<!-- /final-ranking-witness -->
+
 > 🌐 [English](flow-guard.md) · [Русский](flow-guard.ru.md) · [Español](flow-guard.es.md) · [Français](flow-guard.fr.md) · **中文**
 
 关于账单、包版本固定、launcher 比较及批准计数的含义，请参见[测量边界与版本证据](scan-limits.zh.md)。
@@ -303,7 +307,7 @@ Wrap 提问前读取基线，批准后重新验证工具定义并再次读取。
 - 只改变回答的注入不会发出可拒绝的调用。自 2026-10-22 起，插件的 Stop 钩子会在本轮读过外部文本的回答下方加一行，列出这些来源；若其中有文本以指令口吻对助手说话，也会注明。如果回答连续重复了外部文本中对助手下指令那几句话里的 12 个规范化字符，钩子还会把回答退回给模型一次（`decision: block`），在用户读到之前对照用户的请求检查；用户只损失这次检查的时间。`answerNote`：`always`（默认）、`instruction`（只在这种情况下）或 `off`；插件之外请注册 `warden-mcp hook stop`。
 - 代理也记录 JSON-RPC 和工具错误；记录失败时不转发响应，现有会话状态损坏时阻止检查中的调用。
 
-已在 npm `0.17.0` 发布：`npx -y @aimarket/warden@0.22.0 hook pre-tool-use`；或从源码在 WARDEN 目录运行 `npm ci && npm run build`，然后使用 `node dist/mcp-server.js hook pre-tool-use`，并注册 prompt/post hooks。策略为 `~/.local/state/warden/flow-policy.json` 或 `WARDEN_FLOW_POLICY`；模式为 `ask`、`deny`、`audit`、`off`。当前配置示例见[英文页](flow-guard.md)。
+已在 npm `0.17.0` 发布：`npx -y @aimarket/warden@0.22.1 hook pre-tool-use`；或从源码在 WARDEN 目录运行 `npm ci && npm run build`，然后使用 `node dist/mcp-server.js hook pre-tool-use`，并注册 prompt/post hooks。策略为 `~/.local/state/warden/flow-policy.json` 或 `WARDEN_FLOW_POLICY`；模式为 `ask`、`deny`、`audit`、`off`。当前配置示例见[英文页](flow-guard.md)。
 
 代理命令：`node dist/mcp-server.js wrap --flow mail -- node mail-server.js`。同一会话的代理应共享一个新的 `WARDEN_FLOW_SESSION`。默认父进程 PID 不能关联不同启动器。代理看不到用户提示或客户端内置工具。需要确认的调用会在客户端提供 MCP elicitation 表单时通过表单询问（回答记入日志的 `approvalOutcome`），否则或使用 `--ask refuse` 时被拒绝。`trustedSources` 仅用于 WebFetch URL，不用于 MCP 参数中的任意链接。
 
@@ -506,3 +510,7 @@ Post/Stop 警告使用固定语句和不透明的 `source-` ID（工具名 SHA-2
 <!-- structured-live-followup -->
 
 [结构化答案真实模型测试](flow-guard-structured-model-2026-10-26.zh.md)：96 个初次提案有效，64 个受控种子修复；分母与边界分别报告。
+
+<!-- prospective-holdout-followup -->
+
+[冻结后的新案例](flow-guard-prospective-holdout-2026-10-26.zh.md)：自然初次有效 89/96，七个错误中五个纠正、两个保留；受控纠正 45/48。后续排序／缺失集合证据已离线验证，未重新调用模型。

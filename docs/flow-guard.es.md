@@ -1,5 +1,9 @@
 # Guardia de flujo: comprobaciones de llamadas tras texto externo
 
+<!-- final-ranking-witness -->
+**[Comparación final de mensajes de clasificación, 26 de octubre](flow-guard-final-witness-2026-10-26.es.md).** En los cinco contextos previamente retenidos, el mensaje anterior corrigió 6/40 continuaciones y la comparación explícita entre la opción elegida y la mejor corrigió 40/40. Los controles válidos se conservaron 20/20 por grupo nominal. La serie termina sobre fallos conocidos, no sobre un nuevo conjunto reservado. Este resultado actualiza la limitación anterior de evaluación solo sin conexión para la clasificación; la eficacia del mensaje de conjunto incompleto sigue sin medirse.
+<!-- /final-ranking-witness -->
+
 > 🌐 [English](flow-guard.md) · [Русский](flow-guard.ru.md) · **Español** · [Français](flow-guard.fr.md) · [中文](flow-guard.zh.md)
 
 Consulte los [límites de medición y pruebas de versión](scan-limits.es.md) sobre facturación, versiones fijas, comparaciones de launchers y significado de los recuentos de aprobación.
@@ -303,7 +307,7 @@ La guardia comprueba llamadas después de recibir texto externo; no es un sandbo
 - Una inyección que solo cambia la respuesta no hace ninguna llamada que rechazar. Desde el 2026-10-22 el hook Stop del plugin añade una línea bajo una respuesta cuyo turno leyó texto externo, con esas fuentes, y lo dice cuando alguna se dirigió al asistente con instrucciones. Si la respuesta repite 12 caracteres normalizados consecutivos de las frases donde ese texto se dirigió al asistente, el hook además devuelve la respuesta una vez (`decision: block`) para comprobarla frente a la petición del usuario antes de que este la lea; el usuario solo pierde el tiempo de esa comprobación. `answerNote`: `always` (por defecto), `instruction` (solo ese caso) u `off`; fuera del plugin, registra `warden-mcp hook stop`.
 - El proxy registra también errores JSON-RPC y de herramientas. Retiene una respuesta si no puede registrarla; un estado de sesión corrupto bloquea la comprobación.
 
-Publicado en npm `0.17.0`: `npx -y @aimarket/warden@0.22.0 hook pre-tool-use`, o desde el código fuente en WARDEN, `npm ci && npm run build`, luego `node dist/mcp-server.js hook pre-tool-use`, con los hooks prompt/post también registrados. Política: `~/.local/state/warden/flow-policy.json` o `WARDEN_FLOW_POLICY`; modos `ask`, `deny`, `audit`, `off`. Véase el ejemplo vigente en [inglés](flow-guard.md).
+Publicado en npm `0.17.0`: `npx -y @aimarket/warden@0.22.1 hook pre-tool-use`, o desde el código fuente en WARDEN, `npm ci && npm run build`, luego `node dist/mcp-server.js hook pre-tool-use`, con los hooks prompt/post también registrados. Política: `~/.local/state/warden/flow-policy.json` o `WARDEN_FLOW_POLICY`; modos `ask`, `deny`, `audit`, `off`. Véase el ejemplo vigente en [inglés](flow-guard.md).
 
 Proxy: `node dist/mcp-server.js wrap --flow mail -- node mail-server.js`. Use un `WARDEN_FLOW_SESSION` nuevo y compartido por los proxies de una conversación. El PID padre predeterminado no une lanzadores diferentes. El proxy no ve el prompt ni herramientas integradas. Lo que requeriría preguntar se pregunta con el formulario de elicitation MCP del cliente cuando lo ofrece (la respuesta queda en el registro como `approvalOutcome`) y, si no, o con `--ask refuse`, se rechaza. `trustedSources` se aplica a la URL de WebFetch, no a enlaces en argumentos MCP.
 
@@ -575,3 +579,7 @@ Las advertencias Post/Stop usan frases fijas e identificadores opacos `source-` 
 <!-- structured-live-followup -->
 
 [Prueba real de respuestas estructuradas](flow-guard-structured-model-2026-10-26.es.md): 96 primeras propuestas válidas y 64 reparaciones controladas; denominadores y límites separados.
+
+<!-- prospective-holdout-followup -->
+
+[Nuevos casos tras congelación](flow-guard-prospective-holdout-2026-10-26.es.md): primeras naturales válidas 89/96, cinco de siete reparadas y dos retenidas; controladas 45/48. Evidencia posterior de clasificación/conjunto incompleto probada offline, sin volver a llamar al modelo.

@@ -29,3 +29,7 @@
 准备与审核由 AI 辅助、非盲审；未声称独立人工审核。没有 GitHub／npm 发布，也未发送评论。
 
 [analysis.json](data/launchgate-structured-model-2026-10-26/analysis.json) · [protocol.md](data/launchgate-structured-model-2026-10-26/protocol.md) · [execution.json](data/launchgate-structured-model-2026-10-26/execution.json) · [output-audit.json](data/launchgate-structured-model-2026-10-26/output-audit.json) · [trajectories.jsonl](data/launchgate-structured-model-2026-10-26/trajectories.jsonl) · [manifest.json](data/launchgate-structured-model-2026-10-26/manifest.json)
+
+<!-- prospective-holdout-followup -->
+
+[冻结后的新案例](flow-guard-prospective-holdout-2026-10-26.zh.md)：自然初次有效 89/96，七个错误中五个纠正、两个保留；受控纠正 45/48。后续排序／缺失集合证据已离线验证，未重新调用模型。

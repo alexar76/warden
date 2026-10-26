@@ -1,5 +1,9 @@
 # WARDEN — serveur MCP
 
+<!-- final-ranking-witness -->
+**[Comparaison finale des messages de classement, 26 octobre](docs/flow-guard-final-witness-2026-10-26.fr.md).** Sur les cinq contextes précédemment retenus, l’ancien message a corrigé 6/40 continuations et la comparaison explicite du choix avec le meilleur a corrigé 40/40. Les contrôles valides sont restés valides 20/20 par groupe nominal. La série se termine sur des échecs connus, sans nouvel échantillon réservé. Ce résultat actualise la limite antérieure de vérification hors ligne pour le classement ; l’efficacité du message d’ensemble incomplet reste non mesurée.
+<!-- /final-ranking-witness -->
+
 <!-- mcp-name: io.github.alexar76/warden -->
 
 <!-- aicom-readme-badges -->
@@ -29,7 +33,7 @@
 **Vérifiez tous les serveurs MCP de votre machine.** Pas de compte, pas de clé d’API, pas de modèle. Le seul trafic réseau va vers les serveurs de votre configuration.
 
 ```bash
-npx -y @aimarket/warden@0.22.0 scan
+npx -y @aimarket/warden@0.22.1 scan
 ```
 
 ```text
@@ -104,14 +108,14 @@ Opérations limitées sur activation explicite : `node dist/mcp-server.js task`.
   "mcpServers": {
     "filesystem": {
       "command": "npx",
-      "args": ["-y", "@aimarket/warden@0.22.0", "wrap", "--id", "filesystem", "--",
+      "args": ["-y", "@aimarket/warden@0.22.1", "wrap", "--id", "filesystem", "--",
                "npx", "-y", "@modelcontextprotocol/server-filesystem", "/Users/me/docs"]
     }
   }
 }
 ```
 
-Spécifiez toujours `--id` : sans cet identifiant, modifier les arguments crée une nouvelle identité et un premier contact. Un ID stable transforme un changement de commande ou de chemin en `SERVER_IDENTITY_DRIFT`. Le processus enfant hérite de l’environnement, exclu de l’identité. `npm install -g @aimarket/warden@0.22.0` puis `warden-mcp` évitent les démarrages à froid répétés de `npx`.
+Spécifiez toujours `--id` : sans cet identifiant, modifier les arguments crée une nouvelle identité et un premier contact. Un ID stable transforme un changement de commande ou de chemin en `SERVER_IDENTITY_DRIFT`. Le processus enfant hérite de l’environnement, exclu de l’identité. `npm install -g @aimarket/warden@0.22.1` puis `warden-mcp` évitent les démarrages à froid répétés de `npx`.
 
 **Outils sensibles.** `sensitiveToolPatterns` dans un fichier de politique (`--policy policy.json` avec `{"sensitiveToolPatterns": ["*delete*", "*transfer*"]}`, motifs `*` insensibles à la casse) fait attendre une personne à chaque appel d’un outil correspondant : `wrap` demande par le formulaire du client lui-même (elicitation MCP), avec l’outil, le serveur et les arguments, et seule une réponse acceptée, case cochée, laisse passer cet appel-là. La case est décochée au départ : un client qui accepte les formulaires avec leurs valeurs par défaut n’approuve rien. Un client sans formulaire d’elicitation reçoit un refus et le serveur ne reçoit jamais l’appel ; `--ask refuse` refuse sans demander. Si le client annule l’appel pendant que la personne décide, ou si les définitions changent entre-temps, il n’est pas envoyé. Avant 0.20.0, `wrap` acceptait ces motifs sans les appliquer. Avec `--flow`, un envoi pour lequel la garde de flux demanderait est demandé de la même façon.
 
@@ -139,12 +143,12 @@ Claude Desktop sur macOS : `~/Library/Logs/Claude/mcp-server-<nom>.log`. Cursor 
 ## Analyser tous les serveurs que démarrent vos clients
 
 ```bash
-npx -y @aimarket/warden@0.22.0 scan
+npx -y @aimarket/warden@0.22.1 scan
 ```
 
 Lit les configurations MCP de Claude Code, Claude Desktop, Cursor, VS Code et Windsurf, se connecte à chaque serveur qu’elles démarrent et vérifie les définitions d’outils avant qu’un modèle ne les voie. Affiche un tableau, du JSON, du SARIF ou du Markdown, et sort avec 1 quand un serveur est bloqué ; `--no-launch` ne démarre rien. Dans un dépôt, `warden.lock.json` transforme un changement de définitions en diff relisible, et la CI échoue sur un serveur nouveau ou modifié. Existe aussi en GitHub Action (`uses: alexar76/warden@v0.21.0`), en hooks pre-commit et en plugin Claude Code (`/plugin marketplace add alexar76/warden`). `--histor` demande au journal public HISTOR si un serveur vous sert ce qu’il sert à tout le monde ; pour un serveur distant il envoie l’endpoint et un condensé, pour un serveur stdio lancé depuis npm ou PyPI le nom du paquet (`npm:<nom>`, `pypi:<nom>`, qu’HISTOR exécute dans un bac à sable gVisor) et un condensé — jamais le texte des outils. Un classificateur optionnel (`--classifier-url`, `--classifier-model`) ajoute la lecture d'un modèle que vous choisissez, local ou hébergé, pour ce qu'aucune règle ne nomme. Voir le [guide de scan](docs/scan.fr.md). Comment il se compare à deux autres scanners sur les mêmes serveurs : [comparaison de scanners](docs/scanner-comparison.fr.md).
 
-**Pour l’éditeur d’un serveur.** Si votre serveur liste d’autres outils là où est installé ce que le bac à sable d’HISTOR n’a pas — le runner d’un lanceur, un par système —, `npx -y @aimarket/warden@0.22.0 declare --out mcp-tool-sets.json -- <votre serveur>` écrit ces ensembles dans un fichier que vous publiez sur votre propre domaine, et ceux qui les reçoivent voient la déclaration de l’éditeur au lieu d’un ensemble inconnu. Voir le [guide de scan](docs/scan.fr.md).
+**Pour l’éditeur d’un serveur.** Si votre serveur liste d’autres outils là où est installé ce que le bac à sable d’HISTOR n’a pas — le runner d’un lanceur, un par système —, `npx -y @aimarket/warden@0.22.1 declare --out mcp-tool-sets.json -- <votre serveur>` écrit ces ensembles dans un fichier que vous publiez sur votre propre domaine, et ceux qui les reçoivent voient la déclaration de l’éditeur au lieu d’un ensemble inconnu. Voir le [guide de scan](docs/scan.fr.md).
 
 ## Ce que WARDEN ne fait pas
 
@@ -384,3 +388,7 @@ MIT © AICOM (alexar76)
 <!-- structured-live-followup -->
 
 [Test réel des réponses structurées](docs/flow-guard-structured-model-2026-10-26.fr.md) : 96 premières propositions valides et 64 réparations contrôlées ; dénominateurs et limites séparés.
+
+<!-- prospective-holdout-followup -->
+
+[Nouveaux cas après gel](docs/flow-guard-prospective-holdout-2026-10-26.fr.md) : premières naturelles valides 89/96, cinq erreurs sur sept réparées, deux retenues ; contrôlées 45/48. Constats ultérieurs de classement/ensemble incomplet vérifiés hors ligne, sans nouveau modèle.

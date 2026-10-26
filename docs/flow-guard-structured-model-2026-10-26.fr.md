@@ -29,3 +29,7 @@ Tous les appels sont hors pointe. Usage : 211 200 tokens d’entrée, dont 103 9
 Préparation/audit assistés par IA et non aveugles ; aucune revue humaine indépendante revendiquée. Aucune publication GitHub/npm ni réponse envoyée.
 
 [analysis.json](data/launchgate-structured-model-2026-10-26/analysis.json) · [protocol.md](data/launchgate-structured-model-2026-10-26/protocol.md) · [execution.json](data/launchgate-structured-model-2026-10-26/execution.json) · [output-audit.json](data/launchgate-structured-model-2026-10-26/output-audit.json) · [trajectories.jsonl](data/launchgate-structured-model-2026-10-26/trajectories.jsonl) · [manifest.json](data/launchgate-structured-model-2026-10-26/manifest.json)
+
+<!-- prospective-holdout-followup -->
+
+[Nouveaux cas après gel](flow-guard-prospective-holdout-2026-10-26.fr.md) : premières naturelles valides 89/96, cinq erreurs sur sept réparées, deux retenues ; contrôlées 45/48. Constats ultérieurs de classement/ensemble incomplet vérifiés hors ligne, sans nouveau modèle.

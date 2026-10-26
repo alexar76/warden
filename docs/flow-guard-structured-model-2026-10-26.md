@@ -38,3 +38,7 @@ All calls occurred outside peak hours. Provider-reported usage: 211,200 input to
 Preparation and audit were AI-assisted and unblinded; no independent human review is claimed. No GitHub/npm publication or comment posting was performed.
 
 [analysis.json](data/launchgate-structured-model-2026-10-26/analysis.json) · [protocol.md](data/launchgate-structured-model-2026-10-26/protocol.md) · [execution.json](data/launchgate-structured-model-2026-10-26/execution.json) · [output-audit.json](data/launchgate-structured-model-2026-10-26/output-audit.json) · [trajectories.jsonl](data/launchgate-structured-model-2026-10-26/trajectories.jsonl) · [manifest.json](data/launchgate-structured-model-2026-10-26/manifest.json)
+
+<!-- prospective-holdout-followup -->
+
+[Prospective new-fixture results](flow-guard-prospective-holdout-2026-10-26.md): 89/96 natural first proposals valid, five of seven repaired, two withheld; controlled repair 45/48. Separate post-hoc ranking/missing-set facts passed offline checks, without a new model run.

@@ -1,0 +1,39 @@
+{
+  "startedAt": "2026-10-26T12:35:25.469523+00:00",
+  "host": "factory-vps",
+  "image": "sha256:a85c8ea75b21b6031dd94f06fcb70aa8366956133a0a6ea4f81c64c6b5424fd2",
+  "runtime": "runc",
+  "runtimeNetwork": "none",
+  "modelRelayNetwork": "fixed official endpoint",
+  "model": "deepseek-flash",
+  "budgetUSD": 0.15,
+  "maxFreshCalls": 384,
+  "plannedNatural": 96,
+  "plannedControlled": 48,
+  "plannedDeterministic": 12,
+  "completed": true,
+  "checks": [
+    {
+      "name": "study-tests",
+      "exitCode": 0,
+      "logSha256": "2c2daadc0605c9f1edd75b5ce5e186e427b187b56e24c6a079a77b9cbcb096f5"
+    },
+    {
+      "name": "relay-collection-tests",
+      "exitCode": 0,
+      "logSha256": "44a4abf83e23f58e236018a3796e61b4f8b7037db3a08ff9f3ff8e4177de1d1a"
+    },
+    {
+      "name": "request-preflight",
+      "exitCode": 0,
+      "logSha256": "05083715470b5a7826a5d203e6cff3420cd5eaefe9a2a9e105912317d576552c"
+    }
+  ],
+  "githubWrites": false,
+  "npmPublished": false,
+  "apiStartedAt": "2026-10-26T12:35:28.304680+00:00",
+  "trajectories": 156,
+  "apiAttempts": 158,
+  "heldUpperUSD": 0.057868866,
+  "finishedAt": "2026-10-26T12:38:59.076255+00:00"
+}
