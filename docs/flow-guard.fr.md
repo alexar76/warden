@@ -1,5 +1,9 @@
 # Garde de flux : vérifications des appels après du texte externe
 
+<!-- reference-only-egress -->
+**[Références sortantes : comportement vérifié et limites](flow-guard-reference-egress.fr.md).** 127/127 tests Linux, dont 25 nouveaux cas synthétiques de référence. Frontières et exceptions explicites ; pas de suivi sémantique.
+<!-- /reference-only-egress -->
+
 <!-- final-ranking-witness -->
 **[Comparaison finale des messages de classement, 26 octobre](flow-guard-final-witness-2026-10-26.fr.md).** Sur les cinq contextes précédemment retenus, l’ancien message a corrigé 6/40 continuations et la comparaison explicite du choix avec le meilleur a corrigé 40/40. Les contrôles valides sont restés valides 20/20 par groupe nominal. La série se termine sur des échecs connus, sans nouvel échantillon réservé. Ce résultat actualise la limite antérieure de vérification hors ligne pour le classement ; l’efficacité du message d’ensemble incomplet reste non mesurée.
 <!-- /final-ranking-witness -->
@@ -307,7 +311,7 @@ La garde vérifie les appels après réception de texte externe. Ce n’est ni u
 - Une injection qui ne change que la réponse ne fait aucun appel à refuser. Depuis le 2026-10-22, le hook Stop du plugin ajoute une ligne sous une réponse dont le tour a lu du texte extérieur, avec ces sources, et le dit quand l’un d’eux s’adressait à l’assistant avec des instructions. Si la réponse reprend 12 caractères normalisés consécutifs des phrases où ce texte s’adressait à l’assistant, le hook renvoie aussi la réponse une fois (`decision: block`) pour qu’elle soit vérifiée face à la demande de l’utilisateur avant qu’il la lise ; l’utilisateur ne perd que le temps de cette vérification. `answerNote` : `always` (par défaut), `instruction` (ce cas seulement) ou `off` ; hors du plugin, enregistrez `warden-mcp hook stop`.
 - Le proxy enregistre aussi les erreurs JSON-RPC et d’outils, retient les réponses dont l’enregistrement échoue et bloque les vérifications si l’état existant est corrompu.
 
-Publié dans npm `0.17.0` : `npx -y @aimarket/warden@0.22.1 hook pre-tool-use`, ou depuis les sources dans WARDEN, `npm ci && npm run build`, puis `node dist/mcp-server.js hook pre-tool-use`, avec les hooks prompt/post également enregistrés. Politique : `~/.local/state/warden/flow-policy.json` ou `WARDEN_FLOW_POLICY` ; modes `ask`, `deny`, `audit`, `off`. Exemple actuel en [anglais](flow-guard.md).
+Publié dans npm `0.17.0` : `npx -y @aimarket/warden@0.22.2 hook pre-tool-use`, ou depuis les sources dans WARDEN, `npm ci && npm run build`, puis `node dist/mcp-server.js hook pre-tool-use`, avec les hooks prompt/post également enregistrés. Politique : `~/.local/state/warden/flow-policy.json` ou `WARDEN_FLOW_POLICY` ; modes `ask`, `deny`, `audit`, `off`. Exemple actuel en [anglais](flow-guard.md).
 
 Proxy : `node dist/mcp-server.js wrap --flow mail -- node mail-server.js`. Attribuez un nouveau `WARDEN_FLOW_SESSION` commun aux proxies d’une conversation. Le PID parent par défaut ne relie pas des lanceurs différents. Le proxy ne voit ni prompt ni outils intégrés. Un appel qui demanderait confirmation est demandé via le formulaire d’elicitation MCP du client s’il en propose un (la réponse est journalisée comme `approvalOutcome`), sinon, ou avec `--ask refuse`, il est refusé. `trustedSources` s’applique à l’URL WebFetch, pas aux liens des arguments MCP.
 

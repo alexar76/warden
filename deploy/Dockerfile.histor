@@ -9,10 +9,26 @@ COPY warden/package*.json warden/tsconfig.json ./
 COPY warden/src ./src
 RUN npm ci --ignore-scripts --no-audit --no-fund
 COPY warden/ ./
-RUN npm run build
+# Required public references for test/docs.test.ts. They belong only to this
+# component-test stage, outside /warden at the paths the documents reference.
+COPY docs/growth/kevin-annotations-answer-review-2026-10-25.ru.md \
+     docs/growth/warden-thresholds-2026-10-25.ru.md \
+     docs/growth/launchgate-methodology-2026-10-25.ru.md \
+     docs/growth/launchgate-selection-2026-10-25.en.md \
+     docs/growth/launchgate-selection-2026-10-25.ru.md \
+     docs/growth/launchgate-tie-selection-2026-10-25.en.md \
+     docs/growth/launchgate-tie-selection-2026-10-25.ru.md /docs/growth/
+# Git checkouts may inherit a restrictive operator umask. Public package
+# metadata must remain readable by HISTOR's unprivileged runtime user.
+RUN npm run build && chmod 0644 package.json
 CMD ["npm", "test"]
 
 FROM histor:warden-remediation-base
 COPY --from=test /warden/dist /app/scanner/node_modules/@aimarket/warden/dist
+COPY --from=test /warden/package.json /app/scanner/node_modules/@aimarket/warden/package.json
 
 COPY --from=test /warden/src /opt/warden-source/src
+
+# FROM retains HISTOR's runtime USER: fail the build if that user cannot read
+# the installed metadata used by scanner describe and MCP version reporting.
+RUN node --input-type=module -e "import {readFileSync} from 'node:fs'; const p=JSON.parse(readFileSync('/app/scanner/node_modules/@aimarket/warden/package.json','utf8')); if(p.name!=='@aimarket/warden'||typeof p.version!=='string'||!p.version) process.exit(1)"

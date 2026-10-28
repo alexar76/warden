@@ -3,3 +3,6 @@ dist/
 coverage/
 
 native/macos/.build/
+
+# vitest run cache and reporter output (written by `vitest run`)
+.vitest/

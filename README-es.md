@@ -12,7 +12,7 @@
   <a href="https://glama.ai/mcp/servers/alexar76/warden"><img src="https://glama.ai/mcp/servers/alexar76/warden/badges/score.svg" alt="warden MCP server" /></a>
   <a href="https://warden.modelmarket.dev/"><img src="https://img.shields.io/npm/v/@aimarket/warden?color=cb3837&label=npm" alt="npm version" /></a>
   <img src="docs/badges/deps.svg" alt="Cero dependencias de ejecución" />
-  <img src="docs/badges/tests.svg" alt="1256 pruebas en verde" />
+  <img src="docs/badges/tests.svg" alt="1382 pruebas en verde" />
   <img src="docs/badges/node.svg" alt="Node >= 20" />
   <a href="LICENSE"><img src="docs/badges/license.svg" alt="Licencia: MIT" /></a>
 </p>
@@ -33,7 +33,7 @@
 **Revisa todos los servidores MCP de tu máquina.** Sin cuenta, sin clave de API, sin modelo. El único tráfico de red va a los servidores de tu configuración.
 
 ```bash
-npx -y @aimarket/warden@0.22.1 scan
+npx -y @aimarket/warden@0.22.2 scan
 ```
 
 ```text
@@ -108,14 +108,14 @@ Operaciones limitadas explícitas: `node dist/mcp-server.js task`. [Adaptador, p
   "mcpServers": {
     "filesystem": {
       "command": "npx",
-      "args": ["-y", "@aimarket/warden@0.22.1", "wrap", "--id", "filesystem", "--",
+      "args": ["-y", "@aimarket/warden@0.22.2", "wrap", "--id", "filesystem", "--",
                "npx", "-y", "@modelcontextprotocol/server-filesystem", "/Users/me/docs"]
     }
   }
 }
 ```
 
-Especifique siempre `--id`: sin él, cambiar los argumentos crea otra identidad y otro primer contacto. Con un ID estable, cambiar el comando o una ruta produce `SERVER_IDENTITY_DRIFT`. El hijo hereda el entorno, excluido de la identidad. `npm install -g @aimarket/warden@0.22.1` y el comando `warden-mcp` evitan arranques fríos repetidos de `npx`.
+Especifique siempre `--id`: sin él, cambiar los argumentos crea otra identidad y otro primer contacto. Con un ID estable, cambiar el comando o una ruta produce `SERVER_IDENTITY_DRIFT`. El hijo hereda el entorno, excluido de la identidad. `npm install -g @aimarket/warden@0.22.2` y el comando `warden-mcp` evitan arranques fríos repetidos de `npx`.
 
 **Herramientas sensibles.** `sensitiveToolPatterns` en un archivo de política (`--policy policy.json` con `{"sensitiveToolPatterns": ["*delete*", "*transfer*"]}`, comodines `*` sin distinguir mayúsculas) hace que cada llamada a una herramienta que coincida espere a una persona: `wrap` pregunta mediante el propio formulario del cliente (elicitation de MCP) con la herramienta, el servidor y los argumentos, y solo una respuesta aceptada con la casilla marcada deja pasar esa llamada. La casilla empieza desmarcada, así que un cliente que acepta formularios con sus valores por defecto no aprueba nada. Un cliente sin formulario de elicitation recibe un rechazo y el servidor nunca recibe la llamada; `--ask refuse` rechaza sin preguntar. Si el cliente cancela la llamada mientras la persona decide, o las definiciones cambian entretanto, no se envía. Antes de 0.20.0 `wrap` aceptaba estos patrones sin aplicarlos. Con `--flow`, un envío por el que la guardia de flujo preguntaría se pregunta igual.
 
@@ -143,12 +143,12 @@ Claude Desktop en macOS: `~/Library/Logs/Claude/mcp-server-<nombre>.log`. En Cur
 ## Analiza todos los servidores que inician tus clientes
 
 ```bash
-npx -y @aimarket/warden@0.22.1 scan
+npx -y @aimarket/warden@0.22.2 scan
 ```
 
 Lee las configuraciones MCP de Claude Code, Claude Desktop, Cursor, VS Code y Windsurf, se conecta a cada servidor que inician y revisa las definiciones de herramientas antes de que un modelo las vea. Imprime una tabla, JSON, SARIF o Markdown, y sale con 1 cuando bloquea un servidor; `--no-launch` no inicia nada. En un repositorio, `warden.lock.json` convierte un cambio en las definiciones en un diff revisable, y la CI falla ante un servidor nuevo o modificado. También como GitHub Action (`uses: alexar76/warden@v0.21.0`), hooks de pre-commit y plugin de Claude Code (`/plugin marketplace add alexar76/warden`). `--histor` pregunta al registro público HISTOR si un servidor te sirve lo mismo que a todos; para un servidor remoto envía el endpoint y un digest; para un servidor stdio que arranca desde npm o PyPI, el nombre del paquete (`npm:<nombre>`, `pypi:<nombre>`, que HISTOR ejecuta en un sandbox gVisor) y un digest; nunca el texto de las herramientas. Un clasificador opcional (`--classifier-url`, `--classifier-model`) añade la lectura de un modelo que tú eliges, local o alojado, para lo que ninguna regla nombra. Consulta la [guía de scan](docs/scan.es.md). Cómo se compara con otros dos escáneres sobre los mismos servidores: [comparación de escáneres](docs/scanner-comparison.es.md).
 
-**Para el editor de un servidor.** Si tu servidor lista otras herramientas donde está instalado algo que el sandbox de HISTOR no tiene —el runner de un lanzador, uno por sistema operativo—, `npx -y @aimarket/warden@0.22.1 declare --out mcp-tool-sets.json -- <tu servidor>` escribe esos conjuntos en un archivo que publicas en tu propio dominio, y quienes los reciben ven la declaración del editor en lugar de un conjunto desconocido. Consulta la [guía de scan](docs/scan.es.md).
+**Para el editor de un servidor.** Si tu servidor lista otras herramientas donde está instalado algo que el sandbox de HISTOR no tiene —el runner de un lanzador, uno por sistema operativo—, `npx -y @aimarket/warden@0.22.2 declare --out mcp-tool-sets.json -- <tu servidor>` escribe esos conjuntos en un archivo que publicas en tu propio dominio, y quienes los reciben ven la declaración del editor en lugar de un conjunto desconocido. Consulta la [guía de scan](docs/scan.es.md).
 
 ## Lo que WARDEN no hace
 
@@ -368,7 +368,7 @@ comprobarlas: [Identidades ERC-8004](https://github.com/alexar76/aicom/blob/main
 ## Desarrollo
 
 ```bash
-npm install && npm run build && npm test   # 1256 pruebas
+npm install && npm run build && npm test   # 1382 pruebas
 ```
 
 `test/packaging.test.ts` es lo que mantiene honesto el titular: falla si aparece una dependencia de

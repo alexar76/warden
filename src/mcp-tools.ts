@@ -863,6 +863,9 @@ function review(approved: ToolDef[] | undefined, current: ToolDef[], origin: str
 function asServerInfo(raw: unknown): { name?: string; version?: string } | undefined {
   if (raw === undefined || raw === null) return undefined;
   if (typeof raw !== "object" || Array.isArray(raw)) throw new McpToolError("server_info must be the serverInfo object from initialize");
+  if (Object.keys(raw).some(key => key !== "name" && key !== "version")) {
+    throw new McpToolError("server_info may contain only name and version");
+  }
   const out: { name?: string; version?: string } = {};
   for (const key of ["name", "version"] as const) {
     const v = (raw as Record<string, unknown>)[key];

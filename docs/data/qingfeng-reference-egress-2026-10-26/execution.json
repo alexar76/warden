@@ -1,0 +1,38 @@
+{
+  "startedAt": "2026-10-26T17:38:21.705735+00:00",
+  "host": "factory-vps",
+  "image": "sha256:a85c8ea75b21b6031dd94f06fcb70aa8366956133a0a6ea4f81c64c6b5424fd2",
+  "runtime": "runc",
+  "testNetwork": "none",
+  "dependencyNetwork": "bridge",
+  "inputFiles": 101,
+  "newModelCalls": 0,
+  "actualOutboundToolCalls": 0,
+  "githubWrites": false,
+  "npmPublished": false,
+  "runtimeChanged": false,
+  "completed": true,
+  "checks": [
+    {
+      "name": "dependencies",
+      "exitCode": 0,
+      "logSha256": "def54e70e58a510369d1c691357e9ab5309be3fa1e8ee2500bd9936ba3fb5eb9"
+    },
+    {
+      "name": "build",
+      "exitCode": 0,
+      "logSha256": "d15c169d52278ece8aa489cd2b97d075fb6cb9078ee003acbfa891b5ff6f027e"
+    },
+    {
+      "name": "typecheck",
+      "exitCode": 0,
+      "logSha256": "ebce1ffa71189e2af4194d7fa736082b26af0b34292cc9194dd39d5d9be92aaa"
+    },
+    {
+      "name": "boundary-tests",
+      "exitCode": 0,
+      "logSha256": "ea20d3c70efe420af9bec2d5ab83ab22500fb275f196cc9132c9015fc35cff17"
+    }
+  ],
+  "finishedAt": "2026-10-26T17:38:45.584644+00:00"
+}

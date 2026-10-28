@@ -14,6 +14,7 @@ it('Gitea PR mode retains gates, preserves the base branch and encodes a body fi
     if (!existsSync(join(source, 'push_gitea_monorepo.sh'))) return;
     for (const file of ['push_gitea_monorepo.sh', 'sanitize_git_commit_meta.py']) copyFileSync(join(source, file), join(scripts, file));
     writeFileSync(join(scripts, 'verify_whitepaper_links.sh'), '#!/bin/bash\nexit 0\n', { mode: 0o755 });
+    writeFileSync(join(scripts, 'python_bug_gate.sh'), '#!/bin/bash\nexit 0\n', { mode: 0o755 });
     writeFileSync(join(bin, 'git'), `#!${process.execPath}
 const fs = require('node:fs');
 const args = process.argv.slice(2); fs.appendFileSync(process.env.TRACE, JSON.stringify(args)+'\\n');
@@ -30,7 +31,7 @@ else if (args[0] === 'log') console.log('Add WARDEN wrap proxy');
     expect(readFileSync(trace, 'utf8')).not.toContain('"push"');
     writeFileSync(trace, '');
     const output = execFileSync('bash', [cmd, ...args], { env, encoding: 'utf8' });
-    expect(output).toContain('author gate clean'); expect(output).toContain('Co-authored-by gate clean'); expect(output).toContain('satellite link gate clean');
+    expect(output).toContain('author gate clean'); expect(output).toContain('Co-authored-by gate clean'); expect(output).toContain('satellite link gate clean'); expect(output).toContain('Python bug gate clean');
     const commands = readFileSync(trace, 'utf8').trim().split('\n').map(line => JSON.parse(line));
     const push = commands.filter(c => c[0] === 'push');
     expect(push).toEqual([['push', 'ssh://git@gitea2/alexar76/aicom.git', 'codex/warden-wrap:refs/for/main/codex/warden-wrap', '-o', 'title=WARDEN wrap', '-o', 'description=Summary\\n\\nLiteral `code` and $(not-a-command).\\n']]);

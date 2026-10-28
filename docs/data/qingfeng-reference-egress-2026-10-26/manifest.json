@@ -1,0 +1,9 @@
+{
+  "results.json": "5c3822195caf037bfb4bccb80936bc93ac6028c99c03c7c24d26b731e4419c78",
+  "protocol.md": "cf6af4c4ae7fc0fb8d846a6d47fa29f4fbee5040cc93e681a5a501b0e41a3c6d",
+  "input-manifest.json": "f9a327512fd516e498bdc86658aa9e484f485c56e4459d64153c7f26ffbfa097",
+  "execution.json": "adacb3d4720c4c450c80900303822d4c168687ade1067900700a26a7d7a86324",
+  "execution-local.json": "4ee84586c47c79c6054a88795d139823c65efedb47357801f465bf66bc36bfaf",
+  "vitest.json": "01e3c9dae75eefe9f4c886cf6a874512fb01fbada68a19c4a68002a428245f1c",
+  "output-manifest.json": "80f4525b14af6d1a5dee399cd09fe674a46487a8d880240bdfd8252147fe1198"
+}

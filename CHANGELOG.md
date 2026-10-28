@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.22.2 — 2026-10-27
+
+- Reject unknown keys in `server_info` for MCP status and approval calls, matching the existing
+  `additionalProperties: false` schema. Calls without `server_info`, empty metadata and partial
+  `name`/`version` objects retain their previous behavior. Invalid metadata is rejected before
+  an approval is written; reviewed hashes, revision checks and operator opt-in remain required.
+
+<!-- qingfeng-reference-egress -->
+## Reference-only egress checks — 2026-10-26
+
+- Add 25 synthetic regressions for reference-only outbound payloads, observed intermediary results, new turns, operator labels, modes and exact one-use grants. Linux build/typecheck and 127 tests in four relevant suites pass. No runtime or threshold changes; no paid model calls.
+- Document expected review/deny behavior separately from explicit policy exemptions, unknown non-MCP tools and unobserved credentials. An exact grant does not certify semantic publicness. [Report in five languages](docs/flow-guard-reference-egress.md).
+<!-- /qingfeng-reference-egress -->
+
 ## 0.22.1 — 2026-10-26
 
 Ships the local source recorded below. npm `0.22.0` did not include it.

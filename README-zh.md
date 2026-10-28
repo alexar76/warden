@@ -12,7 +12,7 @@
   <a href="https://glama.ai/mcp/servers/alexar76/warden"><img src="https://glama.ai/mcp/servers/alexar76/warden/badges/score.svg" alt="warden MCP server" /></a>
   <a href="https://warden.modelmarket.dev/"><img src="https://img.shields.io/npm/v/@aimarket/warden?color=cb3837&label=npm" alt="npm 版本" /></a>
   <img src="docs/badges/deps.svg" alt="零运行时依赖" />
-  <img src="docs/badges/tests.svg" alt="1256 项测试通过" />
+  <img src="docs/badges/tests.svg" alt="1382 项测试通过" />
   <img src="docs/badges/node.svg" alt="Node >= 20" />
   <a href="LICENSE"><img src="docs/badges/license.svg" alt="许可证：MIT" /></a>
 </p>
@@ -33,7 +33,7 @@
 **检查你机器上的所有 MCP 服务器。** 无需账号、无需 API 密钥、不调用模型。唯一的网络流量是发往你配置中的服务器。
 
 ```bash
-npx -y @aimarket/warden@0.22.1 scan
+npx -y @aimarket/warden@0.22.2 scan
 ```
 
 ```text
@@ -104,14 +104,14 @@ Auten 后续：`taskAdapter.mode: "review"` / `task_run` 按固定结果确认�
   "mcpServers": {
     "filesystem": {
       "command": "npx",
-      "args": ["-y", "@aimarket/warden@0.22.1", "wrap", "--id", "filesystem", "--",
+      "args": ["-y", "@aimarket/warden@0.22.2", "wrap", "--id", "filesystem", "--",
                "npx", "-y", "@modelcontextprotocol/server-filesystem", "/Users/me/docs"]
     }
   }
 }
 ```
 
-始终指定 `--id`：否则修改命令参数会创建新身份并重新执行首次信任。稳定 ID 会把命令或路径变更识别为 `SERVER_IDENTITY_DRIFT`。子进程继承环境变量，身份哈希不包含环境。可运行 `npm install -g @aimarket/warden@0.22.1`，使用 `warden-mcp` 避免反复进行 `npx` 冷启动。
+始终指定 `--id`：否则修改命令参数会创建新身份并重新执行首次信任。稳定 ID 会把命令或路径变更识别为 `SERVER_IDENTITY_DRIFT`。子进程继承环境变量，身份哈希不包含环境。可运行 `npm install -g @aimarket/warden@0.22.2`，使用 `warden-mcp` 避免反复进行 `npx` 冷启动。
 
 **敏感工具。** 策略文件中的 `sensitiveToolPatterns`（`--policy policy.json`，内容如 `{"sensitiveToolPatterns": ["*delete*", "*transfer*"]}`，`*` 通配、不区分大小写）让每次调用匹配的工具都要等人确认：`wrap` 通过客户端自己的表单（MCP elicitation）询问，列出工具、服务器和参数，只有勾选并接受的回答才放行这一次调用。复选框默认不勾选，所以按默认值自动接受表单的客户端什么也批准不了。不提供 elicitation 表单的客户端会收到拒绝，服务器永远收不到这次调用；`--ask refuse` 不询问直接拒绝。若客户端在等人决定时取消调用，或其间定义发生变化，调用不会发出。0.20.0 之前 `wrap` 接受这些模式却不执行。配合 `--flow`，流守卫会询问的发送也以同样方式询问。
 
@@ -139,12 +139,12 @@ macOS 上 Claude Desktop 日志：`~/Library/Logs/Claude/mcp-server-<名称>.log
 ## 扫描客户端启动的所有服务器
 
 ```bash
-npx -y @aimarket/warden@0.22.1 scan
+npx -y @aimarket/warden@0.22.2 scan
 ```
 
 读取 Claude Code、Claude Desktop、Cursor、VS Code 和 Windsurf 的 MCP 配置，连接其中启动的每个服务器，并在模型看到工具定义之前对其进行审查。输出表格、JSON、SARIF 或 Markdown，有服务器被阻止时以 1 退出；`--no-launch` 不启动任何程序。在仓库中，`warden.lock.json` 把工具定义的改动变成可审查的 diff，CI 会在出现新的或改动过的服务器时失败。也提供 GitHub Action（`uses: alexar76/warden@v0.21.0`）、pre-commit 钩子和 Claude Code 插件（`/plugin marketplace add alexar76/warden`）。`--histor` 询问公开的 HISTOR 日志：服务器给你的是否与给所有人的相同；对远程服务器发送端点和摘要，对从 npm 或 PyPI 启动的 stdio 服务器发送软件包名（`npm:<名称>`、`pypi:<名称>`，HISTOR 会在 gVisor 沙箱中运行它）和摘要，从不发送工具文本。可选的分类器（`--classifier-url`、`--classifier-model`）会加入你所选模型（本地或托管）的判断，用于覆盖任何规则都没有提到的内容。详见 [scan 指南](docs/scan.zh.md)。与另外两款扫描器在同一批服务器上的对比，见[扫描器对比](docs/scanner-comparison.zh.md)。
 
-**面向服务器发布者。** 如果在安装了 HISTOR 沙箱所没有的东西（启动器的运行器、每个操作系统各一个）的地方，你的服务器列出的是别的工具，`npx -y @aimarket/warden@0.22.1 declare --out mcp-tool-sets.json -- <你的服务器>` 会把这些工具集写进一个文件，由你发布在自己的域名上；拿到这些工具集的人看到的将是发布者的声明，而不是陌生的工具集。参见 [scan 指南](docs/scan.zh.md)。
+**面向服务器发布者。** 如果在安装了 HISTOR 沙箱所没有的东西（启动器的运行器、每个操作系统各一个）的地方，你的服务器列出的是别的工具，`npx -y @aimarket/warden@0.22.2 declare --out mcp-tool-sets.json -- <你的服务器>` 会把这些工具集写进一个文件，由你发布在自己的域名上；拿到这些工具集的人看到的将是发布者的声明，而不是陌生的工具集。参见 [scan 指南](docs/scan.zh.md)。
 
 ## WARDEN 不做什么
 
@@ -346,7 +346,7 @@ WARDEN 是 [Base 上的 `96684` 号](https://8004scan.io/agents/base/96684) ERC-
 ## 开发
 
 ```bash
-npm install && npm run build && npm test   # 1256 项测试
+npm install && npm run build && npm test   # 1382 项测试
 ```
 
 `test/packaging.test.ts` 正是让标题保持诚实的东西：一旦出现运行时依赖、任何源文件从包外 import、或者入口点不

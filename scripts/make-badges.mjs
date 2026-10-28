@@ -18,15 +18,16 @@ const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
 const depCount = Object.keys(pkg.dependencies ?? {}).length;
 
 // Ask the runner, don't grep for `it(`: several suites generate cases in a loop,
-// and a static count silently under-reports them.
-const report = JSON.parse(
-  execFileSync("npx", ["vitest", "run", "--reporter=json"], {
-    cwd: root,
-    encoding: "utf8",
-    maxBuffer: 64 * 1024 * 1024,
-    stdio: ["ignore", "pipe", "ignore"],
-  }),
-);
+// and a static count silently under-reports them. Vitest 5 writes the JSON
+// reporter to a file and prints that path; older releases printed the JSON.
+const raw = execFileSync("npx", ["vitest", "run", "--reporter=json"], {
+  cwd: root,
+  encoding: "utf8",
+  maxBuffer: 64 * 1024 * 1024,
+  stdio: ["ignore", "pipe", "inherit"],
+});
+const written = raw.match(/JSON report written to (.+)/);
+const report = JSON.parse(written ? readFileSync(written[1].trim(), "utf8") : raw);
 const tests = report.numTotalTests;
 if (!Number.isInteger(tests) || tests < 1) throw new Error("could not read a test count from vitest");
 if (report.numFailedTests > 0) throw new Error(`${report.numFailedTests} tests are failing — fix them before badging`);

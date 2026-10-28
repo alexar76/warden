@@ -50,7 +50,7 @@ function client(options: { wrap?: boolean; production?: boolean; approve?: boole
     const r = await request('initialize', { protocolVersion: '2025-06-18', capabilities: { elicitation: {} }, clientInfo: { name: 'warden-native-integration', version: '1' } });
     expect(r.error, stderr).toBeUndefined(); return r;
   };
-  return { p, request, initialize, messages, asked, send, stderr: () => stderr };
+  return { p, request, initialize, messages, asked, send, stderr: () => stderr, lastCommit: undefined as any };
 }
 const observation = { name: 'screenshot', arguments: {} };
 const click = { name: 'click', arguments: { index: '3' } };
@@ -60,9 +60,14 @@ const prepare = async (c: ReturnType<typeof client>, action: any = click) => {
   expect(p.stamp).toBe(screenResponseStamp(`mcp__native__${action.name}`, action.arguments, 'mcp__native__screenshot', {}, p.observation));
   return p;
 };
-const commit = (c: ReturnType<typeof client>, p: Awaited<ReturnType<typeof prepare>>, action: any = click) => c.request('warden/screen/commit', {
-  protocol, ticket: p.ticket, expected: { revision: p.revision, stamp: p.stamp }, action,
-});
+const commit = async (c: ReturnType<typeof client>, p: Awaited<ReturnType<typeof prepare>>, action: any = click) => {
+  const response = await c.request('warden/screen/commit', {
+    protocol, ticket: p.ticket, expected: { revision: p.revision, stamp: p.stamp }, action,
+  });
+  c.lastCommit = response.error ?? { status: response.result?.status, reason: response.result?.reason };
+  return response;
+};
+const nativeDiagnostic = (c: ReturnType<typeof client>) => JSON.stringify({ lastCommit: c.lastCommit, stderr: c.stderr() });
 const stats = async (c: ReturnType<typeof client>) => (await c.request('test/stats')).result;
 
 describe('native AppKit target-side integration (real macOS window; no global input)', () => {
@@ -104,19 +109,20 @@ describe('native AppKit target-side integration (real macOS window; no global in
   });
   it('passes multilingual native labels through the same cross-language target stamp', async () => {
     const c = client(); await c.initialize(); await c.request('test/change', { kind: 'unicode' });
-    const p = await prepare(c); expect((await commit(c, p)).result.status).toBe('committed'); expect((await stats(c)).count).toBe(1);
+    const p = await prepare(c), response = await commit(c, p);
+    expect(response.result.status, nativeDiagnostic(c)).toBe('committed'); expect((await stats(c)).count).toBe(1);
   });
   it('rechecks the revision after an overridable native hit-test changes application semantics', async () => {
     const c = client(); await c.initialize(); const p = await prepare(c);
     await c.request('test/change', { kind: 'hit-test-mutation' });
-    expect((await commit(c, p)).result.status).toBe('refused'); expect(await stats(c)).toMatchObject({ hitRaceTriggered: true, count: 0 });
+    expect((await commit(c, p)).result.status).toBe('refused'); expect(await stats(c), nativeDiagnostic(c)).toMatchObject({ hitRaceTriggered: true, count: 0 });
   });
   it.each(['handler', 'title', 'disabled', 'bounds', 'expiry', 'monotonic-expiry', 'sheet', 'button-alpha', 'window-alpha'])('refuses %s changes during native hit-test even without an invalidation callback', async kind => {
     const c = client(); await c.initialize(); const p = await prepare(c);
     await c.request('test/change', { kind: `hit-untracked-${kind}` });
     const r = await commit(c, p);
     expect(r.error).toBeUndefined(); expect(r.result.status).toBe('refused');
-    expect(await stats(c)).toMatchObject({ hitRaceTriggered: true, count: 0 });
+    expect(await stats(c), nativeDiagnostic(c)).toMatchObject({ hitRaceTriggered: true, count: 0 });
     expect((await commit(c, p)).result.reason).toBe('unknown');
   });
   it.each(['handler', 'title', 'bounds'])('does not issue a stale native approval after %s changes in prepare hit-test', async kind => {

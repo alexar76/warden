@@ -40,7 +40,7 @@
 **Check every MCP server on your machine.** No account, no API key, no model. The only network traffic is to the servers in your config.
 
 ```bash
-npx -y @aimarket/warden@0.22.1 scan
+npx -y @aimarket/warden@0.22.2 scan
 ```
 
 ```text
@@ -114,7 +114,7 @@ Opt-in constrained operations: `node dist/mcp-server.js task`. See the [task ada
   "mcpServers": {
     "filesystem": {
       "command": "npx",
-      "args": ["-y", "@aimarket/warden@0.22.1", "wrap", "--id", "filesystem", "--",
+      "args": ["-y", "@aimarket/warden@0.22.2", "wrap", "--id", "filesystem", "--",
                "npx", "-y", "@modelcontextprotocol/server-filesystem", "/Users/me/docs"]
     }
   }
@@ -123,7 +123,7 @@ Opt-in constrained operations: `node dist/mcp-server.js task`. See the [task ada
 
 For explicit first-contact review, add `--require-approval` to `wrap`. It withholds new definitions until `warden-mcp pins approve --id filesystem` in an operator terminal, then rejects any changed field or launch identity. Automatic/legacy pins need reapproval. See the [language-independent admission boundary](docs/security-hardening-language-boundary.md).
 
-Always specify `--id`: without it, changing command arguments creates a new identity and a new first contact. A stable ID turns a command or path change into `SERVER_IDENTITY_DRIFT`. Environment variables are inherited by the child and excluded from identity. To avoid repeated cold `npx` starts, install globally with `npm install -g @aimarket/warden@0.22.1`, then use `warden-mcp`.
+Always specify `--id`: without it, changing command arguments creates a new identity and a new first contact. A stable ID turns a command or path change into `SERVER_IDENTITY_DRIFT`. Environment variables are inherited by the child and excluded from identity. To avoid repeated cold `npx` starts, install globally with `npm install -g @aimarket/warden@0.22.2`, then use `warden-mcp`.
 
 **Sensitive tools.** A policy file's `sensitiveToolPatterns` (`--policy policy.json` with `{"sensitiveToolPatterns": ["*delete*", "*transfer*"]}`, case-insensitive `*` globs) makes every call to a matching tool wait for a person: `wrap` asks through the client's own form (MCP elicitation) with the tool, the server and the arguments, and only a ticked, accepted answer lets that one call through. The box starts unticked, so a client that accepts forms with their defaults approves nothing. A client that offers no elicitation form gets a refusal and the server never receives the call; `--ask refuse` refuses without asking. If the client cancels the call while the person decides, or the definitions change meanwhile, it is not sent. Before 0.20.0 `wrap` accepted these patterns and did not enforce them. With `--flow`, a send the flow guard would ask about is asked the same way.
 
@@ -151,12 +151,12 @@ Claude Desktop on macOS writes stderr to `~/Library/Logs/Claude/mcp-server-<name
 ## Scan every server your clients start
 
 ```bash
-npx -y @aimarket/warden@0.22.1 scan
+npx -y @aimarket/warden@0.22.2 scan
 ```
 
 Reads the MCP configs of Claude Code, Claude Desktop, Cursor, VS Code and Windsurf, connects to every server they start, and vets the tool definitions before a model sees them. It prints a table, JSON, SARIF or Markdown, and exits 1 when a server is blocked; `--no-launch` starts nothing. In a repository, `warden.lock.json` turns a change in tool definitions into a reviewable diff, and CI fails on a new or changed server. Also as a GitHub Action (`uses: alexar76/warden@v0.21.0`), pre-commit hooks and a Claude Code plugin (`/plugin marketplace add alexar76/warden`). `--histor` asks the public HISTOR log whether a server serves you what it serves everyone; for a remote server it sends the endpoint and a digest, for a stdio server started from npm or PyPI the package name (`npm:<name>`, `pypi:<name>`, which HISTOR runs in a gVisor sandbox) and a digest — never tool text. An opt-in classifier (`--classifier-url`, `--classifier-model`) adds the reading of a model you choose, local or hosted, for what no rule names. See the [scan guide](docs/scan.md). How it compares with two other scanners, on the same servers: [scanner comparison](docs/scanner-comparison.md).
 
-**For a server's publisher.** If your server lists different tools where something HISTOR's sandbox lacks is installed — a launcher's runner, one per operating system — `npx -y @aimarket/warden@0.22.1 declare --out mcp-tool-sets.json -- <your server>` writes those sets to a file you publish on your own domain, and the people who get them see the publisher's declaration instead of an unseen tool set. See [declare your server's tool sets](docs/scan.md#for-publishers-declare-your-servers-tool-sets).
+**For a server's publisher.** If your server lists different tools where something HISTOR's sandbox lacks is installed — a launcher's runner, one per operating system — `npx -y @aimarket/warden@0.22.2 declare --out mcp-tool-sets.json -- <your server>` writes those sets to a file you publish on your own domain, and the people who get them see the publisher's declaration instead of an unseen tool set. See [declare your server's tool sets](docs/scan.md#for-publishers-declare-your-servers-tool-sets).
 
 ## What WARDEN does not do
 
@@ -376,7 +376,7 @@ check them: [ERC-8004 identities](https://github.com/alexar76/aicom/blob/main/do
 ## Development
 
 ```bash
-npm install && npm run build && npm test   # 1256 tests
+npm install && npm run build && npm test   # 1382 tests
 ```
 
 `test/packaging.test.ts` is what keeps the headline honest: it fails if an npm runtime dependency

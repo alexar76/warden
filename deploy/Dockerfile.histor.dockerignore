@@ -6,3 +6,14 @@ warden/dist
 warden/coverage
 warden/.git
 warden/.env*
+
+# Exact public references used by the test stage's relative-link check.
+!docs/
+!docs/growth/
+!docs/growth/kevin-annotations-answer-review-2026-10-25.ru.md
+!docs/growth/warden-thresholds-2026-10-25.ru.md
+!docs/growth/launchgate-methodology-2026-10-25.ru.md
+!docs/growth/launchgate-selection-2026-10-25.en.md
+!docs/growth/launchgate-selection-2026-10-25.ru.md
+!docs/growth/launchgate-tie-selection-2026-10-25.en.md
+!docs/growth/launchgate-tie-selection-2026-10-25.ru.md
