@@ -67,15 +67,15 @@ Bootstrap пересэмплирует **шесть целых кластеро�
 
 Ссылки ниже разрешаются в **монорепозитории aicom**. В документацию npm входит отчёт, но не сырой архив. Исторический AgentDojo и прежние исследования 270/270 и 432 ответов не изменены. Исследование, реализация и интерпретация выполнены с помощью AI; независимая слепая человеческая проверка не заявляется.
 
-- [Зафиксированный протокол](../../docs/evidence/launchgate-live-comparison-2026-10-25/protocol.md).
-- [Манифест входов](../../docs/evidence/launchgate-live-comparison-2026-10-25/run-02/input-manifest.json).
-- [Квитанция сбора](../../docs/evidence/launchgate-live-comparison-2026-10-25/run-02/execution.json).
-- [Архив всех результатов](../../docs/evidence/launchgate-live-comparison-2026-10-25/run-02/outputs.tar.gz).
-- [Отдельный аудит учёта](../../docs/evidence/launchgate-live-comparison-2026-10-25/run-02/independent-audit.json).
-- [Исполнение аудита и очистка](../../docs/evidence/launchgate-live-comparison-2026-10-25/run-02/independent-audit-execution.json).
-- [Очистка стенда модели](../../docs/evidence/launchgate-live-comparison-2026-10-25/run-02/cleanup.json).
-- [Наблюдения ссылок на предупреждение](../../docs/evidence/launchgate-live-comparison-2026-10-25/warning-reference-observations.json).
-- [Расширенный технический отчёт, английский](../../docs/growth/launchgate-live-comparison-2026-10-25.en.md).
+- [Зафиксированный протокол](https://github.com/alexar76/aicom/blob/main/docs/evidence/launchgate-live-comparison-2026-10-25/protocol.md).
+- [Манифест входов](https://github.com/alexar76/aicom/blob/main/docs/evidence/launchgate-live-comparison-2026-10-25/run-02/input-manifest.json).
+- [Квитанция сбора](https://github.com/alexar76/aicom/blob/main/docs/evidence/launchgate-live-comparison-2026-10-25/run-02/execution.json).
+- [Архив всех результатов](https://github.com/alexar76/aicom/blob/main/docs/evidence/launchgate-live-comparison-2026-10-25/run-02/outputs.tar.gz).
+- [Отдельный аудит учёта](https://github.com/alexar76/aicom/blob/main/docs/evidence/launchgate-live-comparison-2026-10-25/run-02/independent-audit.json).
+- [Исполнение аудита и очистка](https://github.com/alexar76/aicom/blob/main/docs/evidence/launchgate-live-comparison-2026-10-25/run-02/independent-audit-execution.json).
+- [Очистка стенда модели](https://github.com/alexar76/aicom/blob/main/docs/evidence/launchgate-live-comparison-2026-10-25/run-02/cleanup.json).
+- [Наблюдения ссылок на предупреждение](https://github.com/alexar76/aicom/blob/main/docs/evidence/launchgate-live-comparison-2026-10-25/warning-reference-observations.json).
+- [Расширенный технический отчёт, английский](https://github.com/alexar76/aicom/blob/main/docs/growth/launchgate-live-comparison-2026-10-25.en.md).
 
 `outputs.tar.gz` SHA-256: `fc471388468f06471c6a32d8e1bcc7fa54205431ba2a70b819bd411133cf5079`.
 

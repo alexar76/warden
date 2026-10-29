@@ -67,15 +67,15 @@
 
 以下证据链接在 **aicom 单体仓库**内解析。npm 文档包含本报告，不包含原始归档。历史 AgentDojo 及此前 270/270、432 答案研究保持不变。研究、实现和解释使用了 AI 辅助，不声称经过独立的人类盲审。
 
-- [冻结协议](../../docs/evidence/launchgate-live-comparison-2026-10-25/protocol.md).
-- [输入清单](../../docs/evidence/launchgate-live-comparison-2026-10-25/run-02/input-manifest.json).
-- [收集回执](../../docs/evidence/launchgate-live-comparison-2026-10-25/run-02/execution.json).
-- [完整输出归档](../../docs/evidence/launchgate-live-comparison-2026-10-25/run-02/outputs.tar.gz).
-- [单独实现的记账审计](../../docs/evidence/launchgate-live-comparison-2026-10-25/run-02/independent-audit.json).
-- [审计执行与清理](../../docs/evidence/launchgate-live-comparison-2026-10-25/run-02/independent-audit-execution.json).
-- [模型临时目录清理](../../docs/evidence/launchgate-live-comparison-2026-10-25/run-02/cleanup.json).
-- [警告引用观察](../../docs/evidence/launchgate-live-comparison-2026-10-25/warning-reference-observations.json).
-- [英文详细技术报告](../../docs/growth/launchgate-live-comparison-2026-10-25.en.md).
+- [冻结协议](https://github.com/alexar76/aicom/blob/main/docs/evidence/launchgate-live-comparison-2026-10-25/protocol.md).
+- [输入清单](https://github.com/alexar76/aicom/blob/main/docs/evidence/launchgate-live-comparison-2026-10-25/run-02/input-manifest.json).
+- [收集回执](https://github.com/alexar76/aicom/blob/main/docs/evidence/launchgate-live-comparison-2026-10-25/run-02/execution.json).
+- [完整输出归档](https://github.com/alexar76/aicom/blob/main/docs/evidence/launchgate-live-comparison-2026-10-25/run-02/outputs.tar.gz).
+- [单独实现的记账审计](https://github.com/alexar76/aicom/blob/main/docs/evidence/launchgate-live-comparison-2026-10-25/run-02/independent-audit.json).
+- [审计执行与清理](https://github.com/alexar76/aicom/blob/main/docs/evidence/launchgate-live-comparison-2026-10-25/run-02/independent-audit-execution.json).
+- [模型临时目录清理](https://github.com/alexar76/aicom/blob/main/docs/evidence/launchgate-live-comparison-2026-10-25/run-02/cleanup.json).
+- [警告引用观察](https://github.com/alexar76/aicom/blob/main/docs/evidence/launchgate-live-comparison-2026-10-25/warning-reference-observations.json).
+- [英文详细技术报告](https://github.com/alexar76/aicom/blob/main/docs/growth/launchgate-live-comparison-2026-10-25.en.md).
 
 `outputs.tar.gz` SHA-256: `fc471388468f06471c6a32d8e1bcc7fa54205431ba2a70b819bd411133cf5079`.
 

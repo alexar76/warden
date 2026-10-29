@@ -67,15 +67,15 @@ El archivo conserva respuestas iniciales/finales completas, `out/main/analysis.j
 
 Los enlaces siguientes se resuelven en el **monorepositorio aicom**. La documentación npm incluye el informe, no el archivo de datos original. AgentDojo histórico y los estudios previos de 270/270 y 432 respuestas no se modificaron. Investigación, implementación e interpretación contaron con asistencia de IA; no se afirma revisión humana independiente a ciegas.
 
-- [Protocolo fijado](../../docs/evidence/launchgate-live-comparison-2026-10-25/protocol.md).
-- [Manifiesto de entradas](../../docs/evidence/launchgate-live-comparison-2026-10-25/run-02/input-manifest.json).
-- [Recibo de recopilación](../../docs/evidence/launchgate-live-comparison-2026-10-25/run-02/execution.json).
-- [Archivo completo de resultados](../../docs/evidence/launchgate-live-comparison-2026-10-25/run-02/outputs.tar.gz).
-- [Auditoría de contabilidad separada](../../docs/evidence/launchgate-live-comparison-2026-10-25/run-02/independent-audit.json).
-- [Ejecución y limpieza de auditoría](../../docs/evidence/launchgate-live-comparison-2026-10-25/run-02/independent-audit-execution.json).
-- [Limpieza del banco del modelo](../../docs/evidence/launchgate-live-comparison-2026-10-25/run-02/cleanup.json).
-- [Observaciones de referencias a avisos](../../docs/evidence/launchgate-live-comparison-2026-10-25/warning-reference-observations.json).
-- [Informe técnico ampliado en inglés](../../docs/growth/launchgate-live-comparison-2026-10-25.en.md).
+- [Protocolo fijado](https://github.com/alexar76/aicom/blob/main/docs/evidence/launchgate-live-comparison-2026-10-25/protocol.md).
+- [Manifiesto de entradas](https://github.com/alexar76/aicom/blob/main/docs/evidence/launchgate-live-comparison-2026-10-25/run-02/input-manifest.json).
+- [Recibo de recopilación](https://github.com/alexar76/aicom/blob/main/docs/evidence/launchgate-live-comparison-2026-10-25/run-02/execution.json).
+- [Archivo completo de resultados](https://github.com/alexar76/aicom/blob/main/docs/evidence/launchgate-live-comparison-2026-10-25/run-02/outputs.tar.gz).
+- [Auditoría de contabilidad separada](https://github.com/alexar76/aicom/blob/main/docs/evidence/launchgate-live-comparison-2026-10-25/run-02/independent-audit.json).
+- [Ejecución y limpieza de auditoría](https://github.com/alexar76/aicom/blob/main/docs/evidence/launchgate-live-comparison-2026-10-25/run-02/independent-audit-execution.json).
+- [Limpieza del banco del modelo](https://github.com/alexar76/aicom/blob/main/docs/evidence/launchgate-live-comparison-2026-10-25/run-02/cleanup.json).
+- [Observaciones de referencias a avisos](https://github.com/alexar76/aicom/blob/main/docs/evidence/launchgate-live-comparison-2026-10-25/warning-reference-observations.json).
+- [Informe técnico ampliado en inglés](https://github.com/alexar76/aicom/blob/main/docs/growth/launchgate-live-comparison-2026-10-25.en.md).
 
 `outputs.tar.gz` SHA-256: `fc471388468f06471c6a32d8e1bcc7fa54205431ba2a70b819bd411133cf5079`.
 

@@ -59,7 +59,7 @@ Ships the local source recorded below. npm `0.21.0` did not include it. The entr
 ## Local source — credential-window measurement and prefix indexing, 2026-10-25
 
 - Retain non-hex/hex strong windows at 8/10 after Linux hook comparisons at 6/7/8. Recognized normalized provider prefixes no longer cause alphabetic payload before the first digit to be skipped. Preserve generic/DER starts, every previous fingerprint and the existing storage format; existing sessions need a credential reread to gain new windows.
-- Add a reproducible threshold sweep with two synthetic seeds, corpus manifests, whole-call decisions and deliberately selected collision controls. At unchanged 8/10, 717 of 14,400 attack fixtures change from ask to deny; all attacks already required ask or deny. Decisions on 7,680 benign requests per profile remain unchanged. A broader generic-prefix candidate was rejected for a false hard denial. These are fixture results, not a production false-positive estimate. [Study and evidence](../docs/growth/warden-thresholds-2026-10-25.ru.md). Local only, unreleased.
+- Add a reproducible threshold sweep with two synthetic seeds, corpus manifests, whole-call decisions and deliberately selected collision controls. At unchanged 8/10, 717 of 14,400 attack fixtures change from ask to deny; all attacks already required ask or deny. Decisions on 7,680 benign requests per profile remain unchanged. A broader generic-prefix candidate was rejected for a false hard denial. These are fixture results, not a production false-positive estimate. [Study and evidence](https://github.com/alexar76/aicom/blob/main/docs/growth/warden-thresholds-2026-10-25.ru.md). Local only, unreleased.
 
 ## Local source — flow guard split into modules, 2026-10-24
 

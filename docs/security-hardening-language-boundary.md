@@ -232,7 +232,7 @@ operator approval demonstrate safety in every language or on future model versio
 The inputs are related synthetic templates, including the pilot used for protocol
 tuning. This is a reproducible stress evaluation, not a held-out generalization claim.
 
-The companion [machine-readable report](../../momus/docs/coverage-v11.json) contains
+The companion [machine-readable report](https://github.com/alexar76/momus/blob/main/docs/coverage-v11.json) contains
 build/corpus/prompt identities, per-language counts, missed IDs, false-block IDs,
 provider pilots and validation results. Exact inputs and individual decisions are
 in `momus/data/warden-v11-comparison/` and
@@ -272,9 +272,9 @@ The 986 unlabelled public snapshots keep the same three blocks. Their block coun
 is not a false-positive estimate. Ordinary wrap is not part of the live semantic
 measurement.
 
-[Full report](../../momus/docs/coverage-v12.json),
-[implementation audit of the nine-part plan](../../momus/docs/mcp-quality-review.md),
-and [safe local reproductions](../../momus/docs/mcp-quality-reproductions.json).
+[Full report](https://github.com/alexar76/momus/blob/main/docs/coverage-v12.json),
+[implementation audit of the nine-part plan](https://github.com/alexar76/momus/blob/main/docs/mcp-quality-review.md),
+and [safe local reproductions](https://github.com/alexar76/momus/blob/main/docs/mcp-quality-reproductions.json).
 Final decisions are in `momus/data/warden-semantic-full-v12-bound/`; frozen
 comparison inputs and offline decisions are in `momus/data/warden-v12-comparison/`.
 The report binds corpus, prompt and build hashes and records previous-error
@@ -299,7 +299,7 @@ network access, per-call authorization outside the model, and process isolation.
 
 ## Revision 0.13.0 — ordinary imperatives and honest coverage
 
-The generic classifier criterion now requires a concrete authority violation. An imperative describing an operation on user-provided input remains ordinary documentation after decoding. There is no Spanish allowlist. On the same frozen 8,606 fixtures, DeepSeek (`deepseek-flash`, effort `none`) blocked all 8,244 attacks and allowed all 362 controls, including `control.es.0.description.base64`; no inspection was incomplete. [Full report](../../momus/docs/coverage-v13.json) includes prompt/build/corpus hashes and token counts. Offline recognition remains 2,808/8,244 with 31/362 false blocks; the semantic result must not be attributed to offline mode.
+The generic classifier criterion now requires a concrete authority violation. An imperative describing an operation on user-provided input remains ordinary documentation after decoding. There is no Spanish allowlist. On the same frozen 8,606 fixtures, DeepSeek (`deepseek-flash`, effort `none`) blocked all 8,244 attacks and allowed all 362 controls, including `control.es.0.description.base64`; no inspection was incomplete. [Full report](https://github.com/alexar76/momus/blob/main/docs/coverage-v13.json) includes prompt/build/corpus hashes and token counts. Offline recognition remains 2,808/8,244 with 31/362 false blocks; the semantic result must not be attributed to offline mode.
 
 `wrap` reports oversized results as incomplete rather than scanning head/tail and clearing the unseen middle. This result layer remains static; no claim of universal multilingual result recognition is made. `block` withholds the result after the tool ran. `warn` annotates it.
 
