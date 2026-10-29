@@ -7,15 +7,15 @@ Las llamadas de descubrimiento pueden generar cargos; consulte los [límites de 
 `warden-mcp scan` lee la configuración MCP que ya tienes, se conecta a cada servidor que inicia y revisa las definiciones de herramientas antes de que un modelo las vea. Es la misma cadena de compuertas que [`wrap`](../README-es.md) y la [biblioteca](integration.es.md), ejecutada una vez sobre tus configuraciones en lugar de delante de un solo servidor.
 
 ```bash
-npx -y @aimarket/warden@0.11.0 scan
+npx -y @aimarket/warden@0.22.2 scan
 ```
 
 ```text
-WARDEN scan 0.10.0 · ruleset 10 sha256-lJuKKKV5mtru… · block at high
+WARDEN scan 0.22.2 · ruleset 16 sha256-86y6iNc4R+LM… · block at high
   read .mcp.json (claude-code, 3 servers)
 
   ✓ allow   notes       claude-code    1 tool · score 0.90
-  ✗ BLOCK   evil-notes  claude-code    1 tool · score 0.00 · TOOL_DEF_EXFIL(notes) TOOL_DEF_SECRET_REQUEST(notes) THREAT_SSH_KEY_READ(notes)
+  ✗ BLOCK   evil-notes  claude-code    1 tool · score 0.00 · TOOL_DEF_EXFIL(save_note) TOOL_DEF_SECRET_REQUEST(save_note) THREAT_SSH_KEY_READ(save_note) THREAT_SEED_PHRASE(save_note)
   ! error   broken      claude-code    could not start: spawn /nonexistent/bin/server ENOENT
 
 3 servers: 1 allowed, 1 blocked, 1 not checked, 0 skipped.

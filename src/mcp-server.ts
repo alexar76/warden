@@ -74,8 +74,28 @@ async function main(): Promise<void> {
   if (mode === "lsp" && buf.length) throw new Error("Incomplete MCP frame");
 }
 
+const USAGE = `Usage: warden-mcp [command] [options]
+
+  (no command)      run WARDEN as an MCP server over stdio (vet_mcp_server, static_scan_tools, …)
+  scan              vet every server your MCP clients start: warden-mcp scan [CONFIG...]  (--help)
+  wrap              stdio proxy in front of one server: warden-mcp wrap --id ID -- command [args]
+  pins              review a wrapped server's definitions: warden-mcp pins status|approve|revoke --id ID
+  declare           declare an operator-trusted server: warden-mcp declare --help
+  hook              Claude Code hook (session-start|pre-tool-use|post-tool-use|user-prompt-submit|stop)
+  task              constrained task mode: warden-mcp task --help
+  flow-labels       list the unlabeled MCP tools your sessions used, with a labels block to correct
+
+Docs: https://github.com/alexar76/warden#readme · scan guide: docs/scan.md
+`;
+
 async function entry(): Promise<void> {
   if (process.argv.length <= 2) return main();
+  if (process.argv[2] === '--help' || process.argv[2] === '-h' || process.argv[2] === 'help') {
+    // Until 2026-10-29 only `scan --help` and `declare --help` existed; a stranger running
+    // `warden-mcp --help` got the wrap parser's one-line error and never learned about `scan`.
+    stdout.write(USAGE);
+    return;
+  }
   if (process.argv[2] === 'task') {
     const code = await (await import('./task-cli.js')).runTaskCli(process.argv.slice(3));
     stdout.write('', () => process.exit(code));

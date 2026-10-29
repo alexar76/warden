@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "If you use WARDEN in research or a report, please cite it as below."
+type: software
+title: "WARDEN — MCP security firewall"
+abstract: "Vets an MCP server's advertised tool definitions against static-scan rules, a signed threat feed, origin and tool-definition pinning before any tool reaches the model. Zero-dependency TypeScript library, CLI scan, stdio wrap proxy and Claude Code hook."
+authors:
+  - family-names: Artamokhov
+    given-names: Aleksandr
+repository-code: "https://github.com/alexar76/warden"
+url: "https://warden.modelmarket.dev/"
+license: MIT
+version: 0.22.2
+date-released: 2026-10-27
+keywords:
+  - model-context-protocol
+  - mcp-security
+  - tool-poisoning
+  - prompt-injection
+  - supply-chain-security
+references:
+  - type: data
+    title: "HISTOR snapshot: MCP tool definitions and how they change"
+    doi: 10.5281/zenodo.23512759
+    authors:
+      - family-names: Artamokhov
+        given-names: Aleksandr
+    notes: "The public transparency log whose observations WARDEN's threat feed and field measurements draw on."

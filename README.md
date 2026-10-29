@@ -1,15 +1,32 @@
-<!-- aicom-mirror-notice -->
-> **🔄 Synced from a monorepo — but with a live history.** `warden` mirrors the
-> canonical AI-Factory monorepo. History here is append-only (no force-push).
-> **Pull requests are welcome** — merged PRs are imported back into the monorepo
-> and re-synced here, so your contribution becomes canonical.
-> 💬 **[Issues](https://github.com/alexar76/warden/issues)** · **[Pull requests](https://github.com/alexar76/warden/pulls)** both welcome.
+# WARDEN — MCP security firewall
 
-# WARDEN — MCP server
+Vets what an MCP server *says* its tools do — tool poisoning, rug pulls, requests for secrets, instructions to send data elsewhere — against static rules, a signed threat feed, origin and tool-definition pinning, **before any tool reaches the model**. A CLI scan of the servers your clients start, a stdio `wrap` proxy for Claude Desktop / Cursor / Claude Code, a Claude Code hook, and a zero-dependency TypeScript library.
 
-<!-- final-ranking-witness -->
-**[Final ranking-feedback comparison, 26 October](docs/flow-guard-final-witness-2026-10-26.md).** On all five previously withheld contexts, old feedback repaired 6/40 continuations and explicit selected-versus-best feedback repaired 40/40. Valid controls stayed valid 20/20 per nominal arm. This completes the series on selected known failures, not a new holdout. The earlier offline-only statement is superseded for ranking feedback on this cohort; missing-set feedback efficacy remains unmeasured.
-<!-- /final-ranking-witness -->
+<!-- warden-try -->
+**Check every MCP server on your machine.** No account, no API key, no model. `scan` starts each server in your config the way your client would, reads its `tools/list`, vets it and stops it; the only network traffic is to those servers.
+
+```bash
+npx -y @aimarket/warden@0.22.2 scan
+```
+
+```text
+WARDEN scan 0.22.2 · ruleset 16 sha256-86y6iNc4R+LM… · block at high
+  read .mcp.json (claude-code, 3 servers)
+
+  ✓ allow   notes       claude-code    1 tool · score 0.90
+  ✗ BLOCK   evil-notes  claude-code    1 tool · score 0.00 · TOOL_DEF_EXFIL(save_note) TOOL_DEF_SECRET_REQUEST(save_note) THREAT_SSH_KEY_READ(save_note) THREAT_SEED_PHRASE(save_note)
+  ! error   broken      claude-code    could not start: spawn /nonexistent/bin/server ENOENT
+
+  ⚠ toxic flow  claude-code has a possible private-data / untrusted-input / outbound path: capabilities of notes.save_note are unknown. Review and bind operator capabilities to the launch identity and definitions; unrecognized names are not evidence of safety.
+
+3 servers: 1 allowed, 1 blocked, 1 not checked, 0 skipped.
+Details: warden-mcp scan --json, or --markdown FILE. To review a changed server: warden-mcp scan --lock warden.lock.json --update-lock.
+```
+
+That is the real output of 0.22.2 on [`examples/scan-demo/`](examples/scan-demo/): three tiny stdio servers, one of them poisoned. `cd examples/scan-demo && npx -y @aimarket/warden@0.22.2 scan --project` reproduces it with nothing installed. [Scan guide](docs/scan.md).
+
+Against four other open-source scanners on the same servers, each in a gVisor container with no network: on the held-out half of MCPTox (an AAAI 2026 benchmark; WARDEN's rules were written from the other half) WARDEN blocks 171 of 218 poisoned tools, the others 8 to 41. On 986 public servers it blocks 3 and on 14,933 npm and PyPI packages 369; mcp-shield blocks 343 and 5,354. [Method and every number](docs/scanner-comparison.md) · [scan guide](docs/scan.md).
+<!-- /warden-try -->
 
 <!-- mcp-name: io.github.alexar76/warden -->
 
@@ -25,6 +42,9 @@
 </p>
 <!-- /aicom-readme-badges -->
 
+<!-- aicom-mirror-notice -->
+> 🔄 Synced from the [AI-Factory monorepo](https://github.com/alexar76/aicom) (append-only history). **Pull requests are welcome** — merged PRs are imported back and re-synced here. [Issues](https://github.com/alexar76/warden/issues) · [Pull requests](https://github.com/alexar76/warden/pulls)
+
 <p align="center">
   <a href="https://warden.modelmarket.dev/">
     <img src="docs/screenshots/readme/hero-3d.png" alt="WARDEN — 3D gate chain: tools/list through static-scan, threat-feed, origin, and pinning to a recorded verdict" width="100%" />
@@ -36,27 +56,9 @@
 
 > [WARDEN quality cycle: MOMUS → AI-Factory → SKOPOS → shared node agent → deployment](https://github.com/alexar76/momus/blob/main/docs/quality-cycle.md).
 
-<!-- warden-try -->
-**Check every MCP server on your machine.** No account, no API key, no model. The only network traffic is to the servers in your config.
-
-```bash
-npx -y @aimarket/warden@0.22.2 scan
-```
-
-```text
-WARDEN scan 0.21.0 · ruleset 11 sha256-RDXs+TaQoehA… · block at high
-  read .mcp.json (claude-code, 3 servers)
-
-  ✓ allow   notes       claude-code    1 tool · score 0.90
-  ✗ BLOCK   evil-notes  claude-code    1 tool · score 0.00 · TOOL_DEF_EXFIL(notes) TOOL_DEF_SECRET_REQUEST(notes) THREAT_SSH_KEY_READ(notes)
-  ! error   broken      claude-code    could not start: spawn /nonexistent/bin/server ENOENT
-
-3 servers: 1 allowed, 1 blocked, 1 not checked, 0 skipped.
-Details: warden-mcp scan --json, or --markdown FILE. To review a changed server: warden-mcp scan --lock warden.lock.json --update-lock.
-```
-
-Against four other open-source scanners on the same servers, each in a gVisor container with no network: on the held-out half of MCPTox (an AAAI 2026 benchmark; WARDEN's rules were written from the other half) WARDEN blocks 171 of 218 poisoned tools, the others 8 to 41. On 986 public servers it blocks 3 and on 14,933 npm and PyPI packages 369; mcp-shield blocks 343 and 5,354. [Method and every number](docs/scanner-comparison.md) · [scan guide](docs/scan.md).
-<!-- /warden-try -->
+<!-- final-ranking-witness -->
+**[Final ranking-feedback comparison, 26 October](docs/flow-guard-final-witness-2026-10-26.md).** On all five previously withheld contexts, old feedback repaired 6/40 continuations and explicit selected-versus-best feedback repaired 40/40. Valid controls stayed valid 20/20 per nominal arm. This completes the series on selected known failures, not a new holdout. The earlier offline-only statement is superseded for ranking feedback on this cohort; missing-set feedback efficacy remains unmeasured.
+<!-- /final-ranking-witness -->
 
 **Flow guard (local source, 2026-10-23).** After credentials and outside text, outbound/MCP calls and ordinary project writes require review, regardless of short fragments or unknown encodings. Exact operator-reviewed public requests can run once per session; known leaks and incomplete scans stay blocked from this exemption. Fixture: 0/16 attacks automatically allowed in both modes; 12/12 benign calls reviewed by default, 0/12 with exact public rules. This is an explicit usability tradeoff, not universal decoding. The unchanged 23-case replay remains 0/23 fully delivered. Production/npm are unchanged. [Policy, tests and limits](docs/flow-guard.md).
 

@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "notes": {
+      "command": "node",
+      "args": ["notes.mjs"]
+    },
+    "evil-notes": {
+      "command": "node",
+      "args": ["poisoned-notes.mjs"]
+    },
+    "broken": {
+      "command": "/nonexistent/bin/server",
+      "args": []
+    }
+  }
+}

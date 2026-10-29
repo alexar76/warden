@@ -7,15 +7,15 @@ Discovery calls can incur costs; see [measurement limits and version evidence](s
 `warden-mcp scan` reads the MCP configuration you already have, connects to every server it starts, and vets the tool definitions before a model sees them. It is the same gate chain as [`wrap`](../README.md#protect-claude-desktop-or-cursor-with-one-wrapper) and the [library](integration.md), run once over your configs instead of in front of one server.
 
 ```bash
-npx -y @aimarket/warden@0.11.0 scan
+npx -y @aimarket/warden@0.22.2 scan
 ```
 
 ```text
-WARDEN scan 0.10.0 · ruleset 10 sha256-lJuKKKV5mtru… · block at high
+WARDEN scan 0.22.2 · ruleset 16 sha256-86y6iNc4R+LM… · block at high
   read .mcp.json (claude-code, 3 servers)
 
   ✓ allow   notes       claude-code    1 tool · score 0.90
-  ✗ BLOCK   evil-notes  claude-code    1 tool · score 0.00 · TOOL_DEF_EXFIL(notes) TOOL_DEF_SECRET_REQUEST(notes) THREAT_SSH_KEY_READ(notes)
+  ✗ BLOCK   evil-notes  claude-code    1 tool · score 0.00 · TOOL_DEF_EXFIL(save_note) TOOL_DEF_SECRET_REQUEST(save_note) THREAT_SSH_KEY_READ(save_note) THREAT_SEED_PHRASE(save_note)
   ! error   broken      claude-code    could not start: spawn /nonexistent/bin/server ENOENT
 
 3 servers: 1 allowed, 1 blocked, 1 not checked, 0 skipped.
