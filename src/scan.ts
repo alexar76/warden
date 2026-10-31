@@ -8,7 +8,7 @@ import { packageVersion } from './mcp-rpc.js';
 import { discoverServers, CLIENT_KINDS, type ClientKind, type ConfiguredServer, type DiscoveryEnv, type SourceResult } from './scan-config.js';
 import { fetchServer, McpClientError, type FetchedServer } from './mcp-client.js';
 import { mtlToolSetDigest, MtlError } from './mtl.js';
-import { historCheck, DEFAULT_HISTOR_URL, type HistorCheck, type PackageBehaviour } from './histor.js';
+import { historCheck, historUserAgent, DEFAULT_HISTOR_URL, type HistorCheck, type PackageBehaviour } from './histor.js';
 import { boundCapabilities, toxicFlows, type ToxicFlow } from './toxic-flow.js';
 import { inspectTools, ClassifierError, type ClassifierOptions, type ClassifierInspection } from './classifier.js';
 import { LockStore, readLock, writeLock, lockEntryFor, diffTools, LOCK_VERSION, type LockEntry, type LockFile, type ToolChange } from './scan-lock.js';
@@ -572,7 +572,7 @@ export async function runScan(opts: ScanOptions, deps: ScanDeps = {}): Promise<S
         try {
           const query = target.endpoint ? { endpoint: target.endpoint } : { package: target.package };
           const answer: HistorCheck = await historCheck(opts.historUrl, { ...query, ...(mtlDigest ? { toolSetDigest: mtlDigest } : {}) },
-            { fetchImpl: deps.historFetch, userAgent: `warden-scan/${version}` });
+            { fetchImpl: deps.historFetch, userAgent: historUserAgent(version) });
           const seenVersion = typeof answer.target?.packageVersion === 'string' ? displaySafe(answer.target.packageVersion, 64) : undefined;
           const targetId = typeof answer.target?.id === 'string' && /^[0-9a-f]{16}$/.test(answer.target.id) ? answer.target.id : undefined;
           // Only a declaration of this very set counts: the digest is compared here, not taken on HISTOR's word.

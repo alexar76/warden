@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- `--histor` marks a check that runs in CI in its User-Agent: `warden-scan/<version> (ci)`, or
+  `(ci; github-actions)` / `(ci; gitlab)`. A check in CI comes back with every build, and HISTOR can
+  now count that repeat; the marker never names the repository, runner or account.
+
 ## 0.22.2 — 2026-10-27
 
 - Reject unknown keys in `server_info` for MCP status and approval calls, matching the existing

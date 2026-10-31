@@ -8,6 +8,7 @@ import { toSarif, toMarkdown, toTable, mdCode, mdBlock } from '../src/scan-repor
 import { FilePinStore } from '../src/pin-store.js';
 import type { ConfiguredServer } from '../src/scan-config.js';
 import { mtlToolSetDigest } from '../src/mtl.js';
+import { historUserAgent } from '../src/histor.js';
 
 const fixture = fileURLToPath(new URL('./fixtures/wrap-server.mjs', import.meta.url));
 const dirs: string[] = [];
@@ -206,6 +207,14 @@ describe('scan: HISTOR, privacy first', () => {
     expect(s.keyed!.histor!.notSent).toMatch(/credential/);
     expect(s.pub!.findings.find(f => f.code === 'HISTOR_UNSEEN_TOOLSET')).toMatchObject({ advisory: true });
     expect(s.pub!.allow).toBe(true);
+  });
+
+  it('marks a check that runs in CI, and says nothing else about where it ran', () => {
+    expect(historUserAgent('1.2.3', {})).toBe('warden-scan/1.2.3');
+    expect(historUserAgent('1.2.3', { GITHUB_ACTIONS: 'true', CI: 'true', GITHUB_REPOSITORY: 'o/r' })).toBe('warden-scan/1.2.3 (ci; github-actions)');
+    expect(historUserAgent('1.2.3', { GITLAB_CI: 'true' })).toBe('warden-scan/1.2.3 (ci; gitlab)');
+    expect(historUserAgent('1.2.3', { CI: '1' })).toBe('warden-scan/1.2.3 (ci)');
+    expect(historUserAgent('1.2.3', { CI: 'false' })).toBe('warden-scan/1.2.3');
   });
 
   it('names a stdio server by its public npm/PyPI package and sends nothing else', async () => {

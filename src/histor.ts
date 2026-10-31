@@ -88,6 +88,19 @@ export interface HistorOptions {
 
 export class HistorError extends Error {}
 
+/**
+ * The User-Agent of a check. A check that runs in CI comes back on every build, and that repeat is what
+ * HISTOR's operators want to count; the marker says only that it ran in CI, never which repository,
+ * runner or account.
+ */
+export function historUserAgent(version: string, env: Record<string, string | undefined> = process.env): string {
+  const base = `warden-scan/${version}`;
+  if (env.GITHUB_ACTIONS === 'true') return `${base} (ci; github-actions)`;
+  if (env.GITLAB_CI === 'true') return `${base} (ci; gitlab)`;
+  const ci = (env.CI ?? '').trim().toLowerCase();
+  return ci && ci !== 'false' && ci !== '0' ? `${base} (ci)` : base;
+}
+
 /** POST /api/v1/check with endpoint/package/name + digest only. */
 export async function historCheck(base: string, query: HistorQuery, opts: HistorOptions = {}): Promise<HistorCheck> {
   const root = new URL(base);
