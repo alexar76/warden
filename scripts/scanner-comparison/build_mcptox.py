@@ -15,7 +15,7 @@ Split: servers are ordered by sha256("mcptox split 2026-10-09|" + server_name); 
 `dev` (rules may be written from it), the rest `test` (only reported). The split is by server, so
 no test server's tools are ever read while writing rules.
 """
-import hashlib, json, os, re, shutil, sys
+import hashlib, json, os, re, shutil, subprocess, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 src, out = os.path.abspath(sys.argv[1]), os.path.abspath(sys.argv[2])
@@ -25,7 +25,11 @@ node, replay = shutil.which('node'), os.path.join(HERE, 'replay.mjs')
 pure = json.load(open(os.path.join(src, 'pure_tool.json')))
 resp = json.load(open(os.path.join(src, 'response_all.json')))
 defs_path = os.path.join(out, 'mcptox-defs.json')
-os.system(f'python3 -I {os.path.join(HERE, "mcptox_parse_defs.py")} {os.path.join(src, "def_tool")} {defs_path} >/dev/null')
+subprocess.run(
+    [sys.executable, '-I', os.path.join(HERE, 'mcptox_parse_defs.py'),
+     os.path.join(src, 'def_tool'), defs_path],
+    check=True, stdout=subprocess.DEVNULL,
+)
 defs = json.load(open(defs_path))
 
 servers = sorted({c['server_name'] for e in pure for c in e.values()})

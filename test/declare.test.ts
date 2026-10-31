@@ -113,9 +113,12 @@ describe('declare: running it', () => {
     expect(await runDeclare(ref, down.deps)).toBe(1);
     expect(down.err.join('\n')).toMatch(/did not answer tools\/list: spawn npx ENOENT/);
 
-    const odd = harness({}, { fetch: async () => ({ tools: [{ name: 'x', inputSchema: { type: 'object', default: 1.5 } } as unknown as ToolDef] }) });
+    // MTL/1.1 digests a fraction; a tool with no name still has no digest.
+    const fraction = harness({}, { fetch: async () => ({ tools: [{ name: 'x', inputSchema: { type: 'object', default: 1.5 } } as unknown as ToolDef] }) });
+    expect(await runDeclare(ref, fraction.deps)).toBe(0);
+    const odd = harness({}, { fetch: async () => ({ tools: [{ inputSchema: { type: 'object' } } as unknown as ToolDef] }) });
     expect(await runDeclare(ref, odd.deps)).toBe(1);
-    expect(odd.err.join('\n')).toMatch(/no MTL\/1 digest/);
+    expect(odd.err.join('\n')).toMatch(/no MTL\/1 digest \(MTL-SUBJ-001\)/);
   });
 
   it('checks a published file the way HISTOR will read it', async () => {

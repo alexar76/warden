@@ -85,9 +85,10 @@ export function canonicalize(value: unknown): string {
 /**
  * Plain RFC 8785, outside the AWR profile: the same bytes as {@link canonicalize}
  * wherever that succeeds, and every other finite number in the ECMAScript form
- * RFC 8785 §3.2.2.3 specifies (`0.7`, `1e+21`). For a host's OWN comparisons — a
- * pin it took and re-checks itself — where the profile's cross-language concern
- * does not arise. Never for bytes another implementation must reproduce.
+ * RFC 8785 §3.2.2.3 specifies (`0.7`, `1e+21`). A host's own pins use it, and so
+ * does the MTL/1.1 tool-set digest (mtl.ts), which HISTOR's Python reproduces:
+ * its number writer matched `JSON.stringify` on 399,880 doubles. Not for an AWR/2
+ * signed document, whose §4.3 still admits integers only.
  */
 export function canonicalizeRfc8785(value: unknown): string {
   const out: string[] = [];

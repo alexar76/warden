@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- The MTL/1 tool-set digest `--histor` sends follows MTL/1.1: numbers are written as RFC 8785 doubles
+  (`canonicalizeRfc8785`), empty sets and repeated names are digested, so HISTOR answers for servers
+  whose schemas carry `0.5` or `1e-7` instead of reporting `MTL-NUM-001`. Integers-only sets keep their
+  digest; `test/fixtures/mtl-vectors.json` carries vectors produced by HISTOR's Python for each case.
 - `--histor` marks a check that runs in CI in its User-Agent: `warden-scan/<version> (ci)`, or
   `(ci; github-actions)` / `(ci; gitlab)`. A check in CI comes back with every build, and HISTOR can
   now count that repeat; the marker never names the repository, runner or account.
