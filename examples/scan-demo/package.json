@@ -1,0 +1,5 @@
+{
+  "name": "warden-scan-demo",
+  "private": true,
+  "description": "Three stdio servers for the README demo. Its own package.json keeps npx from treating the warden checkout above as @aimarket/warden and skipping the install."
+}

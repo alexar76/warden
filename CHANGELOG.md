@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.22.3 — 2026-11-01
 
 - The MTL/1 tool-set digest `--histor` sends follows MTL/1.1: numbers are written as RFC 8785 doubles
   (`canonicalizeRfc8785`), empty sets and repeated names are digested, so HISTOR answers for servers
@@ -9,6 +9,11 @@
 - `--histor` marks a check that runs in CI in its User-Agent: `warden-scan/<version> (ci)`, or
   `(ci; github-actions)` / `(ci; gitlab)`. A check in CI comes back with every build, and HISTOR can
   now count that repeat; the marker never names the repository, runner or account.
+- `warden-mcp --help` (also `-h`, `help`) lists the commands. Before, only `scan --help` and
+  `declare --help` existed, and `warden-mcp --help` answered with the wrap parser's one-line error.
+- Packaged docs link to public URLs. `security-hardening-language-boundary.md` and the 2026-10-25
+  model comparison pointed into monorepo paths (`../../momus/…`, `../../docs/evidence/…`), which
+  open nothing from npm or the GitHub mirror.
 
 ## 0.22.2 — 2026-10-27
 
