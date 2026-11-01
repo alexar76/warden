@@ -88,7 +88,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: alexar76/warden@v0.11.0
+      - uses: alexar76/warden@v0.21.0
         with:
           upload-sarif: 'true'
 ```

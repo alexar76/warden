@@ -25,7 +25,7 @@ Details: warden-mcp scan --json, or --markdown FILE. To review a changed server:
 
 That is the real output of 0.22.2 on [`examples/scan-demo/`](examples/scan-demo/): three tiny stdio servers, one of them poisoned. `cd examples/scan-demo && npx -y @aimarket/warden@0.22.2 scan --project` reproduces it with nothing installed. [Scan guide](docs/scan.md).
 
-Against four other open-source scanners on the same servers, each in a gVisor container with no network: on the held-out half of MCPTox (an AAAI 2026 benchmark; WARDEN's rules were written from the other half) WARDEN blocks 171 of 218 poisoned tools, the others 8 to 41. On 986 public servers it blocks 3 and on 14,933 npm and PyPI packages 369; mcp-shield blocks 343 and 5,354. [Method and every number](docs/scanner-comparison.md) · [scan guide](docs/scan.md).
+Against four other open-source scanners on the same servers, each in a gVisor container with no network: on the held-out half of MCPTox (an AAAI 2026 benchmark; WARDEN's rules were written from the other half) WARDEN blocks 171 of 218 poisoned tools, the others 8 to 41. On 986 public servers it blocks 3 and on 14,933 npm and PyPI packages 369; mcp-shield blocks 343 and 5,354. [Method and every number](docs/scanner-comparison.md) · [scan guide](docs/scan.md) · **[for teams: one policy, a lock per repository, weekly checks](docs/teams.md)**.
 <!-- /warden-try -->
 
 <!-- mcp-name: io.github.alexar76/warden -->

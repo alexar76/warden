@@ -1,0 +1,21 @@
+# In each repository: .github/workflows/mcp.yml. Runs when an MCP client config or the lock
+# changes, and weekly, so a server whose tools changed upstream is caught even when nobody
+# touched the repository.
+name: MCP servers
+
+on:
+  pull_request:
+    paths: ['.mcp.json', '.cursor/mcp.json', '.vscode/mcp.json', 'warden.lock.json']
+  push:
+    branches: [main]
+    paths: ['.mcp.json', '.cursor/mcp.json', '.vscode/mcp.json', 'warden.lock.json']
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+jobs:
+  warden:
+    uses: <org>/ci-policies/.github/workflows/mcp-servers.yml@main
+    permissions:
+      contents: read
+      security-events: write

@@ -1,0 +1,47 @@
+# One policy for every repository in an organization: put this file in a shared repository
+# (e.g. <org>/.github or <org>/ci-policies) and call it from each repository — see
+# ../../caller/mcp.yml. Changing the policy here changes it everywhere; each repository keeps
+# its own warden.lock.json, so a change in a server's tools is reviewed where it is used.
+name: MCP servers (WARDEN)
+
+on:
+  workflow_call:
+    inputs:
+      fail-on:
+        description: Severity that blocks a server (the organization's floor; a caller may only raise it).
+        type: string
+        default: high
+      histor:
+        description: Ask the public HISTOR log whether each remote server serves this runner what it serves everyone.
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  security-events: write   # SARIF to code scanning
+
+jobs:
+  warden:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - id: warden
+        # Pin the action to a commit SHA of alexar76/warden in your copy (a tag can move);
+        # `version` pins the npm package the action runs.
+        uses: alexar76/warden@v0.21.0
+        with:
+          version: 0.22.2
+          lock: warden.lock.json          # reviewed tool definitions; a change fails the check
+          launch-stdio: 'false'           # never start a program a pull request chose
+          public-only: 'true'             # refuse remote servers that resolve inside
+          fail-on: ${{ inputs.fail-on }}
+          histor: ${{ inputs.histor }}
+          sarif: warden.sarif
+          upload-sarif: 'true'
+      - name: Summary
+        if: always()
+        run: |
+          echo "### WARDEN: ${{ steps.warden.outputs.servers }} server(s), ${{ steps.warden.outputs.blocked }} blocked" >> "$GITHUB_STEP_SUMMARY"
