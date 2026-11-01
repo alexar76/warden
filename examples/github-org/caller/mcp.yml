@@ -19,3 +19,8 @@ jobs:
     permissions:
       contents: read
       security-events: write
+    # One allowlist for the organization instead of a lock per repository:
+    # with:
+    #   allowlist-repository: <org>/mcp-allowlist
+    # secrets:
+    #   allowlist-token: ${{ secrets.MCP_ALLOWLIST_TOKEN }}   # only if that repository is private

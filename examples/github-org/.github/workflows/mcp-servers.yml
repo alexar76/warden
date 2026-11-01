@@ -1,24 +1,38 @@
 # One policy for every repository in an organization: put this file in a shared repository
 # (e.g. <org>/.github or <org>/ci-policies) and call it from each repository — see
-# ../../caller/mcp.yml. Changing the policy here changes it everywhere; each repository keeps
-# its own warden.lock.json, so a change in a server's tools is reviewed where it is used.
+# ../../caller/mcp.yml. Changing the policy here changes it everywhere. Reviewed servers live
+# either in each repository's warden.lock.json (a change in a server's tools is reviewed where
+# it is used) or, with `allowlist-repository`, in one organization-wide allowlist.
 name: MCP servers (WARDEN)
 
 on:
   workflow_call:
     inputs:
       fail-on:
-        description: Severity that blocks a server (the organization's floor; a caller may only raise it).
+        description: Severity that blocks a server. A caller may make it stricter than FLOOR below, never laxer.
         type: string
         default: high
       histor:
         description: Ask the public HISTOR log whether each remote server serves this runner what it serves everyone.
         type: boolean
         default: true
+      allowlist-repository:
+        description: >-
+          "<org>/<repo>" holding mcp-allowlist.lock.json, one list of reviewed servers for the whole
+          organization. Empty (the default): each repository keeps its own warden.lock.json.
+        type: string
+        default: ''
+    secrets:
+      allowlist-token:
+        description: Read access to the allowlist repository when it is private (contents:read).
+        required: false
 
 permissions:
   contents: read
   security-events: write   # SARIF to code scanning
+
+env:
+  FLOOR: high              # the organization's floor: no repository blocks at a laxer severity
 
 jobs:
   warden:
@@ -28,19 +42,54 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+      - if: inputs.allowlist-repository != ''
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.allowlist-repository }}
+          token: ${{ secrets.allowlist-token || github.token }}
+          path: .warden-policy
+          sparse-checkout: mcp-allowlist.lock.json
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - id: policy
+        name: Organization policy
+        env:
+          FAIL_ON: ${{ inputs.fail-on }}
+          ALLOWLIST: ${{ inputs.allowlist-repository }}
+        run: |
+          rank() { case "$1" in info) echo 0;; low) echo 1;; medium) echo 2;; high) echo 3;; critical) echo 4;; *) echo 9;; esac; }
+          if (( $(rank "$FAIL_ON") > $(rank "$FLOOR") )); then
+            echo "::error title=WARDEN policy::fail-on '$FAIL_ON' is laxer than the organization's floor '$FLOOR'"
+            exit 1
+          fi
+          lock=warden.lock.json
+          [[ -n "$ALLOWLIST" ]] && lock=.warden-policy/mcp-allowlist.lock.json
+          configs=0
+          for f in .mcp.json .cursor/mcp.json .vscode/mcp.json; do [[ -f "$f" ]] && configs=$((configs + 1)); done
+          # The action skips the lock check when the file is absent; under this policy that is a failure,
+          # or a repository could opt out of review by never committing a lock.
+          if (( configs > 0 )) && [[ ! -f "$lock" ]]; then
+            if [[ -n "$ALLOWLIST" ]]; then
+              echo "::error title=WARDEN policy::mcp-allowlist.lock.json not found in $ALLOWLIST"
+            else
+              echo "::error title=WARDEN policy::warden.lock.json is missing, so no MCP server in this repository was reviewed. Create it: npx -y @aimarket/warden@0.22.2 scan --project --lock warden.lock.json --update-lock"
+            fi
+            exit 1
+          fi
+          echo "lock=$lock" >> "$GITHUB_OUTPUT"
       - id: warden
         # Pin the action to a commit SHA of alexar76/warden in your copy (a tag can move);
         # `version` pins the npm package the action runs.
         uses: alexar76/warden@v0.21.0
         with:
           version: 0.22.2
-          lock: warden.lock.json          # reviewed tool definitions; a change fails the check
+          lock: ${{ steps.policy.outputs.lock }}   # reviewed definitions; a change fails the check
           launch-stdio: 'false'           # never start a program a pull request chose
           public-only: 'true'             # refuse remote servers that resolve inside
           fail-on: ${{ inputs.fail-on }}
           histor: ${{ inputs.histor }}
           sarif: warden.sarif
-          upload-sarif: 'true'
+          upload-sarif: 'true'            # needs code scanning (GitHub Advanced Security on private repositories)
       - name: Summary
         if: always()
         run: |
