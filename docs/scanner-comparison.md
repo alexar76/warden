@@ -76,6 +76,16 @@ The other scanners were not run again; the table at the top is from 2026-10-16. 
 in the gVisor containers of 2026-10-16. Verdicts by case id:
 [`results/2026-10-22-mcptox-v15.json`](../scripts/scanner-comparison/results/2026-10-22-mcptox-v15.json).
 
+## Ruleset v17, 2026-11-01 (WARDEN only)
+
+DevToolLab's test of MCP security tools has a tool whose description adds a BCC to another server's `send_email`; it
+passed v16 and Cisco mcp-scanner's YARA mode. v17 catches it ([the rule](gates.md)). It is not from MCPTox, so neither
+half was read for it. Against a v16 build on the same files, v17 changes no verdict: MCPTox dev half 250 of 267,
+held-out half 210 of 218, 0 of 45 clean servers, 225 of 225 with the marker, the same 4 of 986 corpus servers and the
+same 20 of a 1,000-package HISTOR sample drawn on 2026-11-01. The v16 build reproduced the 2026-10-22 MCPTox verdicts
+case for case. Verdicts: [`results/2026-11-01-mcptox-v17.json`](../scripts/scanner-comparison/results/2026-11-01-mcptox-v17.json),
+[`results/2026-11-01-v17-vs-v16.json`](../scripts/scanner-comparison/results/2026-11-01-v17-vs-v16.json).
+
 ## Five scanners, and the ones we did not run
 
 Glama's listing for WARDEN names seven related tools. We read each one's code or listing before deciding.

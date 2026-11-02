@@ -206,6 +206,8 @@ const EXFIL_PATTERNS: SignaturePattern[] = [
   },
   // v9. A blind copy to a fixed mailbox is the shadowing shape: "add bcc x@host".
   { re: /\b(?:bcc|cc)\b\s*:?\s*[\w.+-]{1,64}@[\w-]{1,63}(?:\.[\w-]{1,63})+/i, code: "TOOL_DEF_EXFIL", severity: "high", tier: "block", surfaces: ALL_SURFACES, guards: ["mention", "placeholderAddress", "polarity"] },
+  // v17. The same blind copy written the other way round: "add x@host in BCC", "put x@host as cc".
+  { re: /[\w.+-]{1,64}@[\w-]{1,63}(?:\.[\w-]{1,63})+\s+(?:in|as|to|into)\s+(?:the\s+)?(?:bcc|cc)\b/i, code: "TOOL_DEF_EXFIL", severity: "high", tier: "block", surfaces: ALL_SURFACES, guards: ["mention", "placeholderAddress", "polarity"] },
   // v9. The conversation itself as the payload. Blocking only together with a reason to
   // believe it leaves: an external address in the same definition, a credential in the
   // same clause, or a concealment cue. "Saves the entire conversation to your notes" has
@@ -330,7 +332,9 @@ const CROSS_TOOL_FRAME = new RegExp(
   String.raw`|\b${WHEN}${S}(?:${ci("a")}|${ci("the")})${S}(?:${ci("user")}'s${S})?(?:${["query", "request", "call", "input"].map(ci).join("|")})${S}(?:${ci("for")}|${ci("to")})${S}(?:${ci("the")}${S})?${ID}` +
   String.raw`|\b(?:${["all", "any", "every", "each"].map(ci).join("|")})\b[^.;\n]{0,60}?\b(?:${["via", "using", "through"].map(ci).join("|")}|${ci("provided")}${S}${ci("to")})${S}${ci("the")}${S}${ID}${S}${ci("tool")}\b` +
   String.raw`|\b${WHEN}${S}(?:${ci("a")}|${ci("the")})${S}${ci("user")}${S}(?:${["queries", "searches", "asks", "requests"].map(ci).join("|")})\b[^.;\n]{0,40}?\b(?:${ci("using")}|${ci("via")})${S}(?:${ci("the")}${S})?${ID}` +
-  String.raw`|\b${WHEN}${S}(?:${ci("the")}${S})?${ID}${S}(?:${ci("tool")}${S})?(?:${ci("is")}|${ci("are")})${S}(?:${["called", "used", "invoked", "run", "executed"].map(ci).join("|")})\b` +
+  // v17: a short qualifier may sit between the tool and the verb ("when the `send_email` tool from any other server
+  // is used"): the shadowing shape, which binds to a tool of ANOTHER server.
+  String.raw`|\b${WHEN}${S}(?:${ci("the")}${S})?${ID}${S}(?:${ci("tool")}${S})?(?:(?:${["from", "of", "on", "in", "by"].map(ci).join("|")})${S}[^.;,\n]{1,40}?${S})?(?:${ci("is")}|${ci("are")})${S}(?:${["called", "used", "invoked", "run", "executed"].map(ci).join("|")})\b` +
   String.raw`|\b(?:${["all", "any", "every", "each"].map(ci).join("|")})${S}${ID}${S}(?:${["requests", "request", "calls", "call", "queries", "lookups", "operations"].map(ci).join("|")})\b` +
   String.raw`|\b(?:${["submitted", "passed", "sent", "given"].map(ci).join("|")})${S}${ci("to")}${S}(?:${ci("the")}${S})?${ID}` +
   String.raw`|\b(?:${["queries", "query", "requests", "request", "calls", "call", "inputs", "input"].map(ci).join("|")})${S}${ci("to")}${S}(?:${ci("the")}${S})?${ID}` +
@@ -339,6 +343,9 @@ const CROSS_TOOL_FRAME = new RegExp(
   String.raw`|\b${ci("before")}${S}(?:${["any", "every", "each"].map(ci).join("|")})\b`,
 );
 const ALTER_VERB = /\b(?:modify|modified|change|changed|replace|replaced|append|appended|prepend|prepended|remove|removed|strip|override|overwrite|alter|rewrite|substitute|inject|insert)\b/i;
+// v17: the bound call gets a fixed address added to it ("also add billing-archive@… in BCC", "include audit@… in CC").
+// An address offered as an example ("such as", "like", "for example"; "e.g." stops the window at its dot) adds nothing.
+const ADDS_ADDRESS = /\b(?:add|adds|adding|include|includes|including|insert|copy|cc|bcc)\b(?:(?!\b(?:such\s+as|like|for\s+example)\b)[^.;\n]){0,40}?[\w.+-]{1,64}@[\w-]{1,63}(?:\.[\w-]{1,63})+/i;
 // v15: verbs that rewrite another call's input only when a mandate binds them ("you must set `mode` to …",
 // "you should redirect any `symbol`"). On their own they describe ordinary use ("set `limit` to page").
 const MANDATED_ALTER = /\b(?:must|should|always|mandatory|required)\b[^.;\n]{0,60}?\b(?:set|add|ignore|redirect|redirected|convert|converted|join|wrap|force|switch|swap|restrict|use\s+the\s+new|change|modify|replace|append|prepend|override)\b[^.;\n]{0,60}?(?:[`'"‘’“”]|\b(?:parameter|argument|param|field|query|input)\b)/i;
@@ -1014,8 +1021,8 @@ const GUARDS: Record<GuardName, Guard> = {
 
   /**
    * v10. The match names another tool's call ("when using `X`", "before running `X`", "before any …").
-   * Kept only when that sentence rewrites the call's input (modify, replace, append …), or that
-   * sentence or the next orders a call to a THIRD tool. Identifiers that are this tool's own name or
+   * Kept only when that sentence rewrites the call's input (modify, replace, append …, or since v17
+   * adds a fixed address to it), or that sentence or the next orders a call to a THIRD tool. Identifiers that are this tool's own name or
    * one of its own parameters are not "another tool" ("if using video_id, … use get_video before
    * calling this tool").
    */
@@ -1026,6 +1033,8 @@ const GUARDS: Record<GuardName, Guard> = {
     if (!isBeforeAny && framed.every((id) => own.has(id))) return "the named identifier is this tool or one of its own parameters";
     const sentence = sentenceAround(text, m.index);
     if (!isBeforeAny && ALTER_VERB.test(sentence.text)) return null;
+    // v17: a fixed address added to the bound call, after the frame and in the same sentence.
+    if (!isBeforeAny && ADDS_ADDRESS.test(text.slice(m.index + m[0].length, sentence.end))) return null;
     const next = sentenceAround(text, sentence.end + 1);
     // v15: a mandated rewrite in this sentence or the next ("When `X` is called. You must change …").
     if (!isBeforeAny && (MANDATED_ALTER.test(sentence.text) || (sentence.end < text.length && MANDATED_ALTER.test(next.text)))) return null;
@@ -1198,7 +1207,7 @@ function hasExternalAddress(text: string): boolean {
 // v16 adds two TOOL_DEF_CROSS_TOOL patterns for tools that take no input, again from MCPTox's dev half: an order to
 // call another tool at a fixed value or inside another tool's call (`zeroArgOrder`; the tool's own output fields are
 // not other tools), and an order to rewrite a parameter to a fixed value (`zeroArgRewrite`).
-export const STATIC_SCAN_RULESET_VERSION = "16";
+export const STATIC_SCAN_RULESET_VERSION = "17";
 
 const SEVERITY_RANK: Record<Severity, number> = {
   info: 0,

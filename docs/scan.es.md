@@ -7,11 +7,11 @@ Las llamadas de descubrimiento pueden generar cargos; consulte los [límites de 
 `warden-mcp scan` lee la configuración MCP que ya tienes, se conecta a cada servidor que inicia y revisa las definiciones de herramientas antes de que un modelo las vea. Es la misma cadena de compuertas que [`wrap`](../README-es.md) y la [biblioteca](integration.es.md), ejecutada una vez sobre tus configuraciones en lugar de delante de un solo servidor.
 
 ```bash
-npx -y @aimarket/warden@0.22.3 scan
+npx -y @aimarket/warden@0.22.4 scan
 ```
 
 ```text
-WARDEN scan 0.22.3 · ruleset 16 sha256-86y6iNc4R+LM… · block at high
+WARDEN scan 0.22.4 · ruleset 17 sha256-UOfK25xo6D8v… · block at high
   read .mcp.json (claude-code, 3 servers)
 
   ✓ allow   notes       claude-code    1 tool · score 0.90

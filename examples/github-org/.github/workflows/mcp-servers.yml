@@ -72,7 +72,7 @@ jobs:
             if [[ -n "$ALLOWLIST" ]]; then
               echo "::error title=WARDEN policy::mcp-allowlist.lock.json not found in $ALLOWLIST"
             else
-              echo "::error title=WARDEN policy::warden.lock.json is missing, so no MCP server in this repository was reviewed. Create it: npx -y @aimarket/warden@0.22.3 scan --project --lock warden.lock.json --update-lock"
+              echo "::error title=WARDEN policy::warden.lock.json is missing, so no MCP server in this repository was reviewed. Create it: npx -y @aimarket/warden@0.22.4 scan --project --lock warden.lock.json --update-lock"
             fi
             exit 1
           fi
@@ -82,7 +82,7 @@ jobs:
         # `version` pins the npm package the action runs.
         uses: alexar76/warden@v0.21.0
         with:
-          version: 0.22.3
+          version: 0.22.4
           lock: ${{ steps.policy.outputs.lock }}   # reviewed definitions; a change fails the check
           launch-stdio: 'false'           # never start a program a pull request chose
           public-only: 'true'             # refuse remote servers that resolve inside
