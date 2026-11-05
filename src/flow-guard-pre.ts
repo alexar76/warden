@@ -14,7 +14,7 @@ import { checkLeak, checkStream, readFp, readStores } from './flow-guard-leak.js
 import type { FpStores } from './flow-guard-leak.js';
 import { log, readFlowState, safeToolName, updateFlowState } from './flow-guard-state.js';
 
-type FlowReason = 'protected_settings' | 'secret' | 'opaque_shell' | 'personal_data' | 'private_text' | 'unnamed_destination' | 'destructive_action' | 'secret_to_file' | 'paste_after_secret' | 'screen_action' | 'secret_tracking' | 'secret_fragment' | 'credential_egress' | 'payload_incomplete';
+export type FlowReason = 'protected_settings' | 'secret' | 'opaque_shell' | 'personal_data' | 'private_text' | 'unnamed_destination' | 'destructive_action' | 'secret_to_file' | 'paste_after_secret' | 'screen_action' | 'secret_tracking' | 'secret_fragment' | 'credential_egress' | 'payload_incomplete';
 const MAX_TAIL_KEYS = 32;
 
 /** Tainted by MCP definitions: a server the session-start scan blocked or could not check still put its text in the context. */
@@ -92,7 +92,11 @@ function reservePublicRequest(paths: ReturnType<typeof flowPaths>, tool: string,
   return grant;
 }
 
-export function flowPre(input: Record<string, unknown>, env: NodeJS.ProcessEnv = process.env, presentation: FlowPresentation = 'hook'): FlowDecision | undefined {
+/** What `flowPre` decided and why, for an adapter that must resolve an `ask` without a person (the OpenCode plugin).
+ *  Filled only when a decision is returned; the decision itself, and the hook output built from it, are unchanged. */
+export interface FlowPreDetail { reason?: FlowReason; sensitive?: boolean }
+
+export function flowPre(input: Record<string, unknown>, env: NodeJS.ProcessEnv = process.env, presentation: FlowPresentation = 'hook', detail?: FlowPreDetail): FlowDecision | undefined {
   const policy = loadPolicy(env);
   if (policy.mode === 'off') return undefined;
   const toolName = typeof input.tool_name === 'string' ? input.tool_name : '';
@@ -260,6 +264,7 @@ export function flowPre(input: Record<string, unknown>, env: NodeJS.ProcessEnv =
       targets = targets.startsWith('not identified') ? note : `${note}; ${targets}`;
     }
     decision.permissionDecisionReason = `Action: ${safeToolName(toolName)}. Targets: ${targets}.\n${decision.permissionDecisionReason}`;
+    if (detail) { detail.reason = reason; detail.sensitive = sensitivePayload; }
     // These are guard decisions, not proof a dialog was shown or a human clicked it. Never infer
     // approval from PostToolUse: execution can also follow automatic client permissions.
     const disposition = policy.mode === 'audit' || presentation === 'audit' ? 'audit_only'

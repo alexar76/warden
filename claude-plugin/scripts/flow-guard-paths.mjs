@@ -40,7 +40,7 @@ export function inside(child, parent) {
     const p = parent.endsWith(sep) ? parent : parent + sep;
     return child === parent || child.startsWith(p);
 }
-const SECRET_PATH = /(^|\/)(\.ssh|\.aws|\.gnupg|\.kube|\.docker|\.config\/gh|\.config\/gcloud|\.azure|\.password-store|keychains?)(\/|$)|(^|\/)(\.netrc|\.npmrc|\.pypirc|\.git-credentials|\.pgpass|id_(rsa|dsa|ecdsa|ed25519)[^/]*|[^/]*\.(pem|key|p12|pfx|kdbx|keystore|jks)|\.env(\.[^/]*)?|credentials?(\.[^/]*)?|secrets?(\.[^/]*)?)$/i;
+const SECRET_PATH = /(^|\/)(\.ssh|\.aws|\.gnupg|\.kube|\.docker|\.config\/gh|\.config\/gcloud|\.azure|\.password-store|keychains?)(\/|$)|(^|\/)(\.netrc|\.npmrc|\.pypirc|\.git-credentials|\.pgpass|id_(rsa|dsa|ecdsa|ed25519)[^/]*|[^/]*\.(pem|key|p12|pfx|kdbx|keystore|jks)|\.env(\.[^/]*)?|credentials?(\.[^/]*)?|secrets?(\.[^/]*)?)$|(^|\/)\.local\/share\/opencode\/auth\.json$|(^|\/)\.multica\/config\.json$/i;
 export function isSecretPath(path) {
     return SECRET_PATH.test(path.replace(/\\/g, '/'));
 }
@@ -64,6 +64,9 @@ export function isProtectedPath(path, cwd, env = process.env) {
         if (inside(p, homePlugins) || /(^|\/)\.claude\/hooks(\/|$)/.test(p))
             return true;
         if (/(^|\/)\.git\/(?:config$|hooks(?:\/|$))/.test(p))
+            return true;
+        // OpenCode: its config and plugin folders load (or drop) the guard itself, globally and per project.
+        if (/(^|\/)\.config\/opencode(\/|$)/.test(p) || /(^|\/)\.opencode(\/|$)/.test(p) || /(^|\/)opencode\.jsonc?$/.test(p))
             return true;
         if (/(^|\/)warden\.lock\.json$/.test(p) && inside(p, cwd.replace(/\\/g, '/')))
             return true;

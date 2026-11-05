@@ -39,7 +39,7 @@ export { hostsIn } from './flow-guard-text.mjs';
 export { classifyShell, classifyCall, resultTaints } from './flow-guard-classify.mjs';
 export { screenFromResult, screenCall, screenObservation, screenTargetEvidence, screenTargetStamp, screenResponseEvidence, screenResponseStamp, screenSecretRead } from './flow-guard-screen.mjs';
 export { destinations, keepsDestination, resolvedContacts, namedByUser } from './flow-guard-destinations.mjs';
-export { normalizeText, fingerprints, piiTokens, secretPattern, secretValues, secretTokens, tokenFingerprints, tokenWindows } from './flow-guard-fingerprints.mjs';
+export { normalizeText, fingerprints, withoutRecordIds, piiTokens, secretPattern, secretValues, secretTokens, tokenFingerprints, tokenWindows } from './flow-guard-fingerprints.mjs';
 export { spelledCandidates, characterCodeCandidates, natoCandidates, scanCandidates, candidates } from './flow-guard-decode.mjs';
 export { fragmentFingerprints, checkFragments } from './flow-guard-fragments.mjs';
 export { checkLeak, checkStream } from './flow-guard-leak.mjs';

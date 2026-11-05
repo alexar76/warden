@@ -8,7 +8,7 @@ import { classifyCall, resultTaints } from './flow-guard-classify.js';
 import { instructionSignals } from './flow-guard-instructions.js';
 import { MAX_SCREENS, screenCall, screenFromResult, screenSecretRead, screenServer } from './flow-guard-screen.js';
 import { MAX_RESOLVED, resolvedContacts } from './flow-guard-destinations.js';
-import { alnum, fingerprints, fpHash, piiTokens, secretValues, tokenFingerprints } from './flow-guard-fingerprints.js';
+import { alnum, fingerprints, fpHash, piiTokens, secretValues, tokenFingerprints, withoutRecordIds } from './flow-guard-fingerprints.js';
 import { MAX_FRAGMENT_INDEX, fragmentFingerprints, fragmentKey } from './flow-guard-fragments.js';
 import { readFp } from './flow-guard-leak.js';
 import { EMPTY, appendFp, log, updateFlowState, warningSourceId } from './flow-guard-state.js';
@@ -57,7 +57,7 @@ export function flowPost(input: Record<string, unknown>, env: NodeJS.ProcessEnv 
     if (t.private && text) {
       // Fingerprints and fragment metadata are committed under the same lock as outbound observations.
       const legacy = s.fragments?.v === 1 || !s.fragments && readFp(paths.tok).size > 0;
-      stored = appendFp(c.secret ? paths.secret : paths.fp, fingerprints(text));
+      stored = appendFp(c.secret ? paths.secret : paths.fp, fingerprints(c.secret ? text : withoutRecordIds(text)));
       appendFp(paths.pii, piiTokens(text).map(fpHash));
       appendFp(paths.tok, tokenFingerprints(tokens));
       const f = s.fragments ?? { v: 2 as const, index: [], seen: [] };

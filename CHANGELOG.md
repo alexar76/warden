@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.23.0 — 2026-11-04 (OpenCode flow guard)
+
+- **Flow guard for OpenCode** (`@aimarket/warden/opencode`, [docs/opencode.md](docs/opencode.md)): the Claude Code
+  flow guard through OpenCode's plugin hooks (`tool.execute.before/after`, `chat.message`, `shell.env`), for agents
+  that run unattended. `block: "data"` (default) refuses every call that involves data or a sensitive payload and
+  lets action-only calls run with a log line; `block: "all"` refuses everything the Claude hook would ask about.
+  `shell.env` blanks listed keys for shell commands. Red-team replay (`flow-redteam.mjs --opencode=MODE`): `all`
+  0 of 28, `data` 3 of 28 (three action-only attacks, listed in the doc); the Claude Code gate stays 0 of 28.
+- Subagents share the guard: OpenCode runs a `task` in a child session, and the adapter keys the flow state by the
+  root of the session tree (parents from `session.created`/`session.updated`, else the SDK client), so an injected
+  parent cannot hand the read-and-send to a fresh, untainted child; a child's prompt is not recorded as the user's
+  words. A result that cannot be recorded refuses the rest of that tree. Path classification uses the session's
+  directory, not the model's `workdir`.
+- `flowPre` takes an optional fourth argument that receives the decision's reason and whether its payload is
+  sensitive. The hook output is unchanged.
+- A canonical UUID is a record id, not personal data: `piiTokens` skips it, and private-text fingerprints drop
+  UUIDs except on a line that names a credential (`withoutRecordIds`). An agent passing back the issue id it read
+  had its report refused (found in a live Multica run); a UUID-shaped key read from an ordinary file still is.
+- Secret formats: Telegram bot tokens and AIMarket hub API keys (`aimk_…`). Secret paths: OpenCode's
+  `~/.local/share/opencode/auth.json`, Multica's `~/.multica/config.json`. Protected paths: `~/.config/opencode/`,
+  `.opencode/`, `opencode.json(c)`.
+
 ## 0.22.4 — 2026-11-01 (ruleset v17)
 
 - `TOOL_DEF_CROSS_TOOL` catches a tool that adds a fixed address to another server's tool. DevToolLab's

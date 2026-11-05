@@ -2,7 +2,7 @@
 
 > 🌐 **English** · [Русский](gates.ru.md) · [Español](gates.es.md) · [Français](gates.fr.md) · [中文](gates.zh.md)
 
-**Ruleset v17 (0.22.4):** v17 catches a tool that adds a fixed recipient to another server's tool, a case from outside MCPTox (see v17 below). v15 widened `TOOL_DEF_CROSS_TOOL` and v16 added two patterns for tools that take no input, both written from MCPTox's dev half and measured on 2026-10-22 on MCPTox, the field corpus and 1,000 HISTOR packages (see v15 and v16 below). v14 stopped treating storage on a server as local custody. Numbers quoted for earlier versions are historical.
+**Ruleset v17 (0.23.0):** v17 catches a tool that adds a fixed recipient to another server's tool, a case from outside MCPTox (see v17 below). v15 widened `TOOL_DEF_CROSS_TOOL` and v16 added two patterns for tools that take no input, both written from MCPTox's dev half and measured on 2026-10-22 on MCPTox, the field corpus and 1,000 HISTOR packages (see v15 and v16 below). v14 stopped treating storage on a server as local custody. Numbers quoted for earlier versions are historical.
 
 > [0.7.0 security changes and migration](security-hardening.md).
 

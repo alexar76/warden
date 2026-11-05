@@ -4,7 +4,7 @@
 
 **Do not open a public GitHub issue** for a firewall bypass, ruleset bypass, or signature-check failure.
 
-Email **alexar76@rambler.ru**. We aim to acknowledge within 72 hours. Coordinated disclosure: up to 90 days to ship a fix before a public write-up. Credit on request.
+Email **qwezzy721@gmail.com**. We aim to acknowledge within 72 hours. Coordinated disclosure: up to 90 days to ship a fix before a public write-up. Credit on request.
 
 ## What this project is
 

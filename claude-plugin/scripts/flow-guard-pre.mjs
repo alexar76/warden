@@ -119,7 +119,7 @@ function reservePublicRequest(paths, tool, input, checked, policy, env) {
     });
     return grant;
 }
-export function flowPre(input, env = process.env, presentation = 'hook') {
+export function flowPre(input, env = process.env, presentation = 'hook', detail) {
     const policy = loadPolicy(env);
     if (policy.mode === 'off')
         return undefined;
@@ -310,6 +310,10 @@ export function flowPre(input, env = process.env, presentation = 'hook') {
             targets = targets.startsWith('not identified') ? note : `${note}; ${targets}`;
         }
         decision.permissionDecisionReason = `Action: ${safeToolName(toolName)}. Targets: ${targets}.\n${decision.permissionDecisionReason}`;
+        if (detail) {
+            detail.reason = reason;
+            detail.sensitive = sensitivePayload;
+        }
         // These are guard decisions, not proof a dialog was shown or a human clicked it. Never infer
         // approval from PostToolUse: execution can also follow automatic client permissions.
         const disposition = policy.mode === 'audit' || presentation === 'audit' ? 'audit_only'

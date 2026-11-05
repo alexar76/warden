@@ -25,6 +25,16 @@ export function fpHash(window: string): string {
   return createHash('sha256').update(window).digest('hex').slice(0, 12);
 }
 
+// A line that names a credential keeps its UUIDs: some services issue UUID-shaped keys (HEROKU_API_KEY=…, "api_key": …).
+const CREDENTIAL_WORD = /key|token|secret|passw|auth|credential|bearer|session|cookie/i;
+const UUID_RUN = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi;
+/** Private text without the record identifiers it mentions. An agent reads an issue, task or request id in a command's
+ *  output and passes it back to the same tool; fingerprinting the id made that call a private-text leak. UUIDs on a
+ *  line that names a credential stay. Credential files are fingerprinted whole (the caller passes their text as is). */
+export function withoutRecordIds(text: string): string {
+  return text.split('\n').map(line => CREDENTIAL_WORD.test(line) ? line : line.replace(UUID_RUN, ' ')).join('\n');
+}
+
 /** Windows of the private text at every STRIDE-th position: any leaked run of WINDOW+STRIDE-1 normalized chars hits one. */
 export function fingerprints(text: string): string[] {
   const n = normalizeText(text.slice(0, MAX_TEXT));
@@ -41,6 +51,9 @@ export function fingerprints(text: string): string[] {
 // Words are split on whitespace; consecutive words that carry digits ("DE89 3704 0044", "+1 (555) 123-4567")
 // join into one value, and a word without digits ends it.
 const DATE_LIKE = /^(19|20)\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])\d{0,6}$/;
+// A canonical UUID is a record identifier (an issue, a task, a request), never a card, account or phone number. Agents
+// read one in a command's output and pass it back to the same tool; counting it as personal data refused that call.
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export function piiTokens(text: string): string[] {
   const out = new Set<string>();
   const flush = (group: string[]) => {
@@ -53,7 +66,7 @@ export function piiTokens(text: string): string[] {
   let group: string[] = [];
   for (const word of text.slice(0, MAX_TEXT).split(/\s+/)) {
     const bare = word.replace(/^[^A-Za-z0-9+(]+|[^A-Za-z0-9)]+$/g, '');
-    if (/\d/.test(bare) && /^[A-Za-z0-9+()./-]+$/.test(bare)) { group.push(bare); continue; }
+    if (/\d/.test(bare) && /^[A-Za-z0-9+()./-]+$/.test(bare) && !UUID.test(bare)) { group.push(bare); continue; }
     if (group.length) { flush(group); group = []; }
   }
   if (group.length) flush(group);
@@ -69,6 +82,10 @@ const SECRET_PATTERNS: Array<[string, RegExp]> = [
   ['npm token', /\bnpm_[A-Za-z0-9]{36}\b/],
   ['API key', /\bsk-(ant-)?[A-Za-z0-9_-]{20,}/],
   ['Google API key', /\bAIza[0-9A-Za-z_-]{35}\b/],
+  // Agents report through chat bots: <bot id>:<35 characters>, the secret part always starts with AA.
+  ['Telegram bot token', /\b\d{8,10}:AA[A-Za-z0-9_-]{33}\b/],
+  // AIMarket hub credit-account key (prefix + 24 random bytes, base64url): it spends the account's balance.
+  ['AIMarket API key', /\baimk_[A-Za-z0-9_-]{32}(?![A-Za-z0-9_-])/],
 ];
 
 export function secretPattern(texts: readonly string[]): string | undefined {

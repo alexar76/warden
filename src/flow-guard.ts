@@ -41,13 +41,14 @@ export { classifyShell, classifyCall, resultTaints } from './flow-guard-classify
 export type { ScreenView, ScreenCall } from './flow-guard-screen.js';
 export { screenFromResult, screenCall, screenObservation, screenTargetEvidence, screenTargetStamp, screenResponseEvidence, screenResponseStamp, screenSecretRead } from './flow-guard-screen.js';
 export { destinations, keepsDestination, resolvedContacts, namedByUser } from './flow-guard-destinations.js';
-export { normalizeText, fingerprints, piiTokens, secretPattern, secretValues, secretTokens, tokenFingerprints, tokenWindows } from './flow-guard-fingerprints.js';
+export { normalizeText, fingerprints, withoutRecordIds, piiTokens, secretPattern, secretValues, secretTokens, tokenFingerprints, tokenWindows } from './flow-guard-fingerprints.js';
 export { spelledCandidates, characterCodeCandidates, natoCandidates, scanCandidates, candidates } from './flow-guard-decode.js';
 export { fragmentFingerprints, checkFragments } from './flow-guard-fragments.js';
 export type { LeakCheck } from './flow-guard-leak.js';
 export { checkLeak, checkStream } from './flow-guard-leak.js';
 export { readFlowState, updateFlowState, flowStateExists } from './flow-guard-state.js';
 export { flowPre, flowApproval, flowScreenValidation } from './flow-guard-pre.js';
+export type { FlowPreDetail, FlowReason } from './flow-guard-pre.js';
 export type { FlowPostOutput } from './flow-guard-post.js';
 export { flowPost } from './flow-guard-post.js';
 export type { FlowStopOutput } from './flow-guard-answer.js';

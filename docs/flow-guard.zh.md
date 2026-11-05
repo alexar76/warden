@@ -311,7 +311,7 @@ Wrap 提问前读取基线，批准后重新验证工具定义并再次读取。
 - 只改变回答的注入不会发出可拒绝的调用。自 2026-10-22 起，插件的 Stop 钩子会在本轮读过外部文本的回答下方加一行，列出这些来源；若其中有文本以指令口吻对助手说话，也会注明。如果回答连续重复了外部文本中对助手下指令那几句话里的 12 个规范化字符，钩子还会把回答退回给模型一次（`decision: block`），在用户读到之前对照用户的请求检查；用户只损失这次检查的时间。`answerNote`：`always`（默认）、`instruction`（只在这种情况下）或 `off`；插件之外请注册 `warden-mcp hook stop`。
 - 代理也记录 JSON-RPC 和工具错误；记录失败时不转发响应，现有会话状态损坏时阻止检查中的调用。
 
-已在 npm `0.17.0` 发布：`npx -y @aimarket/warden@0.22.4 hook pre-tool-use`；或从源码在 WARDEN 目录运行 `npm ci && npm run build`，然后使用 `node dist/mcp-server.js hook pre-tool-use`，并注册 prompt/post hooks。策略为 `~/.local/state/warden/flow-policy.json` 或 `WARDEN_FLOW_POLICY`；模式为 `ask`、`deny`、`audit`、`off`。当前配置示例见[英文页](flow-guard.md)。
+已在 npm `0.17.0` 发布：`npx -y @aimarket/warden@0.23.0 hook pre-tool-use`；或从源码在 WARDEN 目录运行 `npm ci && npm run build`，然后使用 `node dist/mcp-server.js hook pre-tool-use`，并注册 prompt/post hooks。策略为 `~/.local/state/warden/flow-policy.json` 或 `WARDEN_FLOW_POLICY`；模式为 `ask`、`deny`、`audit`、`off`。当前配置示例见[英文页](flow-guard.md)。
 
 代理命令：`node dist/mcp-server.js wrap --flow mail -- node mail-server.js`。同一会话的代理应共享一个新的 `WARDEN_FLOW_SESSION`。默认父进程 PID 不能关联不同启动器。代理看不到用户提示或客户端内置工具。需要确认的调用会在客户端提供 MCP elicitation 表单时通过表单询问（回答记入日志的 `approvalOutcome`），否则或使用 `--ask refuse` 时被拒绝。`trustedSources` 仅用于 WebFetch URL，不用于 MCP 参数中的任意链接。
 

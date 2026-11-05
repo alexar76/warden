@@ -1,6 +1,6 @@
 {
   "name": "@aimarket/warden",
-  "version": "0.22.4",
+  "version": "0.23.0",
   "description": "WARDEN — MCP security firewall. Stdio wrap proxy, inspection tools and library. Vets definitions before model exposure. Zero runtime dependencies.",
   "type": "module",
   "license": "MIT",
@@ -34,6 +34,11 @@
       "types": "./dist/atomic-screen.d.ts",
       "import": "./dist/atomic-screen.js",
       "default": "./dist/atomic-screen.js"
+    },
+    "./opencode": {
+      "types": "./dist/opencode-plugin.d.ts",
+      "import": "./dist/opencode-plugin.js",
+      "default": "./dist/opencode-plugin.js"
     }
   },
   "files": [
@@ -51,11 +56,13 @@
     "docs/security-hardening*.md",
     "docs/gates*.md",
     "docs/flow-guard*.md",
+    "docs/opencode*.md",
     "examples/atomic-screen-server.mjs",
     "examples/answer-gate-host.mjs",
     "native/macos/Package.swift",
     "native/macos/Sources",
-    "scripts/build-macos.mjs"
+    "scripts/build-macos.mjs",
+    "opencode-plugin/warden.js"
   ],
   "engines": {
     "node": ">=20"
