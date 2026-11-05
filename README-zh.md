@@ -48,7 +48,7 @@ WARDEN scan 0.22.4 · ruleset 17 sha256-UOfK25xo6D8v… · block at high
 Details: warden-mcp scan --json, or --markdown FILE. To review a changed server: warden-mcp scan --lock warden.lock.json --update-lock.
 ```
 
-与另外四款开源扫描器在同一批服务器上对比，每款都在无网络的 gVisor 容器中运行：在 MCPTox（AAAI 2026 基准）的留出一半上（WARDEN 的规则只依据另一半编写），WARDEN 阻止了 218 个投毒工具中的 171 个，其余扫描器阻止 8 到 41 个。在 986 台公开服务器上 WARDEN 阻止 3 台，在 14,933 个 npm 和 PyPI 包上阻止 369 个；mcp-shield 分别阻止 343 台和 5,354 个。[方法与全部数字](docs/scanner-comparison.zh.md) · [scan 指南](docs/scan.zh.md)。
+与另外四款开源扫描器在同一批服务器上对比，每款都在无网络的 gVisor 容器中运行：在 MCPTox（AAAI 2026 基准）的留出一半上（WARDEN 的规则只依据另一半编写），按该次对比时的规则（v12），WARDEN 阻止了 218 个投毒工具中的 171 个，自 ruleset v16 起阻止 210 个；其余扫描器阻止 8 到 41 个。在 986 台公开服务器上 WARDEN 阻止 3 台，在 14,933 个 npm 和 PyPI 包上阻止 369 个；mcp-shield 分别阻止 343 台和 5,354 个。[方法与全部数字](docs/scanner-comparison.zh.md) · [scan 指南](docs/scan.zh.md)。
 <!-- /warden-try -->
 
 **流守卫（2026-10-23 本地源码）。** 读取凭据和外部文本后，传出／MCP 调用及普通项目写入均需审核，即使片段极短或编码未知。操作员检查过的精确公开请求可每会话自动执行一次，但不能豁免已识别泄露或不完整扫描。测试中两种配置均自动放行 0/16 攻击；正常请求默认确认 12/12，精确规则下 0/12。这是明确的可用性取舍，不是万能解码器。同一旧案例集仍为 0/23 完整通过。生产和 npm 未更改。[策略、测试与边界](docs/flow-guard.zh.md)。
