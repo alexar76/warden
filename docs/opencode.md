@@ -90,7 +90,29 @@ Environment overrides: `WARDEN_OPENCODE_BLOCK=data|all`, `WARDEN_OPENCODE_STRIP_
 and log live in the usual state directory (`WARDEN_STATE_DIR`, default `~/.local/state/warden`); the policy file is
 the same `flow-policy.json` as for Claude Code.
 
-## In a live Multica runtime (2026-11-04)
+### Where to put it when agents share a runtime
+
+`~/.config/opencode/plugin/` is fine for one person's OpenCode. It is not enough when unattended agents run as that
+same user, as on a Multica daemon. The files can be owned by root, but if any folder above them belongs to the agent
+user, an agent can rename that folder with the guard inside, and later sessions start without it. We found exactly
+this on our own daemon on 2026-11-05. The agent user could not change a guard file, but `mv` of the folder worked.
+
+Keep the guard in a folder where nothing on its path belongs to the agent user. Point OpenCode at it with
+`OPENCODE_CONFIG_DIR`; OpenCode 1.18.32 loads `plugin/` from that folder for every session. Mount it **writable**,
+owned by root: OpenCode writes a `.gitignore` into each config folder at start. On a read-only mount it stops with
+`FileSystem.writeFile`, while a folder it may not write is skipped. Example for a Multica daemon:
+- the folder: `opencode-guard/plugin/warden.js` (the loader) and `opencode-guard/warden/` (`opencode-plugin.js`
+  and the 19 `flow-guard*.js` files from this package's `dist/`), all root:root, folders 755, files 644;
+- in the daemon's compose service: `OPENCODE_CONFIG_DIR: /opt/opencode-guard` and the volume
+  `./opencode-guard:/opt/opencode-guard`;
+- move any older copy out of `~/.config/opencode/plugin`, or the guard loads twice.
+
+The full example, with install commands, the compose lines and four checks, is in aicom's
+`multica/manual/README.md`, section 6, «Example: the guard for every agent» (five languages). The quick check, as the
+agent user: `opencode debug config | jq -c .plugin` must list only the root-owned path, also with `HOME` pointing
+elsewhere.
+
+## In a live Multica runtime (2026-11-04, guard moved 2026-11-05)
 
 Two Multica agents (OpenCode 1.18.32 + DeepSeek, unattended, egress through an allowlist proxy) run with
 `block: "data"` and `stripEnv` for the model key and two hub keys.
@@ -106,6 +128,16 @@ Two Multica agents (OpenCode 1.18.32 + DeepSeek, unattended, egress through an a
   a project-file write and the tracker CLI were all refused. `printenv` showed the model key blank in the shell and
   `GH_TOKEN` present (the agent's `gh` needs it). Before any of that, the agent's own attempts to list and grep the
   plugin folder were refused as touching the guard's settings.
+- **The guard's own folder** (2026-11-05). On the daemon the guard sat in `~/.config/opencode/plugin` and
+  `~/.config/opencode/warden`. Those were root-owned folders inside `~/.config/opencode`, which belongs to the agent
+  user, and the agent user could rename them. The guard now lives in `/opt/opencode-guard` (root-owned, through
+  `OPENCODE_CONFIG_DIR`). As the agent user, writing, deleting and renaming there are all refused. The plugin also
+  loads with `HOME` pointing elsewhere. Every scheduled agent session and a paid order since then wrote the guard's
+  state. The files are the npm 0.23.0 `dist/` files, byte for byte.
+- **Multica 0.8.0** (2026-11-05). By default it drives OpenCode 1.15 and later over ACP instead of `opencode run`.
+  The daemon keeps `MULTICA_OPENCODE_TRANSPORT=run`, the transport this guard was tested on. OpenCode's
+  `--dangerously-skip-permissions`, which Multica passes on that transport, only answers rules that would ask.
+  Explicit `deny` rules still refuse.
 
 ## Limits
 

@@ -29,7 +29,6 @@ on:
 
 permissions:
   contents: read
-  security-events: write   # SARIF to code scanning
 
 env:
   FLOOR: high              # the organization's floor: no repository blocks at a laxer severity
@@ -38,12 +37,15 @@ jobs:
   warden:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+      security-events: write   # SARIF to code scanning
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
         with:
           persist-credentials: false
       - if: inputs.allowlist-repository != ''
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
         with:
           repository: ${{ inputs.allowlist-repository }}
           token: ${{ secrets.allowlist-token || github.token }}
@@ -78,9 +80,9 @@ jobs:
           fi
           echo "lock=$lock" >> "$GITHUB_OUTPUT"
       - id: warden
-        # Pin the action to a commit SHA of alexar76/warden in your copy (a tag can move);
+        # The action pinned to the commit of its v0.21.0 tag (a tag can move);
         # `version` pins the npm package the action runs.
-        uses: alexar76/warden@v0.21.0
+        uses: alexar76/warden@52e01b81d26cfc16e30bc6f3318d5c2fe4a5f59a  # v0.21.0
         with:
           version: 0.23.0
           lock: ${{ steps.policy.outputs.lock }}   # reviewed definitions; a change fails the check
