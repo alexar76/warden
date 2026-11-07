@@ -4,7 +4,7 @@
 set -euo pipefail
 
 fail() { echo "::error title=WARDEN::$1"; exit 2; }
-[[ "${WARDEN_VERSION:-}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "version must look like 1.2.3"
+[[ "${WARDEN_VERSION:-}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9][A-Za-z0-9.-]*)?$ ]] || fail "version must look like 1.2.3 or 1.2.3-prerelease"
 [[ "${WARDEN_FAIL_ON:-high}" =~ ^(info|low|medium|high|critical)$ ]] || fail "fail-on must be info, low, medium, high or critical"
 command -v node >/dev/null || fail "WARDEN needs Node 20 or later on the runner (actions/setup-node)"
 major="$(node -p 'process.versions.node.split(".")[0]')"

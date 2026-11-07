@@ -4,6 +4,7 @@ import { verify, createPublicKey, createHash } from "node:crypto";
 import { countWildcards, MAX_GLOB_WILDCARDS, threatMatch } from "./glob.js";
 import { canonicalize, parseJsonStrict, CanonicalizationError } from "./jcs.js";
 import { displaySafe } from "./sanitize.js";
+import { sshToolText } from "./ssh-reference.js";
 import type {
   McpServerRef,
   Severity,
@@ -494,6 +495,7 @@ export class ThreatFeed {
     const toolHays = tools.map((tool) => ({
       name: tool.name,
       hay: [tool.name, tool.description ?? "", stringifySchema(tool)].join("\n").toLowerCase(),
+      sshHay: sshToolText(tool),
     }));
 
     const findings: WardenFinding[] = [];
@@ -516,7 +518,12 @@ export class ThreatFeed {
 
       if (scope === "server") continue;
       for (const tool of toolHays) {
-        if (matches(pattern, glob, tool.hay)) {
+        // Refine only our original SSH records on tool text. A publisher can
+        // copy source/code strings, so object membership is the authority here.
+        // Launch identity and all signed/custom records retain exact matching.
+        const hay = BUILTIN.includes(rec) && rec.code === 'THREAT_SSH_KEY_READ'
+          ? tool.sshHay : tool.hay;
+        if (matches(pattern, glob, hay)) {
           findings.push({
             gate: "threat-feed",
             severity: rec.severity,

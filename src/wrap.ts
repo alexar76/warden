@@ -10,7 +10,7 @@ import { loadWrapFeed, wrapLogger, wrapServer, type WrapOptions } from './wrap-c
 import { observe, observedServerInfo, vetAndPin, observationPath, WardenBlock, type Observation } from './wrap-state.js';
 import { readState } from './state.js';
 import { listAllTools } from './tool-list.js';
-import { screenResult, annotateResult } from './result-screen.js';
+import { screenResult, annotateResult, resultNotice } from './result-screen.js';
 import { flowPre, flowPost, flowApproval, flowScreenValidation, screenCall, screenResponseStamp, screenObservation, loadPolicy } from './flow-guard.js';
 import { screenLease } from './wrap-screen.js';
 import { ATOMIC_SCREEN_PROTOCOL, ATOMIC_SCREEN_PREPARE, ATOMIC_SCREEN_COMMIT, ATOMIC_SCREEN_CANCEL, atomicScreenPrepared, atomicScreenReceipt, type AtomicScreenPrepared } from './atomic-screen.js';
@@ -390,6 +390,12 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
     };
     const fromChild = async (body: string) => {
       const msg = parse(body);
+      // The child learns the internal prefix from tools/list. It must never
+      // use that namespace to impersonate a proxy-owned approval question.
+      if (msg.method !== undefined && typeof msg.id === 'string' && msg.id.startsWith(prefix)) {
+        childWrite(JSON.stringify({ jsonrpc: '2.0', id: msg.id, error: { code: -32600, message: 'Reserved proxy request ID' } }));
+        return;
+      }
       if (msg.method === undefined && typeof msg.id === 'string' && msg.id.startsWith(prefix)) {
         const p = pending.get(msg.id);
         if (!p) return; // Timed-out internal response must never leak to the client.
@@ -442,24 +448,45 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
             }
           }
           request.screenRelease?.();
+          if (request.kind === 'initialize' && msg.error !== undefined) {
+            // Admission failures are displayed before any tools are listed and
+            // cannot use the runtime result policy to skip metadata inspection.
+            const screen = await screenResult(server, 'initialize.error', { error: msg.error }, opts.policy);
+            if (screen.flagged) {
+              if (screen.verdict) record(screen.verdict);
+              if (!opts.auditOnly) { fail(msg, 'initialize error withheld by WARDEN: unsafe or incomplete inspection'); return; }
+            }
+          }
           if (request.kind === 'call' && !opts.auditOnly && (quarantined || request.generation !== generation)) {
             fail(msg, 'tools changed, blocked by WARDEN; result withheld, execution may already have occurred'); return;
           }
-          if (request.kind === 'call' && opts.results !== 'off' && msg.result && typeof msg.result === 'object') {
+          if (request.kind === 'call' && opts.results !== 'off' && (msg.result !== undefined || msg.error !== undefined)) {
             // The result is new text every call, from wherever the tool reads: screen it as it passes.
             const tool = request.tool ?? '';
-            const screen = await screenResult(server, tool, msg.result, opts.policy);
+            const screen = await screenResult(server, tool, msg.error !== undefined ? { error: msg.error } : msg.result, opts.policy);
             if (screen.flagged) {
               if (screen.verdict) record(screen.verdict);
               if (!opts.auditOnly) {
                 if (opts.results === 'block') {
                   fail(msg, `tool result withheld by WARDEN: ${screen.complete ? 'it reads as instructions to the model' : 'inspection is incomplete'} (${screen.codes.join(', ')}); the tool already ran`); return;
                 }
-                send({ ...msg, result: annotateResult(msg.result, tool, screen.codes) }); return;
+                if (msg.error !== undefined) {
+                  const error = msg.error as { message?: unknown; code?: number };
+                  send({ ...msg, error: { ...error, message: resultNotice(tool, screen.codes) + '\n' + String(error?.message ?? '') } });
+                } else send({ ...msg, result: annotateResult(msg.result, tool, screen.codes) });
+                return;
               }
             }
           }
           if (request.kind === 'initialize' && msg.result && typeof msg.result === 'object') {
+            // initialize metadata is exposed before tools/list, even in strict
+            // admission mode. Inspect every textual field, not just instructions.
+            const { instructions: _instructions, ...metadata } = msg.result;
+            const metadataScreen = await screenResult(server, 'initialize.metadata', metadata, opts.policy);
+            if (metadataScreen.flagged) {
+              if (metadataScreen.verdict) record(metadataScreen.verdict);
+              if (!opts.auditOnly) { fail(msg, 'initialize metadata withheld by WARDEN: unsafe or incomplete inspection'); return; }
+            }
             serverInfo = observedServerInfo(msg.result.serverInfo);
             msg.result.capabilities = { ...msg.result.capabilities, tools: { ...msg.result.capabilities?.tools, listChanged: true } };
             if (typeof msg.result.instructions === 'string') {

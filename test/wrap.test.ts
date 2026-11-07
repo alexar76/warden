@@ -940,7 +940,9 @@ describe('wrap proxy', () => {
       writeFileSync(env.WARDEN_FLOW_POLICY, JSON.stringify({ labels: { 'mcp__mail__read_inbox': ['private'] } }));
       const h = harness({ dir, flags: ['--flow', 'mail', '--results', 'block'], env: { ...env, WARDEN_FLOW_MODE: 'deny' }, config: { tools: mail, callsFile: calls, callError: injected } });
       await ready(h);
-      expect((await h.request('tools/call', { name: 'read_inbox', arguments: {} })).error.message).toBe(injected);
+      const response = await h.request('tools/call', { name: 'read_inbox', arguments: {} });
+      expect(response.error.message).toContain('tool result withheld by WARDEN');
+      expect(JSON.stringify(response)).not.toContain(injected);
       h.change({ callError: null });
       expect((await h.request('tools/call', { name: 'send_email', arguments: { to: 'mallory@evil.example' } })).error.message).toContain('WARDEN flow guard');
       expect(readFileSync(calls, 'utf8')).not.toContain('mallory@evil.example');

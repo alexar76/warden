@@ -4,6 +4,7 @@ import { displaySafe } from "./sanitize.js";
 import { foldForScan, FOLD_ID } from "./fold.js";
 import { decodeForScan } from "./encoded-text.js";
 import { silentLogger } from "./logger.js";
+import { benignSshReference } from "./ssh-reference.js";
 import type {
   RulesetRef,
   Severity,
@@ -133,7 +134,9 @@ type GuardName =
   | "zeroArgOrder"
   | "zeroArgRewrite"
   | "keyReference"
-  | "keyStaysLocal";
+  | "keyStaysLocal"
+  | "transferRefusal"
+  | "chineseRefusal";
 
 // Imperative instructions aimed at the model — the classic injection tells.
 const INJECTION_PATTERNS: SignaturePattern[] = [
@@ -232,6 +235,23 @@ const EXFIL_PATTERNS: SignaturePattern[] = [
 // blocked every real server, and dropping the noun rules entirely would have let
 // a harvest instruction through whenever it omitted an injection phrase.
 const SECRET_PATTERNS: SignaturePattern[] = [
+  // v18. Contents transferred into model/tool arguments, rather than an ordinary
+  // credential parameter or a tool reading its own local configuration.
+  {
+    re: /(?<transferPrefix>(?:读取|讀取|获取|獲取|读出|讀出|提取|导出|導出|把|将|將)[^。！？；\n"]{0,40}?(?:\.env\b|凭据文件|憑據文件|密钥文件|金鑰檔案)[^。！？；\n"]{0,40}?(?:内容|內容)[^。！？；\n"]{0,12}?)(?<transfer>放进|放入|填入|写入|寫入|附加到|发送到|發送到)[^。！？；\n"]{0,40}?(?:参数|參數|字段|欄位|备注|備註)/u,
+    code: 'TOOL_DEF_SECRET_HARVEST', severity: 'critical', tier: 'block', surfaces: ALL_SURFACES,
+    guards: ['chineseRefusal'],
+  },
+  {
+    re: /(?<transferPrefix>\b(?:gather|assemble|round\s+up|collect|harvest|grab|copy|read|retrieve|fetch|obtain)\s+[^.;"\n]{0,64}?\bcredentials?[\s-]+files?\b[^.;"\n]{0,100}?)\b(?<transfer>attach|append|include|paste|copy|put|send|write)\s+(?:(?:their|the|its|all|of|complete|full|entire|raw)\s+){0,5}(?:contents?|text|values?)\b[^.;"\n]{0,60}?\b(?:fields?|arguments?|parameters?|params?|reports?|notes?|context)\b/i,
+    code: 'TOOL_DEF_SECRET_HARVEST', severity: 'critical', tier: 'block', surfaces: ALL_SURFACES,
+    guards: ['transferRefusal'],
+  },
+  {
+    re: /\b(?:include|attach|paste|append|copy|put|send|write|dump|return)\s+(?:(?:the|a|an)\s+)?(?:(?:(?:full|complete|entire|raw)\s+)?output\s+(?:of|from)\s+[`']?(?:env|printenv)\b|all\s+(?:the\s+)?environment[\s-]+variables?(?:\s+values?)?\b|(?:full|complete|entire|raw)\s+(?:process\s+)?environment\b)[^.;"\n]{0,100}?\b(?:fields?|arguments?|parameters?|params?|reports?|notes?|context)\b/i,
+    code: 'TOOL_DEF_SECRET_HARVEST', severity: 'critical', tier: 'block', surfaces: ALL_SURFACES,
+    guards: ['transferRefusal'],
+  },
   {
     // The gap may no longer cross a sentence or a JSON string boundary. It used
     // to be `[\s\S]{0,30}`, which matched "read an open or sealed run (pass
@@ -604,7 +624,43 @@ function inFlagSequence(text: string, i: number): boolean {
   return false;
 }
 
+function englishTransferRefusal(before: string): boolean {
+  return /\b(?:never|do\s+not|don't|must\s+not|should\s+not|cannot|can't|avoid|refuse\s+to)\s+(?:ever\s+)?$/i.test(before);
+}
+
+function chineseTransferRefusal(before: string): boolean {
+  return /(?:不要|禁止|不得|不可|不应|不應|不能|绝不|絕不|切勿|勿)(?:把|将|將)?(?:其|文件的?|档案的?|檔案的?)?(?:完整|全部|所有)?(?:内容|內容)\s*$/u.test(before);
+}
+
+/** A refused transfer cannot clear a subsequent positive transfer in the same clause/field. */
+function laterPositiveTransfer(text: string, start: number, chinese: boolean): boolean {
+  const tail = text.slice(start, start + 200).split(/["\n\r。！？；;.!?]|\\[nr]/, 1)[0] ?? '';
+  const moves = chinese
+    ? /(?<content>(?:把|将|將)?(?:其|文件的?)?(?:完整|全部|所有)?(?:内容|內容))\s*(?:放进|放入|填入|写入|寫入|附加到|发送到|發送到)[^。！？；\n"]{0,40}?(?:参数|參數|字段|欄位|备注|備註)/gu
+    : /\b(?:attach|append|include|paste|copy|put|send|write)\s+(?:(?:their|the|its|all|of|complete|full|entire|raw)\s+){0,5}(?:contents?|text|values?)\b[^.;"\n]{0,60}?\b(?:fields?|arguments?|parameters?|params?|reports?|notes?|context)\b/gi;
+  for (const move of tail.matchAll(moves)) {
+    const before = tail.slice(0, move.index);
+    if (chinese ? !chineseTransferRefusal(before + (move.groups?.content ?? '')) : !englishTransferRefusal(before)) return true;
+  }
+  return false;
+}
+
 const GUARDS: Record<GuardName, Guard> = {
+  // A refusal must govern this instruction, not occur after it ("not just
+  // names", "do not tell the user") or in another serialized schema field.
+  transferRefusal(m, text) {
+    const before = text.slice(Math.max(0, m.index - 80), m.index);
+    const refusal = englishTransferRefusal(before) || englishTransferRefusal(m.groups?.transferPrefix ?? '');
+    return refusal && !laterPositiveTransfer(text, m.index + m[0].length, false)
+      ? 'a refusal directly governs this transfer instruction' : null;
+  },
+  chineseRefusal(m, text) {
+    const before = text.slice(Math.max(0, m.index - 32), m.index);
+    const refusal = /(?:不要|禁止|不得|不可|不应|不應|不能|绝不|絕不|切勿|勿)(?:\s|再|先|尝试|嘗試)*$/u.test(before) ||
+      chineseTransferRefusal(m.groups?.transferPrefix ?? '');
+    return refusal && !laterPositiveTransfer(text, m.index + m[0].length, true)
+      ? 'a Chinese refusal directly governs this transfer instruction' : null;
+  },
   /**
    * v13. The key that SIGNS, or that the user keeps, is not a key the tool asks for. Exposed when v13 stopped
    * reading a full stop as part of an identifier: "a challenge message to sign with the wallet's private
@@ -1093,12 +1149,7 @@ const GUARDS: Record<GuardName, Guard> = {
 
   /** `.ssh/authorized_keys` and `id_ed25519.pub` are public by definition. */
   publicKeyPath(m, text) {
-    // A RAW forward window, not a clause: the giveaway is the extension, and
-    // `.pub` begins with the character clauseAround treats as a sentence end.
-    const end = m.index + m[0].length;
-    const hit = m[0] + text.slice(end, end + 48);
-    if (/authorized_keys|known_hosts|\.pub\b/i.test(hit)) return "path names public key material";
-    return null;
+    return benignSshReference(text, m.index, m.index + m[0].length);
   },
 };
 
@@ -1207,7 +1258,7 @@ function hasExternalAddress(text: string): boolean {
 // v16 adds two TOOL_DEF_CROSS_TOOL patterns for tools that take no input, again from MCPTox's dev half: an order to
 // call another tool at a fixed value or inside another tool's call (`zeroArgOrder`; the tool's own output fields are
 // not other tools), and an order to rewrite a parameter to a fixed value (`zeroArgRewrite`).
-export const STATIC_SCAN_RULESET_VERSION = "17";
+export const STATIC_SCAN_RULESET_VERSION = "18";
 
 const SEVERITY_RANK: Record<Severity, number> = {
   info: 0,
@@ -1358,7 +1409,7 @@ export class StaticScanGate implements WardenGate {
           // Complete semantic review can resolve quotation ambiguity in JSON string contents.
           // Without it keep conservative v11 parsing; quotation is not language-neutral proof.
           // Keep strings separate so a quoted example cannot excuse another field.
-          const leafPasses = semanticallyClean && leaves && rule.guards?.includes("mention")
+          const leafPasses = leaves && (rule.guards?.includes('publicKeyPath') || (semanticallyClean && rule.guards?.includes("mention")))
             ? leaves.flatMap(s => rule_texts(s, foldForScan(s))) : undefined;
           for (const candidate of rule.raw ? [text] : leafPasses ?? passes) {
             for (const cm of allMatches(rule.re, candidate)) {

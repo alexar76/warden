@@ -16,10 +16,24 @@ const CLI_TOKEN = JSON.stringify({ ['tok' + 'en']: 'mul_' + '0123456789abcdef'.r
 const dirs: string[] = [];
 afterEach(() => { for (const d of dirs.splice(0)) rmSync(d, { recursive: true, force: true }); });
 
+/** CI runners often set ENV/BASH_ENV/LD_PRELOAD; those make every shell opaque in the guard. */
+function testEnv(dir: string, policy: string): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = {
+    ...process.env,
+    WARDEN_STATE_DIR: dir,
+    WARDEN_FLOW_POLICY: policy,
+    WARDEN_FLOW_MODE: '',
+    WARDEN_OPENCODE_BLOCK: '',
+    WARDEN_OPENCODE_STRIP_ENV: '',
+  };
+  for (const k of ['ENV', 'BASH_ENV', 'RIPGREP_CONFIG_PATH', 'LD_PRELOAD', 'DYLD_INSERT_LIBRARIES']) delete env[k];
+  return env;
+}
+
 async function agent(options: Parameters<typeof createWardenPlugin>[0] = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'warden-opencode-')); dirs.push(dir);
   const policy = join(dir, 'policy.json'); writeFileSync(policy, '{}');
-  const env = { ...process.env, WARDEN_STATE_DIR: dir, WARDEN_FLOW_POLICY: policy, WARDEN_FLOW_MODE: '', WARDEN_OPENCODE_BLOCK: '', WARDEN_OPENCODE_STRIP_ENV: '' };
+  const env = testEnv(dir, policy);
   const hooks = await createWardenPlugin({ env, ...options })({ directory: '/work/task' });
   await hooks.config!({ mcp: { aimarket: { type: 'remote' }, modelmarket: { type: 'remote' } } }, undefined);
   const sessionID = 'ses_test';
@@ -174,7 +188,7 @@ describe('subagents share the session tree state', () => {
   async function tree(client?: unknown) {
     const dir = mkdtempSync(join(tmpdir(), 'warden-opencode-tree-')); dirs.push(dir);
     const policy = join(dir, 'policy.json'); writeFileSync(policy, '{}');
-    const env = { ...process.env, WARDEN_STATE_DIR: dir, WARDEN_FLOW_POLICY: policy, WARDEN_FLOW_MODE: '', WARDEN_OPENCODE_BLOCK: '', WARDEN_OPENCODE_STRIP_ENV: '' };
+    const env = testEnv(dir, policy);
     const hooks = await createWardenPlugin({ env })({ directory: '/work/task', client: client as never });
     const run = async (sessionID: string, tool: string, args: Record<string, unknown>, result = '') => {
       await hooks['tool.execute.before']!({ tool, sessionID, callID: 'c' }, { args });

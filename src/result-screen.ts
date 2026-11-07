@@ -29,19 +29,32 @@ const TAIL_CHARS = 16 * 1024;
 
 /** The text a `tools/call` result puts in front of the model, bounded. */
 function extractResult(result: unknown): { text: string; complete: boolean } {
-  if (!result || typeof result !== 'object') return { text: '', complete: true };
-  const r = result as { content?: unknown; structuredContent?: unknown };
   const parts: string[] = [];
-  if (Array.isArray(r.content)) {
-    for (const item of r.content) {
-      if (!item || typeof item !== 'object') continue;
-      const c = item as { type?: unknown; text?: unknown; resource?: { text?: unknown } };
-      if (c.type === 'text' && typeof c.text === 'string') parts.push(c.text);
-      else if (c.type === 'resource' && c.resource && typeof c.resource.text === 'string') parts.push(c.resource.text);
+  // Names, titles, link descriptions, error data and extension metadata can all
+  // reach a model too. Keep strings verbatim (JSON escaping would hide newlines),
+  // and walk iteratively so deeply nested, untrusted JSON cannot overflow us.
+  type Part = { value: unknown; content?: boolean; media?: boolean; resource?: boolean; icons?: boolean; icon?: boolean; textOnly?: boolean };
+  const stack: Part[] = [{ value: result }];
+  const seen = new WeakSet<object>();
+  while (stack.length) {
+    const part = stack.pop()!;
+    const { value } = part;
+    if (typeof value === 'string') { parts.push(value); continue; }
+    if (!value || typeof value !== 'object' || seen.has(value)) continue;
+    seen.add(value);
+    if (Array.isArray(value)) { for (let i = value.length - 1; i >= 0; i--) stack.push({ value: value[i], media: part.content, icon: part.icons, textOnly: part.textOnly }); continue; }
+    const obj = value as Record<string, unknown>;
+    const entries = Object.entries(obj);
+    for (let i = entries.length - 1; i >= 0; i--) {
+      const [key, item] = entries[i]!;
+      // Binary media is not text. Its surrounding labels/metadata still are.
+      if (part.media && key === 'data' && (obj.type === 'image' || obj.type === 'audio')) continue;
+      if (part.resource && key === 'blob' && typeof obj.mimeType === 'string' && typeof obj.uri === 'string') continue;
+      if (part.icon && key === 'src' && typeof item === 'string' && /^data:image\/(?:png|jpeg|gif|webp|avif|svg\+xml|x-icon|vnd\.microsoft\.icon);base64,[A-Za-z0-9+/]+={0,2}$/.test(item)) continue;
+      const textOnly = part.textOnly || (value === result && (key === 'structuredContent' || key === 'error'));
+      stack.push({ value: item, textOnly, content: value === result && key === 'content',
+        resource: part.media && obj.type === 'resource' && key === 'resource', icons: !textOnly && key === 'icons' }, { value: key });
     }
-  }
-  if (r.structuredContent !== undefined) {
-    try { parts.push(JSON.stringify(r.structuredContent)); } catch { /* not serialisable: nothing a model reads */ }
   }
   const text = parts.join('\n\n');
   return { text: text.length > RESULT_SCAN_CHARS ? text.slice(0, RESULT_SCAN_CHARS - TAIL_CHARS) + '\n' + text.slice(-TAIL_CHARS) : text, complete: text.length <= RESULT_SCAN_CHARS };

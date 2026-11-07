@@ -63,6 +63,13 @@ describe('GitHub Action step', () => {
     expect(r.code).toBe(0);
     expect(r.outputs.servers).toBe('1');
   });
+
+  it('accepts a pinned prerelease version without loosening the shell input boundary', () => {
+    const dir = project({});
+    expect(runAction(dir, { WARDEN_VERSION: '0.23.1-dev.20261107' }).code).toBe(0);
+    expect(runAction(dir, { WARDEN_VERSION: '0.23.1-dev;touch injected' }).code).toBe(2);
+    expect(existsSync(join(dir, 'injected'))).toBe(false);
+  });
 });
 
 describe('integrations name the version they ship with', () => {
@@ -76,7 +83,7 @@ describe('integrations name the version they ship with', () => {
   });
   it('pre-commit hooks run this version and match the config files they claim to', () => {
     const hooks = readFileSync(join(root, '.pre-commit-hooks.yaml'), 'utf8');
-    expect(hooks.match(/@aimarket\/warden@[\d.]+/g)!.every(v => v === `@aimarket/warden@${version}`)).toBe(true);
+    expect(hooks.match(/@aimarket\/warden@\d+\.\d+\.\d+(?:-[\w.-]+)?/g)!.every(v => v === `@aimarket/warden@${version}`)).toBe(true);
     const files = new RegExp(/files: (.+)\n/.exec(hooks)![1]!);
     for (const f of ['.mcp.json', 'sub/.cursor/mcp.json', '.vscode/mcp.json', 'claude_desktop_config.json', 'x/mcp_config.json']) expect(files.test(f), f).toBe(true);
     for (const f of ['package.json', 'mcp.jsonc', 'notmcp.json']) expect(files.test(f), f).toBe(false);

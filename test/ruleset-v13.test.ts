@@ -143,11 +143,11 @@ describe('ruleset v13: honest sentences it leaves alone (field corpus, verbatim)
 });
 
 describe('ruleset v13: the published table', () => {
-  it('is version 17 with 40 rules, 29 of them blocking (v15 added one, v16 two, v17 one; see ruleset-v15/v17 tests)', () => {
+  it('is version 18 with 43 rules, 32 of them blocking (v18 adds three bounded credential-transfer rules)', () => {
     const r = staticScanRuleset();
-    expect(STATIC_SCAN_RULESET_VERSION).toBe('17');
-    expect(r.rules).toHaveLength(40);
-    expect(r.rules.filter(x => x.tier === 'block')).toHaveLength(29);
+    expect(STATIC_SCAN_RULESET_VERSION).toBe('18');
+    expect(r.rules).toHaveLength(43);
+    expect(r.rules.filter(x => x.tier === 'block')).toHaveLength(32);
     expect(r.rules.some(x => x.guards.includes('keyReference') && x.surfaces.join() === 'inputSchema')).toBe(true);
   });
 });

@@ -65,10 +65,10 @@ describe('ruleset v10: what it leaves alone (field-corpus sentences)', () => {
 });
 
 describe('ruleset identity', () => {
-  it('is version 17 with 40 rules, 29 of them blocking (v13, v15 and v17 added one each, v16 two)', () => {
+  it('is version 18 with 43 rules, 32 of them blocking (v18 adds three credential-transfer rules)', () => {
     const rs = staticScanRuleset();
-    expect(rs.version).toBe('17');
-    expect(rs.rules.length).toBe(40);
-    expect(rs.rules.filter(r => r.tier === 'block').length).toBe(29);
+    expect(rs.version).toBe('18');
+    expect(rs.rules.length).toBe(43);
+    expect(rs.rules.filter(r => r.tier === 'block').length).toBe(32);
   });
 });

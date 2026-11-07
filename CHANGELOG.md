@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.23.1-dev.20261107 — local source only, 2026-11-07
+
+- Ruleset v18 blocks bounded secret-content transfers into arguments: Chinese credential-file instructions,
+  paraphrased credential-file collection, and unfiltered environment dumps. A refusal must govern the transfer;
+  later concealment or "not just names" cannot clear it. Local configuration and names-only diagnostics stay usable.
+- SSH precision is occurrence-local: public `.pub` files and local `ssh -i` identity references do not mean key
+  contents are requested. Both static scanning and the original built-in SSH tool patterns use this check;
+  private reads, path suffix tricks, launch identity and publisher-signed threat records retain their checks.
+- Ruleset v18: `sha256-aXkZQj8F1fKgcTpyrfNdgQSQMuzdc1yabcKiGPVKjMo=`; local prerelease only.
+
+- Inspect resource-link labels, result metadata, structured keys, and JSON-RPC tool errors on the return path.
+  `--results block` withholds unsafe errors; `warn` prefixes their message and `off` preserves them.
+  Binary media exemptions apply to MCP content blocks, not structured data that resembles an image.
+- Inspect successful initialization metadata and initialization errors before exposing them, including with
+  strict admission and runtime screening disabled. Reject child requests using the proxy's reserved ID namespace.
+- Add two-sided protocol regressions and `scripts/mcp-interop.mjs`, an independent official SDK check against
+  Warden, Filesystem, Memory and Sequential Thinking. Its packages must be supplied separately through
+  `WARDEN_INTEROP_PACKAGES`; the harness installs nothing and uses only synthetic local data.
+
 ## 0.23.0 — 2026-11-04 (OpenCode flow guard)
 
 - **Flow guard for OpenCode** (`@aimarket/warden/opencode`, [docs/opencode.md](docs/opencode.md)): the Claude Code
