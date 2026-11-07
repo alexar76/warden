@@ -38,8 +38,9 @@ describe("documentation set", () => {
     const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
     for (const file of ['native/macos/Package.swift', 'native/macos/Sources', 'scripts/build-macos.mjs']) expect(pkg.files).toContain(file);
     expect(pkg.scripts['test:macos']).toContain('vitest.macos.config.ts');
-    expect(readFileSync(join(root, '.github/workflows/ci.yml'), 'utf8')).toContain('npm run test:macos');
-    const workspaceWorkflow = join(root, '../.github/workflows/ci.yml');
+    // AppKit gate lives in ci-macos.yml so a macOS runner cancel cannot redden the README CI badge.
+    expect(readFileSync(join(root, '.github/workflows/ci-macos.yml'), 'utf8')).toContain('npm run test:macos');
+    const workspaceWorkflow = join(root, '../.github/workflows/ci-macos.yml');
     if (existsSync(workspaceWorkflow)) expect(readFileSync(workspaceWorkflow, 'utf8')).toContain('npm run test:macos');
   });
   it('validates the atomic protocol and runnable command in all five languages', async () => {
