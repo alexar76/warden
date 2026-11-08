@@ -1,0 +1,38 @@
+# WARDEN flow guard as managed Codex hooks: /etc/codex/requirements.toml on Linux and macOS.
+# Managed hooks are trusted by policy, run without a per-user review and cannot be switched off from the user's hook
+# browser. The file, /opt/warden-codex and every folder above it must belong to root, not to the agent user.
+
+# Ignore user, project, session and plugin hooks: an agent cannot add a hook that runs before or instead of the guard.
+allow_managed_hooks_only = true
+
+[features]
+# Hooks stay on even if a user config turns them off.
+hooks = true
+
+[hooks]
+managed_dir = "/opt/warden-codex"
+
+[[hooks.PreToolUse]]
+[[hooks.PreToolUse.hooks]]
+type = "command"
+command = "node /opt/warden-codex/scripts/codex-hook.mjs pre-tool-use"
+timeout = 15
+statusMessage = "WARDEN: checking the call"
+
+[[hooks.PostToolUse]]
+[[hooks.PostToolUse.hooks]]
+type = "command"
+command = "node /opt/warden-codex/scripts/codex-hook.mjs post-tool-use"
+timeout = 30
+
+[[hooks.UserPromptSubmit]]
+[[hooks.UserPromptSubmit.hooks]]
+type = "command"
+command = "node /opt/warden-codex/scripts/codex-hook.mjs user-prompt-submit"
+timeout = 15
+
+[[hooks.Stop]]
+[[hooks.Stop.hooks]]
+type = "command"
+command = "node /opt/warden-codex/scripts/codex-hook.mjs stop"
+timeout = 15

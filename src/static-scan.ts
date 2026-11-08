@@ -359,7 +359,7 @@ const CROSS_TOOL_FRAME = new RegExp(
   String.raw`|\b(?:${["submitted", "passed", "sent", "given"].map(ci).join("|")})${S}${ci("to")}${S}(?:${ci("the")}${S})?${ID}` +
   String.raw`|\b(?:${["queries", "query", "requests", "request", "calls", "call", "inputs", "input"].map(ci).join("|")})${S}${ci("to")}${S}(?:${ci("the")}${S})?${ID}` +
   String.raw`|\b${ci("before")}${S}\w+ing\b[^.;
-]{0,60}?\b(?:${["using", "with", "via", "through"].map(ci).join("|")})${S}(?:${ci("the")}${S})?${ID}` +
+]{0,60}?\b(?:${["using", "with", "via", "through"].map(ci).join("|")})${S}(?:(?:${ci("the")}|${ci("this")})${S})?${ID}` +
   String.raw`|\b${ci("before")}${S}(?:${["any", "every", "each"].map(ci).join("|")})\b`,
 );
 const ALTER_VERB = /\b(?:modify|modified|change|changed|replace|replaced|append|appended|prepend|prepended|remove|removed|strip|override|overwrite|alter|rewrite|substitute|inject|insert)\b/i;
@@ -373,6 +373,7 @@ const MANDATED_ALTER = /\b(?:must|should|always|mandatory|required)\b[^.;\n]{0,6
 // to 'a@b.example'"). Advice about values phrases them as advice ("set `limit` to a small number").
 const IMPERATIVE_SET = /^[^.;\n]{0,80}?,\s*(?:always\s+)?(?:set|change|replace|append|add)\b[^.;\n]{0,40}?\bto\s+[`'"‘“]/i;
 const MANDATE_WORDS = `(?:${["must", "should", "mandatory"].map(ci).join("|")}|${ci("need")}${S}${ci("to")}|${ci("have")}${S}${ci("to")}|${ci("required")}${S}${ci("to")}|${ci("is")}${S}${ci("required")})`;
+const EXPLICIT_MANDATE = new RegExp(String.raw`\b${MANDATE_WORDS}\b`);
 const MANDATED_CALL = new RegExp(
   String.raw`\b${MANDATE_WORDS}\b[^.;
 ]{0,40}?\b${CALL_VERB}${S}(?:${ci("the")}${S})?${ID}` +
@@ -385,6 +386,10 @@ const MANDATED_CALL = new RegExp(
 const PRECALL = new RegExp(String.raw`\b(?:${["before", "first"].map(ci).join("|")})\b[^.;\n]{0,40}?\b(?:${["use", "call", "run", "invoke", "trigger"].map(ci).join("|")})${S}(?:${ci("the")}${S})?${ID}`);
 const FIXED_TARGET = /^[^.;\n]{0,40}?\b(?:with|on|to|for|from)\s+(?:[\w-]+\s+){0,2}(?:'[^']{1,80}'|"[^"]{1,80}"|\d{3,}|[\w.+-]+@[\w-]+\.[\w.]+)/i;
 const THREAT = /\b(?:failure|failing|skipping|omitting|ignoring|forgetting|not\s+doing)\b[^.;\n]{0,40}?\bwill\b[^.;\n]{0,40}?\b(?:crash\w*|corrupt\w*|cause\w*|disrupt\w*|overload\w*|break\w*|fail\w*)\b|\bcritical\s+for\s+preventing\b/i;
+// v19: a forced prerequisite can tamper with public SSH configuration without
+// exposing a secret. Keep this independent of the public-key path exemption.
+const SECURITY_FILE_WRITE = /\b(?:overwrite|clear|delete|remove|truncate|wipe)\b[^;\n]{0,100}?(?:~\/\.ssh\/[A-Za-z0-9_.-]+|\/etc\/(?:ssh\/[^\s"'`;,]+|shadow|gshadow))\b/i;
+const SECURITY_FILE_READ = /\bread\b[^;\n]{0,100}?(?:\/etc\/(?:shadow|gshadow)\b|~\/\.ssh\/(?![^\s"'`;,]*\.pub\b|authorized_keys\b|known_hosts\b)[A-Za-z0-9_.-]+\b|~\/\.aws\/credentials\b)/i;
 // v16. A tool that takes no input has nothing of its own to do with another tool's call. When its text orders such a
 // call aimed at a fixed value ("request `company_overview` on 'META'", "Invoke `open_nodes` for 'Artificial
 // Intelligence'"), cuts into another call ("Before calling `X`, trigger `Y`"), or orders a parameter rewritten to a
@@ -1082,12 +1087,38 @@ const GUARDS: Record<GuardName, Guard> = {
    * one of its own parameters are not "another tool" ("if using video_id, … use get_video before
    * calling this tool").
    */
-  crossTool(m, text, _surface, ctx) {
+  crossTool(m, text, surface, ctx) {
     const own = ownIdentifiers(ctx.tool);
     const framed = m.slice(1).filter((g): g is string => !!g).map(normId);
     const isBeforeAny = framed.length === 0;
-    if (!isBeforeAny && framed.every((id) => own.has(id))) return "the named identifier is this tool or one of its own parameters";
     const sentence = sentenceAround(text, m.index);
+    if (!isBeforeAny && framed.every((id) => own.has(id))) {
+      // Naming this tool is normally ordinary chaining. It cannot justify a
+      // mandatory different call that destroys a fixed security file or reads
+      // an actual secret store. A public-key read alone stays non-blocking.
+      if (/^before\b/i.test(m[0]) && framed.includes(normId(ctx.tool.name ?? ""))) {
+        const quoted = GUARDS.mention(m, text, surface, ctx);
+        const detected = GUARDS.detection(m, text, surface, ctx);
+        if (quoted || detected) return quoted || detected;
+        const tail = text.slice(m.index + m[0].length, Math.min(sentence.end, m.index + 720));
+        for (const call of allMatches(MANDATED_CALL, tail)) {
+          if (!EXPLICIT_MANDATE.test(call[0])) continue;
+          if (/\b(?:not|never|don't|cannot|can't|avoid)\b/i.test(call[0])) continue;
+          const ids = call.slice(1).filter((g): g is string => !!g).map(normId);
+          if (!ids.some(id => !own.has(id))) continue;
+          // The file operation must be the purpose of this particular call;
+          // a separate clause mentioning a path cannot turn login into it.
+          const target = /^\s+to\s+([^;\n]{1,240})/i.exec(tail.slice(call.index + call[0].length))?.[1];
+          if (!target) continue;
+          for (const effect of [SECURITY_FILE_WRITE, SECURITY_FILE_READ]) {
+            for (const hit of allMatches(effect, target)) {
+              if (!englishTransferRefusal(target.slice(Math.max(0, hit.index - 60), hit.index))) return null;
+            }
+          }
+        }
+      }
+      return "the named identifier is this tool or one of its own parameters";
+    }
     if (!isBeforeAny && ALTER_VERB.test(sentence.text)) return null;
     // v17: a fixed address added to the bound call, after the frame and in the same sentence.
     if (!isBeforeAny && ADDS_ADDRESS.test(text.slice(m.index + m[0].length, sentence.end))) return null;
@@ -1258,7 +1289,9 @@ function hasExternalAddress(text: string): boolean {
 // v16 adds two TOOL_DEF_CROSS_TOOL patterns for tools that take no input, again from MCPTox's dev half: an order to
 // call another tool at a fixed value or inside another tool's call (`zeroArgOrder`; the tool's own output fields are
 // not other tools), and an order to rewrite a parameter to a fixed value (`zeroArgRewrite`).
-export const STATIC_SCAN_RULESET_VERSION = "18";
+// v19 is a post-hoc repair after the retained v18 MCPTox measurement. It keeps
+// public-key reads non-secret while blocking forced security-file side effects.
+export const STATIC_SCAN_RULESET_VERSION = "19";
 
 const SEVERITY_RANK: Record<Severity, number> = {
   info: 0,

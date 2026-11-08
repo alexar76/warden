@@ -1,5 +1,52 @@
 # Changelog
 
+## 0.23.1-dev.20261108 — current working source, 2026-11-08
+
+- Include the current Codex command-hook adapter, unattended flow-guard helpers, protected Codex paths and
+  OpenCode integration in a distinct source build. Its validation is separate from the frozen November 7
+  definition benchmarks and the narrower `.1` and `.2` candidates below.
+- Retain the embedded binary-resource compatibility repair: valid base64 resources preserve optional MIME
+  metadata, while invalid blobs and instruction-bearing result metadata remain inspected.
+- Treat MCP resource and template discovery descriptions as outside text in Codex. OpenCode refuses unresolved,
+  cyclic or overlong session ancestry; a failed SDK lookup is retried instead of caching a child as a fresh root.
+- Preserve Codex Edit/Write paths and payloads. Record lost-result refusal fences durably, including Codex
+  bootstrap import failures and OpenCode plugin recreation. OpenCode also fences after-hook ancestry and result
+  serialization failures; an unresolved root fences the installation, while a known root keeps a scoped fence.
+- Recognize credentials in a custom `CODEX_HOME` and resolve OpenCode shell targets against `bash.workdir` while
+  retaining the trusted project boundary.
+- This source build is not an npm publication. Ruleset 19 and the frozen definition-benchmark inputs and
+  measurements remain unchanged.
+- OpenCode guide, "Where to put it when agents share a runtime" (since 2026-11-06): keep the guard in a root-owned
+  folder where nothing on its path belongs to the agent user, load it with `OPENCODE_CONFIG_DIR`, and mount it
+  writable (OpenCode writes a `.gitignore` into each config folder). On our own Multica daemon (2026-11-05) the
+  agent user could not change a guard file but could `mv` the folder holding it, so later sessions started without
+  the guard.
+- READMEs (since 2026-11-05): the scanner-comparison line gives 171 of 218 MCPTox held-out tools with the ruleset
+  of that comparison (v12); the release notes give 210 for v16.
+
+## 0.23.1-dev.20261107.2 — local source only, 2026-11-07
+
+- Preserve valid embedded binary resource contents when their optional `mimeType` is absent. The exemption
+  requires an actual resource content block with string `uri` and a valid base64 string `blob`, matching the
+  SDK's native `atob` check; labels, extension metadata, structured-content lookalikes, invalid base64 and
+  non-string blobs remain inspected.
+- Extend the existing two-sided regressions with large binary resources both with and without MIME metadata,
+  together with poisoned labels, structured lookalikes and object-valued blobs. The test count stays 1536.
+- This return-path compatibility change retains ruleset 19 and its definition-classifier digest. The frozen
+  `.1` benchmark and its recorded measurements remain separate evidence for that exact build.
+
+## 0.23.1-dev.20261107.1 — frozen benchmark candidate, 2026-11-07
+
+- Ruleset 19 is a post-hoc repair of two observed v18 MCPTox regressions: a mandatory different-tool call
+  that overwrites an SSH security file or reads an actual secret store. An isolated public-key read remains
+  non-secret and the remaining native FileSystem_22 attack stays allowed/advisory in this definition benchmark.
+- Recorded native blocking is 459/485 (209/218 on the known historical test split), decorated 225/225,
+  full prompt-surface projection 1331/1348, and clean-server blocks 0/45. These views overlap.
+- Both remote gVisor hosts completed 1536/1536 tests and exact library/actual-MCP parity on all 3177 cases
+  per version; 12708/12708 full cross-host comparisons matched. These results cover the frozen candidate,
+  not unrelated current-workspace changes. No npm release was published by this validation.
+- Ruleset 19: `sha256-XfRh1+VZoAM6PGtbmqprnSX/eF16qNYOk0o+ilRFxXw=`.
+
 ## 0.23.1-dev.20261107 — local source only, 2026-11-07
 
 - Ruleset v18 blocks bounded secret-content transfers into arguments: Chinese credential-file instructions,
@@ -18,6 +65,28 @@
 - Add two-sided protocol regressions and `scripts/mcp-interop.mjs`, an independent official SDK check against
   Warden, Filesystem, Memory and Sequential Thinking. Its packages must be supplied separately through
   `WARDEN_INTEROP_PACKAGES`; the harness installs nothing and uses only synthetic local data.
+
+## Unreleased — Codex flow guard (local)
+
+- **Flow guard for OpenAI Codex** (`codex-hooks/`, `@aimarket/warden/codex`, [docs/codex.md](docs/codex.md) in five
+  languages): the Claude Code flow guard through Codex's command hooks (`PreToolUse`, `PostToolUse`,
+  `UserPromptSubmit`, `Stop`) for the CLI, `codex exec`, the desktop app and Multica runtimes. Codex has no
+  `permissionDecision: "ask"` (it treats it as a failed hook and runs the call), so the adapter never prints it: a
+  question becomes `deny` or a logged pass by `block` (`WARDEN_CODEX_BLOCK=data|all`, as for OpenCode). It fails
+  closed: unreadable input, an unknown event, a missing guard file or an exception deny PreToolUse, and a result that
+  cannot be recorded denies the rest of the session. Codex tools map to the guard's vocabulary (`Bash`/`exec_command`,
+  `apply_patch` → one `Write` per file, `mcp__*`, `view_image` → `Read`, others unlabelled); subagents share the
+  parent's state through Codex's parent `session_id`; session ids are namespaced `codex:<id>`.
+- `codex-hooks/requirements.toml`: managed hooks for `/etc/codex/requirements.toml` with
+  `allow_managed_hooks_only = true`; `codex-hooks/hooks.json` for one person's `~/.codex/hooks.json`. The build copies
+  the flow-guard parts next to `codex-hook.mjs`, as for the Claude Code plugin.
+- Protected paths: any `.codex/` folder, `/etc/codex/` and `$CODEX_HOME`. Secret path: `~/.codex/auth.json`.
+- Red-team replay `flow-redteam.mjs --codex=MODE` replays the 28 attacks in Codex's tool vocabulary: `all` 0 of 28,
+  `data` 3 of 28 (the same three action-only attacks as OpenCode). `scripts/codex-live-check.sh` stages the attack in a
+  real Codex session on localhost. Live run 2026-11-07 (Codex CLI 0.167.0-alpha.3): with the user asking for every step,
+  the `curl` sending `.env` got `deny` (`reason: secret`) in `data` and `all`; the listener received nothing.
+- The unattended `block` logic (`refuses`, `patchFiles`) moved to `src/flow-guard-unattended.ts`, shared by the
+  OpenCode and Codex adapters; `@aimarket/warden/opencode` re-exports both unchanged.
 
 ## 0.23.0 — 2026-11-04 (OpenCode flow guard)
 

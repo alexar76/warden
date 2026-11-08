@@ -15,8 +15,14 @@ It is written for agents that run with nobody at the keyboard: Multica runtimes,
 A subagent (`task`) runs in a child session. The guard keeps one state per session tree, keyed by its root: what a
 child reads binds the parent and the other way round, so an injected parent cannot hand the read-and-send to a
 fresh child. Parents come from `session.created`/`session.updated` events, else from the SDK client. A child's prompt
-is written by the parent model and is not recorded as the user's words. If recording a result fails, every later
-call of that session tree is refused.
+is written by the parent model and is not recorded as the user's words. Unknown, cyclic or overlong ancestry is
+refused; a failed SDK lookup is retried and never cached as a fresh root. A standalone host without the SDK must
+provide a session event confirming the root before tool calls. If recording a result fails, every later call of
+that session tree is refused.
+
+The after-hook also fences lifecycle and serialization faults after execution. If it cannot resolve the root,
+the installation stays refused until repair; a fault for a verified root fences that root. These are fail-closed
+fault-handling checks, rather than evidence of an exploit through ordinary string results and cached ancestry.
 
 MCP server names come from OpenCode's config (`mcp` section). A tool that is neither a core tool nor a configured
 MCP tool (a subagent `task`, another plugin's tool) is treated as an unlabelled MCP tool: its result is outside text.
@@ -102,7 +108,7 @@ Keep the guard in a folder where nothing on its path belongs to the agent user. 
 owned by root: OpenCode writes a `.gitignore` into each config folder at start. On a read-only mount it stops with
 `FileSystem.writeFile`, while a folder it may not write is skipped. Example for a Multica daemon:
 - the folder: `opencode-guard/plugin/warden.js` (the loader) and `opencode-guard/warden/` (`opencode-plugin.js`
-  and the 19 `flow-guard*.js` files from this package's `dist/`), all root:root, folders 755, files 644;
+  and every `flow-guard*.js` file from this package's `dist/`), all root:root, folders 755, files 644;
 - in the daemon's compose service: `OPENCODE_CONFIG_DIR: /opt/opencode-guard` and the volume
   `./opencode-guard:/opt/opencode-guard`;
 - move any older copy out of `~/.config/opencode/plugin`, or the guard loads twice.

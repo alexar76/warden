@@ -116,12 +116,26 @@ describe('two-sided: wrap vs hostile servers', () => {
     expect((await screenResult(server, 'read', { structuredContent: nested }, policy)).flagged).toBe(true);
     expect((await screenResult(server, 'read', { content: [{ type: 'image', mimeType: 'image/png', data: 'A'.repeat(400000) }] }, policy)).flagged).toBe(false);
     expect((await screenResult(server, 'read', { content: [{ type: 'image', mimeType: 'image/png', data: 'AAAA', title: poison }] }, policy)).flagged).toBe(true);
+    const resource = { uri: 'fixture://binary', blob: 'A'.repeat(400000) };
+    expect((await screenResult(server, 'read', { content: [{ type: 'resource', resource }] }, policy)).flagged).toBe(false);
+    expect((await screenResult(server, 'read', { content: [{ type: 'resource', resource: { ...resource, title: poison } }] }, policy)).flagged).toBe(true);
+    expect((await screenResult(server, 'read', { structuredContent: { content: [{ type: 'resource', resource: { uri: resource.uri, blob: poison } }] } }, policy)).flagged).toBe(true);
+    expect((await screenResult(server, 'read', { content: [{ type: 'resource', resource: { uri: resource.uri, blob: { note: poison } } }] }, policy)).flagged).toBe(true);
+    for (const mime of [{}, { mimeType: 'application/octet-stream' }]) {
+      expect((await screenResult(server, 'read', { content: [{ type: 'resource', resource: { uri: resource.uri, blob: poison, ...mime } }] }, policy)).flagged).toBe(true);
+    }
   });
   it('preserves clean results and benign JSON-RPC failures', async () => {
     const h=wrapped({result:{content:[{type:'text',text:'ёж 🛡: ordinary fixture result'}]}});await ready(h);
     expect((await h.request('tools/call',{name:goodTool.name})).result.content[0].text).toBe('ёж 🛡: ordinary fixture result');expect(h.calls()).toHaveLength(1);
     const failure=wrapped({error:{code:-32001,message:'Fixture record was not found.',data:{reason:'not_found'}}});await ready(failure);
     expect((await failure.request('tools/call',{name:goodTool.name})).error).toEqual({code:-32001,message:'Fixture record was not found.',data:{reason:'not_found'}});
+    for (const mime of [{}, { mimeType: 'application/octet-stream' }]) {
+      const binary = { content: [{ type: 'resource', resource: { uri: 'fixture://binary', blob: 'A'.repeat(400000), ...mime } }] };
+      const binarySession = wrapped({ result: binary }); await ready(binarySession);
+      expect((await binarySession.request('tools/call', { name: goodTool.name })).result).toEqual(binary);
+      expect(binarySession.calls()).toHaveLength(1);
+    }
   });
   it.each([
     ['text',{content:[{type:'text',text:poison}]}],['embedded resource text',{content:[{type:'resource',resource:{uri:'fixture://document',text:poison,mimeType:'text/plain'}}]}],

@@ -12,7 +12,7 @@
   <a href="https://glama.ai/mcp/servers/alexar76/warden"><img src="https://glama.ai/mcp/servers/alexar76/warden/badges/score.svg" alt="warden MCP server" /></a>
   <a href="https://warden.modelmarket.dev/"><img src="https://img.shields.io/npm/v/@aimarket/warden?color=cb3837&label=npm" alt="npm version" /></a>
   <img src="docs/badges/deps.svg" alt="Zero runtime dependencies" />
-  <img src="docs/badges/tests.svg" alt="1517 tests passing" />
+  <img src="docs/badges/tests.svg" alt="1574 tests passing" />
   <img src="docs/badges/node.svg" alt="Node >= 20" />
   <a href="LICENSE"><img src="docs/badges/license.svg" alt="License: MIT" /></a>
 </p>
@@ -141,6 +141,15 @@ warden-mcp pins revoke --id filesystem
 | `--verdict-log FILE` | Полный JSONL вердиктов с версией и digest ruleset; по умолчанию выключен |
 | `--audit-only` | Диагностический режим; по умолчанию выключен |
 | `--ask elicit\|refuse` | Вызов, которому нужно «да» человека (чувствительный инструмент, вопрос стража потоков): `elicit` (по умолчанию) спрашивает через форму MCP elicitation клиента и отклоняет, если её нет; `refuse` всегда отклоняет |
+
+## Защитить агента на Codex
+
+Тот же страж потоков для OpenAI Codex (CLI, `codex exec`, приложение, исполнители Multica) через командные хуки Codex.
+У Codex нет `ask`, а при сбое хука вызов выполняется, поэтому адаптер никогда не спрашивает: вопрос становится отказом
+или пропуском с записью в лог (`block: data|all`), а любой сбой даёт отказ. На сервере исполнителя ставьте его как
+managed-хуки в `/etc/codex/requirements.toml`. Схемы развёртывания в Multica и ограничения — в
+[docs/codex.ru.md](docs/codex.ru.md) (red-team в словаре инструментов Codex: `all` 0 из 28, `data` 3 из 28, те же три,
+что у OpenCode). Локальный код, ещё не выпущен.
 
 ## Проверить все серверы, которые запускают ваши клиенты
 
@@ -346,6 +355,7 @@ WARDEN — агент ERC-8004 [`96684` в сети Base](https://8004scan.io/ag
 | [Полевой обзор: 1 108 публичных MCP-серверов](docs/mcp-survey.ru.md) | Что WARDEN решил на настоящих чужих определениях инструментов — 50 серверов заблокировано, 4 подтверждено, и шесть способов, которыми остальные оказались ошибкой |
 | [Сравнение сканеров](docs/scanner-comparison.ru.md) | WARDEN, mcp-audit, mcp-shield, truecopy и mcpsentry на одних и тех же серверах, на 14 933 пакетах npm и PyPI и на бенчмарке MCPTox, со всеми разметками, манифестом и стендом |
 | [Страж потоков](docs/flow-guard.ru.md) | Защита плагина Claude Code во время работы: чужой текст, приватные данные, исходящие вызовы; измерение на AgentDojo и его границы |
+| [Страж потоков для Codex](docs/codex.ru.md) | Хуки Codex: без `ask`, отказ при сбое, managed-хуки, схемы для Multica |
 | [Свежий прогон модели](docs/flow-guard-model-comparison-2026-10-25.ru.md) | 720 ответов: улучшение на известных сценариях, неопределённость, канал предупреждений и отсутствие исправленных ID через Stop |
 | [Glama / Docker](docs/GLAMA.md) | stdio MCP, health check, Build steps / CMD |
 | [Security](SECURITY.md) | Как сообщать об обходе файрвола |
@@ -370,7 +380,7 @@ WARDEN — агент ERC-8004 [`96684` в сети Base](https://8004scan.io/ag
 ## Разработка
 
 ```bash
-npm install && npm run build && npm test   # 1517 тестов
+npm install && npm run build && npm test   # 1574 тестов
 ```
 
 `test/packaging.test.ts` — то, что удерживает заголовок честным: он падает, если появляется

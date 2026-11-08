@@ -1,0 +1,17 @@
+{
+  "description": "WARDEN flow guard for Codex. Replace /opt/warden-codex with the folder that holds scripts/ (root-owned when agents run unattended).",
+  "hooks": {
+    "PreToolUse": [
+      { "hooks": [{ "type": "command", "command": "node /opt/warden-codex/scripts/codex-hook.mjs pre-tool-use", "timeout": 15, "statusMessage": "WARDEN: checking the call" }] }
+    ],
+    "PostToolUse": [
+      { "hooks": [{ "type": "command", "command": "node /opt/warden-codex/scripts/codex-hook.mjs post-tool-use", "timeout": 30 }] }
+    ],
+    "UserPromptSubmit": [
+      { "hooks": [{ "type": "command", "command": "node /opt/warden-codex/scripts/codex-hook.mjs user-prompt-submit", "timeout": 15 }] }
+    ],
+    "Stop": [
+      { "hooks": [{ "type": "command", "command": "node /opt/warden-codex/scripts/codex-hook.mjs stop", "timeout": 15 }] }
+    ]
+  }
+}

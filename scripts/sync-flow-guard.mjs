@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Copies the compiled flow guard (dist/flow-guard.js and its parts, dist/flow-guard-*.js) into the Claude Code
-// plugin, which runs it on every tool call without installing the package. `npm run build` calls this;
+// plugin and the Codex hooks folder, which runs it on every tool call without installing the package. `npm run build` calls this;
 // test/flow-guard.test.ts fails if a copy and the build differ, so the plugin can never run logic the package does not.
 import { existsSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -9,6 +9,8 @@ import { fileURLToPath } from 'node:url';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SOURCE = /^flow-guard(?:-[a-z]+)?\.ts$/;
 const PLUGIN = /^flow-guard(?:-[a-z]+)?\.mjs$/;
+/** Folders that run the guard without the package: the Claude Code plugin and the Codex hooks. */
+export const PLUGIN_DIRS = ['claude-plugin/scripts', 'codex-hooks/scripts'];
 
 export function pluginCopy(compiled, source = 'src/flow-guard.ts') {
   // The parts import each other as ./flow-guard-*.js; in the plugin they are .mjs files next to each other.
@@ -30,10 +32,12 @@ export function pluginFiles(base = root) {
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  const scripts = join(root, 'claude-plugin/scripts');
   const files = pluginFiles();
-  for (const f of files) writeFileSync(join(scripts, f.name), f.text);
-  // A part that no longer exists must not stay behind in the plugin.
-  for (const n of readdirSync(scripts)) if (PLUGIN.test(n) && !files.some(f => f.name === n) && existsSync(join(scripts, n))) unlinkSync(join(scripts, n));
-  console.log(`claude-plugin/scripts: ${files.map(f => f.name).join(', ')} updated`);
+  for (const folder of PLUGIN_DIRS) {
+    const scripts = join(root, folder);
+    for (const f of files) writeFileSync(join(scripts, f.name), f.text);
+    // A part that no longer exists must not stay behind in the plugin.
+    for (const n of readdirSync(scripts)) if (PLUGIN.test(n) && !files.some(f => f.name === n) && existsSync(join(scripts, n))) unlinkSync(join(scripts, n));
+    console.log(`${folder}: ${files.map(f => f.name).join(', ')} updated`);
+  }
 }

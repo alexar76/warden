@@ -29,14 +29,19 @@
  *
  * Node built-ins and flow-guard parts only, so the compiled files can be copied next to an OpenCode config.
  */
-import { flowPaths, stateDir } from './flow-guard-paths.js';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { flowPaths, sessionKey, stateDir } from './flow-guard-paths.js';
 import { flowPost } from './flow-guard-post.js';
 import { flowPrompt } from './flow-guard-answer.js';
 import { flowPre } from './flow-guard-pre.js';
 import { log } from './flow-guard-state.js';
-import type { FlowPreDetail, FlowReason } from './flow-guard-pre.js';
+import type { FlowPreDetail } from './flow-guard-pre.js';
+import { blockMode, patchFiles, refuses, type UnattendedBlockMode } from './flow-guard-unattended.js';
 
-export type OpenCodeBlockMode = 'data' | 'all';
+export { patchFiles, refuses } from './flow-guard-unattended.js';
+
+export type OpenCodeBlockMode = UnattendedBlockMode;
 
 export interface OpenCodeGuardOptions {
   /** Which decisions refuse the call: see the module comment. Env `WARDEN_OPENCODE_BLOCK`. */
@@ -47,11 +52,6 @@ export interface OpenCodeGuardOptions {
   stripEnv?: string[];
   env?: NodeJS.ProcessEnv;
 }
-
-/** Reasons that are about data, never only about an action. */
-const DATA_REASONS: ReadonlySet<FlowReason> = new Set<FlowReason>(['protected_settings', 'secret', 'secret_fragment',
-  'paste_after_secret', 'payload_incomplete', 'secret_tracking', 'personal_data', 'private_text', 'credential_egress',
-  'secret_to_file']);
 
 /** Tools that only change OpenCode's own session state. */
 const IGNORED = new Set(['todowrite', 'todoread', 'question', 'skill', 'invalid']);
@@ -66,13 +66,6 @@ function str(v: unknown): string | undefined {
   return typeof v === 'string' ? v : undefined;
 }
 
-/** File paths an apply_patch text adds, updates, moves or deletes. */
-export function patchFiles(patch: string): string[] {
-  const out: string[] = [];
-  for (const m of patch.matchAll(/^\*\*\* (?:Add|Update|Delete) File: (.+)$|^\*\*\* Move to: (.+)$/gm)) out.push((m[1] ?? m[2]!).trim());
-  return [...new Set(out)];
-}
-
 /** One OpenCode call as the guard's vocabulary: zero, one or (for a multi-file patch) several calls. */
 export function guardCalls(tool: string, rawArgs: unknown, mcpServers: readonly string[]): GuardCall[] {
   const a = obj(rawArgs);
@@ -80,7 +73,8 @@ export function guardCalls(tool: string, rawArgs: unknown, mcpServers: readonly 
   if (IGNORED.has(t)) return [];
   const file = str(a.filePath) ?? str(a.file_path) ?? str(a.path);
   switch (t) {
-    case 'bash': return [{ name: 'Bash', input: { command: str(a.command) ?? '' } }];
+    case 'bash': return [{ name: 'Bash', input: { command: str(a.command) ?? '',
+      ...(str(a.workdir) ? { workdir: a.workdir } : {}) } }];
     case 'read': return [{ name: 'Read', input: file ? { file_path: file } : {} }];
     case 'write': return [{ name: 'Write', input: { file_path: file ?? '', content: a.content } }];
     case 'edit': return [{ name: 'Edit', input: { file_path: file ?? '', old_string: a.oldString, new_string: a.newString } }];
@@ -104,12 +98,6 @@ export function guardCalls(tool: string, rawArgs: unknown, mcpServers: readonly 
   // Anything else (a subagent `task`, another plugin's tool) is treated like an unlabelled MCP tool: its result is
   // outside text, and it sends when its name or arguments say so.
   return [{ name: `mcp__opencode__${tool}`, input: a }];
-}
-
-/** Whether an unattended run must refuse this decision. */
-export function refuses(decision: { permissionDecision: 'ask' | 'deny' }, detail: FlowPreDetail, block: OpenCodeBlockMode): boolean {
-  if (decision.permissionDecision === 'deny' || block === 'all') return true;
-  return !!detail.sensitive || (detail.reason !== undefined && DATA_REASONS.has(detail.reason));
 }
 
 function list(v: string | undefined): string[] {
@@ -136,37 +124,56 @@ const MAX_DEPTH = 16;
 export function createWardenPlugin(options: OpenCodeGuardOptions = {}) {
   return async (ctx: { directory?: string; worktree?: string; client?: SessionClient } = {}): Promise<Hooks> => {
     const env = options.env ?? process.env;
-    const blockEnv = env.WARDEN_OPENCODE_BLOCK === 'all' || env.WARDEN_OPENCODE_BLOCK === 'data' ? env.WARDEN_OPENCODE_BLOCK : undefined;
+    const blockEnv = blockMode(env.WARDEN_OPENCODE_BLOCK);
     const block: OpenCodeBlockMode = options.block ?? blockEnv ?? 'data';
     const servers = new Set(options.mcpServers ?? []);
     const strip = [...new Set([...(options.stripEnv ?? []), ...list(env.WARDEN_OPENCODE_STRIP_ENV)])];
-    // The session's directory, never a model-chosen `workdir`: it only steers path classification, and the agent
-    // must not pick the frame its own calls are judged in.
+    // The host session directory is the trusted project boundary. A Bash workdir resolves execution paths
+    // without redefining that boundary.
     const cwd = ctx.directory ?? ctx.worktree ?? process.cwd();
     const parentOf = new Map<string, string>();
     const looked = new Set<string>();
     const broken = new Set<string>();
+    const brokenPath = (sessionId?: string) => join(stateDir(env), 'opencode', 'broken', sessionId ? sessionKey(sessionId) : '_unknown');
+    const markBroken = (sessionId?: string) => {
+      broken.add(sessionId ?? '_unknown');
+      mkdirSync(join(stateDir(env), 'opencode', 'broken'), { recursive: true, mode: 0o700 });
+      writeFileSync(brokenPath(sessionId), new Date().toISOString() + '\n', { mode: 0o600 });
+    };
     const learn = (info: unknown) => {
       const i = obj(info), id = str(i.id), parent = str(i.parentID);
-      if (id) { looked.add(id); if (parent && parent !== id) parentOf.set(id, parent); }
+      if (!id || (i.parentID !== undefined && (!parent || parent === id))) {
+        throw new Error('WARDEN flow guard could not verify session ancestry. Refused.');
+      }
+      looked.add(id);
+      if (parent) parentOf.set(id, parent);
     };
     const parentFromClient = async (id: string) => {
       if (looked.has(id)) return;
-      looked.add(id);
       try {
+        if (!ctx.client?.session?.get) throw new Error('session client unavailable');
         const res = obj(await ctx.client?.session?.get?.({ path: { id } }));
-        learn(res.data ?? res);
-      } catch { /* unknown parent: the session is its own root */ }
+        const info = obj(res.data ?? res);
+        if (info.id !== id) throw new Error('session lookup did not return the requested session');
+        learn(info);
+      } catch {
+        // Only a successful lookup or a host session event confirms ancestry. A failed lookup must be
+        // retried, never cached as proof that a child is a clean root session.
+        throw new Error('WARDEN flow guard could not verify session ancestry. Refused; retry after the session lookup recovers.');
+      }
     };
     const rootOf = async (id: string): Promise<string> => {
       let cur = id;
+      const seen = new Set<string>();
       for (let i = 0; i < MAX_DEPTH; i++) {
+        if (seen.has(cur)) throw new Error('WARDEN flow guard found cyclic session ancestry. Refused.');
+        seen.add(cur);
         await parentFromClient(cur);
         const parent = parentOf.get(cur);
-        if (!parent) break;
+        if (!parent) return cur;
         cur = parent;
       }
-      return cur;
+      throw new Error('WARDEN flow guard could not verify session ancestry within its depth limit. Refused.');
     };
     return {
       event: async (input: { event?: unknown }) => {
@@ -187,7 +194,7 @@ export function createWardenPlugin(options: OpenCodeGuardOptions = {}) {
         const tool = str(input?.tool), session = str(input?.sessionID);
         if (!tool || !session) return;
         const sessionId = await rootOf(session);
-        if (broken.has(sessionId)) {
+        if (broken.has(sessionId) || broken.has('_unknown') || existsSync(brokenPath(sessionId)) || existsSync(brokenPath())) {
           throw new Error('WARDEN flow guard could not record an earlier result of this session, so it cannot judge this call. Refused; start a new session.');
         }
         for (const call of guardCalls(tool, output?.args, [...servers])) {
@@ -205,19 +212,23 @@ export function createWardenPlugin(options: OpenCodeGuardOptions = {}) {
       },
       'tool.execute.after': async (input: { tool?: string; sessionID?: string; args?: unknown }, output: { output?: unknown }) => {
         const tool = str(input?.tool), session = str(input?.sessionID);
-        if (!tool || !session || !output) return;
-        const sessionId = await rootOf(session);
-        const response = typeof output.output === 'string' ? output.output : JSON.stringify(output.output ?? '');
-        for (const call of guardCalls(tool, input.args, [...servers])) {
-          let post;
-          try { post = flowPost({ session_id: sessionId, tool_name: call.name, tool_input: call.input, tool_response: response, cwd }, env); }
-          catch (err) {
-            broken.add(sessionId);
-            note(env, sessionId, { tool: call.name, resolution: 'record_failed', error: err instanceof Error ? err.name : 'error' });
-            continue;
+        let sessionId: string | undefined;
+        try {
+          if (!tool || !session) throw new Error('result has no session or tool name');
+          sessionId = await rootOf(session);
+          if (!output) throw new Error('result output is unavailable');
+          const response = typeof output.output === 'string' ? output.output : JSON.stringify(output.output ?? '');
+          if (typeof response !== 'string') throw new Error('result cannot be serialized');
+          for (const call of guardCalls(tool, input.args, [...servers])) {
+            const post = flowPost({ session_id: sessionId, tool_name: call.name, tool_input: call.input, tool_response: response, cwd }, env);
+            const warning = post?.additionalContext || post?.systemMessage;
+            if (warning && typeof output.output === 'string') output.output = `${output.output}\n\n[WARDEN] ${warning}`;
           }
-          const warning = post?.additionalContext || post?.systemMessage;
-          if (warning && typeof output.output === 'string') output.output = `${output.output}\n\n[WARDEN] ${warning}`;
+        } catch (err) {
+          // This hook runs after execution. If ancestry is unknown, the lost result could belong to any
+          // root; fence this installation. Otherwise the durable fence stays scoped to the verified root.
+          markBroken(sessionId);
+          note(env, sessionId ?? session ?? 'unknown', { tool, resolution: 'record_failed', error: err instanceof Error ? err.name : 'error' });
         }
       },
       'shell.env': async (_input: unknown, output: { env?: Record<string, string> }) => {

@@ -12,7 +12,7 @@
   <a href="https://glama.ai/mcp/servers/alexar76/warden"><img src="https://glama.ai/mcp/servers/alexar76/warden/badges/score.svg" alt="warden MCP server" /></a>
   <a href="https://warden.modelmarket.dev/"><img src="https://img.shields.io/npm/v/@aimarket/warden?color=cb3837&label=npm" alt="npm version" /></a>
   <img src="docs/badges/deps.svg" alt="Cero dependencias de ejecución" />
-  <img src="docs/badges/tests.svg" alt="1517 pruebas en verde" />
+  <img src="docs/badges/tests.svg" alt="1574 pruebas en verde" />
   <img src="docs/badges/node.svg" alt="Node >= 20" />
   <a href="LICENSE"><img src="docs/badges/license.svg" alt="Licencia: MIT" /></a>
 </p>
@@ -139,6 +139,15 @@ Claude Desktop en macOS: `~/Library/Logs/Claude/mcp-server-<nombre>.log`. En Cur
 | `--verdict-log FILE` | Veredictos JSONL completos con versión/digest; desactivado por defecto |
 | `--audit-only` | Modo diagnóstico; desactivado por defecto |
 | `--ask elicit\|refuse` | Una llamada que necesita el sí de una persona (herramienta sensible, pregunta de la guardia de flujo): `elicit` (por defecto) pregunta con el formulario de elicitation MCP del cliente y rechaza si no lo tiene; `refuse` siempre rechaza |
+
+## Proteger un agente de Codex
+
+La misma guardia de flujo para OpenAI Codex (CLI, `codex exec`, aplicación de escritorio, runtimes de Multica), mediante
+los hooks de comando de Codex. Codex no tiene `ask` y ejecuta la llamada cuando un hook falla, así que el adaptador
+nunca pregunta: una pregunta se convierte en rechazo o en paso registrado (`block: data|all`), y cualquier fallo
+deniega. En un servidor de runtime, instálala como hooks gestionados en `/etc/codex/requirements.toml`. Los esquemas
+para Multica y los límites están en [docs/codex.es.md](docs/codex.es.md) (red team en el vocabulario de Codex: `all`
+0 de 28, `data` 3 de 28, los mismos tres que OpenCode). Código local, aún no publicado.
 
 ## Analiza todos los servidores que inician tus clientes
 
@@ -344,6 +353,7 @@ comprobarlas: [Identidades ERC-8004](https://github.com/alexar76/aicom/blob/main
 | [Estudio de campo: 1 108 servidores MCP públicos](docs/mcp-survey.es.md) | Qué decidió WARDEN sobre definiciones de herramienta reales de terceros — 50 servidores bloqueados, 4 sustentados, y las seis formas en que el resto se equivocó |
 | [Comparación de escáneres](docs/scanner-comparison.es.md) | WARDEN, mcp-audit, mcp-shield, truecopy y mcpsentry sobre los mismos servidores, sobre 14 933 paquetes de npm y PyPI y sobre el benchmark MCPTox, con cada juicio, el manifiesto y el banco de pruebas |
 | [Guardián de flujos](docs/flow-guard.es.md) | La protección en ejecución del plugin de Claude Code: texto ajeno, datos privados, llamadas salientes; la medición en AgentDojo y sus límites |
+| [Guardia de flujo para Codex](docs/codex.es.md) | Hooks de Codex: sin `ask`, falla cerrado, hooks gestionados, esquemas para Multica |
 | [Nueva comparación del modelo](docs/flow-guard-model-comparison-2026-10-25.es.md) | 720 respuestas: mejora en casos conocidos, incertidumbre, canal de avisos y ninguna corrección de ID observada por Stop |
 | [Glama / Docker](docs/GLAMA.md) | MCP stdio, health check, Build steps / CMD |
 | [Security](SECURITY.md) | Cómo informar de un bypass del cortafuegos |
@@ -368,7 +378,7 @@ comprobarlas: [Identidades ERC-8004](https://github.com/alexar76/aicom/blob/main
 ## Desarrollo
 
 ```bash
-npm install && npm run build && npm test   # 1517 pruebas
+npm install && npm run build && npm test   # 1574 pruebas
 ```
 
 `test/packaging.test.ts` es lo que mantiene honesto el titular: falla si aparece una dependencia de

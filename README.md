@@ -158,6 +158,15 @@ OpenCode's own config is protected, and `shell.env` blanks keys shell commands d
 [docs/opencode.md](docs/opencode.md) for the `block` modes and what each lets through (red-team replay: `all` 0 of
 28, `data` 3 of 28, all three action-only).
 
+## Guard a Codex agent
+
+The same flow guard for OpenAI Codex (CLI, `codex exec`, desktop app, Multica runtimes), through Codex's command hooks.
+Codex has no `ask` and runs the call when a hook fails, so the adapter never asks: a question becomes a refusal or a
+logged pass (`block: data|all`), and every failure denies. Install it as managed hooks in `/etc/codex/requirements.toml`
+on a runtime host. See [docs/codex.md](docs/codex.md) for the Multica deployment schemes and the limits (red-team
+replay in Codex's tool vocabulary: `all` 0 of 28, `data` 3 of 28, the same three as OpenCode). Local source, not
+released yet.
+
 ## Scan every server your clients start
 
 ```bash
@@ -362,6 +371,7 @@ check them: [ERC-8004 identities](https://github.com/alexar76/aicom/blob/main/do
 | [Field survey: 1 108 public MCP servers](docs/mcp-survey.md) | What WARDEN decided on real third-party tool definitions — 50 servers blocked, 4 substantiated, and the six ways the rest were wrong |
 | [Scanner comparison](docs/scanner-comparison.md) | WARDEN, mcp-audit, mcp-shield, truecopy and mcpsentry on the same servers, on 14,933 npm and PyPI packages and on the MCPTox benchmark, with every judgment, the manifest and the harness |
 | [Flow guard](docs/flow-guard.md) | The Claude Code plugin's runtime guard: outside text, private data, outbound calls; the AgentDojo measurement and its limits |
+| [Flow guard for Codex](docs/codex.md) | Codex hooks: no `ask`, fail-closed, managed hooks, Multica schemes |
 | [Fresh model comparison](docs/flow-guard-model-comparison-2026-10-25.md) | 720 answers; known-case improvement, uncertainty, warning custody and no observed Stop choice correction |
 | [Glama / Docker](docs/GLAMA.md) | stdio MCP server, health check, admin Build steps / CMD |
 | [MCP registries](docs/REGISTRIES.md) | Official Registry, mcp.so / Pulse |
@@ -386,7 +396,7 @@ check them: [ERC-8004 identities](https://github.com/alexar76/aicom/blob/main/do
 ## Development
 
 ```bash
-npm install && npm run build && npm test   # 1517 tests
+npm install && npm run build && npm test   # 1574 tests
 ```
 
 `test/packaging.test.ts` is what keeps the headline honest: it fails if an npm runtime dependency

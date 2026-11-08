@@ -27,6 +27,15 @@ export const RESULT_POLICIES: readonly ResultPolicy[] = ['off', 'warn', 'block']
 export const RESULT_SCAN_CHARS = 256 * 1024;
 const TAIL_CHARS = 16 * 1024;
 
+/** Match the SDK's BlobResourceContents shape and native base64 validation. */
+function isBinaryResourceBlob(resource: Record<string, unknown>, blob: unknown): boolean {
+  if (typeof resource.uri !== 'string' || typeof blob !== 'string' ||
+      (resource.mimeType !== undefined && typeof resource.mimeType !== 'string')) return false;
+  // The SDK uses atob rather than a repeated-group regex, which can overflow
+  // on large valid blobs. Invalid strings remain text to inspect.
+  try { atob(blob); return true; } catch { return false; }
+}
+
 /** The text a `tools/call` result puts in front of the model, bounded. */
 function extractResult(result: unknown): { text: string; complete: boolean } {
   const parts: string[] = [];
@@ -49,7 +58,10 @@ function extractResult(result: unknown): { text: string; complete: boolean } {
       const [key, item] = entries[i]!;
       // Binary media is not text. Its surrounding labels/metadata still are.
       if (part.media && key === 'data' && (obj.type === 'image' || obj.type === 'audio')) continue;
-      if (part.resource && key === 'blob' && typeof obj.mimeType === 'string' && typeof obj.uri === 'string') continue;
+      // BlobResourceContents has an optional MIME type. Only the actual binary
+      // string in a resource content block is exempt; metadata and lookalikes
+      // in structured data must still be inspected.
+      if (part.resource && key === 'blob' && isBinaryResourceBlob(obj, item)) continue;
       if (part.icon && key === 'src' && typeof item === 'string' && /^data:image\/(?:png|jpeg|gif|webp|avif|svg\+xml|x-icon|vnd\.microsoft\.icon);base64,[A-Za-z0-9+/]+={0,2}$/.test(item)) continue;
       const textOnly = part.textOnly || (value === result && (key === 'structuredContent' || key === 'error'));
       stack.push({ value: item, textOnly, content: value === result && key === 'content',

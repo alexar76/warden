@@ -46,9 +46,16 @@ export function inside(child: string, parent: string): boolean {
   return child === parent || child.startsWith(p);
 }
 
-const SECRET_PATH = /(^|\/)(\.ssh|\.aws|\.gnupg|\.kube|\.docker|\.config\/gh|\.config\/gcloud|\.azure|\.password-store|keychains?)(\/|$)|(^|\/)(\.netrc|\.npmrc|\.pypirc|\.git-credentials|\.pgpass|id_(rsa|dsa|ecdsa|ed25519)[^/]*|[^/]*\.(pem|key|p12|pfx|kdbx|keystore|jks)|\.env(\.[^/]*)?|credentials?(\.[^/]*)?|secrets?(\.[^/]*)?)$|(^|\/)\.local\/share\/opencode\/auth\.json$|(^|\/)\.multica\/config\.json$/i;
-export function isSecretPath(path: string): boolean {
-  return SECRET_PATH.test(path.replace(/\\/g, '/'));
+const SECRET_PATH = /(^|\/)(\.ssh|\.aws|\.gnupg|\.kube|\.docker|\.config\/gh|\.config\/gcloud|\.azure|\.password-store|keychains?)(\/|$)|(^|\/)(\.netrc|\.npmrc|\.pypirc|\.git-credentials|\.pgpass|id_(rsa|dsa|ecdsa|ed25519)[^/]*|[^/]*\.(pem|key|p12|pfx|kdbx|keystore|jks)|\.env(\.[^/]*)?|credentials?(\.[^/]*)?|secrets?(\.[^/]*)?)$|(^|\/)\.local\/share\/opencode\/auth\.json$|(^|\/)\.multica\/config\.json$|(^|\/)\.codex\/auth\.json$/i;
+export function isSecretPath(path: string, env: NodeJS.ProcessEnv = process.env): boolean {
+  if (SECRET_PATH.test(path.replace(/\\/g, '/'))) return true;
+  // Codex relocates its OAuth/API credentials with CODEX_HOME, too. Recognize
+  // the configured file and aliases so a generic token still sets the
+  // credential boundary, rather than relying on a provider-specific prefix.
+  if (!env.CODEX_HOME) return false;
+  const auth = resolve(env.CODEX_HOME, 'auth.json');
+  const authPaths = [auth, physicalPath(auth)].map(p => p.replace(/\\/g, '/'));
+  return [path, physicalPath(path)].some(p => authPaths.includes(p.replace(/\\/g, '/')));
 }
 
 export const FOREIGN_DIRS = /(^|\/)(node_modules|vendor|\.venv|venv|site-packages|dist-packages|bower_components|Pods|\.cargo\/registry|go\/pkg\/mod)(\/|$)/;
@@ -69,6 +76,9 @@ export function isProtectedPath(path: string, cwd: string, env: NodeJS.ProcessEn
     if (/(^|\/)\.git\/(?:config$|hooks(?:\/|$))/.test(p)) return true;
     // OpenCode: its config and plugin folders load (or drop) the guard itself, globally and per project.
     if (/(^|\/)\.config\/opencode(\/|$)/.test(p) || /(^|\/)\.opencode(\/|$)/.test(p) || /(^|\/)opencode\.jsonc?$/.test(p)) return true;
+    // Codex: user, project and system config layers load (or drop) its hooks, the guard among them.
+    if (/(^|\/)\.codex(\/|$)/.test(p) || inside(p, '/etc/codex')) return true;
+    if (env.CODEX_HOME && inside(p, physicalPath(resolve(env.CODEX_HOME)).replace(/\\/g, '/'))) return true;
     if (/(^|\/)warden\.lock\.json$/.test(p) && inside(p, cwd.replace(/\\/g, '/'))) return true;
     return false;
   });

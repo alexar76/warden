@@ -65,9 +65,9 @@ describe('ruleset v10: what it leaves alone (field-corpus sentences)', () => {
 });
 
 describe('ruleset identity', () => {
-  it('is version 18 with 43 rules, 32 of them blocking (v18 adds three credential-transfer rules)', () => {
+  it('is version 19 with 43 rules, 32 of them blocking', () => {
     const rs = staticScanRuleset();
-    expect(rs.version).toBe('18');
+    expect(rs.version).toBe('19');
     expect(rs.rules.length).toBe(43);
     expect(rs.rules.filter(r => r.tier === 'block').length).toBe(32);
   });

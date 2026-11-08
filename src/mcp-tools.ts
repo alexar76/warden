@@ -114,7 +114,7 @@ const RULESET_REF_SCHEMA = {
   additionalProperties: false,
   required: ["version", "digest"],
   properties: {
-    version: { type: "string", description: "Monotonic static-scan ruleset version (currently \"12\")." },
+    version: { type: "string", description: "Monotonic static-scan ruleset version. Use list_scan_rules for the current version and digest." },
     digest: {
       type: "string",
       description: "sha256-<base64> over the RFC 8785 canonical form of the published rule table. A recorded scan is not reproducible without this.",
@@ -274,7 +274,7 @@ export const MCP_TOOLS: McpToolDef[] = [
     name: "static_scan_tools",
     title: "Static-scan MCP tool definitions for injection and exfil",
     description:
-      "Run only the static-scan gate (ruleset v14, 36 signatures with context guards, text folded first) over every advertised tool field: name, description, input schema, title, output schema, annotations and extension metadata. Returns findings, a 0..1 gate score, and the published ruleset digest.\n\n" +
+      "Run only the static-scan gate (signatures with context guards, text folded first) over every advertised tool field: name, description, input schema, title, output schema, annotations and extension metadata. Returns findings, a 0..1 gate score, and the published ruleset digest. Use list_scan_rules for the current rule table and identity.\n\n" +
       "When to use: you have a tools/list dump and want injection / credential / hidden-Unicode hits without origin, pinning, or the threat feed. Cheaper and narrower than vet_mcp_server.\n\n" +
       "When NOT to use: you need the full host decision (vet_mcp_server); you want operator glob classification (classify_sensitive_tools); you want the published rule table itself (list_scan_rules).\n\n" +
       "Behaviour: local regex+guard evaluation, no network, no mutation. Advisory-tier hits are reported with advisory=true and do not reduce the score. Does not launch servers or send tool output to a model.\n\n" +
@@ -455,7 +455,7 @@ export const MCP_TOOLS: McpToolDef[] = [
     title: "List the published WARDEN static-scan rule table",
     description:
       "Return the in-force static-scan ruleset: version, digest, and every rule's code, severity, tier (block vs advise), surfaces (name / description / inputSchema / title / outputSchema / annotations / metadata), optional regex source, and named guards. A recorded verdict is only reproducible together with this identity.\n\n" +
-      "When to use: explain a finding code, confirm you are on ruleset v14, or re-run a scan with the same table. include_source=true adds the regex source and flags for an independent re-implementation.\n\n" +
+      "When to use: explain a finding code, confirm the current ruleset version and digest, or re-run a scan with the same table. include_source=true adds the regex source and flags for an independent re-implementation.\n\n" +
       "When NOT to use: evaluating a live tools/list (static_scan_tools or vet_mcp_server — those apply the table). This tool does not scan anything.\n\n" +
       "Behaviour: local snapshot of the compiled rule table, no network, no mutation. Digest is sha256 over the RFC 8785 form of {version, fold, rules} (each rule carries its `raw` flag).\n\n" +
       "Returns the ruleset object. Example: list_scan_rules({ include_source: false }).",

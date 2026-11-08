@@ -66,7 +66,7 @@ describe('GitHub Action step', () => {
 
   it('accepts a pinned prerelease version without loosening the shell input boundary', () => {
     const dir = project({});
-    expect(runAction(dir, { WARDEN_VERSION: '0.23.1-dev.20261107' }).code).toBe(0);
+    expect(runAction(dir, { WARDEN_VERSION: '0.23.1-dev.20261108' }).code).toBe(0);
     expect(runAction(dir, { WARDEN_VERSION: '0.23.1-dev;touch injected' }).code).toBe(2);
     expect(existsSync(join(dir, 'injected'))).toBe(false);
   });

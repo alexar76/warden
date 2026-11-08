@@ -86,13 +86,13 @@ function literalReadOnlyShell(command: string): boolean {
   });
 }
 
-function trustedShellExecutables(command: string, env: NodeJS.ProcessEnv): boolean {
+function trustedShellExecutables(command: string, env: NodeJS.ProcessEnv, cwd: string): boolean {
   if (env.RIPGREP_CONFIG_PATH || env.BASH_ENV || env.ENV || env.LD_PRELOAD || env.DYLD_INSERT_LIBRARIES) return false;
   return command.split(/&&|\|\||\|/).every(segment => {
     const exe = segment.trim().split(/\s+/)[0] ?? '';
     if (exe.includes('/')) return ['/bin', '/usr/bin'].includes(dirname(exe));
     if (['pwd', 'true', 'false'].includes(exe)) return true;
-    const found = (env.PATH ?? '/usr/bin:/bin').split(sep === '/' ? ':' : ';').map(p => resolve(p || '.', exe)).find(p => existsSync(p));
+    const found = (env.PATH ?? '/usr/bin:/bin').split(sep === '/' ? ':' : ';').map(p => resolve(cwd, p || '.', exe)).find(p => existsSync(p));
     return !!found && ['/bin', '/usr/bin'].includes(dirname(physicalPath(found)));
   });
 }
@@ -119,7 +119,7 @@ export function classifyCall(toolName: string, input: Record<string, unknown>, c
   switch (toolName) {
     case 'Read': case 'NotebookRead': case 'Grep': case 'Glob': case 'LS':
       result.labels.add('private');
-      if (abs) { result.src = physicalPath(abs); result.secret = isSecretPath(abs) || isSecretPath(result.src); }
+      if (abs) { result.src = physicalPath(abs); result.secret = isSecretPath(abs, env) || isSecretPath(result.src, env); }
       break;
     case 'WebFetch': case 'WebSearch':
       result.labels.add('untrusted'); result.labels.add('outbound');
@@ -131,17 +131,24 @@ export function classifyCall(toolName: string, input: Record<string, unknown>, c
       break;
     case 'Bash': case 'BashOutput': {
       const command = typeof input.command === 'string' ? input.command : texts.join('\n');
+      // Execution cwd resolves relative shell targets; it does not redefine
+      // the trusted project boundary passed to isProtectedPath.
+      const executionCwd = typeof input.workdir === 'string' && input.workdir ? absPath(input.workdir, cwd) : cwd;
       const shell = classifyShell(command);
-      result.opaqueShell = !shell.local || !trustedShellExecutables(command, env);
+      result.opaqueShell = !shell.local || !trustedShellExecutables(command, env, executionCwd);
       for (const l of shell.labels) result.labels.add(l);
       if (result.opaqueShell) result.labels.add('outbound');
       result.hosts = shell.hosts;
       result.src = shell.hosts[0] ? `${shell.hosts[0]} (shell)` : 'shell output';
       for (const t of command.split(/\s+/)) {
         const cleaned = t.replace(/^['"]|['"]$/g, '');
-        const path = shellPath(cleaned.replace(/^--[\w-]+=/, ''), cwd, env);
-        if (/[/~.]/.test(cleaned) && isSecretPath(path)) result.secret = true;
-        if (/[/~.$]/.test(cleaned) && isProtectedPath(path, cwd, env) && !shell.local) result.protectedTouch = true;
+        const path = shellPath(cleaned.replace(/^--[\w-]+=/, ''), executionCwd, env);
+        // Bare existing operands matter too: cat config from a .ssh workdir
+        // reads a credential file without naming the sensitive directory.
+        if ((/[/~.]/.test(cleaned) || existsSync(path)) && isSecretPath(path, env)) result.secret = true;
+        // A write may create its target, so protected-path checks cannot depend
+        // on the target already existing or containing punctuation.
+        if (isProtectedPath(path, cwd, env) && !shell.local) result.protectedTouch = true;
       }
       break;
     }

@@ -1,6 +1,6 @@
 {
   "name": "@aimarket/warden",
-  "version": "0.23.1-dev.20261107",
+  "version": "0.23.1-dev.20261108",
   "description": "WARDEN — MCP security firewall. Stdio wrap proxy, inspection tools and library. Vets definitions before model exposure. Zero runtime dependencies.",
   "type": "module",
   "license": "MIT",
@@ -39,6 +39,11 @@
       "types": "./dist/opencode-plugin.d.ts",
       "import": "./dist/opencode-plugin.js",
       "default": "./dist/opencode-plugin.js"
+    },
+    "./codex": {
+      "types": "./dist/flow-guard-codex.d.ts",
+      "import": "./dist/flow-guard-codex.js",
+      "default": "./dist/flow-guard-codex.js"
     }
   },
   "files": [
@@ -62,7 +67,10 @@
     "native/macos/Package.swift",
     "native/macos/Sources",
     "scripts/build-macos.mjs",
-    "opencode-plugin/warden.js"
+    "opencode-plugin/warden.js",
+    "docs/codex*.md",
+    "codex-hooks",
+    "scripts/codex-live-check.sh"
   ],
   "engines": {
     "node": ">=20"

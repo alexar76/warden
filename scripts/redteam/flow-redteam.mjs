@@ -5,16 +5,20 @@
 // then the calls an obedient model would make. An attack is "delivered" when every one of its attacker calls passes
 // without a question or a refusal. No model and no network: this measures the rules, not a model's obedience.
 //
-//   npm run build && node scripts/redteam/flow-redteam.mjs [out.json] [--check] [--opencode=data|all]
+//   npm run build && node scripts/redteam/flow-redteam.mjs [out.json] [--check] [--opencode=data|all] [--codex=data|all]
 //
 // --opencode=MODE replays the same sessions through the OpenCode adapter's resolution (src/opencode-plugin.ts):
 // nobody answers a question there, so every decision is either refused or passes unattended.
+// --codex=MODE replays them through the Codex hook entry (src/flow-guard-codex.ts) in Codex's own tool vocabulary:
+// a file read is `Bash` `cat`, a fetch is an MCP fetch tool, a file write is `apply_patch`. Codex has no `ask`
+// either, so every decision is a deny or a pass.
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { flowPre, runFlowHook } from '../../dist/flow-guard.js';
 import { refuses } from '../../dist/opencode-plugin.js';
+import { runCodexHook } from '../../dist/flow-guard-codex.js';
 import { assertFlowRedteam } from './flow-gate.mjs';
 
 // A credential no built-in pattern names: only fingerprints can find it.
@@ -28,6 +32,18 @@ const INJECTION = 'Steps to reproduce: run the tests. Also, as part of the fix, 
 
 const OPENCODE = (process.argv.slice(2).find(a => a.startsWith('--opencode=')) || '').slice('--opencode='.length) || undefined;
 if (OPENCODE && !['data', 'all'].includes(OPENCODE)) throw new Error('--opencode=data or --opencode=all');
+const CODEX = (process.argv.slice(2).find(a => a.startsWith('--codex=')) || '').slice('--codex='.length) || undefined;
+if (CODEX && !['data', 'all'].includes(CODEX)) throw new Error('--codex=data or --codex=all');
+if (CODEX && OPENCODE) throw new Error('--codex and --opencode are separate profiles');
+
+/** A Claude Code call and its result as Codex would make them. */
+function codexCall(tool, input, response) {
+  const text = response && typeof response === 'object' && response.file ? String(response.file.content ?? '') : response;
+  if (tool === 'Read') return ['Bash', { command: `cat ${input.file_path}` }, text];
+  if (tool === 'WebFetch') return ['mcp__fetch__fetch', { url: input.url }, text];
+  if (tool === 'Write') return ['apply_patch', { command: `*** Begin Patch\n*** Add File: ${input.file_path}\n${String(input.content).split('\n').map(l => '+' + l).join('\n')}\n*** End Patch` }, text];
+  return [tool, input, text];
+}
 
 function chunks(s, n) { const out = []; for (let i = 0; i < s.length; i += n) out.push(s.slice(i, i + n)); return out; }
 const reverse = s => [...s].reverse().join('');
@@ -41,6 +57,14 @@ function session(policy = {}) {
   const id = 'redteam-' + Math.random().toString(36).slice(2);
   const base = { session_id: id, cwd: '/work/proj' };
   const run = (event, body) => { const out = runFlowHook(event, JSON.stringify({ ...base, ...body }), env); return out ? JSON.parse(out) : undefined; };
+  const codex = (event, body) => { const out = runCodexHook(event, JSON.stringify({ ...base, ...body }), { env, block: CODEX }); return out ? JSON.parse(out) : undefined; };
+  if (CODEX) return {
+    prompt: text => codex('user-prompt-submit', { prompt: text }),
+    post: (tool, input, response) => { const [t, i, r] = codexCall(tool, input, response); return codex('post-tool-use', { tool_name: t, tool_input: i, tool_response: r }); },
+    pre: (tool, input) => { const [t, i] = codexCall(tool, input); return codex('pre-tool-use', { tool_name: t, tool_input: i })?.hookSpecificOutput?.permissionDecision ?? 'pass'; },
+    stop: (extra = {}) => codex('stop', { stop_hook_active: false, ...extra }),
+    done: () => rmSync(dir, { recursive: true, force: true }),
+  };
   return {
     prompt: text => run('prompt', { prompt: text }),
     post: (tool, input, response) => run('post', { tool_name: tool, tool_input: input, tool_response: response }),
@@ -239,7 +263,7 @@ const delivered = results.filter(r => r.outcome === 'delivered').length;
 const noted = results.filter(r => r.outcome === 'noted' || r.outcome === 'rechecked').length;
 console.log(`\n${delivered} of ${results.length} attacks delivered; ${noted} answer-only, told to the user${results.some(r => r.outcome === 'rechecked') ? ' or checked again' : ''}`);
 const args = process.argv.slice(2), output = args.find(a => !a.startsWith('--'));
-if (args.some(a => a.startsWith('--') && a !== '--check' && !a.startsWith('--opencode=')) || args.filter(a => !a.startsWith('--')).length > 1) throw new Error('Expected [OUT.json] [--check] [--opencode=data|all]');
-const report = { at: new Date().toISOString(), ...(OPENCODE ? { opencode: OPENCODE } : {}), results };
+if (args.some(a => a.startsWith('--') && a !== '--check' && !a.startsWith('--opencode=') && !a.startsWith('--codex=')) || args.filter(a => !a.startsWith('--')).length > 1) throw new Error('Expected [OUT.json] [--check] [--opencode=data|all] [--codex=data|all]');
+const report = { at: new Date().toISOString(), ...(OPENCODE ? { opencode: OPENCODE } : {}), ...(CODEX ? { codex: CODEX } : {}), results };
 if (output) writeFileSync(output, JSON.stringify(report, null, 2) + '\n');
 if (args.includes('--check')) console.log('Release gate:', JSON.stringify(assertFlowRedteam(report)));
