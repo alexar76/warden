@@ -6,7 +6,7 @@
 的命令钩子接入。它覆盖 Codex CLI、`codex exec`、桌面应用以及 Multica 中的 Codex 运行时。与
 [OpenCode 版本](opencode.md)一样，它面向无人值守运行的智能体。
 
-**状态（2026-11-07）：本地源码，尚未发布。** 适配器已对照 Codex CLI 0.167.0-alpha.3 内置的钩子 schema 和 OpenAI
+**状态（2026-11-08）：自 0.24.0 起已在 npm 中。** 适配器已对照 Codex CLI 0.167.0-alpha.3 内置的钩子 schema 和 OpenAI
 的钩子参考文档进行核对。它有 25 个单元测试，并用 Codex 自己的工具词汇重放了红队攻击。2026-11-07 它也在真实 Codex 会话中
 运行过（`scripts/codex-live-check.sh`，结果见[下文](#实机检查)）。
 
@@ -21,7 +21,7 @@
   也没收到。
 - **尚未完成：基于 Codex 的 Multica 运行时。** 托管钩子的安装方式（`/etc/codex/requirements.toml`，见下文方式 A）已写
   成文档，但尚未部署到服务器上。Linux 尚未做实机验证。
-- **尚未完成：npm。** `@aimarket/warden/codex` 和 `codex-hooks/` 目前只在源码中。正式发布之前，请从本仓库构建。
+- **已发布：npm 0.24.0。** 包内含 `@aimarket/warden/codex` 和 `codex-hooks/` 目录。
 
 ## 它做什么
 

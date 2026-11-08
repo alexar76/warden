@@ -7,7 +7,7 @@ d’[OpenAI Codex](https://developers.openai.com/codex). Elle couvre la CLI Code
 bureau et les runtimes Codex dans Multica. Elle est écrite pour des agents qui tournent sans personne au clavier,
 comme la [version OpenCode](opencode.md).
 
-**État (2026-11-07) : code local, non publié.** L’adaptateur est vérifié contre les schémas de hooks intégrés à Codex
+**État (2026-11-08) : dans npm depuis la 0.24.0.** L’adaptateur est vérifié contre les schémas de hooks intégrés à Codex
 CLI 0.167.0-alpha.3 et contre la référence des hooks d’OpenAI. Il a 25 tests unitaires et un rejeu red team dans le
 vocabulaire d’outils propre à Codex. Le 2026-11-07, elle a aussi tourné dans une vraie session Codex
 (`scripts/codex-live-check.sh`, résultats [ci-dessous](#vérification-en-conditions-réelles)).
@@ -26,8 +26,7 @@ Où en est-on :
 - **Pas encore fait : un runtime Multica sous Codex.** L’installation en hooks gérés (`/etc/codex/requirements.toml`,
   schéma A plus bas) est décrite mais pas encore installée sur un serveur. Linux n’a pas été vérifié en conditions
   réelles.
-- **Pas encore fait : npm.** `@aimarket/warden/codex` et `codex-hooks/` n’existent que dans les sources. En attendant
-  une version publiée, construisez-les depuis ce dépôt.
+- **Publié : npm 0.24.0.** Le paquet contient `@aimarket/warden/codex` et le dossier `codex-hooks/`.
 
 ## Ce qu’elle fait
 

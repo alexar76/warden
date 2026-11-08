@@ -7,7 +7,7 @@ La [guardia de flujo](flow-guard.es.md) del plugin de Claude Code, a través de 
 y los runtimes de Codex en Multica. Está pensada para agentes que trabajan sin nadie al teclado, igual que la
 [versión para OpenCode](opencode.md).
 
-**Estado (2026-11-07): código local, no publicado.** El adaptador está contrastado con los esquemas de hooks
+**Estado (2026-11-08): en npm desde la 0.24.0.** El adaptador está contrastado con los esquemas de hooks
 incluidos en Codex CLI 0.167.0-alpha.3 y con la referencia de hooks de OpenAI. Tiene 25 pruebas unitarias y una
 repetición de red team en el vocabulario de herramientas propio de Codex. El 2026-11-07 también pasó una sesión real de
 Codex (`scripts/codex-live-check.sh`, resultados [abajo](#comprobación-en-vivo)).
@@ -25,8 +25,7 @@ Dónde está:
   no recibió nada.
 - **Pendiente: un runtime de Multica con Codex.** La instalación con hooks gestionados (`/etc/codex/requirements.toml`,
   esquema A más abajo) está descrita, pero aún no se ha instalado en un servidor. Linux no se ha comprobado en vivo.
-- **Pendiente: npm.** `@aimarket/warden/codex` y `codex-hooks/` solo existen en el código fuente. Hasta una versión
-  publicada, constrúyelos desde este repositorio.
+- **Publicado: npm 0.24.0.** El paquete incluye `@aimarket/warden/codex` y la carpeta `codex-hooks/`.
 
 ## Qué hace
 
