@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- [Fixed-job runner](docs/fixed-job-runner.md) in five languages: the general recipe for agents that must read
+  outside text yet stay in strict `deny` — fixed operations without arguments, a controller on the host, a keyless
+  disposable worker, a schema-checked bounded report, side effects in a separate agent, acceptance checks.
+- `scripts/flow-log-stats.mjs` (in the npm package): field false-positive counts from the flow guard log — sessions,
+  tainted sessions, decisions by mode, disposition, reason and tool, and what `deny` would have refused in `audit`.
+- Version numbers in docs are checked. `npm run check:versions` (part of `npm test`) fails on a reference to an
+  unreleased or development version; `prepublishOnly` also requires every install pin to equal the version being
+  published. GOVERNANCE: releases are batched, and docs name a version only after its CHANGELOG heading exists.
+- The CHANGELOG has its `## 0.24.0` heading back (published 2026-11-08); the Codex entry sat under "Unreleased".
+- The core names no product: the built-in Multica command list (`multica issue get/list`, `issue comment list`) is
+  gone. Which CLIs return other people's text is the operator's policy (`untrustedSources.commands`); for Multica,
+  use the shipped preset `examples/policies/multica.flow-policy.json` (now also `issue search`). Without it, Multica
+  output counts as the operator's own data. Built-in `playwright-report/` and `test-results/` provenance stays.
 - `npm ci` (and `clean-install`, `ic`, `install-test`, `install-ci-test` and their aliases) is a network command like
   `npm install` (TONM-13): its output is outside text and it counts as outbound.
 
@@ -93,7 +106,7 @@
   Warden, Filesystem, Memory and Sequential Thinking. Its packages must be supplied separately through
   `WARDEN_INTEROP_PACKAGES`; the harness installs nothing and uses only synthetic local data.
 
-## Unreleased — Codex flow guard (local)
+## 0.24.0 — 2026-11-08 (Codex flow guard)
 
 - **Flow guard for OpenAI Codex** (`codex-hooks/`, `@aimarket/warden/codex`, [docs/codex.md](docs/codex.md) in five
   languages): the Claude Code flow guard through Codex's command hooks (`PreToolUse`, `PostToolUse`,

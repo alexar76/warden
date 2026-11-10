@@ -31,9 +31,6 @@ const LOCAL_CMDS = new Set(['ls', 'pwd', 'cd', 'cat', 'head', 'tail', 'wc', 'gre
 const LOCAL_SUB = {
     git: new Set(['status', 'diff', 'log', 'show', 'branch', 'rev-parse', 'blame', 'ls-files', 'grep', 'describe', 'tag', 'stash', 'add', 'commit', 'checkout', 'switch', 'restore', 'merge-base', 'cat-file', 'config']),
 };
-const EXTERNAL_COMMANDS = [
-    ['multica', 'issue', 'get'], ['multica', 'issue', 'list'], ['multica', 'issue', 'comment', 'list'],
-];
 const FILE_READ_COMMANDS = new Set(['cat', 'head', 'tail', 'grep', 'egrep', 'fgrep', 'rg', 'ag', 'sed', 'awk', 'jq', 'yq', 'nl', 'less', 'more']);
 /** Origin labels are additive. A generated report does not become trusted because it is in the checkout. */
 function externalFile(path, cwd, policy) {
@@ -46,7 +43,9 @@ function externalFile(path, cwd, policy) {
 }
 /** Bounded literal source recognition, not shell execution or a claim to parse arbitrary programs. */
 function externalShell(command, executionCwd, projectCwd, policy) {
-    const prefixes = [...EXTERNAL_COMMANDS, ...(policy.untrustedSources?.commands ?? [])];
+    // Which CLIs return someone else's text depends on the integration (a tracker, a chat, a CI): the operator lists
+    // them in policy.untrustedSources.commands. No product is named in the core; presets live in examples/policies/.
+    const prefixes = policy.untrustedSources?.commands ?? [];
     if (command.length > MAX_TEXT)
         return true;
     const segments = command.split(/\n|;|&&|\|\||\|/);

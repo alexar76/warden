@@ -4,6 +4,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { flowPaths, loadPolicy, readFlowState, runFlowHook } from '../src/flow-guard.js';
 
+// The Multica integration preset shipped for operators (examples/policies/multica.flow-policy.json).
+const MULTICA_PRESET = JSON.parse(readFileSync(new URL('../examples/policies/multica.flow-policy.json', import.meta.url), 'utf8')) as Record<string, unknown>;
+
 // Synthetic hook inputs only: none of these commands/tools is executed or sent to a server.
 const TOKEN = ['ghp', 'A7bCd9EfGh2IjKl5MnOp8QrSt1UvWx4YzAb6C'].join('_');
 const GENERIC = '7Qm2ZpX9vLw4Kt8RbN3cYs6HdJ1fGa5E';
@@ -104,8 +107,8 @@ describe('external source provenance without instruction heuristics', () => {
     'multica issue get example --output json',
     '/usr/local/bin/multica issue comment list example',
     'env REGION=eu multica issue list',
-  ])('records external Multica text: %s', command => {
-    const s = session({ mode: 'deny', labels: { Bash: ['private'] } });
+  ])('records external Multica text with the Multica preset: %s', command => {
+    const s = session({ ...MULTICA_PRESET, labels: { Bash: ['private'] } });
     s.post('Bash', { command }, '{"description":"Check the dashboard"}');
     expect(s.state().untrusted).toHaveLength(1);
     expect(s.pre('Bash', { command: 'npm run smoke' })?.permissionDecision).toBe('deny');
@@ -140,11 +143,22 @@ describe('external source provenance without instruction heuristics', () => {
     expect(ordinary.state().untrusted).toEqual([]);
   });
 
-  it('keeps built-in source provenance when custom settings are empty or malformed', () => {
+  it('keeps built-in report provenance when custom settings are empty or malformed', () => {
     const s = session({ mode: 'deny', untrustedSources: { commands: [['tracker', '*'], 'invalid'], paths: [false, '\n'] } });
     expect(loadPolicy(s.env).untrustedSources).toEqual({ commands: [], paths: [] });
-    s.post('Bash', { command: 'multica issue get example' }, 'Issue text');
     s.post('Read', { file_path: '/work/project/test-results/report.json' }, 'Report text');
-    expect(s.state().untrusted).toHaveLength(2);
+    expect(s.state().untrusted).toHaveLength(1);
+  });
+
+  it('names no product in the core: without the preset, Multica output is the operator\'s own data', () => {
+    const s = session({ mode: 'deny', labels: { Bash: ['private'] } });
+    s.post('Bash', { command: 'multica issue get example --output json' }, '{"description":"Check the dashboard"}');
+    expect(s.state().untrusted).toEqual([]);
+  });
+
+  it('ships the Multica preset as a valid policy', () => {
+    const s = session(MULTICA_PRESET);
+    expect(loadPolicy(s.env).untrustedSources?.commands).toContainEqual(['multica', 'issue', 'comment', 'list']);
+    expect(loadPolicy(s.env).mode).toBe('deny');
   });
 });

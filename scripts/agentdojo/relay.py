@@ -20,12 +20,34 @@ import re
 import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 FORWARDED = ("messages", "tools", "temperature", "max_tokens")
 RETRY_CODES = {408, 409, 429, 500, 502, 503, 504}
+
+
+def validate_endpoint(value: str) -> str:
+    """Reject unsafe operator URLs before loading or attaching a credential."""
+    try:
+        parts = urllib.parse.urlsplit(value)
+        if (parts.scheme != "https" or not parts.hostname or parts.username is not None
+                or parts.password is not None or parts.fragment or "#" in value
+                or any(c.isspace() or ord(c) < 32 or ord(c) == 127 for c in value)
+                or parts.port is not None and not 1 <= parts.port <= 65535):
+            raise ValueError
+    except ValueError:
+        raise ValueError("relay endpoint must be an HTTPS URL without credentials or a fragment") from None
+    return value
+
+
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    """Authorization belongs only to the selected endpoint, even for same-origin redirects."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
 
 
 def read_key(env_file: str, name: str) -> str:
@@ -79,6 +101,11 @@ def main() -> None:
     ap.add_argument("--price-out", type=float, default=1.20)
     ap.add_argument("--workers", type=int, default=16)
     a = ap.parse_args()
+    try:
+        a.url = validate_endpoint(a.url)
+    except ValueError as e:
+        ap.error(str(e))
+    opener = urllib.request.build_opener(NoRedirect())
     root = Path(a.relay)
     req_dir, resp_dir = root / "req", root / "resp"
     key = read_key(a.env_file, a.env_name)
@@ -117,7 +144,7 @@ def main() -> None:
             request = urllib.request.Request(a.url, data=json.dumps(body).encode(),
                                              headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"})
             try:
-                with urllib.request.urlopen(request, timeout=300) as r:
+                with opener.open(request, timeout=300) as r:
                     data = json.load(r)
                 break
             except urllib.error.HTTPError as e:

@@ -12,7 +12,7 @@
   <a href="https://glama.ai/mcp/servers/alexar76/warden"><img src="https://glama.ai/mcp/servers/alexar76/warden/badges/score.svg" alt="warden MCP server" /></a>
   <a href="https://warden.modelmarket.dev/"><img src="https://img.shields.io/npm/v/@aimarket/warden?color=cb3837&label=npm" alt="npm version" /></a>
   <img src="docs/badges/deps.svg" alt="Zero runtime dependencies" />
-  <img src="docs/badges/tests.svg" alt="1574 tests passing" />
+  <img src="docs/badges/tests.svg" alt="1616 tests passing" />
   <img src="docs/badges/node.svg" alt="Node >= 20" />
   <a href="LICENSE"><img src="docs/badges/license.svg" alt="License: MIT" /></a>
 </p>
@@ -33,11 +33,11 @@
 **Проверьте все MCP-серверы на своей машине.** Без аккаунта, без API-ключа, без модели. Сетевой трафик идёт только к серверам из вашего конфига.
 
 ```bash
-npx -y @aimarket/warden@0.23.0 scan
+npx -y @aimarket/warden@0.25.0 scan
 ```
 
 ```text
-WARDEN scan 0.23.0 · ruleset 17 sha256-UOfK25xo6D8v… · block at high
+WARDEN scan 0.25.0 · ruleset 19 sha256-XfRh1+VZoAM6… · block at high
   read .mcp.json (claude-code, 3 servers)
 
   ✓ allow   notes       claude-code    1 tool · score 0.90
@@ -108,7 +108,7 @@ MCP-сервер добавляет другие `node:` builtins (`fs`, `path`,
   "mcpServers": {
     "filesystem": {
       "command": "npx",
-      "args": ["-y", "@aimarket/warden@0.23.0", "wrap", "--id", "filesystem", "--",
+      "args": ["-y", "@aimarket/warden@0.25.0", "wrap", "--id", "filesystem", "--",
                "npx", "-y", "@modelcontextprotocol/server-filesystem", "/Users/me/docs"]
     }
   }
@@ -117,7 +117,7 @@ MCP-сервер добавляет другие `node:` builtins (`fs`, `path`,
 
 Для обязательного утверждения первого контакта добавьте к `wrap` флаг `--require-approval`. Определения не попадут модели до `warden-mcp pins approve --id filesystem` в терминале оператора. Любое изменение полей или идентичности запуска требует нового утверждения; автоматические и старые pins не подходят. Подробнее: [граница допуска, не зависящая от языка](docs/security-hardening-language-boundary.md).
 
-Всегда задавайте `--id`: без него изменение аргументов создаёт новую идентичность и новый первый контакт. Со стабильным ID смена команды или пути даёт `SERVER_IDENTITY_DRIFT`. Дочерний процесс наследует окружение; оно не входит в идентичность. Чтобы избежать холодного старта `npx`, установите глобально: `npm install -g @aimarket/warden@0.23.0`, затем команда `warden-mcp`.
+Всегда задавайте `--id`: без него изменение аргументов создаёт новую идентичность и новый первый контакт. Со стабильным ID смена команды или пути даёт `SERVER_IDENTITY_DRIFT`. Дочерний процесс наследует окружение; оно не входит в идентичность. Чтобы избежать холодного старта `npx`, установите глобально: `npm install -g @aimarket/warden@0.25.0`, затем команда `warden-mcp`.
 
 **Чувствительные инструменты.** `sensitiveToolPatterns` в файле политики (`--policy policy.json` с `{"sensitiveToolPatterns": ["*delete*", "*transfer*"]}`, шаблоны `*` без учёта регистра) заставляет каждый вызов подходящего инструмента ждать человека: `wrap` спрашивает через собственную форму клиента (MCP elicitation), показывая инструмент, сервер и аргументы, и пропускает этот один вызов только при отмеченной галочке и принятой форме. Галочка по умолчанию снята, поэтому клиент, принимающий формы со значениями по умолчанию, ничего не одобрит. Клиенту без формы elicitation вызов отклоняется, и сервер его не получает; `--ask refuse` отклоняет, не спрашивая. Если клиент отменил вызов, пока человек решает, или за это время изменились определения, вызов не отправляется. До 0.20.0 `wrap` принимал эти шаблоны, но не применял их. С `--flow` отправка, о которой страж потоков спросил бы, спрашивается так же.
 
@@ -154,12 +154,12 @@ managed-хуки в `/etc/codex/requirements.toml`. Схемы развёрты�
 ## Проверить все серверы, которые запускают ваши клиенты
 
 ```bash
-npx -y @aimarket/warden@0.23.0 scan
+npx -y @aimarket/warden@0.25.0 scan
 ```
 
 Читает MCP-конфиги Claude Code, Claude Desktop, Cursor, VS Code и Windsurf, подключается к каждому серверу из них и проверяет определения инструментов до того, как их увидит модель. Выводит таблицу, JSON, SARIF или Markdown и завершается с кодом 1, если сервер заблокирован; `--no-launch` ничего не запускает. В репозитории `warden.lock.json` превращает изменение определений инструментов в дифф для ревью, а CI падает на новом или изменённом сервере. Есть GitHub Action (`uses: alexar76/warden@v0.21.0`), хуки pre-commit и плагин Claude Code (`/plugin marketplace add alexar76/warden`). `--histor` спрашивает публичный журнал HISTOR, отдаёт ли сервер вам то же, что всем; для удалённого сервера уходят адрес и дайджест, для stdio-сервера из npm или PyPI — имя пакета (`npm:<имя>`, `pypi:<имя>`; HISTOR запускает такие пакеты в песочнице gVisor) и дайджест, текст инструментов — никогда. Опциональный классификатор (`--classifier-url`, `--classifier-model`) добавляет прочтение модели, которую выбираете вы, локальной или облачной, — для того, что не называет ни одно правило. Подробно — в [руководстве по scan](docs/scan.ru.md). Как он выглядит рядом с двумя другими сканерами на одних и тех же серверах: [сравнение сканеров](docs/scanner-comparison.ru.md).
 
-**Для издателя сервера.** Если ваш сервер отдаёт другие инструменты там, где установлено то, чего нет в песочнице HISTOR, — раннер запускателя, по одному на ОС, — `npx -y @aimarket/warden@0.23.0 declare --out mcp-tool-sets.json -- <ваш сервер>` записывает эти наборы в файл, который вы публикуете на своём домене, и те, кто их получает, видят заявление издателя, а не незнакомый набор. Подробно — в [руководстве по scan](docs/scan.ru.md).
+**Для издателя сервера.** Если ваш сервер отдаёт другие инструменты там, где установлено то, чего нет в песочнице HISTOR, — раннер запускателя, по одному на ОС, — `npx -y @aimarket/warden@0.25.0 declare --out mcp-tool-sets.json -- <ваш сервер>` записывает эти наборы в файл, который вы публикуете на своём домене, и те, кто их получает, видят заявление издателя, а не незнакомый набор. Подробно — в [руководстве по scan](docs/scan.ru.md).
 
 ## Чего WARDEN не делает
 
@@ -356,6 +356,7 @@ WARDEN — агент ERC-8004 [`96684` в сети Base](https://8004scan.io/ag
 | [Сравнение сканеров](docs/scanner-comparison.ru.md) | WARDEN, mcp-audit, mcp-shield, truecopy и mcpsentry на одних и тех же серверах, на 14 933 пакетах npm и PyPI и на бенчмарке MCPTox, со всеми разметками, манифестом и стендом |
 | [Страж потоков](docs/flow-guard.ru.md) | Защита плагина Claude Code во время работы: чужой текст, приватные данные, исходящие вызовы; измерение на AgentDojo и его границы |
 | [Страж потоков для Codex](docs/codex.ru.md) | Хуки Codex: без `ask`, отказ при сбое, managed-хуки, схемы для Multica |
+| [Исполнитель фиксированных задач](docs/fixed-job-runner.ru.md) | Строгий `deny` для агентов, которым нужно читать внешний текст: фиксированные операции, исполнитель без ключей, ограниченный отчёт |
 | [Свежий прогон модели](docs/flow-guard-model-comparison-2026-10-25.ru.md) | 720 ответов: улучшение на известных сценариях, неопределённость, канал предупреждений и отсутствие исправленных ID через Stop |
 | [Glama / Docker](docs/GLAMA.md) | stdio MCP, health check, Build steps / CMD |
 | [Security](SECURITY.md) | Как сообщать об обходе файрвола |
@@ -380,7 +381,7 @@ WARDEN — агент ERC-8004 [`96684` в сети Base](https://8004scan.io/ag
 ## Разработка
 
 ```bash
-npm install && npm run build && npm test   # 1574 тестов
+npm install && npm run build && npm test   # 1616 тестов
 ```
 
 `test/packaging.test.ts` — то, что удерживает заголовок честным: он падает, если появляется

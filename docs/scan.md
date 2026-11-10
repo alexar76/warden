@@ -7,11 +7,11 @@ Discovery calls can incur costs; see [measurement limits and version evidence](s
 `warden-mcp scan` reads the MCP configuration you already have, connects to every server it starts, and vets the tool definitions before a model sees them. It is the same gate chain as [`wrap`](../README.md#protect-claude-desktop-or-cursor-with-one-wrapper) and the [library](integration.md), run once over your configs instead of in front of one server.
 
 ```bash
-npx -y @aimarket/warden@0.23.0 scan
+npx -y @aimarket/warden@0.25.0 scan
 ```
 
 ```text
-WARDEN scan 0.23.0 · ruleset 17 sha256-UOfK25xo6D8v… · block at high
+WARDEN scan 0.25.0 · ruleset 19 sha256-XfRh1+VZoAM6… · block at high
   read .mcp.json (claude-code, 3 servers)
 
   ✓ allow   notes       claude-code    1 tool · score 0.90

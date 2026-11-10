@@ -33,6 +33,13 @@ We are looking for a second maintainer; see "Becoming a maintainer".
 - `check:quality` accepts only release evidence signed by an independent evaluator (the MOMUS release gate) for this
   exact build digest, under the policy `zero-regressions-v1`, at most 48 hours old. A pull-request runner cannot sign it.
 - The release candidate also runs in HISTOR's production scanner; the maintainer publishes to npm.
+- Releases are batched. Fixes land under `## Unreleased` in the CHANGELOG and ship together, at most about once a
+  week; a security fix for a reported bypass may ship on its own. Three npm versions in four days (0.23.0 → 0.25.0)
+  left docs and an operator's install instructions naming a version that never came out.
+- Docs name only released versions. Before a release, write "the next release", not a number: a number is promised
+  only once its `## X.Y.Z — date` heading is in the CHANGELOG. `npm run check:versions` (also part of `npm test`)
+  fails on a reference to an unreleased or development version; `prepublishOnly` additionally requires every install
+  pin (README, plugin, Action, pre-commit, examples) to equal the version being published.
 
 ## Security
 

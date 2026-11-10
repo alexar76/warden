@@ -1,0 +1,12 @@
+{
+  "mode": "deny",
+  "untrustedSources": {
+    "commands": [
+      ["multica", "issue", "get"],
+      ["multica", "issue", "list"],
+      ["multica", "issue", "search"],
+      ["multica", "issue", "comment", "list"]
+    ],
+    "paths": []
+  }
+}
