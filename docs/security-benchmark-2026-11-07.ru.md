@@ -6,6 +6,8 @@
 
 Материал подготовлен сопровождающим WARDEN и HISTOR с помощью ИИ. Это сравнение автора продуктов, а не независимая сертификация. Публикуемые сравнительные измерения выполнены удалённо в gVisor. Более ранний локальный пилот исключён; его `dist`/Vitest/Vite-артефакты удалены. Это не утверждение, что локального пилота никогда не было.
 
+Ссылки на свидетельства ниже скачивают публичный ZIP отчёта. В заголовке ссылки указан нужный файл внутри архива.
+
 ## Предмет сравнения и версии
 
 Проверяется реакция на объявления инструментов MCP. Статический анализ описания не равен выполнению инструмента, наблюдению за действиями модели или измерению успешности атаки на модель.
@@ -33,7 +35,7 @@
 | Замороженные определения | 3 177 фиксированных представлений и 14 933 строки HISTOR | Собственные полные API анализа/классификации; код исходных серверов не исполняется | Завершено на обоих хостах |
 | Выборочная проверка CLI/MCP | Node-конкуренты: 10/10 каждый; mcp-audit Python: 13 совпадений штатного полного API, включая один partial; опубликованный WARDEN: 20/20, включая 1,17 МБ и attack/clean/repeat | Штатный вход против массового адаптера | Совпадение partial не означает полный вердикт |
 
-См. [живые свидетельства](../../artifacts/warden-security-2026-11-07/live/README.md). Финальный SDK receipt — удалённый `sdk19-final`; локальный `sdk19` сохраняет первый прогон. Синтетические вызовы используют изолированные данные, без пользовательских файлов и production-секретов. HTTP: `https://mcp.deepwiki.com/mcp`, `https://learn.microsoft.com/api/mcp`, `https://docs.mcp.cloudflare.com/mcp`. Это наблюдаемые версии, не обещание последних релизов.
+См. [живые свидетельства](https://modelmarket.dev/blog/media/warden-security-comparison-2026-11-07/reports-and-data.zip "Archive member: evidence/live/README.md"). Финальный SDK receipt — удалённый `sdk19-final`; локальный `sdk19` сохраняет первый прогон. Синтетические вызовы используют изолированные данные, без пользовательских файлов и production-секретов. HTTP: `https://mcp.deepwiki.com/mcp`, `https://learn.microsoft.com/api/mcp`, `https://docs.mcp.cloudflare.com/mcp`. Это наблюдаемые версии, не обещание последних релизов.
 
 ## Точный перечень fixtures
 
@@ -79,7 +81,7 @@ Full-frame проекция сохраняет текст аргументов �
 
 Основная когорта — **986 архивных списков** из [корпуса 2026-10-01](data/mcp-corpus-2026-10-01.jsonl.gz). [August carryover](data/mcp-corpus-2026-10-01-august-carryover.jsonl.gz) содержит **41 наблюдение**; подтверждены **28 точных совпадений имени+определения**, то есть **999 уникальных снимков имя+определение**. Это отдельные когорты, а не 1 027 независимых серверов.
 
-Полный [inventory](../../artifacts/warden-security-2026-11-07/inventory/README.md) содержит **все 18 110 строк**, имена, записанные версии, метки, числа инструментов, digest и происхождение. Загрузки: [CSV.gz](../../artifacts/warden-security-2026-11-07/inventory/public-inventory.csv.gz), [JSON.gz](../../artifacts/warden-security-2026-11-07/inventory/public-inventory.json.gz), [manifest](../../artifacts/warden-security-2026-11-07/inventory/public-inventory-manifest.json). Только метаданные, без нелицензированного содержимого атак.
+Полный [inventory](https://modelmarket.dev/blog/media/warden-security-comparison-2026-11-07/reports-and-data.zip "Archive member: INVENTORY-README.md") содержит **все 18 110 строк**, имена, записанные версии, метки, числа инструментов, digest и происхождение. Загрузки: [CSV.gz](https://modelmarket.dev/blog/media/warden-security-comparison-2026-11-07/reports-and-data.zip "Archive member: public-inventory.csv.gz"), [JSON.gz](https://modelmarket.dev/blog/media/warden-security-comparison-2026-11-07/reports-and-data.zip "Archive member: public-inventory.json.gz"), [manifest](https://modelmarket.dev/blog/media/warden-security-comparison-2026-11-07/reports-and-data.zip "Archive member: public-inventory-manifest.json"). Только метаданные, без нелицензированного содержимого атак.
 
 Доступны **14 933 строки версий пакетов HISTOR: 12 023 npm и 2 910 PyPI**, 14 449 различных toolsets, 272 657 записей инструментов, без отброшенных строк и расхождений количества. Повторное вычисление MTL-digest и хеши файлов проверены на обоих хостах. Из [архива 2026-10-20](https://histor.modelmarket.dev/datasets/2026-10-20/toolsets.jsonl.gz) восстановлены 14 930 строк; ещё три digest — через неизменяемые публичные API URL. [Manifest](https://histor.modelmarket.dev/datasets/2026-10-20/manifest.json) и tree-head подписаны Ed25519, проверены закреплённым `did:key`. Архив CC-BY-4.0, атрибуция: Aleksandr Artamokhov / HISTOR, *HISTOR: MCP tool definitions and how they change*, снимок 2026-10-20. У трёх API-ответов отдельная лицензия не указана: публично только метаданные.
 
@@ -158,7 +160,7 @@ mcp-shield отклоняет 31 список HISTOR строгим валида
 | Чистые серверы | 0/45 | 0 |
 | Public-main / carryover, раздельно | 3/986; 1/41 | 0 |
 
-Обе версии v18/v19 на обоих хостах: actual-MCP/library по **3 177/3 177**. Межхостовые полные строки **12 708/12 708** совпали, все семь проверок входов/исходников/стенда/replay истинны. Это операционная паритетность, не полное обнаружение атак. [Отчёт](../../artifacts/warden-security-2026-11-07/candidate19/REPORT.md), SHA-256 `e699ba593242406b31f366b34d3e104dcf567094fd97421a62fbba8ded958989`; paired JSON `30996c170fd4284991ac4624ee88cda765ae26cb2393a8bbdeefa23913847a4e`.
+Обе версии v18/v19 на обоих хостах: actual-MCP/library по **3 177/3 177**. Межхостовые полные строки **12 708/12 708** совпали, все семь проверок входов/исходников/стенда/replay истинны. Это операционная паритетность, не полное обнаружение атак. [Отчёт](https://modelmarket.dev/blog/media/warden-security-comparison-2026-11-07/reports-and-data.zip "Archive member: evidence/candidate19/REPORT.md"), SHA-256 `e699ba593242406b31f366b34d3e104dcf567094fd97421a62fbba8ded958989`; paired JSON `30996c170fd4284991ac4624ee88cda765ae26cb2393a8bbdeefa23913847a4e`.
 
 ### Итоги пяти опубликованных продуктов
 

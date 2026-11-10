@@ -6,6 +6,8 @@
 
 本文由 WARDEN 和 HISTOR 的维护者在 AI 协助下编写，属于维护者比较，不是独立认证。本文报告的比较测量在远程 gVisor 进行。更早的本地试跑已排除，其 `dist`／Vitest／Vite 生成物已删除；不宣称历史上从未发生过本地试跑。
 
+下方的证据链接会下载公开报告 ZIP。链接标题注明压缩包中的对应文件。
+
 ## 比较对象与版本
 
 本次比较扫描器如何处理 MCP 公布的工具定义。静态扫描描述，不等于执行工具、观察模型服从注入，或测量针对模型的攻击成功率。
@@ -33,7 +35,7 @@
 | 冻结定义分析 | 3,177 个固定视图及 14,933 个 HISTOR 行 | 自身完整分析／分类 API，不执行原服务器代码 | 两台主机均已完成 |
 | 代表性 CLI／MCP 一致性 | Node 各 10/10；Python mcp-audit 完整六分析器 13 次原生/API 一致，含 1 次 partial；已发布 WARDEN 20/20，含 1.17 MB 及攻击／干净／重复 | 原生入口与适配器比较 | partial 一致不是完整判定 |
 
-见[真实互操作证据](../../artifacts/warden-security-2026-11-07/live/README.md)。最终 SDK 凭据对应远程 `sdk19-final`；本地 `sdk19` 保留首次检查。合成调用不用用户文件或生产凭证。HTTP：`https://mcp.deepwiki.com/mcp`、`https://learn.microsoft.com/api/mcp`、`https://docs.mcp.cloudflare.com/mcp`。所列是测得版本，不宣称最新。
+见[真实互操作证据](https://modelmarket.dev/blog/media/warden-security-comparison-2026-11-07/reports-and-data.zip "Archive member: evidence/live/README.md")。最终 SDK 凭据对应远程 `sdk19-final`；本地 `sdk19` 保留首次检查。合成调用不用用户文件或生产凭证。HTTP：`https://mcp.deepwiki.com/mcp`、`https://learn.microsoft.com/api/mcp`、`https://docs.mcp.cloudflare.com/mcp`。所列是测得版本，不宣称最新。
 
 ## 样例的完整清单
 
@@ -79,7 +81,7 @@ Full-frame 场景投影保留原始参数文本，但把提取的参数属性声
 
 主组 [2026-10-01 语料](data/mcp-corpus-2026-10-01.jsonl.gz)有 **986 份归档列表**；[August carryover](data/mcp-corpus-2026-10-01-august-carryover.jsonl.gz)有 **41 次观察**。已确认 **28 个名称＋定义完全重合**，故为 **999 个唯一名称＋定义快照**，不是 1,027 个独立服务器。
 
-完整 [inventory](../../artifacts/warden-security-2026-11-07/inventory/README.md)列出 **全部 18,110 行**、名称、记录版本、标签、工具数、digest 与来源。下载：[CSV.gz](../../artifacts/warden-security-2026-11-07/inventory/public-inventory.csv.gz)、[JSON.gz](../../artifacts/warden-security-2026-11-07/inventory/public-inventory.json.gz)、[manifest](../../artifacts/warden-security-2026-11-07/inventory/public-inventory-manifest.json)。仅元数据，不含无许可的攻击内容。
+完整 [inventory](https://modelmarket.dev/blog/media/warden-security-comparison-2026-11-07/reports-and-data.zip "Archive member: INVENTORY-README.md")列出 **全部 18,110 行**、名称、记录版本、标签、工具数、digest 与来源。下载：[CSV.gz](https://modelmarket.dev/blog/media/warden-security-comparison-2026-11-07/reports-and-data.zip "Archive member: public-inventory.csv.gz")、[JSON.gz](https://modelmarket.dev/blog/media/warden-security-comparison-2026-11-07/reports-and-data.zip "Archive member: public-inventory.json.gz")、[manifest](https://modelmarket.dev/blog/media/warden-security-comparison-2026-11-07/reports-and-data.zip "Archive member: public-inventory-manifest.json")。仅元数据，不含无许可的攻击内容。
 
 已恢复 **14,933 个 HISTOR 包版本行：12,023 npm、2,910 PyPI**，涉及 14,449 个不同 toolset、272,657 条工具记录，零丢弃、无数量不符。两台主机均验证 MTL digest 重算与文件哈希。[2026-10-20 归档](https://histor.modelmarket.dev/datasets/2026-10-20/toolsets.jsonl.gz)提供 14,930 行，其余三行由不可变公共 API URL 恢复。[Manifest](https://histor.modelmarket.dev/datasets/2026-10-20/manifest.json)与 tree-head 的 Ed25519 签名按固定 `did:key` 验证。归档为 CC-BY-4.0，署名 Aleksandr Artamokhov / HISTOR，*HISTOR: MCP tool definitions and how they change*，快照 2026-10-20。三份 API 响应未单列许可，公开材料仅含其元数据。
 
@@ -158,7 +160,7 @@ mcp-shield 的严格 MCP SDK schema 验证拒绝 31 份 HISTOR 列表。mcpsentr
 | 干净服务器 | 0/45 | 0 |
 | Public-main／carryover，分别列出 | 3/986; 1/41 | 0 |
 
-每版本 v18/v19、每主机真实 MCP／库路径均 **3,177/3,177**；跨主机完整行 **12,708/12,708** 一致，七项输入／源码／框架／replay 身份检查均真。这是运行一致性，不是检出全部攻击。[报告](../../artifacts/warden-security-2026-11-07/candidate19/REPORT.md) SHA-256 `e699ba593242406b31f366b34d3e104dcf567094fd97421a62fbba8ded958989`；配对 JSON `30996c170fd4284991ac4624ee88cda765ae26cb2393a8bbdeefa23913847a4e`。
+每版本 v18/v19、每主机真实 MCP／库路径均 **3,177/3,177**；跨主机完整行 **12,708/12,708** 一致，七项输入／源码／框架／replay 身份检查均真。这是运行一致性，不是检出全部攻击。[报告](https://modelmarket.dev/blog/media/warden-security-comparison-2026-11-07/reports-and-data.zip "Archive member: evidence/candidate19/REPORT.md") SHA-256 `e699ba593242406b31f366b34d3e104dcf567094fd97421a62fbba8ded958989`；配对 JSON `30996c170fd4284991ac4624ee88cda765ae26cb2393a8bbdeefa23913847a4e`。
 
 ### 五款已发布产品最终结果
 

@@ -6,6 +6,8 @@
 
 This benchmark is authored by the maintainer of both WARDEN and HISTOR, with AI assistance. It is a maintainer-run comparison, not an independent certification. The comparative measurements reported here are remote gVisor measurements. An earlier local pilot is excluded, and its generated `dist`/Vitest/Vite artifacts were removed. This report does not claim that no local pilot ever existed.
 
+Evidence links below download the public report ZIP. Link titles name the corresponding file inside the archive.
+
 ## What is being compared
 
 The common comparison is **high/critical definition signals and any relevant definition signal**. Only products with an enforcement decision are described as blocking. Definition scanning is distinct from executing tools, observing a model follow an injection, or measuring an attack's success against a model.
@@ -35,7 +37,7 @@ The large comparison uses the actual implementations' native classifier/full-ana
 | Frozen-definition analysis | 3,177 fixed views plus 14,933 HISTOR package rows | Actual native full-analysis/classification implementations, not execution of upstream tool code | Complete on both hosts |
 | Representative CLI/MCP parity | Node competitors: 10/10 per product; Python mcp-audit: 13 native/API agreements through the default six-analyzer pipeline, including one partial result; published WARDEN: 20/20 including a 1.17 MB list and attack/clean/repeat cases | Native entry points compared with bulk adapters | Agreement on a partial result is not a complete verdict |
 
-See [live evidence](../../artifacts/warden-security-2026-11-07/live/README.md). Final candidate19 SDK receipts use the remote `sdk19-final` run; the local `sdk19` copies retain the initial run. These observed package versions are not a claim to latest upstream releases. Synthetic calls use isolated test data, not user files or production credentials. HTTP discovery used `https://mcp.deepwiki.com/mcp`, `https://learn.microsoft.com/api/mcp` and `https://docs.mcp.cloudflare.com/mcp`.
+See [live evidence](https://modelmarket.dev/blog/media/warden-security-comparison-2026-11-07/reports-and-data.zip "Archive member: evidence/live/README.md"). Final candidate19 SDK receipts use the remote `sdk19-final` run; the local `sdk19` copies retain the initial run. These observed package versions are not a claim to latest upstream releases. Synthetic calls use isolated test data, not user files or production credentials. HTTP discovery used `https://mcp.deepwiki.com/mcp`, `https://learn.microsoft.com/api/mcp` and `https://docs.mcp.cloudflare.com/mcp`.
 
 ## Exact fixture inventory
 
@@ -83,7 +85,7 @@ The parser reads upstream definitions as data and does not execute their Python 
 
 The main archived field cohort is **986 public server tool lists** from [the 2026-10-01 corpus](data/mcp-corpus-2026-10-01.jsonl.gz). The separate [August carryover archive](data/mcp-corpus-2026-10-01-august-carryover.jsonl.gz) contains **41** observations, including **28 exact name+definition overlaps**, leaving **999 unique name+definition snapshots**. They remain separate cohorts; adding 986 and 41 does not establish 1,027 independent servers.
 
-The [full metadata inventory](../../artifacts/warden-security-2026-11-07/inventory/README.md) explicitly lists **all 18,110 target rows**, including names, recorded package versions, labels, tool counts, digests and provenance. Downloads: [CSV.gz](../../artifacts/warden-security-2026-11-07/inventory/public-inventory.csv.gz), [JSON.gz](../../artifacts/warden-security-2026-11-07/inventory/public-inventory.json.gz), [file hashes and set counts](../../artifacts/warden-security-2026-11-07/inventory/public-inventory-manifest.json). These metadata-only downloads do not redistribute unlicensed attack content.
+The [full metadata inventory](https://modelmarket.dev/blog/media/warden-security-comparison-2026-11-07/reports-and-data.zip "Archive member: INVENTORY-README.md") explicitly lists **all 18,110 target rows**, including names, recorded package versions, labels, tool counts, digests and provenance. Downloads: [CSV.gz](https://modelmarket.dev/blog/media/warden-security-comparison-2026-11-07/reports-and-data.zip "Archive member: public-inventory.csv.gz"), [JSON.gz](https://modelmarket.dev/blog/media/warden-security-comparison-2026-11-07/reports-and-data.zip "Archive member: public-inventory.json.gz"), [file hashes and set counts](https://modelmarket.dev/blog/media/warden-security-comparison-2026-11-07/reports-and-data.zip "Archive member: public-inventory-manifest.json"). These metadata-only downloads do not redistribute unlicensed attack content.
 
 The frozen **14,933 HISTOR package-version rows** are available: **12,023 npm and 2,910 PyPI**, referencing **14,449 distinct toolsets and 272,657 tool records**, with no discarded rows or count mismatches. Exact MTL digest rederivation and case-file hashes passed on both hosts. The 2026-10-20 [archive](https://histor.modelmarket.dev/datasets/2026-10-20/toolsets.jsonl.gz) and [signed manifest](https://histor.modelmarket.dev/datasets/2026-10-20/manifest.json) recovered 14,930 rows; three missing digests were recovered from immutable public API URLs. The archive is CC-BY-4.0, attributed to Aleksandr Artamokhov / HISTOR, *HISTOR: MCP tool definitions and how they change*, snapshot 2026-10-20. The three API responses state no separate license and remain metadata-only in public downloads. Signatures were checked against HISTOR's pinned `did:key`.
 
@@ -170,7 +172,7 @@ The verified post-hoc ruleset-v19 candidate is narrower than blocking public-key
 | Clean server lists | 0/45 | 0 |
 | Public-main / carryover, separately | 3/986; 1/41 | 0 |
 
-Both versions (v18/v19), both hosts, each actual-MCP/library path comparison: **3,177/3,177**. Full cross-host compared rows: **12,708/12,708**, with all seven input/source/harness/replay identity checks true. This is verified operational/path parity, not complete attack detection. See [candidate19 report](../../artifacts/warden-security-2026-11-07/candidate19/REPORT.md). Report SHA-256: `e699ba593242406b31f366b34d3e104dcf567094fd97421a62fbba8ded958989`; paired JSON SHA-256: `30996c170fd4284991ac4624ee88cda765ae26cb2393a8bbdeefa23913847a4e`.
+Both versions (v18/v19), both hosts, each actual-MCP/library path comparison: **3,177/3,177**. Full cross-host compared rows: **12,708/12,708**, with all seven input/source/harness/replay identity checks true. This is verified operational/path parity, not complete attack detection. See [candidate19 report](https://modelmarket.dev/blog/media/warden-security-comparison-2026-11-07/reports-and-data.zip "Archive member: evidence/candidate19/REPORT.md"). Report SHA-256: `e699ba593242406b31f366b34d3e104dcf567094fd97421a62fbba8ded958989`; paired JSON SHA-256: `30996c170fd4284991ac4624ee88cda765ae26cb2393a8bbdeefa23913847a4e`.
 
 ### Final five-published-product results
 

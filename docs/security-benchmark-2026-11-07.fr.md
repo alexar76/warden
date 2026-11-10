@@ -6,6 +6,8 @@
 
 Ce document est rédigé par le mainteneur de WARDEN et de HISTOR, avec une assistance IA. Il s'agit d'une comparaison du mainteneur, pas d'une certification indépendante. Les mesures comparatives présentées sont distantes, dans gVisor. Un pilote local antérieur est exclu et ses artefacts `dist`/Vitest/Vite supprimés ; cela ne signifie pas qu'aucun pilote local n'a jamais existé.
 
+Les liens vers les preuves téléchargent le ZIP public du rapport. Le titre de chaque lien indique le fichier correspondant dans cette archive.
+
 ## Objet et versions
 
 La comparaison mesure la réaction aux définitions d'outils annoncées par MCP. Analyser une description ne revient pas à exécuter l'outil, à observer un modèle suivre une injection ni à mesurer la réussite d'une attaque contre un modèle.
@@ -33,7 +35,7 @@ La comparaison massive utilise les API natives complètes d'analyse/classificati
 | Définitions figées | 3 177 vues fixes et 14 933 lignes HISTOR | API natives complètes ; code des serveurs d'origine non exécuté | Complet sur les deux hôtes |
 | Parité représentative CLI/MCP | Node : 10/10 chacun ; mcp-audit Python : 13 accords natif/API avec six analyseurs, dont un partiel ; WARDEN publié : 20/20, liste de 1,17 Mo et attaque/propre/répétition | Entrée native contre adaptateur | Un accord partiel n'est pas un verdict complet |
 
-Voir [les preuves vivantes](../../artifacts/warden-security-2026-11-07/live/README.md). Le reçu SDK final correspond à `sdk19-final` distant ; les copies locales `sdk19` gardent le passage initial. Aucun fichier utilisateur ni secret de production n'entre dans les appels synthétiques. HTTP : `https://mcp.deepwiki.com/mcp`, `https://learn.microsoft.com/api/mcp`, `https://docs.mcp.cloudflare.com/mcp`. Ce sont les versions observées, pas une revendication de dernières versions.
+Voir [les preuves vivantes](https://modelmarket.dev/blog/media/warden-security-comparison-2026-11-07/reports-and-data.zip "Archive member: evidence/live/README.md"). Le reçu SDK final correspond à `sdk19-final` distant ; les copies locales `sdk19` gardent le passage initial. Aucun fichier utilisateur ni secret de production n'entre dans les appels synthétiques. HTTP : `https://mcp.deepwiki.com/mcp`, `https://learn.microsoft.com/api/mcp`, `https://docs.mcp.cloudflare.com/mcp`. Ce sont les versions observées, pas une revendication de dernières versions.
 
 ## Inventaire exact des fixtures
 
@@ -79,7 +81,7 @@ Ces deux hachages historiques ne remplacent pas un nouveau manifest de toutes le
 
 La cohorte principale compte **986 listes archivées** dans [le corpus 2026-10-01](data/mcp-corpus-2026-10-01.jsonl.gz). [August carryover](data/mcp-corpus-2026-10-01-august-carryover.jsonl.gz) contient **41 observations**, dont **28 doublons exacts nom+définition**, soit **999 snapshots nom+définition uniques**. Ce ne sont pas 1 027 serveurs indépendants.
 
-L'[inventaire complet](../../artifacts/warden-security-2026-11-07/inventory/README.md) liste **les 18 110 lignes**, noms, versions enregistrées, étiquettes, comptes d'outils, digests et provenance. Téléchargements : [CSV.gz](../../artifacts/warden-security-2026-11-07/inventory/public-inventory.csv.gz), [JSON.gz](../../artifacts/warden-security-2026-11-07/inventory/public-inventory.json.gz), [manifest](../../artifacts/warden-security-2026-11-07/inventory/public-inventory-manifest.json). Métadonnées seules, sans contenu d'attaque sans licence.
+L'[inventaire complet](https://modelmarket.dev/blog/media/warden-security-comparison-2026-11-07/reports-and-data.zip "Archive member: INVENTORY-README.md") liste **les 18 110 lignes**, noms, versions enregistrées, étiquettes, comptes d'outils, digests et provenance. Téléchargements : [CSV.gz](https://modelmarket.dev/blog/media/warden-security-comparison-2026-11-07/reports-and-data.zip "Archive member: public-inventory.csv.gz"), [JSON.gz](https://modelmarket.dev/blog/media/warden-security-comparison-2026-11-07/reports-and-data.zip "Archive member: public-inventory.json.gz"), [manifest](https://modelmarket.dev/blog/media/warden-security-comparison-2026-11-07/reports-and-data.zip "Archive member: public-inventory-manifest.json"). Métadonnées seules, sans contenu d'attaque sans licence.
 
 Les **14 933 lignes de versions HISTOR sont disponibles : 12 023 npm et 2 910 PyPI**, 14 449 toolsets distincts et 272 657 enregistrements d'outils, sans rejet ni écart de compte. Digests MTL recalculés et hachages de fichiers vérifiés sur les deux hôtes. [L'archive 2026-10-20](https://histor.modelmarket.dev/datasets/2026-10-20/toolsets.jsonl.gz) a fourni 14 930 lignes ; trois autres viennent d'URL API publiques immuables. Le [manifest](https://histor.modelmarket.dev/datasets/2026-10-20/manifest.json) et le tree-head Ed25519 sont vérifiés avec le `did:key` figé. Archive CC-BY-4.0, attribution Aleksandr Artamokhov / HISTOR, *HISTOR: MCP tool definitions and how they change*, snapshot 2026-10-20. Les trois réponses API sans licence distincte sont publiées en métadonnées seulement.
 
@@ -158,7 +160,7 @@ Le candidat v19 post-hoc vérifié traite l'écrasement SSH public comme altéra
 | Serveurs propres | 0/45 | 0 |
 | Public-main / carryover, séparés | 3/986; 1/41 | 0 |
 
-Chaque version v18/v19 sur chaque hôte : MCP réel/bibliothèque **3 177/3 177**. Lignes complètes interhôtes **12 708/12 708**, sept contrôles d'identité vrais. Parité opérationnelle, pas détection de toutes les attaques. [Rapport](../../artifacts/warden-security-2026-11-07/candidate19/REPORT.md), SHA-256 `e699ba593242406b31f366b34d3e104dcf567094fd97421a62fbba8ded958989` ; JSON apparié `30996c170fd4284991ac4624ee88cda765ae26cb2393a8bbdeefa23913847a4e`.
+Chaque version v18/v19 sur chaque hôte : MCP réel/bibliothèque **3 177/3 177**. Lignes complètes interhôtes **12 708/12 708**, sept contrôles d'identité vrais. Parité opérationnelle, pas détection de toutes les attaques. [Rapport](https://modelmarket.dev/blog/media/warden-security-comparison-2026-11-07/reports-and-data.zip "Archive member: evidence/candidate19/REPORT.md"), SHA-256 `e699ba593242406b31f366b34d3e104dcf567094fd97421a62fbba8ded958989` ; JSON apparié `30996c170fd4284991ac4624ee88cda765ae26cb2393a8bbdeefa23913847a4e`.
 
 ### Résultats finaux des cinq produits publiés
 
