@@ -76,3 +76,15 @@ describe('the plugin\'s flow-pre entry fails closed in mode deny', () => {
     for (const mode of ['ask', 'audit', 'off']) expect(run(lone(), env(mode))).toBe('');
   });
 });
+
+describe('npm ci downloads packages like npm install (TONM-13)', () => {
+  it('labels npm ci and its aliases as network commands whose output is outside text', async () => {
+    const { classifyShell } = await import('../src/flow-guard.js');
+    for (const cmd of ['npm ci', 'npm clean-install', 'npm ic', 'npm install-ci-test', 'npm ci --no-audit']) {
+      const c = classifyShell(cmd);
+      expect([...c.labels], cmd).toContain('untrusted');
+      expect(c.local, cmd).toBe(false);
+    }
+    expect([...classifyShell('npm run test:dev').labels]).not.toContain('untrusted');
+  });
+});

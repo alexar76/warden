@@ -12,7 +12,7 @@
   <a href="https://glama.ai/mcp/servers/alexar76/warden"><img src="https://glama.ai/mcp/servers/alexar76/warden/badges/score.svg" alt="warden MCP server" /></a>
   <a href="https://warden.modelmarket.dev/"><img src="https://img.shields.io/npm/v/@aimarket/warden?color=cb3837&label=npm" alt="npm 版本" /></a>
   <img src="docs/badges/deps.svg" alt="零运行时依赖" />
-  <img src="docs/badges/tests.svg" alt="1616 项测试通过" />
+  <img src="docs/badges/tests.svg" alt="1574 项测试通过" />
   <img src="docs/badges/node.svg" alt="Node >= 20" />
   <a href="LICENSE"><img src="docs/badges/license.svg" alt="许可证：MIT" /></a>
 </p>
@@ -355,7 +355,7 @@ WARDEN 是 [Base 上的 `96684` 号](https://8004scan.io/agents/base/96684) ERC-
 ## 开发
 
 ```bash
-npm install && npm run build && npm test   # 1616 项测试
+npm install && npm run build && npm test   # 1574 项测试
 ```
 
 `test/packaging.test.ts` 正是让标题保持诚实的东西：一旦出现运行时依赖、任何源文件从包外 import、或者入口点不

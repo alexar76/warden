@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- `npm ci` (and `clean-install`, `ic`, `install-test`, `install-ci-test` and their aliases) is a network command like
+  `npm install` (TONM-13): its output is outside text and it counts as outbound.
+
 ## 0.25.0 — 2026-11-10
 
 - The Claude Code plugin's `flow-pre.mjs` fails closed in `deny` mode (TONM-13). When the guard's files could not

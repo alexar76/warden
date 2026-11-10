@@ -16,7 +16,9 @@ const NETWORK_CMDS = new Set(['curl', 'wget', 'nc', 'ncat', 'netcat', 'socat', '
   'http', 'https', 'xh', 'httpie', 'aria2c', 'lynx', 'w3m', 'links', 'mail', 'sendmail', 'mutt', 'dig', 'nslookup', 'host', 'ping', 'traceroute']);
 const NETWORK_SUB: Record<string, Set<string>> = {
   git: new Set(['push', 'pull', 'fetch', 'clone', 'remote', 'submodule', 'ls-remote', 'send-email', 'request-pull']),
-  npm: new Set(['publish', 'install', 'i', 'add', 'update', 'login', 'adduser', 'unpublish', 'view', 'info', 'exec', 'x']),
+  // `ci` and its aliases download the registry's packages, as `install` does (TONM-13: `npm ci` was missing).
+  npm: new Set(['publish', 'install', 'i', 'add', 'update', 'login', 'adduser', 'unpublish', 'view', 'info', 'exec', 'x',
+    'ci', 'clean-install', 'ic', 'install-clean', 'isntall-clean', 'install-test', 'it', 'install-ci-test', 'cit']),
   npx: new Set(['*']), pnpm: new Set(['publish', 'install', 'i', 'add', 'update', 'dlx']), yarn: new Set(['publish', 'add', 'install', 'dlx']),
   pip: new Set(['install', 'download']), pip3: new Set(['install', 'download']), uv: new Set(['pip', 'add', 'sync', 'run']), uvx: new Set(['*']),
   docker: new Set(['push', 'pull', 'login', 'run', 'build']), cargo: new Set(['publish', 'install', 'login']), go: new Set(['get', 'install']),

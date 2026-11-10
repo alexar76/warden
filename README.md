@@ -396,7 +396,7 @@ check them: [ERC-8004 identities](https://github.com/alexar76/aicom/blob/main/do
 ## Development
 
 ```bash
-npm install && npm run build && npm test   # 1616 tests
+npm install && npm run build && npm test   # 1574 tests
 ```
 
 `test/packaging.test.ts` is what keeps the headline honest: it fails if an npm runtime dependency
