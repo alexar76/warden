@@ -30,6 +30,45 @@ const LOCAL_CMDS = new Set(['ls', 'pwd', 'cd', 'cat', 'head', 'tail', 'wc', 'gre
 const LOCAL_SUB: Record<string, Set<string>> = {
   git: new Set(['status', 'diff', 'log', 'show', 'branch', 'rev-parse', 'blame', 'ls-files', 'grep', 'describe', 'tag', 'stash', 'add', 'commit', 'checkout', 'switch', 'restore', 'merge-base', 'cat-file', 'config']),
 };
+const EXTERNAL_COMMANDS = [
+  ['multica', 'issue', 'get'], ['multica', 'issue', 'list'], ['multica', 'issue', 'comment', 'list'],
+];
+const FILE_READ_COMMANDS = new Set(['cat', 'head', 'tail', 'grep', 'egrep', 'fgrep', 'rg', 'ag', 'sed', 'awk', 'jq', 'yq', 'nl', 'less', 'more']);
+
+/** Origin labels are additive. A generated report does not become trusted because it is in the checkout. */
+function externalFile(path: string, cwd: string, policy: FlowPolicy): boolean {
+  const project = normalize(cwd), absolute = absPath(path, project);
+  const report = inside(absolute, project) && /(^|\/)(playwright-report|test-results)(\/|$)/i.test(absolute.slice(project.length).replace(/\\/g, '/'));
+  return report || !!policy.untrustedSources?.paths.some(root => {
+    const source = absPath(root, project);
+    return inside(absolute, source) || inside(physicalPath(absolute), physicalPath(source));
+  });
+}
+
+/** Bounded literal source recognition, not shell execution or a claim to parse arbitrary programs. */
+function externalShell(command: string, executionCwd: string, projectCwd: string, policy: FlowPolicy): boolean {
+  const prefixes = [...EXTERNAL_COMMANDS, ...(policy.untrustedSources?.commands ?? [])];
+  if (command.length > MAX_TEXT) return true;
+  const segments = command.split(/\n|;|&&|\|\||\|/);
+  if (segments.length > 256) return true;
+  let location = executionCwd;
+  return segments.some(segment => {
+    const words = segmentWords(segment);
+    if (prefixes.some(prefix => prefix.every((word, i) => i === 0 && !word.includes('/') ? basename(words[0] ?? '') === word : words[i] === word))) return true;
+    // Keep quoted literal file operands together; substitutions and embedded programs are not evaluated.
+    const operands = segment.match(/"(?:\\.|[^"\\])*"|'[^']*'|[^\s]+/g) ?? [];
+    if (operands.length > 1024) return true;
+    if (words[0] === 'cd' && operands.length === 2 && !/[$`]/.test(operands[1]!)) {
+      location = absPath(operands[1]!.replace(/^['"]|['"]$/g, ''), location);
+      return false;
+    }
+    if (!FILE_READ_COMMANDS.has(basename(words[0] ?? ''))) return false;
+    return operands.slice(1).some(word => {
+      const literal = word.replace(/^['"]|['"]$/g, '');
+      return !literal.startsWith('-') && !/[$`]/.test(literal) && externalFile(absPath(literal, location), projectCwd, policy);
+    });
+  });
+}
 
 function segmentWords(segment: string): string[] {
   const words = segment.trim().split(/\s+/).filter(Boolean);
@@ -137,12 +176,15 @@ export function classifyCall(toolName: string, input: Record<string, unknown>, c
       const shell = classifyShell(command);
       result.opaqueShell = !shell.local || !trustedShellExecutables(command, env, executionCwd);
       for (const l of shell.labels) result.labels.add(l);
+      if (externalShell(command, executionCwd, cwd, policy)) result.labels.add('untrusted');
       if (result.opaqueShell) result.labels.add('outbound');
       result.hosts = shell.hosts;
       result.src = shell.hosts[0] ? `${shell.hosts[0]} (shell)` : 'shell output';
-      for (const t of command.split(/\s+/)) {
+      // Separators also delimit a literal credential operand in stdin redirections, pipes and curl form metadata.
+      for (const t of command.split(/[\s|;&<>]+/)) {
         const cleaned = t.replace(/^['"]|['"]$/g, '');
-        const path = shellPath(cleaned.replace(/^--[\w-]+=/, ''), executionCwd, env);
+        const operand = cleaned.replace(/^--[\w-]+=/, '').replace(/^-(?:d|T)@?/, '').replace(/^[\w-]+=@/, '@');
+        const path = shellPath(operand, executionCwd, env);
         // Bare existing operands matter too: cat config from a .ssh workdir
         // reads a credential file without naming the sensitive directory.
         if ((/[/~.]/.test(cleaned) || existsSync(path)) && isSecretPath(path, env)) result.secret = true;
@@ -187,7 +229,8 @@ export function resultTaints(toolName: string, input: Record<string, unknown>, r
     const home = homedir();
     const ownConfig = classified.secret || (inside(abs, home) && /\/\.[^/]+/.test(abs.slice(home.length)));
     const foreign = FOREIGN_DIRS.test(abs) || (isAbsolute(abs) && !inside(abs, normalize(cwd)) && !ownConfig);
-    if (policy.taintLocalFiles || foreign || INJECTION_HINTS.test(responseText.slice(0, MAX_TEXT))) untrusted = true;
+    const requested = typeof input.file_path === 'string' ? input.file_path : typeof input.notebook_path === 'string' ? input.notebook_path : typeof input.path === 'string' ? input.path : abs;
+    if (policy.taintLocalFiles || foreign || externalFile(requested, cwd, policy) || INJECTION_HINTS.test(responseText.slice(0, MAX_TEXT))) untrusted = true;
   }
   if (!untrusted && toolName === 'Bash' && INJECTION_HINTS.test(responseText.slice(0, MAX_TEXT))) untrusted = true;
   return { untrusted, private: isPrivate, src: classified.src };

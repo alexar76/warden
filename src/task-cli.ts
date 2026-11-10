@@ -3,6 +3,16 @@ import { parseJsonStrict } from './jcs.js';
 import { readFrames, WrapFrames } from './wrap-wire.js';
 import { randomUUID } from 'node:crypto';
 
+/** Standard MCP progress correlation only. It is not an operation argument and is never forwarded or retained. */
+function progressMetadata(value: unknown): boolean {
+  if (value === undefined) return true;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const meta = value as Record<string, unknown>;
+  if (Object.keys(meta).length !== 1 || !Object.hasOwn(meta, 'progressToken')) return false;
+  return typeof meta.progressToken === 'string' && meta.progressToken.length <= 128 ||
+    typeof meta.progressToken === 'number' && Number.isSafeInteger(meta.progressToken);
+}
+
 /** Trusted MCP adapter, not a proxy to a server claiming to be read-only. */
 export async function runTaskCli(args: string[]): Promise<number> {
   if (args.length) { process.stderr.write('warden-mcp task: no arguments; configure the pinned taskAdapter in the user flow policy\n'); return 2; }
@@ -84,7 +94,7 @@ export async function runTaskCli(args: string[]): Promise<number> {
       if (m.method === 'ping') { send({ jsonrpc: '2.0', id, result: {} }); return; }
       if (m.method === 'tools/list') { send({ jsonrpc: '2.0', id, result: { tools: TASK_TOOLS } }); return; }
       if (m.method !== 'tools/call') { error(id, -32601, 'Task method not supported'); return; }
-      if (!params || Object.keys(params).some(k => !['name', 'arguments'].includes(k)) || typeof params.name !== 'string' || !TASK_TOOLS.some(t => t.name === params.name)) {
+      if (!params || Object.keys(params).some(k => !['name', 'arguments', '_meta'].includes(k)) || !progressMetadata(params._meta) || typeof params.name !== 'string' || !TASK_TOOLS.some(t => t.name === params.name)) {
         error(id, -32602, 'Invalid task call'); return;
       }
       if (active.size >= 16) { error(id, -32000, 'Too many active task calls'); return; }

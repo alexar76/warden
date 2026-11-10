@@ -216,9 +216,9 @@ describe('short-secret fragment correlation', () => {
     expect(fragmentFingerprints(['anbgkqhkig9w0baqefaa'])).toEqual([]);
   });
 
-  it('does not ask before outside text, and keeps off and audit modes non-blocking', () => {
+  it('also checks known credential fragments before outside text, and keeps off and audit non-blocking', () => {
     const clean = setup({}, token, false);
-    expect(clean.pre(`one: ${part1}; two: ${part2}`)).toBeUndefined();
+    expect(clean.pre(`one: ${part1}; two: ${part2}`)?.permissionDecision).toBe('deny');
     for (const mode of ['off', 'audit']) {
       const s = setup({ mode });
       expect(s.pre(`one: ${part1}; two: ${part2}`)).toBeUndefined();

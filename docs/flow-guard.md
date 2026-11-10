@@ -1,4 +1,4 @@
-# Flow guard: tool-call checks after outside text
+# Flow guard: secret egress and tool-call checks after outside text
 
 <!-- reference-only-egress -->
 **[Reference-only egress: checked behavior and limits](flow-guard-reference-egress.md).** 127/127 Linux tests, including 25 new synthetic reference-only cases. Session/action boundaries and explicit exceptions; no semantic provenance claim.
@@ -15,6 +15,28 @@ See [measurement limits and version evidence](scan-limits.md) for billing, packa
 Follow-up audit, 2026-10-23: binary `image`/`audio` data in tool results no longer consumes the text budget, so a large screenshot before its text does not hide element labels, credential-file window titles or JSON text blocks. Screens returned by pointer and keyboard actions (including `computer` actions) update the view too. A plain acknowledgment keeps the previous view; an image-only action result clears it. Outgoing arguments receive no binary exemption and remain subject to secret checks. Regression tests cover both bypasses through the hooks and the real stdio proxy. The local source now also gates opaque GUI actions as described below.
 
 These screen-control fixes ship in npm `0.21.0`. npm `0.20.0` did not include them.
+
+## First-request secret egress and source provenance (local source, 2026-11-10)
+
+Known secret patterns, recorded credential fingerprints and correlated credential fragments are now checked on supported outbound/MCP calls **before any outside text is recorded**. An opaque shell command referencing a credential file, including `curl -d @/tmp/fake/.env`, `-d@...`, `--data-binary=@...`, `-T...` and Multica `--content-file ...`, is refused before execution. A prior file read is not required for a recognized credential-file reference. Known secret payloads are denied in `ask` and `deny`; ambiguous short fragments or an incomplete bounded payload scan request review (`deny` refuses). Secret-bearing ordinary project writes also require review in clean sessions. Credential-file writes retain their existing exemption.
+
+The clean-session rule does **not** activate the full credential boundary merely because `credentialRead` is set: clean `npm run ...`, `node -e ...`, harmless status messages and project writes remain usable when their checked payloads do not match. After outside text, the stricter existing opaque-shell and credential boundary still applies. `audit` records without enforcing, and `off` disables checks. This is not a claim to detect arbitrary unseen encodings, hidden subprocess behavior or model-only answers; a daemon storing/publishing final output needs its own output gate.
+
+Multica `issue get`, `issue list` and `issue comment list` results are now outside text by provenance, even when the result has no instruction marker. Reads under project `playwright-report/` and `test-results/` directories (including nested directories) are also outside text. This covers `Read`/`NotebookRead`/`Grep` and recognized literal shell file-reader operands such as `cat`, `head`, `rg` and `jq`. Shell source recognition is bounded and does not execute substitutions or parse arbitrary programs; renamed tools, paths computed inside scripts and other report locations require integration-specific rules.
+
+Operator policy may **add** literal command prefixes and file/directory roots. Relative roots resolve against the hook's project `cwd`; shell operands resolve against the tool's execution `workdir`. Built-in provenance cannot be removed by empty rules or `labels.Bash`. These rules grant no permission and do not bypass leak checks:
+
+```json
+{
+  "mode": "deny",
+  "untrustedSources": {
+    "commands": [["tracker", "issue", "get"]],
+    "paths": ["qa/reports", "/var/lib/qa/imported-reports"]
+  }
+}
+```
+
+Command prefixes contain literal executable/argument tokens, not globs or shell programs. Paths match a root and descendants, not text prefixes such as `qa/reports-old`. Configuration is additive and bounded to 64 command prefixes (12 tokens each) and 64 path roots. Regression tests use synthetic hook events and never execute the shown upload commands or contact a receiver. These changes are local source only; no npm publication or server deployment is implied.
 
 ## Annotation first-use review and answer checks (local source, 2026-10-25)
 
@@ -172,6 +194,8 @@ Register MCP server **`warden_task`** with command `node`, arguments `[/absolute
 
 Calls are `task_list {}`, `task_read {"id":"report"}` and `task_execute {"id":"send_report"}`. One exact ID is the entire call schema; extra fields, duplicate JSON keys, arrays and hidden RPC metadata are rejected. Hook log `task_adapter_delegated` means delegation to the trusted enforcer, not successful execution or human approval. The runtime rechecks pin, schema, expiry and policy, reserves the shared per-task budget with a process lock and fsync before sending, and keeps it across restarts. Changed manifests cannot reset a spent task ID. Failed/uncertain requests and cancellation after dispatch spend the capability; cancellation before dispatch does not. Corrupt state or an abandoned lock refuses execution; an operator must reconcile uncertain effects rather than deleting state and retrying.
 
+The standalone task MCP transport accepts one standard envelope exception: `params._meta` may contain only `progressToken`, as a safe integer or a string of at most 128 UTF-16 units. OpenCode's SDK adds this correlation field when it registers a progress callback. The task CLI discards it before invoking the adapter: it is not echoed as metadata, forwarded to HTTP, written into the audit/usage state, or included in authorization. All other metadata, extra tool arguments and duplicate JSON fields remain rejected. The server does not promise progress notifications.
+
 Only fixed HTTPS requests are supported; `loopback-test` additionally permits numeric localhost HTTP for isolated tests. Redirects are refused, response cookies/links/instructions are not acted on, response size and total time are bounded, and retries are disabled. Optional `bearerEnv` names an operator-selected environment variable; the token is added only to the fixed endpoint and is absent from listings/audit. Audit stores IDs/outcomes, not payloads/tokens. All responses remain untrusted data.
 
 **Payments and transactions:** fix invoice/account, amount, currency and body in the reviewed operation; use `maxUses: 1` and a provider-supported fixed `idempotency-key`. A single dispatch is not proof of exactly-once settlement. After timeout/error, reconcile with the provider before a new authorization. All integration tests use isolated loopback fixtures and synthetic credentials; no production payment was made.
@@ -297,7 +321,7 @@ Local regressions: `test/wrap-screen.test.ts`, `test/wrap.test.ts`, `test/task-a
 
 ## Current behavior after the 2026-10-18 audit
 
-The flow guard adds checks at tool-call boundaries after a session receives outside text. It is a defense layer, not a sandbox or a proof that prompt injection cannot cause harm. Tool labels and supported argument shapes remain part of its trust boundary.
+The flow guard checks known secret egress at supported tool boundaries even in clean sessions, and adds broader checks after a session receives outside text. It is a defense layer, not a sandbox or a proof that prompt injection cannot cause harm. Tool labels and supported argument shapes remain part of its trust boundary.
 
 - After outside text, shell code outside a small literal read-only subset asks (`deny` mode refuses). A named or allowed host does not exempt shell code. This includes Git commands that can run hooks, project executables, redirections, interpreters and file uploads. Recognized credential-file references in such calls are denied. The subset checks executable paths; PATH shadowing and relevant execution/config environment variables require approval too.
 - Recognized writes to guard policy/state, Claude hook settings and Git hook/config paths are protected, including expanded environment paths and symlink targets. A hook running as the agent's OS user cannot replace OS permissions or sandboxing.

@@ -31,6 +31,14 @@ export function loadPolicy(env: NodeJS.ProcessEnv = process.env): FlowPolicy {
     if (Array.isArray(r.allowedDestinations)) policy.allowedDestinations = r.allowedDestinations.map(String);
     if (Array.isArray(r.contactTools)) policy.contactTools = r.contactTools.filter((v): v is string => typeof v === 'string');
     if (typeof r.taintLocalFiles === 'boolean') policy.taintLocalFiles = r.taintLocalFiles;
+    if (r.untrustedSources && typeof r.untrustedSources === 'object' && !Array.isArray(r.untrustedSources)) {
+      const sources = r.untrustedSources as Record<string, unknown>;
+      policy.untrustedSources = {
+        commands: Array.isArray(sources.commands) ? sources.commands.slice(0, 64).filter((v): v is string[] =>
+          Array.isArray(v) && v.length > 0 && v.length <= 12 && v.every(s => typeof s === 'string' && /^[A-Za-z0-9_./-]{1,200}$/.test(s))).map(v => [...v]) : [],
+        paths: Array.isArray(sources.paths) ? sources.paths.slice(0, 64).filter((v): v is string => typeof v === 'string' && v.length > 0 && v.length <= 1024 && !/[\0\r\n]/.test(v)) : [],
+      };
+    }
     if (typeof r.answerNote === 'string' && (ANSWER_NOTES as readonly string[]).includes(r.answerNote)) policy.answerNote = r.answerNote as AnswerNote;
     if (r.gui !== undefined) policy.gui = parseGuiPolicy(r.gui);
     if (r.credentialEgress !== undefined) policy.credentialEgress = parseCredentialEgress(r.credentialEgress);

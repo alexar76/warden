@@ -28,6 +28,13 @@ export interface GuiPolicy {
 
 export interface PublicRequestRule { tool: string; requestSha256: string }
 export interface CredentialEgressPolicy { allow: PublicRequestRule[]; invalid?: true }
+/** Additional source provenance. These rules only add distrust; they never authorize an action. */
+export interface UntrustedSourcesPolicy {
+  /** Literal executable/argument prefixes, e.g. ["tracker", "issue", "get"]. */
+  commands: string[][];
+  /** File or directory roots, absolute or relative to the hook project cwd. */
+  paths: string[];
+}
 export interface TaskAdapterPolicy {
   mode: 'strict' | 'capabilities' | 'review';
   /** Operator-controlled MCP server name, bound to WARDEN's built-in `task` command. */
@@ -48,6 +55,8 @@ export interface FlowPolicy {
   allowedDestinations: string[];
   /** Treat every local file the agent reads as outside text (strict). Default: only foreign paths. */
   taintLocalFiles: boolean;
+  /** Additive external source rules; built-in Multica reads and Playwright reports remain untrusted. */
+  untrustedSources?: UntrustedSourcesPolicy;
   /** Tool-name globs → argument names whose values are destinations or targets (recipient, file id). */
   destinationArgs: Record<string, string[]>;
   /** Explicitly trusted, read-only contact lookup tools. Results must contain structured name/email records. */

@@ -206,7 +206,7 @@ describe('flow guard: a key written into a project file', () => {
     expect(s.pre('MultiEdit', { file_path: '/work/proj/README.md', edits: [{ old_string: 'a', new_string: [...TOKEN].reverse().join('') }] })).toBe('ask');
   });
 
-  it('keeps credential-file writes and clean sessions exempt, but reviews ordinary writes after credentials', () => {
+  it('keeps credential-file writes exempt and reviews secret-bearing project writes even in clean sessions', () => {
     const s = opened('env');
     expect(s.pre('Write', { file_path: '/work/proj/.env.local', content: `STRIPE_RESTRICTED_KEY=${TOKEN}\n` })).toBeUndefined();
     expect(s.pre('Edit', { file_path: '/work/proj/src/config.ts', old_string: `KEY = "${TOKEN}"`, new_string: 'KEY = process.env.KEY' })).toBe('ask');
@@ -214,7 +214,8 @@ describe('flow guard: a key written into a project file', () => {
     const clean = session();
     clean.prompt('copy the key into config');
     clean.post('Read', { file_path: '/work/proj/.env' }, { file: { content: ENV_FILE } });
-    expect(clean.pre('Write', { file_path: '/work/proj/src/config.ts', content: TOKEN })).toBeUndefined();
+    expect(clean.pre('Write', { file_path: '/work/proj/src/config.ts', content: TOKEN })).toBe('ask');
+    expect(clean.pre('Write', { file_path: '/work/proj/docs/status.md', content: 'The test run passed.' })).toBeUndefined();
   });
 
   it('refuses in deny mode', () => {

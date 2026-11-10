@@ -1,0 +1,53 @@
+{
+  "date": "2026-11-10",
+  "scope": "Local WARDEN working source; no npm publication, deployment, GitHub write, or live exfiltration.",
+  "version": "0.25.0",
+  "checks": {
+    "build": {
+      "command": "npm run build",
+      "exitCode": 0,
+      "includes": "TypeScript build and synchronized Claude/Codex hook copies"
+    },
+    "typecheck": {
+      "command": "npm run typecheck",
+      "exitCode": 0
+    },
+    "fullSuite": {
+      "command": "npm test -- --reporter=dot",
+      "exitCode": 0,
+      "files": 66,
+      "passed": 1602,
+      "failed": 0,
+      "durationSeconds": 110.66,
+      "environment": "Loopback-capable escalation after restricted sandbox rejected local fixture listeners"
+    },
+    "redteam": {
+      "command": "npm run test:redteam",
+      "exitCode": 0,
+      "scenarios": 28,
+      "toolAttacks": 26,
+      "answerOnly": 2,
+      "delivered": 0,
+      "meaning": "Tool attacks require ask/deny; answer-only cases produce note/recheck, not a guarantee of preventing final-answer disclosure"
+    },
+    "whitespace": {
+      "command": "git diff --check -- .",
+      "exitCode": 0
+    }
+  },
+  "earlierRestrictedRun": {
+    "passed": 1521,
+    "failed": 77,
+    "filesFailed": 4,
+    "explicitLoopbackErrors": 76,
+    "probe": "EPERM listen EPERM: operation not permitted 127.0.0.1",
+    "note": "Restricted full run was superseded by the passing loopback-capable run. An additional redundant restricted task-adapter probe encountered the same listener restriction."
+  },
+  "limits": [
+    "Strict post-taint opaque-shell and credential boundaries remain in place.",
+    "Clean credentialRead alone does not deny benign QA/status work; known payloads and credential-file shell references are checked independently.",
+    "New upload/provenance regression commands are simulated hook inputs and are never executed.",
+    "Source recognition covers configured literal prefixes and file roots, not arbitrary renamed programs or computed paths.",
+    "Final daemon output requires a separate host gate; Stop notes/rechecks are not DLP enforcement."
+  ]
+}

@@ -40,6 +40,13 @@ export function loadPolicy(env = process.env) {
             policy.contactTools = r.contactTools.filter((v) => typeof v === 'string');
         if (typeof r.taintLocalFiles === 'boolean')
             policy.taintLocalFiles = r.taintLocalFiles;
+        if (r.untrustedSources && typeof r.untrustedSources === 'object' && !Array.isArray(r.untrustedSources)) {
+            const sources = r.untrustedSources;
+            policy.untrustedSources = {
+                commands: Array.isArray(sources.commands) ? sources.commands.slice(0, 64).filter((v) => Array.isArray(v) && v.length > 0 && v.length <= 12 && v.every(s => typeof s === 'string' && /^[A-Za-z0-9_./-]{1,200}$/.test(s))).map(v => [...v]) : [],
+                paths: Array.isArray(sources.paths) ? sources.paths.slice(0, 64).filter((v) => typeof v === 'string' && v.length > 0 && v.length <= 1024 && !/[\0\r\n]/.test(v)) : [],
+            };
+        }
         if (typeof r.answerNote === 'string' && ANSWER_NOTES.includes(r.answerNote))
             policy.answerNote = r.answerNote;
         if (r.gui !== undefined)

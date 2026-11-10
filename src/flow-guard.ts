@@ -33,7 +33,7 @@ import { flowPre } from './flow-guard-pre.js';
 import { flowPost } from './flow-guard-post.js';
 import { flowPrompt, flowStop } from './flow-guard-answer.js';
 
-export type { FlowLabel, FlowMode, AnswerNote, GuiActionRule, GuiPolicy, PublicRequestRule, CredentialEgressPolicy, TaskAdapterPolicy, FlowPolicy, FlowSource, OutTail, FragmentRecord, FlowState, Classified, FlowDecision, FlowPresentation } from './flow-guard-types.js';
+export type { FlowLabel, FlowMode, AnswerNote, GuiActionRule, GuiPolicy, PublicRequestRule, CredentialEgressPolicy, UntrustedSourcesPolicy, TaskAdapterPolicy, FlowPolicy, FlowSource, OutTail, FragmentRecord, FlowState, Classified, FlowDecision, FlowPresentation } from './flow-guard-types.js';
 export { stateDir, flowPaths, isSecretPath, isProtectedPath } from './flow-guard-paths.js';
 export { DEFAULT_POLICY, loadPolicy, readPinnedTaskManifest, publicRequestDigest, hostMatches } from './flow-guard-policy.js';
 export { hostsIn } from './flow-guard-text.js';

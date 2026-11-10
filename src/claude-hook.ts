@@ -1,4 +1,4 @@
-import { flowPre, flowPost, flowPrompt, flowStop } from './flow-guard.js';
+import { flowPre, flowPost, flowPrompt, flowStop, loadPolicy } from './flow-guard.js';
 import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { mkdir, readdir, stat, unlink } from 'node:fs/promises';
@@ -149,6 +149,17 @@ export function decide(toolName: string, verdicts: SessionVerdicts | undefined, 
   return undefined;
 }
 
+/**
+ * Flow policy `"mode": "deny"` means nobody is asked, for the MCP scan's strict questions too: a runtime without a
+ * person (`claude -p`, a skip-permissions daemon) may run a call it was only asked about.
+ */
+export function withDenyMode(decision: PreToolDecision | undefined, env: NodeJS.ProcessEnv = process.env): PreToolDecision | undefined {
+  if (!decision || decision.permissionDecision !== 'ask') return decision;
+  let mode: string;
+  try { mode = loadPolicy(env).mode; } catch { mode = 'ask'; }
+  return mode === 'deny' ? { ...decision, permissionDecision: 'deny' } : decision;
+}
+
 /** The stricter of two decisions: deny beats ask beats none. */
 export function stricter(a: PreToolDecision | undefined, b: PreToolDecision | undefined): PreToolDecision | undefined {
   if (!a) return b;
@@ -167,7 +178,7 @@ export async function preToolUse(input: Record<string, unknown>, env: NodeJS.Pro
     if (verdicts && verdicts.version !== 1) verdicts = undefined;
     decision = decide(toolName, verdicts, env.WARDEN_HOOK_STRICT === '1');
   }
-  decision = stricter(decision, flowPre(input, env));
+  decision = withDenyMode(stricter(decision, flowPre(input, env)), env);
   return decision ? { hookSpecificOutput: { hookEventName: 'PreToolUse', ...decision } } : undefined;
 }
 

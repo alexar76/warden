@@ -234,6 +234,42 @@ function client(env: NodeJS.ProcessEnv, elicit?: (message: any) => any) {
   return { rpc, raw, send, asked, messages, child, initialize: (capabilities = {}) => rpc('initialize', { protocolVersion: '2025-06-18', capabilities, clientInfo: { name: 'test', version: '1' } }) };
 }
 describe('actual task MCP transport', () => {
+  it.each([0, -1, Number.MAX_SAFE_INTEGER, 'progress-qa', '', 'p'.repeat(128)])('accepts bounded standard progress metadata %j without changing the fixed request', async progressToken => {
+    const e = await endpoint(), s = setup(e.url), c = client(s.env); await c.initialize();
+    const value = await c.rpc('tools/call', { name: 'task_execute', arguments: { id: 'send_report' }, _meta: { progressToken } });
+    expect(value.error).toBeUndefined(); expect(value.result.isError).toBeUndefined();
+    expect(e.seen).toHaveLength(1);
+    expect(e.seen[0]!.body).toBe(s.manifest().operations[0]!.request.body);
+    expect(e.seen[0]!.url).toBe('/send');
+  });
+  it('drops progress metadata before HTTP, result and durable audit/usage while preserving the operation budget', async () => {
+    const e = await endpoint(), s = setup(e.url), c = client(s.env); await c.initialize();
+    const token = 'PROGRESS_CORRELATION_MUST_NOT_LEAVE_THE_MCP_ENVELOPE';
+    const value = await c.rpc('tools/call', { name: 'task_execute', arguments: { id: 'send_report' }, _meta: { progressToken: token } });
+    expect(value.error).toBeUndefined(); expect(value.result.isError).toBeUndefined();
+    expect(JSON.stringify(value)).not.toContain(token);
+    expect(JSON.stringify(e.seen)).not.toContain(token);
+    expect(readFileSync(join(s.dir, 'tasks', 'audit.jsonl'), 'utf8')).not.toContain(token);
+    expect(readFileSync(join(s.dir, 'tasks', 'report.json'), 'utf8')).not.toContain(token);
+    const replay = await c.rpc('tools/call', { name: 'task_execute', arguments: { id: 'send_report' }, _meta: { progressToken: 'different-correlation' } });
+    expect(replay.result.isError).toBe(true); expect(e.seen).toHaveLength(1);
+  });
+  it('rejects every other, malformed or unbounded metadata field before any outbound bytes', async () => {
+    const e = await endpoint(), s = setup(e.url), c = client(s.env); await c.initialize();
+    for (const meta of [null, [], {}, { leak: '7' }, { progressToken: 1, leak: '7' },
+      { progressToken: 'p'.repeat(129) },
+      { progressToken: true }, { progressToken: null }, { progressToken: {} }, { progressToken: ['token'] }]) {
+      expect((await c.rpc('tools/call', { name: 'task_execute', arguments: { id: 'send_report' }, _meta: meta })).error?.code).toBe(-32602);
+    }
+    // The strict JSON parser refuses these before a request ID can be trusted, so parse errors use id:null.
+    for (const progressToken of [0.5, Number.MAX_SAFE_INTEGER + 1]) {
+      const body = JSON.stringify({ jsonrpc: '2.0', id: 100, method: 'tools/call', params: { name: 'task_execute', arguments: { id: 'send_report' }, _meta: { progressToken } } });
+      expect((await c.raw(body, null)).error?.code).toBe(-32700);
+    }
+    expect((await c.rpc('tools/call', { name: 'task_execute', arguments: { id: 'send_report' }, _meta: { progressToken: 'ok' }, url: e.url })).error?.code).toBe(-32602);
+    expect((await c.rpc('tools/call', { name: 'task_execute', arguments: { id: 'send_report', body: 'not-authorized' }, _meta: { progressToken: 'ok' } })).result.isError).toBe(true);
+    expect(e.seen).toHaveLength(0);
+  });
   it('rejects duplicate fields and hidden metadata before any outbound bytes', async () => {
     const e = await endpoint(), s = setup(e.url), c = client(s.env); await c.initialize();
     expect((await c.rpc('tools/list')).result.tools).toHaveLength(4);

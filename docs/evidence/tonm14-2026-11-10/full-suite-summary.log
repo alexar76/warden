@@ -1,0 +1,6 @@
+> npm test -- --reporter=dot
+
+ Test Files  66 passed (66)
+      Tests  1602 passed (1602)
+   Start at  12:51:53
+   Duration  110.66s (tests 93%, import 4%, transform 1%, setup 1%, worker 1%)

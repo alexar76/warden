@@ -130,8 +130,8 @@ export function flowPre(input: Record<string, unknown>, env: NodeJS.ProcessEnv =
   if (c.protectedTouch) {
     reason = 'protected_settings';
     sensitivePayload = true;
-    decision = { permissionDecision: tainted ? 'deny' : 'ask', permissionDecisionReason: `WARDEN flow guard: this call would change WARDEN's policy or Claude Code's hook/MCP settings${tainted ? ` after the session read outside text (${sourcesText(state, defTaint)})` : ''}.` };
-  } else if (tainted && (c.labels.has('outbound') || toolName.startsWith('mcp__') || ['WebFetch', 'WebSearch'].includes(toolName))) {
+    decision = { permissionDecision: tainted || policy.mode === 'deny' ? 'deny' : 'ask', permissionDecisionReason: `WARDEN flow guard: this call would change WARDEN's policy or Claude Code's hook/MCP settings${tainted ? ` after the session read outside text (${sourcesText(state, defTaint)})` : ''}.` };
+  } else if (c.labels.has('outbound') || toolName.startsWith('mcp__') || ['WebFetch', 'WebSearch'].includes(toolName)) {
     const stores = readStores(paths);
     const leak = checkLeak(paths, toolInput, state.intent, stores);
     const stream = checkStream(toolInput, state.tails ?? {}, stores);
@@ -168,7 +168,21 @@ export function flowPre(input: Record<string, unknown>, env: NodeJS.ProcessEnv =
     const contacts = state.resolvedVersion === 2 ? state.resolved : undefined;
     const userNamed = (targetKnown && namedByUser(dests, state.intent, state.intentRaw, contacts)) || (dests.length === 0 && keepsDestination(toolName, toolInput, policy));
     if (c.opaqueShell && c.secret) leak.secret = 'credential file referenced by shell code';
-    if (!leak.secret && fragments.review) {
+    if (!tainted) {
+      // Credential payloads and explicit shell references do not become safe merely because no external
+      // source has been recorded yet. Keep this separate from the stricter post-taint credential boundary:
+      // a credentialRead flag alone must not stop a clean session's benign build or public status request.
+      if (leak.secret) {
+        reason = 'secret'; sensitivePayload = true;
+        decision = { permissionDecision: 'deny', permissionDecisionReason: `WARDEN flow guard: this call carries a secret (${leak.secret}). Secret egress is denied even before outside text has been observed.` };
+      } else if (fragments.review) {
+        reason = 'secret_fragment'; sensitivePayload = true;
+        decision = { permissionDecision: policy.mode === 'deny' ? 'deny' : 'ask', permissionDecisionReason: 'WARDEN flow guard: an argument matches a short fragment of a credential read this session. Review it before transmission; source trust and destination exemptions do not authorize credential disclosure.' };
+      } else if (leak.incomplete) {
+        reason = 'payload_incomplete'; sensitivePayload = true;
+        decision = { permissionDecision: policy.mode === 'deny' ? 'deny' : 'ask', permissionDecisionReason: 'WARDEN flow guard: the bounded payload decoder could not finish checking this outbound request. Review it before execution, including before outside text is observed.' };
+      }
+    } else if (!leak.secret && fragments.review) {
       reason = 'secret_fragment';
       decision = { permissionDecision: policy.mode === 'deny' ? 'deny' : 'ask', permissionDecisionReason: 'WARDEN flow guard: an argument matches a short fragment of a credential read this session. A short match can be coincidental, so review it before transmission. Named or allowed destinations and earlier approvals do not exempt this call.' };
     } else if (!leak.secret && screen?.paste) {
@@ -217,7 +231,7 @@ export function flowPre(input: Record<string, unknown>, env: NodeJS.ProcessEnv =
   // A file the agent writes inside the project can leave later without another call: CI publishes docs/, a commit
   // is pushed by a person. After outside text, a key read this session written into an ordinary project file asks;
   // credential files (.env, .npmrc …) remain exempt. Ordinary writes need review after a credential read,
-  if (!decision && tainted && ['Write', 'Edit', 'MultiEdit', 'NotebookEdit'].includes(toolName)) {
+  if (!decision && ['Write', 'Edit', 'MultiEdit', 'NotebookEdit'].includes(toolName)) {
     const target = typeof toolInput.file_path === 'string' ? toolInput.file_path : typeof toolInput.notebook_path === 'string' ? toolInput.notebook_path : '';
     if (!target || !isSecretPath(absPath(target, cwd))) {
       const written = { content: toolInput.content, new_string: toolInput.new_string, new_source: toolInput.new_source,
@@ -231,11 +245,11 @@ export function flowPre(input: Record<string, unknown>, env: NodeJS.ProcessEnv =
       }
       leak.secret ||= fragments.secret;
       const credential = credentialSession(readFlowState(paths.state), readStores(paths));
-      if (leak.secret || fragments.review || fragments.unavailable || leak.incomplete) {
+      if (leak.secret || fragments.review || leak.incomplete || tainted && fragments.unavailable) {
         reason = 'secret_to_file';
         sensitivePayload = true;
-        decision = { permissionDecision: policy.mode === 'deny' ? 'deny' : 'ask', permissionDecisionReason: leak.secret ? `WARDEN flow guard: this write puts a secret (${leak.secret}) into a project file after the session read outside text (${sourcesText(state, defTaint)}). Files in the project can be committed or published later. Allow it only if you asked for this key to go into this file.` : fragments.review ? 'WARDEN flow guard: this project-file write matches a short credential fragment. Review it before writing; project files can be published later.' : 'WARDEN flow guard: short-secret tracking is incomplete or at capacity. Review this project-file write after outside text; project files can be published later. Start a new session and reread private sources to restore tracking.' };
-      } else if (credential) {
+        decision = { permissionDecision: policy.mode === 'deny' ? 'deny' : 'ask', permissionDecisionReason: leak.secret ? `WARDEN flow guard: this write puts a secret (${leak.secret}) into a project file${tainted ? ` after the session read outside text (${sourcesText(state, defTaint)})` : ''}. Files in the project can be committed or published later. Allow it only if you asked for this key to go into this file.` : fragments.review ? 'WARDEN flow guard: this project-file write matches a short credential fragment. Review it before writing; project files can be published later.' : 'WARDEN flow guard: credential-payload checking is incomplete or at capacity. Review this project-file write; project files can be published later.' };
+      } else if (tainted && credential) {
         if (publicEligible && presentation !== 'audit' && !c.labels.has('destructive')) publicGrant = reservePublicRequest(paths, toolName, toolInput, written, policy, env);
         if (!publicGrant) {
           reason = 'credential_egress'; sensitivePayload = true;
@@ -274,6 +288,9 @@ export function flowPre(input: Record<string, unknown>, env: NodeJS.ProcessEnv =
   }
   if (publicGrant) log(paths, { event: 'pre', tool: safeToolName(toolName), decision: 'allow', reason: 'credential_public_request', disposition: 'policy_allowed', approvalOutcome: 'unknown', mode: policy.mode });
   if (policy.mode === 'audit') return undefined;
+  // `deny` means nobody is asked: a runtime without a person (Codex, `-p`, a skip-permissions daemon) may run a call
+  // it was asked about. Every branch above already honours the mode; this keeps a future one from leaking an `ask`.
+  if (decision && policy.mode === 'deny' && decision.permissionDecision === 'ask') decision.permissionDecision = 'deny';
   return decision;
 }
 

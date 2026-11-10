@@ -33,7 +33,7 @@ export function decide(toolName, verdicts, strict) {
   return undefined;
 }
 
-function main() {
+async function main() {
   let input;
   try { input = JSON.parse(readFileSync(0, 'utf8') || '{}'); } catch { return; }
   const toolName = typeof input.tool_name === 'string' ? input.tool_name : '';
@@ -44,10 +44,15 @@ function main() {
     if (sessionId) verdicts = JSON.parse(readFileSync(join(stateDir(), 'claude-code', 'sessions', createHash('sha256').update(sessionId).digest('hex') + '.json'), 'utf8'));
   } catch { verdicts = undefined; }
   if (verdicts && verdicts.version !== 1) verdicts = undefined;
-  const decision = decide(toolName, verdicts, process.env.WARDEN_HOOK_STRICT === '1');
+  let decision = decide(toolName, verdicts, process.env.WARDEN_HOOK_STRICT === '1');
+  // Flow policy "mode": "deny" means nobody is asked: a strict question becomes a refusal (see withDenyMode).
+  if (decision?.permissionDecision === 'ask') {
+    try { const { loadPolicy } = await import('./flow-guard.mjs'); if (loadPolicy(process.env).mode === 'deny') decision = { ...decision, permissionDecision: 'deny' }; }
+    catch { /* policy unreadable: keep the question */ }
+  }
   if (decision) process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'PreToolUse', ...decision } }) + '\n');
 }
 
 if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith('pre-tool-use.mjs')) {
-  try { main(); } catch { /* never block on our own failure */ }
+  try { await main(); } catch { /* never block on our own failure */ }
 }

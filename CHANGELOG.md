@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.25.0 — 2026-11-10
+
+- The Claude Code plugin's `flow-pre.mjs` fails closed in `deny` mode (TONM-13). When the guard's files could not
+  load, it crashed before its `try` and decided nothing, and Claude Code runs a call whose hook crashed. It now loads
+  the guard dynamically and, if that or the check fails while the flow policy (or `WARDEN_FLOW_MODE`) is `deny`,
+  prints a refusal. In `ask`, `audit` and `off` a broken install still does not lock a person out.
+- `"mode": "deny"` never asks (TONM-14). A change to protected settings (WARDEN's policy, Claude Code hooks and
+  settings, `.git/config`, `.git/hooks`) got `ask` in a clean session even in `deny` mode; under `claude -p` or a
+  skip-permissions daemon nobody answers. It is now `deny`, `flowPre` turns any remaining `ask` into `deny` in that
+  mode, and the MCP scan's strict questions (`WARDEN_HOOK_STRICT=1`) follow the flow policy's `deny` too, in
+  `warden-mcp hook` and in the plugin's `pre-tool-use.mjs`. `ask`, `audit` and `off` are unchanged.
+- Accept only bounded standard `params._meta.progressToken` on the task MCP transport for SDK/OpenCode
+  progress-callback compatibility. It never reaches the fixed HTTP request, result metadata or durable state;
+  unknown metadata and extra operation arguments remain refused.
+- Check known secret patterns, recorded credential fingerprints/fragments and opaque shell references to
+  credential files before the first outside-text result. Secret-bearing project writes require review in clean
+  sessions too. A credential read alone does not lock clean benign builds or public reports; `audit`/`off`
+  retain their non-enforcing behavior.
+- Treat Multica issue/comment reads and workspace Playwright report/test-result reads as outside text by
+  provenance. Add bounded, additive `untrustedSources.commands` and `untrustedSources.paths` operator rules;
+  these source rules cannot authorize calls or remove built-in distrust.
+
 ## 0.23.1-dev.20261108 — current working source, 2026-11-08
 
 - Include the current Codex command-hook adapter, unattended flow-guard helpers, protected Codex paths and
