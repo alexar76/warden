@@ -1,0 +1,14 @@
+install=0
+exports: main true | codex.codexPre function | opencode.createWardenPlugin function
+Usage: warden-mcp [command] [options]
+ok  examples/policies/multica.flow-policy.json
+ok  scripts/flow-log-stats.mjs
+ok  docs/fixed-job-runner.md
+ok  docs/fixed-job-runner.zh.md
+ok  codex-hooks/scripts/codex-hook.mjs
+ok  codex-hooks/scripts/flow-guard-codex.mjs
+ok  dist/task-adapter.js
+task-adapter timeoutSeconds refs: 5
+multica in core classify: 0
+projectRoots in classify: 1
+WARDEN flow log: /nonexistent

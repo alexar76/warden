@@ -1,0 +1,8 @@
+
+> @aimarket/warden@0.26.0 prepare
+> npm run build
+
+
+> @aimarket/warden@0.26.0 build
+> tsc -p tsconfig.json && node scripts/sync-flow-guard.mjs
+

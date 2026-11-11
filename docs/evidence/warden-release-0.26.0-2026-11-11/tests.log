@@ -1,0 +1,9 @@
+
+ RUN  v5.0.5 /Users/alex/Desktop/ai_tests/aicompany/aicom-warden-codex/warden
+
+
+ Test Files  72 passed (72)
+      Tests  1653 passed (1653)
+   Start at  12:25:40
+   Duration  36.52s (tests 97%, import 2%)
+

@@ -31,6 +31,9 @@ export function loadPolicy(env: NodeJS.ProcessEnv = process.env): FlowPolicy {
     if (Array.isArray(r.allowedDestinations)) policy.allowedDestinations = r.allowedDestinations.map(String);
     if (Array.isArray(r.contactTools)) policy.contactTools = r.contactTools.filter((v): v is string => typeof v === 'string');
     if (typeof r.taintLocalFiles === 'boolean') policy.taintLocalFiles = r.taintLocalFiles;
+    if (Array.isArray(r.projectRoots)) {
+      policy.projectRoots = r.projectRoots.slice(0, 16).filter((v): v is string => typeof v === 'string' && v.length > 0 && v.length <= 1024 && !/[\0\r\n]/.test(v));
+    }
     if (r.untrustedSources && typeof r.untrustedSources === 'object' && !Array.isArray(r.untrustedSources)) {
       const sources = r.untrustedSources as Record<string, unknown>;
       policy.untrustedSources = {

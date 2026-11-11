@@ -1,0 +1,19 @@
+{
+  "name": "@aimarket/warden",
+  "version": "0.26.0",
+  "tarball": "aimarket-warden-0.26.0.tgz",
+  "sha256": "ff8e9fc959caf1ec2184592bb4cde9ea34d475ea42ce0b380c803afe97331f6b",
+  "npmShasum": "12170b8b0c5003674b2ed4e211c977e52a72166e",
+  "integrity": "sha512-ANwHhvYBKRcI29I6tx/ahmKtBsnedWxNlJB6+09qkKQqTmU4m04eKnFbXVTmC2zd4Y1R1+HxNWTCnis/by3F/g==",
+  "size": 1102405,
+  "unpackedSize": 3706340,
+  "entryCount": 404,
+  "distDigest": "67871ab10770b6c5d9c9c2bbd12a56a1a12ef7d162c90d315988b8c2e380e59a",
+  "ruleset": {
+    "version": "19",
+    "digest": "sha256-XfRh1+VZoAM6PGtbmqprnSX/eF16qNYOk0o+ilRFxXw="
+  },
+  "sourceBase": "345bb3880",
+  "preparedAt": "2026-11-11",
+  "published": false
+}

@@ -1,0 +1,11 @@
+WARDEN scan 0.26.0 · ruleset 19 sha256-XfRh1+VZoAM6… · block at high
+  read .mcp.json (claude-code, 3 servers)
+
+  ✓ allow   notes       claude-code    1 tool · score 0.90
+  ✗ BLOCK   evil-notes  claude-code    1 tool · score 0.00 · TOOL_DEF_EXFIL(save_note) TOOL_DEF_SECRET_REQUEST(save_note) THREAT_SSH_KEY_READ(save_note) THREAT_SEED_PHRASE(save_note)
+  ! error   broken      claude-code    could not start: spawn /nonexistent/bin/server ENOENT
+
+  ⚠ toxic flow  claude-code has a possible private-data / untrusted-input / outbound path: capabilities of notes.save_note are unknown. Review and bind operator capabilities to the launch identity and definitions; unrecognized names are not evidence of safety.
+
+3 servers: 1 allowed, 1 blocked, 1 not checked, 0 skipped.
+Details: warden-mcp scan --json, or --markdown FILE. To review a changed server: warden-mcp scan --lock warden.lock.json --update-lock.

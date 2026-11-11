@@ -1,7 +1,17 @@
 # Changelog
 
-## Unreleased
+## 0.26.0 — 2026-11-11 (field regressions, long task operations, no product in the core)
 
+**Upgrade note.** The core no longer names Multica. If your agents read Multica issues or comments through its CLI,
+add the preset `examples/policies/multica.flow-policy.json` (`untrustedSources.commands`) to your `flow-policy.json`
+before upgrading; without it, `multica issue …` output counts as your own data, not as outside text. This changes a
+default, hence 0.26.0 rather than a patch release.
+
+- `projectRoots` in the flow policy: extra project roots, absolute or relative to the hook cwd. Field false positive
+  (TONM-13, 4 of 140 calls in six QA runs): a Multica agent working in `<task workspace>/<checkout>` wrote its report
+  to the workspace root, and after outside text that write counted as outside the project (`destructive_action`).
+  With `"projectRoots": [".."]` writes and reads there count as inside. The filesystem root and any folder containing
+  the home folder are ignored; protected and secret paths stay protected.
 - **OWASP MCPSTG-SUPP-06 gate in `warden wrap`.** `--histor-revision <registry-name>` asks HISTOR for the
   publisher-signed tip and compares the live `tools/list` (SUPP-06 digest) before a privileged `tools/call`
   (`policy.sensitiveToolPatterns`; `--histor-revision-all` gates every call). `--histor-url` overrides the

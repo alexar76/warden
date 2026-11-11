@@ -55,8 +55,12 @@ export interface FlowPolicy {
   allowedDestinations: string[];
   /** Treat every local file the agent reads as outside text (strict). Default: only foreign paths. */
   taintLocalFiles: boolean;
-  /** Additive external source rules; built-in Multica reads and Playwright reports remain untrusted. */
+  /** Additive external source rules; built-in Playwright report provenance remains. */
   untrustedSources?: UntrustedSourcesPolicy;
+  /** Extra project roots, absolute or relative to the hook cwd (Multica: ".." — the task workspace that holds the
+   *  repository checkout). Writes and reads under them count as inside the project. A root that is the filesystem
+   *  root or contains the home folder is ignored. Protected and secret paths stay protected. */
+  projectRoots?: string[];
   /** Tool-name globs → argument names whose values are destinations or targets (recipient, file id). */
   destinationArgs: Record<string, string[]>;
   /** Explicitly trusted, read-only contact lookup tools. Results must contain structured name/email records. */

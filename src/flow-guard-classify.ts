@@ -34,6 +34,21 @@ const LOCAL_SUB: Record<string, Set<string>> = {
 };
 const FILE_READ_COMMANDS = new Set(['cat', 'head', 'tail', 'grep', 'egrep', 'fgrep', 'rg', 'ag', 'sed', 'awk', 'jq', 'yq', 'nl', 'less', 'more']);
 
+/**
+ * Inside the project: under the hook cwd or under an operator's extra project root. A root that is the filesystem root
+ * or contains the home folder is ignored: it would switch the check off rather than widen the project.
+ */
+export function inProject(path: string, cwd: string, policy: FlowPolicy): boolean {
+  const project = normalize(cwd);
+  if (inside(path, project)) return true;
+  const home = normalize(homedir());
+  return (policy.projectRoots ?? []).some(r => {
+    const root = absPath(r, project);
+    if (root === '/' || inside(home, root)) return false;
+    return inside(path, root) || inside(physicalPath(path), physicalPath(root));
+  });
+}
+
 /** Origin labels are additive. A generated report does not become trusted because it is in the checkout. */
 function externalFile(path: string, cwd: string, policy: FlowPolicy): boolean {
   const project = normalize(cwd), absolute = absPath(path, project);
@@ -167,7 +182,7 @@ export function classifyCall(toolName: string, input: Record<string, unknown>, c
       result.src = result.hosts[0] || toolName;
       break;
     case 'Write': case 'Edit': case 'MultiEdit': case 'NotebookEdit':
-      if (abs && !inside(abs, normalize(cwd))) result.labels.add('destructive');
+      if (abs && !inProject(abs, cwd, policy)) result.labels.add('destructive');
       break;
     case 'Bash': case 'BashOutput': {
       const command = typeof input.command === 'string' ? input.command : texts.join('\n');
@@ -229,7 +244,7 @@ export function resultTaints(toolName: string, input: Record<string, unknown>, r
     // user's own key or config: ~/.ssh/id_ed25519 is private data, not outside text.
     const home = homedir();
     const ownConfig = classified.secret || (inside(abs, home) && /\/\.[^/]+/.test(abs.slice(home.length)));
-    const foreign = FOREIGN_DIRS.test(abs) || (isAbsolute(abs) && !inside(abs, normalize(cwd)) && !ownConfig);
+    const foreign = FOREIGN_DIRS.test(abs) || (isAbsolute(abs) && !inProject(abs, cwd, policy) && !ownConfig);
     const requested = typeof input.file_path === 'string' ? input.file_path : typeof input.notebook_path === 'string' ? input.notebook_path : typeof input.path === 'string' ? input.path : abs;
     if (policy.taintLocalFiles || foreign || externalFile(requested, cwd, policy) || INJECTION_HINTS.test(responseText.slice(0, MAX_TEXT))) untrusted = true;
   }
