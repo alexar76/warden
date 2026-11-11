@@ -12,6 +12,9 @@ import { displaySafe } from './sanitize.js';
 export interface TaskResource { id: string; title: string; path: string; sha256: string }
 export interface TaskOperation {
   id: string; title: string; maxUses: number;
+  /** Operator-chosen time limit for this request, 1..3600 s (default 10). A long job (a test run) gets minutes;
+   *  the model still supplies only the ID. Timeout and cancellation consume the budget like any failure. */
+  timeoutSeconds?: number;
   request: { method: string; url: string; headers?: Record<string, string>; body?: string; bearerEnv?: string };
 }
 export interface TaskManifest {
@@ -22,6 +25,9 @@ export interface TaskManifest {
 export interface TaskRun { id: string; title: string; operations: string[] }
 export type TaskApproval = (message: string, signal?: AbortSignal) => Promise<boolean>;
 const hash = (v: string | Buffer) => createHash('sha256').update(v).digest('hex');
+/** Default and ceiling for one request. Long jobs need an explicit timeoutSeconds in the pinned manifest. */
+export const DEFAULT_TIMEOUT_SECONDS = 10;
+export const MAX_TIMEOUT_SECONDS = 3600;
 const id = (v: unknown): v is string => typeof v === 'string' && /^[A-Za-z][A-Za-z0-9_-]{0,63}$/.test(v);
 const digest = (v: unknown): v is string => typeof v === 'string' && /^[0-9a-f]{64}$/.test(v);
 const record = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -43,8 +49,9 @@ export function parseTaskManifest(text: string): TaskManifest {
     ids.add(r.id);
   }
   for (const op of m.operations) {
-    if (!record(op) || !fields(op, ['id', 'title', 'maxUses', 'request']) || !id(op.id) || ids.has(op.id) || !title(op.title) ||
-      !Number.isInteger(op.maxUses) || (op.maxUses as number) < 1 || (op.maxUses as number) > 10 || !record(op.request)) throw new Error('invalid task operation');
+    if (!record(op) || !fields(op, ['id', 'title', 'maxUses', 'timeoutSeconds', 'request']) || !id(op.id) || ids.has(op.id) || !title(op.title) ||
+      !Number.isInteger(op.maxUses) || (op.maxUses as number) < 1 || (op.maxUses as number) > 10 || !record(op.request) ||
+      op.timeoutSeconds !== undefined && (!Number.isInteger(op.timeoutSeconds) || (op.timeoutSeconds as number) < 1 || (op.timeoutSeconds as number) > MAX_TIMEOUT_SECONDS)) throw new Error('invalid task operation');
     ids.add(op.id);
     const r = op.request;
     if (!fields(r, ['method', 'url', 'headers', 'body', 'bearerEnv']) || typeof r.method !== 'string' ||
@@ -180,7 +187,7 @@ export class TaskAdapter {
     const { policy, manifest, pin } = this.current();
     if (name === 'task_list') return { taskId: manifest.taskId, expiresAt: manifest.expiresAt, mode: policy.taskAdapter!.mode,
       resources: manifest.resources.map(({ id, title }) => ({ id, title })),
-      operations: manifest.operations.map(op => ({ id: op.id, title: op.title, maxUses: op.maxUses, requestSha256: hash(canonicalize(op.request)) })),
+      operations: manifest.operations.map(op => ({ id: op.id, title: op.title, maxUses: op.maxUses, timeoutSeconds: op.timeoutSeconds ?? DEFAULT_TIMEOUT_SECONDS, requestSha256: hash(canonicalize(op.request)) })),
       ...(manifest.runs ? { runs: manifest.runs.map(run => ({ id: run.id, title: run.title, steps: run.operations.length })) } : {}) };
     if (name === 'task_read') {
       const r = manifest.resources.find(r => r.id === args.id);
@@ -272,7 +279,7 @@ export class TaskAdapter {
           try { resolve({ status, untrusted: true, text: new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks)) }); } catch (err) { reject(err); }
         });
       });
-      const timer = setTimeout(() => req.destroy(new Error('task request timeout')), 10_000);
+      const timer = setTimeout(() => req.destroy(new Error('task request timeout')), (op.timeoutSeconds ?? DEFAULT_TIMEOUT_SECONDS) * 1000);
       req.on('close', () => clearTimeout(timer)); req.on('error', reject);
       if (op.request.body !== undefined) req.write(op.request.body);
       req.end();

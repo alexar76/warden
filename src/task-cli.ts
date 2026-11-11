@@ -3,7 +3,10 @@ import { parseJsonStrict } from './jcs.js';
 import { readFrames, WrapFrames } from './wrap-wire.js';
 import { randomUUID } from 'node:crypto';
 
-/** Standard MCP progress correlation only. It is not an operation argument and is never forwarded or retained. */
+/** How often a pending call with a client progress token reports elapsed time (overridable for tests). */
+const PROGRESS_INTERVAL_MS = Number(process.env.WARDEN_TASK_PROGRESS_MS) > 0 ? Number(process.env.WARDEN_TASK_PROGRESS_MS) : 15_000;
+/** Standard MCP progress correlation only. It is not an operation argument and is never forwarded; it only labels
+ *  this server's own progress notifications for the pending call. */
 function progressMetadata(value: unknown): boolean {
   if (value === undefined) return true;
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
@@ -99,12 +102,19 @@ export async function runTaskCli(args: string[]): Promise<number> {
       }
       if (active.size >= 16) { error(id, -32000, 'Too many active task calls'); return; }
       const abort = new AbortController(); active.set(id, abort);
+      // Long operations: with a client progress token, report elapsed time so the client keeps waiting. The message is
+      // fixed; nothing from the model, the manifest or the response goes into it.
+      const token = (params._meta as { progressToken?: string | number } | undefined)?.progressToken;
+      const started = Date.now();
+      const progress = token === undefined ? undefined : setInterval(() => {
+        if (!abort.signal.aborted) send({ jsonrpc: '2.0', method: 'notifications/progress', params: { progressToken: token, progress: Math.floor((Date.now() - started) / 1000), message: 'WARDEN task operation running' } });
+      }, PROGRESS_INTERVAL_MS);
       try {
         const result = await adapter.call(params.name, params.arguments === undefined ? {} : params.arguments, abort.signal, approve);
         if (!abort.signal.aborted) send({ jsonrpc: '2.0', id, result: { content: [{ type: 'text', text: JSON.stringify(result) }] } });
       } catch {
         if (!abort.signal.aborted) send({ jsonrpc: '2.0', id, result: { isError: true, content: [{ type: 'text', text: 'WARDEN task refused or failed. Check the local policy, manifest pins, expiry and operation budget. A started request may have taken effect; do not retry automatically.' }] } });
-      } finally { active.delete(id); }
+      } finally { if (progress) clearInterval(progress); active.delete(id); }
     };
     readFrames(process.stdin, frames, body => { const work = dispatch(body); jobs.add(work); void work.catch(() => finish(1)).finally(() => jobs.delete(work)); }, () => {
       process.stdin.pause(); finish(1);

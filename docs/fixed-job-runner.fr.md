@@ -62,7 +62,7 @@ Les règles qui font tenir l’ensemble :
   ainsi si l’ensemble d’outils grandit.
 - Au lieu d’un outil maison, le [TaskAdapter](flow-guard.fr.md) de WARDEN (`warden-mcp task`) peut servir d’outil
   d’opérations fixes : un manifeste épinglé d’opérations HTTP fixes, un budget d’utilisations et une expiration,
-  appliqués par WARDEN.
+  appliqués par WARDEN. Pour une tâche de plusieurs minutes, donnez à l’opération `timeoutSeconds` (jusqu’à 3600) et ajoutez une opération en lecture seule « dernier résultat » ; avec un progress token client, l’adaptateur signale la progression pendant l’attente.
 - Sur l’agent d’effets de bord : `audit` (il doit écrire après avoir lu le rapport) plus des clés minimales et la
   liste de sortie ; lisez le journal avec `scripts/flow-log-stats.mjs`.
 - Marquez les sources que lit votre intégration dans `untrustedSources` (pour Multica :

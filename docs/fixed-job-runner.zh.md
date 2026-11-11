@@ -53,7 +53,7 @@ flowchart LR
 
 - 分析智能体上：`"mode": "deny"`。它既没有可泄露的东西，也没有泄露的手段；若将来工具集扩大，守卫会保持这一点。
 - 不必自己写工具，也可以用 WARDEN 自带的 [TaskAdapter](flow-guard.zh.md)（`warden-mcp task`）作为固定操作工具：
-  固定的 HTTP 操作清单（已锁定）、使用次数预算和有效期，均由 WARDEN 强制执行。
+  固定的 HTTP 操作清单（已锁定）、使用次数预算和有效期，均由 WARDEN 强制执行。对于需要数分钟的任务，请为操作设置 `timeoutSeconds`（最多 3600），并增加一个只读的“最后结果”操作；若客户端提供 progress token，适配器在等待期间会报告进度。
 - 副作用智能体上：`audit`（它读完报告后必须写入），加上最少的密钥和出口白名单；用 `scripts/flow-log-stats.mjs`
   查看日志。
 - 在 `untrustedSources` 中标记你的集成会读取的来源（Multica：`examples/policies/multica.flow-policy.json`）。

@@ -60,7 +60,7 @@ Reglas que lo sostienen:
   el conjunto de herramientas crece.
 - En lugar de una herramienta propia, el [TaskAdapter](flow-guard.es.md) de WARDEN (`warden-mcp task`) puede ser la
   herramienta de operaciones fijas: un manifiesto fijado de operaciones HTTP, un presupuesto de usos y una caducidad,
-  aplicados por WARDEN.
+  aplicados por WARDEN. Para una tarea de minutos, da a la operación `timeoutSeconds` (hasta 3600) y añade una operación de solo lectura «último resultado»; con un progress token del cliente, el adaptador informa del progreso mientras espera.
 - En el agente de efectos laterales: `audit` (debe escribir tras leer el informe) más claves mínimas y la lista de
   salida permitida; lee el registro con `scripts/flow-log-stats.mjs`.
 - Marca las fuentes que lee tu integración en `untrustedSources` (para Multica:

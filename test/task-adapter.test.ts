@@ -389,3 +389,43 @@ describe('Auten: actual task MCP outcome form', () => {
     expect((await next).result.isError).toBeUndefined(); expect(e.seen).toHaveLength(2);
   });
 });
+
+describe('long operations: an operator-set time limit and progress for the client', () => {
+  it.each([0, 3601, 1.5, '60', -5])('rejects timeoutSeconds %j', value => {
+    const s = setup();
+    expect(() => s.change(m => { (m.operations[0] as any).timeoutSeconds = value; })).not.toThrow();
+    // 1.5 never reaches the operation check: the strict JSON parser refuses non-integer numbers first.
+    expect(() => parseTaskManifest(readFileSync(s.manifestPath, 'utf8'))).toThrow(value === 1.5 ? /non-integer/ : /invalid task operation/);
+  });
+
+  it('lists the time limit: 10 s by default, the operator value when set', async () => {
+    const s = setup();
+    expect(await s.adapter.call('task_list', {})).toMatchObject({ operations: [{ id: 'send_report', timeoutSeconds: 10 }] });
+    s.change(m => { m.operations[0]!.timeoutSeconds = 1800; });
+    expect(await s.adapter.call('task_list', {})).toMatchObject({ operations: [{ id: 'send_report', timeoutSeconds: 1800 }] });
+  });
+
+  it('waits as long as the manifest allows, and no longer; a timeout spends the budget', async () => {
+    const slow = await endpoint((_req, res) => { setTimeout(() => res.end('{"job":"dev_smoke","ok":true}'), 1500); });
+    const short = setup(slow.url); short.change(m => { m.operations[0]!.timeoutSeconds = 1; });
+    await expect(short.adapter.call('task_execute', { id: 'send_report' })).rejects.toThrow('budget remains spent');
+    await expect(short.adapter.call('task_execute', { id: 'send_report' })).rejects.toThrow();
+    const long = setup(slow.url); long.change(m => { m.operations[0]!.timeoutSeconds = 5; });
+    expect(await long.adapter.call('task_execute', { id: 'send_report' })).toMatchObject({ status: 200, untrusted: true, text: '{"job":"dev_smoke","ok":true}' });
+  });
+
+  it('sends fixed progress notifications for a pending call with a progress token, and none without one', async () => {
+    const slow = await endpoint((_req, res) => { setTimeout(() => res.end('done'), 1200); });
+    const s = setup(slow.url); s.change(m => { m.operations[0]!.timeoutSeconds = 5; });
+    const c = client({ ...s.env, WARDEN_TASK_PROGRESS_MS: '200' }); await c.initialize();
+    const value = await c.rpc('tools/call', { name: 'task_execute', arguments: { id: 'send_report' }, _meta: { progressToken: 'run-1' } });
+    expect(value.result.isError).toBeUndefined();
+    const progress = c.messages.filter(m => m.method === 'notifications/progress');
+    expect(progress.length).toBeGreaterThanOrEqual(2);
+    for (const p of progress) expect(p.params).toEqual({ progressToken: 'run-1', progress: expect.any(Number), message: 'WARDEN task operation running' });
+    const quiet = setup(slow.url); quiet.change(m => { m.operations[0]!.timeoutSeconds = 5; });
+    const q = client({ ...quiet.env, WARDEN_TASK_PROGRESS_MS: '200' }); await q.initialize();
+    await q.rpc('tools/call', { name: 'task_execute', arguments: { id: 'send_report' } });
+    expect(q.messages.filter(m => m.method === 'notifications/progress')).toEqual([]);
+  });
+});

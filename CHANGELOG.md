@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- TaskAdapter runs long operations. An operation may set `timeoutSeconds` (1–3600, default 10) in the pinned manifest,
+  so a fixed job that takes minutes (a test run behind a controller) fits; the model still supplies only the ID, and
+  `task_list` shows each limit. While a call with a client `progressToken` is pending, the task server sends
+  `notifications/progress` every 15 seconds with a fixed message, so clients that extend their wait on progress do not
+  cut the call. Timeout and cancellation spend the use as before.
+- Field regressions in the red-team release gate (`flow-redteam.mjs`, `assertFieldRedteam`): four attacks that got
+  through on a real Multica installation before their fix — a credential file uploaded with `curl -d @file` in a clean
+  session, an injection arriving through a tracker CLI, a protected-settings write answered `ask` in `deny`, and
+  `npm ci` output not counted as outside text. Replayed against npm 0.24.0 all four are delivered, against 0.25.0 one
+  (`npm ci`), against this source none, in the Claude Code, Codex and OpenCode profiles alike; the 28 original attacks
+  stayed at 0 throughout, which is why these are kept as their own set. In `"mode": "deny"` the replay counts an `ask`
+  as delivered: nobody answers it.
 - [Fixed-job runner](docs/fixed-job-runner.md) in five languages: the general recipe for agents that must read
   outside text yet stay in strict `deny` — fixed operations without arguments, a controller on the host, a keyless
   disposable worker, a schema-checked bounded report, side effects in a separate agent, acceptance checks.

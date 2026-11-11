@@ -59,7 +59,7 @@ Rules that make it hold:
 - On the analysis agent: `"mode": "deny"`. It has nothing to leak and nothing to leak with, and the guard keeps it
   that way if the tool set ever grows.
 - Instead of a custom tool, WARDEN's own [TaskAdapter](flow-guard.md) (`warden-mcp task`) can be the fixed-operation
-  tool: a pinned manifest of fixed HTTP operations, a use budget and an expiry, enforced by WARDEN.
+  tool: a pinned manifest of fixed HTTP operations, a use budget and an expiry, enforced by WARDEN. For a job that takes minutes, give the operation `timeoutSeconds` (up to 3600) and add a read-only "last result" operation; with a client progress token the adapter reports progress while it waits.
 - On the side-effect agent: `audit` (it must write after reading the report) plus minimal keys and the network
   allowlist; read the log with `scripts/flow-log-stats.mjs`.
 - Mark the sources your integration reads in `untrustedSources` (for Multica: `examples/policies/multica.flow-policy.json`).

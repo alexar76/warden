@@ -168,6 +168,8 @@ node --input-type=module -e 'import {createHash} from "node:crypto"; import {rea
 
 仅支持固定 HTTPS 请求；`loopback-test` 另外允许数值 localhost 的 HTTP，仅供隔离测试。拒绝重定向，不执行响应中的 cookies、链接或指令；限制响应大小与总耗时，不自动重试。`bearerEnv` 指向操作员指定的环境变量，令牌只发往固定 endpoint，不进入列表或审计。审计仅记录 ID 与结果，不记录正文或令牌；响应仍为不可信数据。
 
+**长时间操作：**操作可在锁定的清单中设置 `timeoutSeconds`（1–3600，默认 10），用于需要数分钟的任务，例如固定任务控制器之后的测试运行。模型仍只提供 ID；`task_list` 显示每个操作的时限。带有客户端 `progressToken` 的调用进行期间，适配器每 15 秒发送一次固定内容的 `notifications/progress`，按进度延长等待的客户端会继续等待。超时或取消与任何失败一样消耗使用次数；如需恢复，请另设一个只读操作获取任务的最后结果。参见[固定任务执行器](fixed-job-runner.zh.md)。
+
 **支付与交易：**固定账单/账户、金额、币种及正文；使用 `maxUses: 1` 与供应商支持的固定 `idempotency-key`。一次发送不等于保证恰好结算一次。超时或错误后先与供应商对账，再授权新操作。集成测试仅使用 loopback 与合成密钥，没有真实支付。
 
 **边界：**需信任 WARDEN 进程并保护 policy/state、运行时和 MCP 绑定。endpoint 的实际语义仍由服务实现，不能把 GET 自动视为安全。错误的人为授权、固定正文中明确授权的秘密、服务端行为、ID/顺序/时间隐蔽信道及其他工具/客户端绕过均不在保证范围内。没有增加 OCR 或任意实时 GUI 操作拦截。
