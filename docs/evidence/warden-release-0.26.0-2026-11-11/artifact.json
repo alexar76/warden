@@ -15,5 +15,8 @@
   },
   "sourceBase": "345bb3880",
   "preparedAt": "2026-11-11",
-  "published": false
+  "published": true,
+  "publishedAt": "2026-11-11T12:30:24Z",
+  "momusRun": "20261111T110826",
+  "momusBuildDigest": "de9f98d627832446e0433cd112898d1106758f89f31506feeed71a7903530ec8"
 }

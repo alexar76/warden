@@ -25,8 +25,9 @@ it checks out the calling repository, runs WARDEN over `.mcp.json`, `.cursor/mcp
 
 [`examples/github-org/caller/mcp.yml`](../examples/github-org/caller/mcp.yml) calls it when a
 client config or the lock changes, on pushes to `main`, and once a week. The weekly run is the
-point: a remote server can change its tools without anyone touching your repository, and 45%
-of remote servers in the official registry did within four weeks in October 2026. GitHub
+point: a remote server can change its tools without anyone touching your repository. Counted by
+host, 2,489 of the 6,822 hosts of remote servers in the official registry (36.5%) served a
+different tool list within four weeks in October 2026. GitHub
 pauses scheduled workflows in a public repository after 60 days without activity; re-enable
 the workflow if that happens.
 
