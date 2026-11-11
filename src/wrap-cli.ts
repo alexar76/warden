@@ -30,6 +30,15 @@ export interface WrapOptions {
    *  about: `elicit` asks through the client's own form (MCP elicitation) when the client offers one and refuses
    *  otherwise; `refuse` always refuses it. */
   ask: AskPolicy;
+  /**
+   * OWASP MCPSTG-SUPP-06 gate: registry name (e.g. `io.github.alexar76/warden`). Before a privileged
+   * `tools/call` (sensitiveToolPatterns, or any call when `--histor-revision-all`), WARDEN compares the
+   * live tools/list to the publisher-signed tip on HISTOR and refuses on mismatch.
+   */
+  historRevision?: string;
+  /** When set with `--histor-revision`, gate every tools/call, not only sensitive ones. */
+  historRevisionAll?: boolean;
+  historUrl?: string;
 }
 export const ASK_POLICIES = ['elicit', 'refuse'] as const;
 export type AskPolicy = typeof ASK_POLICIES[number];
@@ -49,8 +58,11 @@ export async function parseWrapArgs(argv: string[]): Promise<WrapOptions> {
     seen.add(flag);
     if (flag === '--audit-only' && mode === 'wrap') { opts.auditOnly = true; continue; }
     if (flag === '--screen-atomic' && mode === 'wrap') { opts.screenAtomic = true; continue; }
+    if (flag === '--histor-revision-all' && mode === 'wrap') { opts.historRevisionAll = true; continue; }
     if (flag === '--require-approval' && mode === 'wrap') { continue; }
-    const allowed = mode === 'wrap' ? ['--id', '--state-dir', '--policy', '--feed', '--feed-key', '--verdict-log', '--results', '--flow', '--ask', '--screen-read', '--screen-read-input'] : ['--id', '--state-dir', '--feed', '--feed-key'];
+    const allowed = mode === 'wrap'
+      ? ['--id', '--state-dir', '--policy', '--feed', '--feed-key', '--verdict-log', '--results', '--flow', '--ask', '--screen-read', '--screen-read-input', '--histor-revision', '--histor-url']
+      : ['--id', '--state-dir', '--feed', '--feed-key'];
     if (!allowed.includes(flag)) throw new Error(`Unknown flag ${flag}`);
     const value = argv.shift();
     if (!value || value.startsWith('--')) throw new Error(`Missing value for ${flag}`);
@@ -81,6 +93,16 @@ export async function parseWrapArgs(argv: string[]): Promise<WrapOptions> {
       case '--results':
         if (!(RESULT_POLICIES as readonly string[]).includes(value)) throw new Error('--results must be off, warn or block');
         opts.results = value as ResultPolicy; break;
+      case '--histor-revision':
+        if (!/^[a-z0-9][a-z0-9._-]{0,63}\/[a-zA-Z0-9][a-zA-Z0-9._/-]{0,127}$/.test(value)) {
+          throw new Error('--histor-revision must be a registry name (e.g. io.github.alexar76/warden)');
+        }
+        opts.historRevision = value; break;
+      case '--histor-url': {
+        const url = new URL(value);
+        if (!['https:', 'http:'].includes(url.protocol)) throw new Error('--histor-url requires an HTTP(S) URL');
+        opts.historUrl = value.replace(/\/$/, ''); break;
+      }
       case '--policy': {
         const raw = JSON.parse(await readFile(value, 'utf8'));
         // asPolicy preserves compatibility for MCP callers; CLI files must not silently repair bad types.
@@ -97,6 +119,7 @@ export async function parseWrapArgs(argv: string[]): Promise<WrapOptions> {
   if (opts.screenReadInput && !opts.screenRead) throw new Error('--screen-read-input requires --screen-read');
   if (opts.screenRead && (!opts.flow || !screenObservation(`mcp__${opts.flow}__${opts.screenRead}`, opts.screenReadInput ?? {}))) throw new Error('--screen-read requires --flow and a supported observation schema (empty input, or a generic controller with only a read action)');
   if (opts.screenAtomic && (!opts.screenRead || opts.auditOnly)) throw new Error('--screen-atomic requires --flow and --screen-read in enforcing mode');
+  if (opts.historRevisionAll && !opts.historRevision) throw new Error('--histor-revision-all requires --histor-revision');
   if (seen.has('--require-approval')) opts.policy.requireApproval = true;
   if (mode === 'pins' && !opts.id) throw new Error('pins requires --id');
   if (opts.feed) {

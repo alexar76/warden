@@ -15,6 +15,7 @@ import { flowPre, flowPost, flowApproval, flowScreenValidation, screenCall, scre
 import { screenLease } from './wrap-screen.js';
 import { ATOMIC_SCREEN_PROTOCOL, ATOMIC_SCREEN_PREPARE, ATOMIC_SCREEN_COMMIT, ATOMIC_SCREEN_CANCEL, atomicScreenPrepared, atomicScreenReceipt, type AtomicScreenPrepared } from './atomic-screen.js';
 import { annotationReview } from './annotation-review.js';
+import { checkSignedRevision } from './signed-revision.js';
 
 type Message = { jsonrpc: '2.0'; id?: string | number | null; method?: string; params?: Record<string, unknown>; result?: any; error?: unknown };
 // How long a call waits for a person to answer the approval form before it is refused.
@@ -67,6 +68,8 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
   const flowTool = (tool: string) => `mcp__${opts.flow}__${tool}`;
   // Local to this child connection, never a persisted allowlist or a replacement for per-call guards.
   const reviewedAnnotations = new Set<string>();
+  /** Cached SUPP-06 gate for the current tools/list hash (``--histor-revision``). */
+  let revisionGateCache: { key: string; verdict: Awaited<ReturnType<typeof checkSignedRevision>> } | undefined;
   let activeChecks = 0;
   // What the client said it can do in its initialize request: `elicitation` is how this proxy asks a person.
   let clientCapabilities: Record<string, unknown> = {};
@@ -275,6 +278,25 @@ export async function runWrap(opts: WrapOptions): Promise<number> {
               const tool = String(name);
               if (msg.params?.arguments !== undefined && (!msg.params.arguments || typeof msg.params.arguments !== 'object' || Array.isArray(msg.params.arguments))) throw new Error('Invalid MCP tool arguments: expected a JSON object');
               const args = msg.params?.arguments && typeof msg.params.arguments === 'object' && !Array.isArray(msg.params.arguments) ? msg.params.arguments as Record<string, unknown> : {};
+              // SUPP-06: before a privileged tools/call, the served tools/list must match the publisher-signed tip.
+              const privilegedCall = opts.historRevisionAll || isSensitiveTool(tool, opts.policy);
+              if (opts.historRevision && privilegedCall) {
+                const tools = current as unknown as Record<string, unknown>[];
+                const cacheKey = pinToolsHash(current);
+                if (revisionGateCache?.key !== cacheKey) {
+                  const verdict = await checkSignedRevision(
+                    { name: opts.historRevision, tools },
+                    { historUrl: opts.historUrl, timeoutMs: 10_000 },
+                  );
+                  revisionGateCache = { key: cacheKey, verdict };
+                }
+                const v = revisionGateCache.verdict;
+                if (!v.ok) {
+                  const detail = `WARDEN SUPP-06: ${v.reason}: ${v.detail}`;
+                  if (opts.auditOnly) log.warn(detail);
+                  else throw new Error(`${detail}; ${displaySafe(tool, 200)} was not run`);
+                }
+              }
               const isGui = !!opts.flow && !!screenCall(flowTool(tool), args, { v: 1, untrusted: [], private: [], notified: false, full: false });
               if (isGui && opts.screenAtomic && (!['ask', 'deny'].includes(loadPolicy().mode) || Object.keys(msg).some(k => !['jsonrpc', 'id', 'method', 'params'].includes(k)) || Object.keys(msg.params ?? {}).some(k => !['name', 'arguments'].includes(k)))) throw new Error('Atomic screen requires enforcing flow policy and exact call schema; action was not run');
               if (isGui && opts.screenAtomic && displaySafe(JSON.stringify(args), 100_000).length > 1500) throw new Error('Atomic action arguments exceed the complete approval preview limit; action was not run');

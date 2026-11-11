@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **OWASP MCPSTG-SUPP-06 gate in `warden wrap`.** `--histor-revision <registry-name>` asks HISTOR for the
+  publisher-signed tip and compares the live `tools/list` (SUPP-06 digest) before a privileged `tools/call`
+  (`policy.sensitiveToolPatterns`; `--histor-revision-all` gates every call). `--histor-url` overrides the
+  default `https://histor.modelmarket.dev`. Module: `signed-revision.ts`.
 - TaskAdapter runs long operations. An operation may set `timeoutSeconds` (1–3600, default 10) in the pinned manifest,
   so a fixed job that takes minutes (a test run behind a controller) fits; the model still supplies only the ID, and
   `task_list` shows each limit. While a call with a client `progressToken` is pending, the task server sends
