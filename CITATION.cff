@@ -1,7 +1,7 @@
 cff-version: 1.2.0
 message: "If you use WARDEN in research or a report, please cite it as below."
 type: software
-title: "WARDEN — MCP security firewall"
+title: "WARDEN by AIMarket — MCP tool firewall"
 abstract: "Vets an MCP server's advertised tool definitions against static-scan rules, a signed threat feed, origin and tool-definition pinning before any tool reaches the model. Zero-dependency TypeScript library, CLI scan, stdio wrap proxy and Claude Code hook."
 authors:
   - family-names: Artamokhov
@@ -9,7 +9,7 @@ authors:
 repository-code: "https://github.com/alexar76/warden"
 url: "https://warden.modelmarket.dev/"
 license: MIT
-version: 0.26.0
+version: 0.26.1
 date-released: 2026-11-11
 keywords:
   - model-context-protocol

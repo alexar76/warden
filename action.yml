@@ -1,4 +1,4 @@
-name: WARDEN MCP firewall scan
+name: WARDEN by AIMarket — MCP tool firewall
 description: Vet the MCP servers a repository configures before a model sees their tools. SARIF for code scanning, and a lock file that turns tool-definition changes into a reviewable diff.
 author: AICOM (alexar76)
 branding:
@@ -57,7 +57,7 @@ inputs:
   version:
     description: '@aimarket/warden version to run.'
     required: false
-    default: 0.26.0
+    default: 0.26.1
 
 outputs:
   blocked:

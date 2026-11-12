@@ -1,19 +1,19 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.alexar76/warden",
-  "title": "WARDEN \u2014 MCP Security Firewall",
+  "title": "WARDEN by AIMarket \u2014 MCP tool firewall",
   "description": "MCP security firewall: stdio wrap proxy or inspection tools; zero runtime dependencies.",
   "repository": {
     "url": "https://github.com/alexar76/warden",
     "source": "github"
   },
-  "version": "0.26.0",
+  "version": "0.26.1",
   "packages": [
     {
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "@aimarket/warden",
-      "version": "0.26.0",
+      "version": "0.26.1",
       "transport": {
         "type": "stdio"
       }

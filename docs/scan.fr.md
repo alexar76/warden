@@ -7,11 +7,11 @@ Les appels de découverte peuvent entraîner des frais ; consultez les [limites 
 `warden-mcp scan` lit la configuration MCP que vous avez déjà, se connecte à chaque serveur qu’elle démarre et vérifie les définitions d’outils avant qu’un modèle ne les voie. C’est la même chaîne de portes que [`wrap`](../README-fr.md) et la [bibliothèque](integration.fr.md), exécutée une fois sur vos configurations au lieu de se placer devant un seul serveur.
 
 ```bash
-npx -y @aimarket/warden@0.26.0 scan
+npx -y @aimarket/warden@0.26.1 scan
 ```
 
 ```text
-WARDEN scan 0.26.0 · ruleset 19 sha256-XfRh1+VZoAM6… · block at high
+WARDEN scan 0.26.1 · ruleset 19 sha256-XfRh1+VZoAM6… · block at high
   read .mcp.json (claude-code, 3 servers)
 
   ✓ allow   notes       claude-code    1 tool · score 0.90
@@ -88,7 +88,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: alexar76/warden@v0.26.0
+      - uses: alexar76/warden@v0.26.1
         with:
           upload-sarif: 'true'
 ```

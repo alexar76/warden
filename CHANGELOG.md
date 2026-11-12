@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.26.1 — 2026-11-12
+
+- Recognize Ubuntu’s packaged uutils aliases for read-only shell commands. A command shadowed by a project executable or symlink remains untrusted.
+
 ## Unreleased
 
 - **`warden-mcp interceptor`: WARDEN as an MCP Interceptor Server (experimental).** Two validators on the response to
