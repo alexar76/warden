@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Docs, fixed-job runner (five languages): a first section asks whether the job needs a model at all; a fixed job with
+  nothing to choose runs from a host script, with no model reading outside text. Field note: Multica 0.8.2 gives an
+  assigned agent only the issue ID, so an agent without a shell cannot read its task (two qwen3-coder-next agents made
+  139 and 50 calls and never started the job). Acceptance check 1 names the flags Multica 0.8.2 actually passes
+  (`--permission-mode bypassPermissions`; `--strict-mcp-config` only with the agent's own MCP config, which Claude Code
+  refuses next to `managed-mcp.json`) and asks to deny every tool by name (`Skill`, `Workflow`, `SendMessage`, …).
+
 ## 0.26.0 — 2026-11-11 (field regressions, long task operations, no product in the core)
 
 **Upgrade note.** The core no longer names Multica. If your agents read Multica issues or comments through its CLI,

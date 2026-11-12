@@ -17,6 +17,20 @@ Un tel agent en `deny` s’arrête à sa première commande. Descendre `deny` en
 `npm run` comme lecture seule, retire la protection qu’il devait apporter. L’exécuteur de tâches fixes garde `deny`
 et met hors de portée de l’agent le travail qu’il ne peut pas faire sans risque.
 
+## D’abord : la tâche a-t-elle besoin d’un modèle ?
+
+Si l’agent n’a rien à choisir (une tâche fixe, lancée par calendrier ou à l’arrivée d’une tâche), passez-vous du
+modèle. Un script sur l’hôte appelle le contrôleur et publie lui-même le rapport borné, par exemple en commentaire du
+tracker avec son propre jeton. Personne ne lit de texte extérieur avant d’agir, donc une prompt injection n’a pas de
+point d’entrée, et l’on ne paie pas un modèle pour appuyer sur un bouton. Gardez un agent là où il a un vrai choix :
+quelle tâche lancer, ou ce que signifie un rapport en échec.
+
+Vérifiez aussi comment le runtime remet sa tâche à l’agent. Multica 0.8.2 ne met pas le texte d’un ticket assigné dans
+le prompt : il donne son identifiant et demande à l’agent de le lire avec `multica issue get`. Un agent sans shell ne
+le peut pas. Lors d’exécutions sur le terrain (qwen3-coder-next, deux agents), il a passé l’exécution à en chercher
+un, 139 et 50 appels d’outils, sans jamais lancer la tâche, même quand ses propres instructions disaient d’appeler
+l’outil tout de suite. La garde a tenu ; le travail n’a pas été fait.
+
 ## Le schéma
 
 ```mermaid
@@ -71,9 +85,15 @@ Les règles qui font tenir l’ensemble :
 ## Vérifications de réception
 
 1. **Les options de lancement du runtime n’annulent pas les restrictions.** Lancez l’agent exactement comme votre
-   runtime (pour Claude Code sous Multica : `--dangerously-skip-permissions --strict-mcp-config --mcp-config …`) et
-   lisez la liste d’outils qu’il a reçue : seuls les outils d’opérations fixes peuvent y figurer. Dans Claude Code,
-   les outils de `permissions.deny` sont retirés de cette liste même en mode bypass.
+   runtime et lisez la liste d’outils qu’il a reçue : seuls les outils d’opérations fixes peuvent y figurer (et
+   `ToolSearch`, qui les charge). Claude Code sous Multica 0.8.2 reçoit `--permission-mode bypassPermissions
+   --disallowedTools AskUserQuestion`, et `--strict-mcp-config --mcp-config …` seulement si l’agent a sa propre
+   configuration MCP. Si l’outil vient d’un `managed-mcp.json` géré, laissez vide la configuration MCP de l’agent :
+   Claude Code refuse `--strict-mcp-config` à côté d’une configuration MCP d’entreprise. Dans Claude Code, les outils
+   de `permissions.deny` sont retirés de cette liste même en mode bypass. Refusez chaque outil par son nom, pas
+   seulement le shell et les fichiers : les versions récentes donnent aussi `Skill`, `Workflow`, `SendMessage`,
+   `ListAgents`, `TaskStop`, `ScheduleWakeup`, les outils `Cron…` et de worktree. Relisez la liste après chaque mise à
+   jour de Claude Code.
 2. Le contrôleur refuse les tâches inconnues, tout corps ou toute chaîne de requête, les autres pairs, une seconde
    tâche concurrente et une tâche de production dans son intervalle minimal.
 3. Le conteneur de l’exécuteur a une racine en lecture seule, aucune capability, pas de socket Docker et seulement les

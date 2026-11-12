@@ -15,6 +15,12 @@
 这样的智能体在 `deny` 下执行第一条命令就会停住。把 `deny` 降为无人应答的 `ask`，或把 `npm run` 标为只读，
 都会拿掉它本该提供的保护。固定任务执行器保留 `deny`，把智能体无法安全完成的工作移出它的能力范围。
 
+## 首先：这个任务需要模型吗？
+
+如果智能体没有什么可选择的（一个固定任务，按计划或在任务到达时启动），就不要用模型。由主机上的脚本调用控制器，并自行发布受限报告，例如用它自己的令牌在任务系统中发表评论。行动之前没有任何东西读取外部文本，提示注入无从进入，也不必为按一个按钮付费给模型。只在智能体有真正选择的地方保留它：运行哪个任务，或者失败的报告意味着什么。
+
+还要检查运行时如何把任务交给智能体。Multica 0.8.2 对已分配的 issue 不会把任务文本放进提示词：它只给出 issue 编号，并要求智能体用 `multica issue get` 读取。没有 shell 的智能体做不到。在实地运行中（qwen3-coder-next，两个智能体），它把整次运行都花在寻找 shell 上，分别调用工具 139 次和 50 次，始终没有启动任务，即使它自己的指令要求立即调用该工具。守卫守住了，但工作没有完成。
+
 ## 方案
 
 ```mermaid
@@ -60,9 +66,7 @@ flowchart LR
 
 ## 验收检查
 
-1. **运行时的启动参数不会抵消工具限制。** 完全按运行时的方式启动智能体（Multica 下的 Claude Code：
-   `--dangerously-skip-permissions --strict-mcp-config --mcp-config …`），查看它获得的工具列表：其中只能有固定操作
-   工具。在 Claude Code 中，即使在 bypass 模式下，`permissions.deny` 中的工具也会从该列表中移除。
+1. **运行时的启动参数不会抵消工具限制。** 完全按运行时的方式启动智能体，查看它获得的工具列表：其中只能有固定操作工具（以及加载它们的 `ToolSearch`）。Multica 0.8.2 下的 Claude Code 获得 `--permission-mode bypassPermissions --disallowedTools AskUserQuestion`，只有当智能体有自己的 MCP 配置时才会加上 `--strict-mcp-config --mcp-config …`。如果工具来自托管的 `managed-mcp.json`，请让智能体的 MCP 配置保持为空：存在企业 MCP 配置时，Claude Code 拒绝 `--strict-mcp-config`。在 Claude Code 中，即使在 bypass 模式下，`permissions.deny` 中的工具也会从该列表中移除。按名称禁止每一个工具，而不只是 shell 和文件：新版本还会提供 `Skill`、`Workflow`、`SendMessage`、`ListAgents`、`TaskStop`、`ScheduleWakeup` 以及 `Cron…` 和 worktree 工具。每次升级 Claude Code 后都要重新查看该列表。
 2. 控制器拒绝未知任务、任何请求体或查询字符串、其他来源地址、第二个并发任务，以及处于最小间隔内的生产环境任务。
 3. 执行器容器的根文件系统只读，没有 capabilities，没有 Docker 套接字，环境变量中只有预期的名称。
 4. 失败的任务和空任务都以失败返回。不符合 schema 的报告变为错误。

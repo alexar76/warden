@@ -16,6 +16,19 @@ Such an agent in `deny` stops on its first command. Turning `deny` down to `ask`
 `npm run` as read-only, removes the protection it was meant to give. The fixed-job runner keeps `deny` and moves the
 work the agent cannot do safely out of its reach.
 
+## First: does the job need a model?
+
+If the agent has nothing to choose (one fixed job, started on a schedule or when a task arrives), leave the model out.
+A script on the host calls the controller and posts the bounded report itself, for example as a tracker comment with
+its own token. Nothing reads outside text before acting, so a prompt injection has no way in, and no model is paid to
+press one button. Keep an agent where it has a real choice: which job to run, or what a failed report means.
+
+Check also how your runtime hands the agent its task. Multica 0.8.2 puts no task text in the prompt for an assigned
+issue: it gives the issue ID and tells the agent to read it with `multica issue get`. An agent without a shell cannot
+do that. In field runs (qwen3-coder-next, two agents) it spent the run looking for one, 139 and 50 tool calls, and
+never started the job, even when its own instructions said to call the tool at once. The guard held; the job was not
+done.
+
 ## The pattern
 
 ```mermaid
@@ -66,10 +79,15 @@ Rules that make it hold:
 
 ## Acceptance checks
 
-1. **The runtime's launch flags do not undo the tool restrictions.** Start the agent exactly as your runtime does
-   (for Claude Code under Multica: `--dangerously-skip-permissions --strict-mcp-config --mcp-config …`) and read the
-   tool list it was given: only the fixed-operation tools may appear. In Claude Code, tools in `permissions.deny` are
-   removed from that list even in bypass mode.
+1. **The runtime's launch flags do not undo the tool restrictions.** Start the agent exactly as your runtime does and
+   read the tool list it was given: only the fixed-operation tools may appear (and `ToolSearch`, which loads them).
+   Claude Code under Multica 0.8.2 gets `--permission-mode bypassPermissions --disallowedTools AskUserQuestion`, and
+   `--strict-mcp-config --mcp-config …` only when the agent has its own MCP config. If the tool comes from a managed
+   `managed-mcp.json`, leave the agent's MCP config empty: Claude Code refuses `--strict-mcp-config` next to an
+   enterprise MCP config. In Claude Code, tools in `permissions.deny` are removed from that list even in bypass mode.
+   Deny every tool by name, not only shell and files: recent versions also give `Skill`, `Workflow`, `SendMessage`,
+   `ListAgents`, `TaskStop`, `ScheduleWakeup`, the `Cron…` and worktree tools. Read the list again after each Claude
+   Code upgrade.
 2. The controller refuses unknown jobs, any request body or query string, other peers, a second concurrent job and a
    production job inside its minimum interval.
 3. The worker container has a read-only root, no capabilities, no Docker socket, and only the expected environment
