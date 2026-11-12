@@ -173,7 +173,19 @@ released yet.
 npx -y @aimarket/warden@0.26.0 scan
 ```
 
-Reads the MCP configs of Claude Code, Claude Desktop, Cursor, VS Code and Windsurf, connects to every server they start, and vets the tool definitions before a model sees them. It prints a table, JSON, SARIF or Markdown, and exits 1 when a server is blocked; `--no-launch` starts nothing. In a repository, `warden.lock.json` turns a change in tool definitions into a reviewable diff, and CI fails on a new or changed server. Also as a GitHub Action (`uses: alexar76/warden@v0.21.0`), pre-commit hooks and a Claude Code plugin (`/plugin marketplace add alexar76/warden`). `--histor` asks the public HISTOR log whether a server serves you what it serves everyone; for a remote server it sends the endpoint and a digest, for a stdio server started from npm or PyPI the package name (`npm:<name>`, `pypi:<name>`, which HISTOR runs in a gVisor sandbox) and a digest — never tool text. An opt-in classifier (`--classifier-url`, `--classifier-model`) adds the reading of a model you choose, local or hosted, for what no rule names. See the [scan guide](docs/scan.md). How it compares with two other scanners, on the same servers: [scanner comparison](docs/scanner-comparison.md).
+Reads the MCP configs of Claude Code, Claude Desktop, Cursor, VS Code and Windsurf, connects to every server they start, and vets the tool definitions before a model sees them. It prints a table, JSON, SARIF or Markdown, and exits 1 when a server is blocked; `--no-launch` starts nothing. In a repository, `warden.lock.json` turns a change in tool definitions into a reviewable diff, and CI fails on a new or changed server. Also as a GitHub Action (`uses: alexar76/warden@v0.26.0`), pre-commit hooks and a Claude Code plugin (`/plugin marketplace add alexar76/warden`). `--histor` asks the public HISTOR log whether a server serves you what it serves everyone; for a remote server it sends the endpoint and a digest, for a stdio server started from npm or PyPI the package name (`npm:<name>`, `pypi:<name>`, which HISTOR runs in a gVisor sandbox) and a digest — never tool text. An opt-in classifier (`--classifier-url`, `--classifier-model`) adds the reading of a model you choose, local or hosted, for what no rule names. See the [scan guide](docs/scan.md). How it compares with two other scanners, on the same servers: [scanner comparison](docs/scanner-comparison.md).
+
+### A lock file for MCP tools
+
+`package-lock.json` records which packages you install. `warden.lock.json` records what your MCP servers tell your model: every tool's name, description and schema, as you reviewed them.
+
+```bash
+npx -y @aimarket/warden@0.26.0 scan --project --lock warden.lock.json --update-lock   # write it, after reading the definitions
+git add warden.lock.json
+npx -y @aimarket/warden@0.26.0 scan --project --lock warden.lock.json                 # exit 1: a server is new, starts differently or lists other tools
+```
+
+In CI the GitHub Action runs the second command on every pull request and, on a schedule, tells you when a server changed upstream ([the lock file](docs/scan.md#the-lock-file-review-the-definitions-not-just-the-command) · [for teams](docs/teams.md)). Each entry also holds the contract digest of `mcp-tool-set-digest/1`, a digest other tools compute the same way, so what you locked can be compared with a public record such as HISTOR without sending any tool text. A gateway or client that speaks the MCP interceptor extension can ask the same question on every `tools/list`: [`warden-mcp interceptor`](docs/interceptor.md) (experimental).
 
 **For a server's publisher.** If your server lists different tools where something HISTOR's sandbox lacks is installed — a launcher's runner, one per operating system — `npx -y @aimarket/warden@0.26.0 declare --out mcp-tool-sets.json -- <your server>` writes those sets to a file you publish on your own domain, and the people who get them see the publisher's declaration instead of an unseen tool set. See [declare your server's tool sets](docs/scan.md#for-publishers-declare-your-servers-tool-sets).
 

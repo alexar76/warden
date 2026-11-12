@@ -36,6 +36,20 @@ const PIN = /@aimarket\/warden@(\d+\.\d+\.\d+)([A-Za-z0-9.+-]*)/g;
 // «en npm desde la 0.24.0», «dans npm depuis la 0.24.0», «自 0.24.0 起已在 npm», «npm 0.24.0», «Released: npm 0.24.0».
 const NEAR_NPM = /\bnpm\s+(?:from|начиная с|desde(?: la)?|depuis(?: la)?)\s+`?(\d+\.\d+\.\d+)\b|\bnpm\s+`?(\d+\.\d+\.\d+)`?(?![\d.])|自\s*(\d+\.\d+\.\d+)\s*起已在\s*npm/g;
 
+// Тег GitHub Action в примерах: `uses: alexar76/warden@vX.Y.Z`. Тег ставит человек отдельно от npm, поэтому
+// здесь проверяется то, что видно без сети: версия выпущена и во всех документах одна. С 25.10 по 12.11.2026
+// в десяти местах стоял v0.21.0, хотя уже были v0.24.0 и npm 0.26.0.
+const ACTION_TAG = /\balexar76\/warden@v(\d+\.\d+\.\d+)([A-Za-z0-9.+-]*)/g;
+
+/** Теги Action в тексте: [версия, суффикс, строка]. */
+export function actionTags(text) {
+  const refs = [];
+  text.split('\n').forEach((line, i) => {
+    for (const m of line.matchAll(ACTION_TAG)) refs.push({ version: m[1], suffix: m[2], line: i + 1 });
+  });
+  return refs;
+}
+
 /** Ссылки на версии в тексте: [версия, суффикс, строка]. */
 export function references(text) {
   const refs = [];
@@ -70,6 +84,16 @@ export function check({ base = root, release = false } = {}) {
       if (r.suffix) problems.push(`${file}:${r.line}: @aimarket/warden@${r.version}${r.suffix} is not a released version`);
       else if (!released.has(r.version) && r.version !== version) problems.push(`${file}:${r.line}: ${r.version} is not a released version (no "## ${r.version} — " in CHANGELOG)`);
     }
+  }
+  const tags = new Map();
+  for (const file of docFiles(base)) {
+    for (const r of actionTags(readFileSync(join(base, file), 'utf8'))) {
+      if (r.suffix || !released.has(r.version)) problems.push(`${file}:${r.line}: action tag v${r.version}${r.suffix} is not a released version`);
+      if (!tags.has(r.version)) tags.set(r.version, `${file}:${r.line}`);
+    }
+  }
+  if (tags.size > 1) {
+    problems.push(`the docs name ${tags.size} action tags (${[...tags].map(([v, at]) => `v${v} at ${at}`).join(', ')}): use one`);
   }
   if (release) {
     if (!released.has(version)) problems.push(`package.json ${version} has no "## ${version} — date" heading in CHANGELOG`);

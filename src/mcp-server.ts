@@ -81,6 +81,7 @@ const USAGE = `Usage: warden-mcp [command] [options]
   wrap              stdio proxy in front of one server: warden-mcp wrap --id ID -- command [args]
   pins              review a wrapped server's definitions: warden-mcp pins status|approve|revoke --id ID
   declare           declare an operator-trusted server: warden-mcp declare --help
+  interceptor       MCP Interceptor Server (experimental): validates tools/list for a client or gateway (--help)
   hook              Claude Code hook (session-start|pre-tool-use|post-tool-use|user-prompt-submit|stop)
   task              constrained task mode: warden-mcp task --help
   flow-labels       list the unlabeled MCP tools your sessions used, with a labels block to correct
@@ -104,6 +105,11 @@ async function entry(): Promise<void> {
   if (process.argv[2] === 'declare') {
     const code = await (await import("./declare.js")).runDeclareCli(process.argv.slice(3));
     // A server declare started is already told to stop; do not wait on its pipes.
+    stdout.write("", () => process.exit(code));
+    return;
+  }
+  if (process.argv[2] === 'interceptor') {
+    const code = await (await import("./interceptor-server.js")).runInterceptorCli(process.argv.slice(3));
     stdout.write("", () => process.exit(code));
     return;
   }

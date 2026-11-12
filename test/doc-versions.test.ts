@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { check, references, releasedVersions } from '../scripts/check-doc-versions.mjs';
+import { actionTags, check, references, releasedVersions } from '../scripts/check-doc-versions.mjs';
 
 const dirs: string[] = [];
 afterEach(() => { for (const d of dirs.splice(0)) rmSync(d, { recursive: true, force: true }); });
@@ -54,6 +54,17 @@ describe('version numbers in the docs', () => {
   it('finds pins and phrases, not other packages', () => {
     expect(references('npx @aimarket/warden@0.25.0 and @aimarket/warden@0.23.1-dev.1').map(r => r.version + r.suffix)).toEqual(['0.25.0', '0.23.1-dev.1']);
     expect(references('pip install foo==0.1.5; uses Node 22.0.0')).toEqual([]);
+  });
+});
+
+describe('the GitHub Action tag in examples', () => {
+  it('is a released version, and the same in every document', () => {
+    expect(actionTags('      - uses: alexar76/warden@v0.24.0\nuses: actions/checkout@v4').map(r => r.version)).toEqual(['0.24.0']);
+    expect(check({ base: repo({ 'docs/scan.md': '- uses: alexar76/warden@v0.24.0\n', 'docs/scan.ru.md': '- uses: alexar76/warden@v0.24.0\n' }) })).toEqual([]);
+    expect(check({ base: repo({ 'docs/scan.md': '- uses: alexar76/warden@v0.26.0\n' }) })).toEqual([
+      'docs/scan.md:1: action tag v0.26.0 is not a released version']);
+    expect(check({ base: repo({ 'docs/scan.md': '- uses: alexar76/warden@v0.24.0\n', 'docs/scan.ru.md': '- uses: alexar76/warden@v0.25.0\n' }) })).toEqual([
+      'the docs name 2 action tags (v0.24.0 at docs/scan.md:1, v0.25.0 at docs/scan.ru.md:1): use one']);
   });
 });
 

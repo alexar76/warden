@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+- **`warden-mcp interceptor`: WARDEN as an MCP Interceptor Server (experimental).** Two validators on the response to
+  `tools/list`, for a client, server or gateway that speaks the interceptor extension the MCP Interceptors Working
+  Group is specifying (SEP-2624): `warden.tool-definition-integrity` compares the tool set with the approved one and
+  names the tools that were added, removed or changed; `warden.tool-definition-scan` runs the static scan. Expected
+  digests arrive in each call's `config` or come from a `warden.lock.json` (`--lock`); the server keeps no state and
+  offers no tools. Follows the proposal at experimental-ext-interceptors `07c89a24` (2026-10-28); not yet run against
+  the working group's SDKs. [docs/interceptor.md](docs/interceptor.md).
+- **The digests of `mcp-tool-set-digest/1`** (`src/tool-set-digest.ts`): `contractDigest` (the digest the lock file
+  and `scan --histor` already use, under its specification's name), `extrasDigest` (everything else a tool carries:
+  annotations, title, `_meta`; the digest HISTOR and CrawlCheck publish beside it), `perToolContract`. The
+  specification's 68 vectors run in the test suite.
+- READMEs (five languages): a section on the lock file as a lock for MCP tools.
+- Docs: the GitHub Action example named tag `v0.24.0` in ten places; it now names `v0.26.0`, matching the
+  annotated tag on the public mirror. `scripts/check-doc-versions.mjs` checks that the tag is a released
+  version and the same in every document.
+
 - Docs, fixed-job runner (five languages): a first section asks whether the job needs a model at all; a fixed job with
   nothing to choose runs from a host script, with no model reading outside text. Field note: Multica 0.8.2 gives an
   assigned agent only the issue ID, so an agent without a shell cannot read its task (two qwen3-coder-next agents made

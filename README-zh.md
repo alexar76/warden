@@ -150,7 +150,19 @@ macOS 上 Claude Desktop 日志：`~/Library/Logs/Claude/mcp-server-<名称>.log
 npx -y @aimarket/warden@0.26.0 scan
 ```
 
-读取 Claude Code、Claude Desktop、Cursor、VS Code 和 Windsurf 的 MCP 配置，连接其中启动的每个服务器，并在模型看到工具定义之前对其进行审查。输出表格、JSON、SARIF 或 Markdown，有服务器被阻止时以 1 退出；`--no-launch` 不启动任何程序。在仓库中，`warden.lock.json` 把工具定义的改动变成可审查的 diff，CI 会在出现新的或改动过的服务器时失败。也提供 GitHub Action（`uses: alexar76/warden@v0.21.0`）、pre-commit 钩子和 Claude Code 插件（`/plugin marketplace add alexar76/warden`）。`--histor` 询问公开的 HISTOR 日志：服务器给你的是否与给所有人的相同；对远程服务器发送端点和摘要，对从 npm 或 PyPI 启动的 stdio 服务器发送软件包名（`npm:<名称>`、`pypi:<名称>`，HISTOR 会在 gVisor 沙箱中运行它）和摘要，从不发送工具文本。可选的分类器（`--classifier-url`、`--classifier-model`）会加入你所选模型（本地或托管）的判断，用于覆盖任何规则都没有提到的内容。详见 [scan 指南](docs/scan.zh.md)。与另外两款扫描器在同一批服务器上的对比，见[扫描器对比](docs/scanner-comparison.zh.md)。
+读取 Claude Code、Claude Desktop、Cursor、VS Code 和 Windsurf 的 MCP 配置，连接其中启动的每个服务器，并在模型看到工具定义之前对其进行审查。输出表格、JSON、SARIF 或 Markdown，有服务器被阻止时以 1 退出；`--no-launch` 不启动任何程序。在仓库中，`warden.lock.json` 把工具定义的改动变成可审查的 diff，CI 会在出现新的或改动过的服务器时失败。也提供 GitHub Action（`uses: alexar76/warden@v0.26.0`）、pre-commit 钩子和 Claude Code 插件（`/plugin marketplace add alexar76/warden`）。`--histor` 询问公开的 HISTOR 日志：服务器给你的是否与给所有人的相同；对远程服务器发送端点和摘要，对从 npm 或 PyPI 启动的 stdio 服务器发送软件包名（`npm:<名称>`、`pypi:<名称>`，HISTOR 会在 gVisor 沙箱中运行它）和摘要，从不发送工具文本。可选的分类器（`--classifier-url`、`--classifier-model`）会加入你所选模型（本地或托管）的判断，用于覆盖任何规则都没有提到的内容。详见 [scan 指南](docs/scan.zh.md)。与另外两款扫描器在同一批服务器上的对比，见[扫描器对比](docs/scanner-comparison.zh.md)。
+
+### MCP 工具的 lock 文件
+
+`package-lock.json` 记录你安装了哪些包。`warden.lock.json` 记录你的 MCP 服务器对模型说了什么：每个工具的名称、描述和模式，按你审阅时的样子保存。
+
+```bash
+npx -y @aimarket/warden@0.26.0 scan --project --lock warden.lock.json --update-lock   # 阅读定义之后写入
+git add warden.lock.json
+npx -y @aimarket/warden@0.26.0 scan --project --lock warden.lock.json                 # 退出码 1：服务器是新的、启动方式不同或列出了别的工具
+```
+
+在 CI 中，GitHub Action 在每个 pull request 上执行第二条命令，并按计划任务告诉你上游的服务器发生了变化（[lock 文件](docs/scan.zh.md) · [团队使用](docs/teams.md)）。每个条目还保存了 `mcp-tool-set-digest/1` 的契约摘要，其他工具以同样的方式计算它，因此你锁定的内容可以与 HISTOR 这样的公开记录比对，而无需发送任何工具文本。支持 MCP 拦截器扩展的网关或客户端，可以在每次 `tools/list` 时提出同样的问题：[`warden-mcp interceptor`](docs/interceptor.md)（实验性）。
 
 **面向服务器发布者。** 如果在安装了 HISTOR 沙箱所没有的东西（启动器的运行器、每个操作系统各一个）的地方，你的服务器列出的是别的工具，`npx -y @aimarket/warden@0.26.0 declare --out mcp-tool-sets.json -- <你的服务器>` 会把这些工具集写进一个文件，由你发布在自己的域名上；拿到这些工具集的人看到的将是发布者的声明，而不是陌生的工具集。参见 [scan 指南](docs/scan.zh.md)。
 
