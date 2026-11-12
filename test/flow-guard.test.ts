@@ -570,10 +570,15 @@ describe('flow guard: adaptive audit regressions (no model or benchmark run)', (
 
   it('does not trust a command shadowed by the project PATH', () => {
     const s = guarded();
-    writeFileSync(join(s.cwd, 'cat'), '#!/bin/sh\necho arbitrary\n', { mode: 0o755 });
     const env = { ...s.env, PATH: `${s.cwd}:/usr/bin:/bin` };
-    const result = runFlowHook('pre', JSON.stringify({ session_id: s.id, cwd: s.cwd, tool_name: 'Bash', tool_input: { command: 'cat file' } }), env);
-    expect(JSON.parse(result!).hookSpecificOutput.permissionDecision).toBe('deny');
+    const check = () => runFlowHook('pre', JSON.stringify({ session_id: s.id, cwd: s.cwd, tool_name: 'Bash', tool_input: { command: 'cat file' } }), env);
+    expect(check()).toBeUndefined();
+    const shadow = join(s.cwd, 'cat');
+    writeFileSync(shadow, '#!/bin/sh\necho arbitrary\n', { mode: 0o755 });
+    expect(JSON.parse(check()!).hookSpecificOutput.permissionDecision).toBe('deny');
+    rmSync(shadow);
+    symlinkSync('/bin/sh', shadow);
+    expect(JSON.parse(check()!).hookSpecificOutput.permissionDecision).toBe('deny');
   });
 
   it('checks every recipient and parses URL authority instead of matching its prefix', () => {

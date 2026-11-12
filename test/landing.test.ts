@@ -155,13 +155,8 @@ describe("landing page", () => {
     );
   });
 
-  it("quotes the test count the runner reports", () => {
-    // Same rule the READMEs follow: the badge is generated from a real run, so the
-    // page may not invent a number of its own.
-    const badge = readFileSync(join(root, "docs", "badges", "tests.svg"), "utf8");
-    const n = /(\d+) passing/.exec(badge)?.[1];
-    expect(n).toBeTruthy();
-    expect(html, `landing should say ${n} tests`).toContain(`>${n}<`);
+  it("links to the workflow that runs the test suite", () => {
+    expect(html).toMatch(/<a[^>]+href="https:\/\/github\.com\/alexar76\/warden\/actions\/workflows\/ci\.yml"[^>]+data-i18n="badge\.tests"/);
   });
 
   it("the 3D hero names the same four gates as the gate table, in order", () => {

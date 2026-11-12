@@ -3,10 +3,7 @@
 //
 //   node scripts/make-badges.mjs
 //
-// Counts come from the repo itself, never from a hand-typed number: a badge
-// claiming 90 tests after someone deleted twenty is worse than no badge.
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
-import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { join, dirname } from "node:path";
 
@@ -16,21 +13,6 @@ mkdirSync(out, { recursive: true });
 
 const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
 const depCount = Object.keys(pkg.dependencies ?? {}).length;
-
-// Ask the runner, don't grep for `it(`: several suites generate cases in a loop,
-// and a static count silently under-reports them. Vitest 5 writes the JSON
-// reporter to a file and prints that path; older releases printed the JSON.
-const raw = execFileSync("npx", ["vitest", "run", "--reporter=json"], {
-  cwd: root,
-  encoding: "utf8",
-  maxBuffer: 64 * 1024 * 1024,
-  stdio: ["ignore", "pipe", "inherit"],
-});
-const written = raw.match(/JSON report written to (.+)/);
-const report = JSON.parse(written ? readFileSync(written[1].trim(), "utf8") : raw);
-const tests = report.numTotalTests;
-if (!Number.isInteger(tests) || tests < 1) throw new Error("could not read a test count from vitest");
-if (report.numFailedTests > 0) throw new Error(`${report.numFailedTests} tests are failing — fix them before badging`);
 
 const CHAR = 6.5;
 const width = (s) => Math.round(10 + CHAR * s.length);
@@ -62,10 +44,8 @@ function badge(label, value, color) {
 `;
 }
 
-// No CI badge here: a committed "CI: passing" stays green over failing builds. The README shows the live
-// GitHub Actions badge instead (a98177ea1).
+// The README links to current CI status and the details for each run.
 const badges = {
-  "tests.svg": ["tests", `${tests} passing`, "#4c1"],
   "deps.svg": ["dependencies", depCount === 0 ? "0" : String(depCount), depCount === 0 ? "#4c1" : "#dfb317"],
   "node.svg": ["node", pkg.engines.node, "#4c1"],
   "license.svg": ["license", "MIT", "#007ec6"],
@@ -76,14 +56,3 @@ for (const [file, [label, value, color]] of Object.entries(badges)) {
   writeFileSync(join(out, file), badge(label, value, color));
   console.log(`${file.padEnd(14)} ${label}: ${value}`);
 }
-
-// Keep prose counters in sync with the same runner result as the SVG badge.
-for (const suffix of ["", "-ru", "-es", "-fr", "-zh"]) {
-  const path = join(root, `README${suffix}.md`);
-  const source = readFileSync(path, "utf8");
-  writeFileSync(path, source
-    .replace(/(src="docs\/badges\/tests.svg" alt=")\d+/, `$1${tests}`)
-    .replace(/(npm install && npm run build && npm test\s*# )\d+/g, `$1${tests}`));
-}
-const landing = join(root, "docs", "landing", "index.html");
-writeFileSync(landing, readFileSync(landing, "utf8").replace(/<b>\d+<\/b>( <span data-i18n="badge.tests">)/, `<b>${tests}</b>$1`));

@@ -155,17 +155,24 @@ function literalReadOnlyShell(command) {
         return !words.some(w => w.includes('&') || w.startsWith('@'));
     });
 }
+const SYSTEM_BIN_DIRS = ['/bin', '/usr/bin'];
+// Ubuntu installs symlinks in /usr/bin to same-named uutils commands here.
+const UBUNTU_COREUTILS_DIR = '/usr/lib/cargo/bin/coreutils';
 function trustedShellExecutables(command, env, cwd) {
     if (env.RIPGREP_CONFIG_PATH || env.BASH_ENV || env.ENV || env.LD_PRELOAD || env.DYLD_INSERT_LIBRARIES)
         return false;
     return command.split(/&&|\|\||\|/).every(segment => {
         const exe = segment.trim().split(/\s+/)[0] ?? '';
-        if (exe.includes('/'))
-            return ['/bin', '/usr/bin'].includes(dirname(exe));
         if (['pwd', 'true', 'false'].includes(exe))
             return true;
-        const found = (env.PATH ?? '/usr/bin:/bin').split(sep === '/' ? ':' : ';').map(p => resolve(cwd, p || '.', exe)).find(p => existsSync(p));
-        return !!found && ['/bin', '/usr/bin'].includes(dirname(physicalPath(found)));
+        const found = exe.includes('/') ? exe : (env.PATH ?? '/usr/bin:/bin')
+            .split(sep === '/' ? ':' : ';').map(p => resolve(cwd, p || '.', exe)).find(p => existsSync(p));
+        if (!found || !SYSTEM_BIN_DIRS.includes(dirname(found)) || !existsSync(found))
+            return false;
+        const target = physicalPath(found);
+        const targetDir = dirname(target);
+        return basename(target) === basename(found) &&
+            (SYSTEM_BIN_DIRS.includes(targetDir) || (process.platform === 'linux' && targetDir === UBUNTU_COREUTILS_DIR));
     });
 }
 // Built-in tool words for MCP tools without operator labels (hints that only ADD caution).

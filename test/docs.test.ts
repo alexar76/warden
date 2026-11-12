@@ -182,13 +182,10 @@ describe("documentation set", () => {
     }
   });
 
-  it("quotes the same test count in every README as the badge does", () => {
-    const badge = readFileSync(join(root, "docs", "badges", "tests.svg"), "utf8");
-    const n = /(\d+) passing/.exec(badge)?.[1];
-    expect(n).toBeTruthy();
+  it("links to current CI results in every README", () => {
     for (const f of readmes) {
       const text = readFileSync(join(root, f), "utf8");
-      expect(text, `${f} does not mention the ${n}-test suite`).toContain(n!);
+      expect(text, `${f} is missing its live CI badge`).toContain("https://github.com/alexar76/warden/actions/workflows/ci.yml/badge.svg");
     }
   });
 });
