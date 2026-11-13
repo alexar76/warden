@@ -10,6 +10,7 @@ import {
 } from '../src/interceptor.js';
 import { handleInterceptorRpc, parseInterceptorArgs } from '../src/interceptor-server.js';
 import { packageVersion } from '../src/mcp-rpc.js';
+import { pinToolsHash } from '../src/pinning.js';
 import { lockEntryFor, LOCK_VERSION, type LockFile } from '../src/scan-lock.js';
 import { staticScanRulesetRef } from '../src/static-scan.js';
 import { contractDigest, digestBytes, extrasDigest, perToolContract, sameDigest, ToolSetDigestError } from '../src/tool-set-digest.js';
@@ -151,6 +152,60 @@ describe(INTEGRITY, () => {
     expect(await invoke(INTEGRITY, flipped, { expected })).toMatchObject({ valid: false, severity: 'error' });
   });
 
+  it('requires the extras baseline or a whole-definition pin to verify a previous approval', async () => {
+    const flipped = [{ ...READ, annotations: { readOnlyHint: false } }, LIST];
+    const requireFullCoverage = true;
+    const observation = { expected: { contract: expected.contract } };
+    expect(await invoke(INTEGRITY, flipped, observation)).toMatchObject({ valid: true });
+    for (const config of [observation, { expected: { extras: expected.extras } }, { firstSight: 'allow' }]) {
+      const r = await invoke(INTEGRITY, APPROVED, { ...config, requireFullCoverage });
+      expect(r.valid).toBe(false);
+      expect(text(r)).toContain('full coverage requires an approved');
+    }
+    for (const baseline of [expected, { toolsHashV2: pinToolsHash(APPROVED) }, { tools: APPROVED }]) {
+      const config = { expected: baseline, requireFullCoverage };
+      expect(await invoke(INTEGRITY, [LIST, READ], config)).toMatchObject({ valid: true });
+      expect(await invoke(INTEGRITY, flipped, config)).toMatchObject({ valid: false, severity: 'error' });
+    }
+    expect(await invoke(INTEGRITY, [LIST], { requireFullCoverage, expected: { contract: contractDigest([LIST]), extras: null } })).toMatchObject({ valid: true });
+    const extrasOnly = await invoke(INTEGRITY, flipped, { expected: { extras: expected.extras } });
+    expect(text(extrasOnly)).toMatch(/^the extras digest/);
+  });
+
+  it('refuses partial or ambiguous payloads and annotations that can move between duplicate names', async () => {
+    const first = { ...LIST, description: 'First action' };
+    const second = { ...LIST, description: 'Second action' };
+    const annotated = { annotations: { readOnlyHint: true } };
+    const baseline = [{ ...first, ...annotated }, second];
+    const moved = [first, { ...second, ...annotated }];
+    const pair = { contract: contractDigest(baseline), extras: extrasDigest(baseline) };
+    expect(contractDigest(moved)).toBe(pair.contract);
+    expect(extrasDigest(moved)).toBe(pair.extras);
+    const duplicate = await invoke(INTEGRITY, moved, { expected: pair, requireFullCoverage: true });
+    expect(duplicate.valid).toBe(false);
+    expect(text(duplicate)).toContain('duplicate tool names');
+
+    for (const [payload, message] of [
+      [{ tools: APPROVED, nextCursor: 'next' }, 'pagination cursor'],
+      [{ result: { tools: APPROVED, nextCursor: '' } }, 'pagination cursor'],
+      [{ tools: APPROVED, result: { tools: moved } }, 'unambiguous tools array'],
+      [{ tools: APPROVED, result: {} }, 'unambiguous tools array'],
+    ] as const) {
+      const r = await invokeInterceptor({ name: INTEGRITY, event: 'tools/list', phase: 'response', payload,
+        config: { expected, requireFullCoverage: true } });
+      expect(r).toMatchObject({ valid: false, severity: 'error' });
+      expect(r.info).toBeUndefined();
+      expect(text(r)).toContain(message);
+    }
+  });
+
+  it('does not equate unhashable extras in two raw approval snapshots', async () => {
+    const unreadable = [{ ...READ, _meta: { max: Infinity } }];
+    const r = await invoke(INTEGRITY, unreadable, { expected: { tools: unreadable }, requireFullCoverage: true });
+    expect(r.valid).toBe(false);
+    expect(text(r)).toContain('the approved definitions have no whole-definition digest');
+  });
+
   it('knows a tool set without extras from one that gained them', async () => {
     expect(extrasDigest([LIST])).toBeUndefined();
     const none = await invoke(INTEGRITY, [LIST], { expected: { contract: contractDigest([LIST]), extras: null } });
@@ -210,6 +265,12 @@ describe(INTEGRITY, () => {
       [{ expected: { tools: [{ description: 'x' }] } }, /has no contract digest \(TSD-TOOL\)/],
       [{ firstSight: 'maybe' }, /firstSight must be/],
       [{ extras: 'ignore' }, /extras must be/],
+      [{ requireFullCoverage: 'true' }, /must be a boolean/],
+      [{ requireFullCoverage: true, extras: 'warn' }, /full coverage cannot be combined/],
+      [{ expected: { toolsHashV2: 'not-a-hash' } }, /not a WARDEN v2 pin hash/],
+      [{ expected: { toolsHashV2: pinToolsHash(APPROVED), ...expected } }, /must be supplied by itself/],
+      [{ server: 'fs', requireFullCoverage: true, expected }, /requires one baseline source/],
+      [{ server: 'fs', expected: { toolsHashV2: pinToolsHash(APPROVED) } }, /requires one baseline source/],
       [{ unknown: true }, /is not a setting of this interceptor/],
       [{ server: 'fs' }, /needs a lock file/],
     ];
@@ -231,6 +292,20 @@ describe(INTEGRITY, () => {
       valid: true, info: { expected: { from: 'lock', contract: contractDigest(APPROVED), extras: extrasDigest(APPROVED) } } });
     const changed = await invoke(INTEGRITY, [{ ...READ, description: 'Read any file.' }, LIST], { server: 'fs' }, { lock });
     expect(changed).toMatchObject({ valid: false, info: { changed: { contract: ['read_file'] } } });
+    const config = { server: 'fs', requireFullCoverage: true };
+    const flipped = [{ ...READ, annotations: { readOnlyHint: false } }, LIST];
+    expect(await invoke(INTEGRITY, flipped, config, { lock })).toMatchObject({
+      valid: false, info: { changed: { contract: [], extras: ['read_file'] } },
+    });
+    const stored = lock.servers.fs!;
+    lock.servers.fs = { ...stored, tools: flipped };
+    const staleSnapshot = await invoke(INTEGRITY, APPROVED, config, { lock });
+    expect(staleSnapshot.valid).toBe(true);
+    expect(staleSnapshot.info?.changed).toBeUndefined();
+    lock.servers.fs = { ...stored, tools: undefined };
+    expect(await invoke(INTEGRITY, APPROVED, config, { lock })).toMatchObject({ valid: true });
+    lock.servers.fs = { ...stored, toolsHashVersion: undefined };
+    expect(await invoke(INTEGRITY, APPROVED, config, { lock })).toMatchObject({ valid: false });
     const unknown = await invoke(INTEGRITY, APPROVED, { server: 'other' }, { lock });
     expect(unknown).toMatchObject({ valid: true, severity: 'warn' });
     expect(text(unknown)).toMatch(/the lock file has no entry for server "other"/);

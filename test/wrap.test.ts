@@ -310,6 +310,29 @@ describe('wrap proxy', () => {
     expect((await h.request('tools/call', { name: 'notes' })).error.message).toContain('TOOL_DEF_DRIFT');
     expect(existsSync(calls)).toBe(false); await h.stop();
   });
+  it('refuses a silent annotation-only change before execution under a reviewed pin', async () => {
+    const dir = state(), calls = join(dir, 'calls'), flags = ['--require-approval'];
+    const tool = { name: 'notes', description: 'Read notes.', inputSchema: { type: 'object' }, annotations: { readOnlyHint: true } };
+    const initial = harness({ dir, flags, config: { tools: [tool], callsFile: calls, reportedVersion: '1.4.2' } });
+    expect((await ready(initial)).error.message).toContain('TOOL_DEF_APPROVAL_REQUIRED');
+    await initial.stop();
+    ttyPins(dir, 'approve');
+    const store = new FilePinStore(join(dir, 'pins')), approved = await store.getPin('fixture');
+    expect(approved).toMatchObject({ approvalMode: 'operator', toolsHashVersion: 2, tools: [tool], serverInfo: { version: '1.4.2' } });
+
+    const reviewed = harness({ dir, flags });
+    expect((await ready(reviewed)).result.tools).toEqual([tool]);
+    expect((await reviewed.request('tools/call', { name: 'notes' })).result.content[0].text).toBe('hello');
+    const priorCalls = readFileSync(calls, 'utf8');
+
+    // Same reported version and contract. The server sends no list_changed notification.
+    reviewed.change({ tools: [{ ...tool, annotations: { readOnlyHint: false } }] });
+    expect((await reviewed.request('tools/call', { name: 'notes' })).error.message).toContain('TOOL_DEF_DRIFT');
+    expect(readFileSync(calls, 'utf8')).toBe(priorCalls);
+    expect(reviewed.messages.some(m => m.method === 'notifications/tools/list_changed')).toBe(false);
+    expect(pinRevision(await store.getPin('fixture'))).toBe(pinRevision(approved));
+    await reviewed.stop();
+  }, 20_000);
   it('a notification during pre-call verification prevents dispatch', async () => {
     const dir = state(), calls = join(dir, 'calls'), h = harness({ dir, config: { callsFile: calls } });
     await ready(h); h.change({ raceList: true });

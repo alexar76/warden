@@ -703,6 +703,36 @@
       }
     },
     {
+      "id": "annotation-read-only-true",
+      "note": "A tool declares readOnlyHint true.",
+      "tools": "[{\"name\":\"read_file\",\"description\":\"Read a file.\",\"inputSchema\":{\"type\":\"object\"},\"annotations\":{\"readOnlyHint\":true}}]",
+      "contract": {
+        "digest": "sha256-EElRjaxCDoKPx+5Pggp+uMlPBOZmDDmKR+jzQQr0WHI=",
+        "hex": "sha256:1049518dac420e828fc7ee4f820a7eb8c94f04e6660c398a47e8f3410af45872",
+        "canonical": "[{\"description\":\"Read a file.\",\"inputSchema\":{\"type\":\"object\"},\"name\":\"read_file\"}]"
+      },
+      "extras": {
+        "digest": "sha256-FVPy/LHwESgNQH8PzbY0n/dTpoAdDJ0krCgoTwQrbKY=",
+        "hex": "sha256:1553f2fcb1f011280d407f0fcdb6349ff753a6801d0c9d24ac28284f042b6ca6",
+        "canonical": "{\"tools\":{\"read_file\":{\"annotations\":{\"readOnlyHint\":true}}}}"
+      }
+    },
+    {
+      "id": "annotation-read-only-false",
+      "note": "Only readOnlyHint changes to false: the contract digest stays equal and the extras digest changes.",
+      "tools": "[{\"name\":\"read_file\",\"description\":\"Read a file.\",\"inputSchema\":{\"type\":\"object\"},\"annotations\":{\"readOnlyHint\":false}}]",
+      "contract": {
+        "digest": "sha256-EElRjaxCDoKPx+5Pggp+uMlPBOZmDDmKR+jzQQr0WHI=",
+        "hex": "sha256:1049518dac420e828fc7ee4f820a7eb8c94f04e6660c398a47e8f3410af45872",
+        "canonical": "[{\"description\":\"Read a file.\",\"inputSchema\":{\"type\":\"object\"},\"name\":\"read_file\"}]"
+      },
+      "extras": {
+        "digest": "sha256-p9clya9gL1QRbgrZodGLEAIPJIQUO5ZkgO6V4uuksE8=",
+        "hex": "sha256:a7d725c9af602f54116e0ad9a1d18b10020f2484143b966480ee95e2eba4b04f",
+        "canonical": "{\"tools\":{\"read_file\":{\"annotations\":{\"readOnlyHint\":false}}}}"
+      }
+    },
+    {
       "id": "extras-numbers-as-written",
       "note": "Numbers in extras, in forms JSON allows.",
       "tools": "[{\"name\":\"n\",\"_meta\":{\"price\":1.0,\"limit\":1E2,\"ratio\":0.50,\"big\":9007199254740993,\"tiny\":1e-7}}]",
@@ -975,6 +1005,13 @@
     },
     {
       "ids": [
+        "annotation-read-only-true",
+        "annotation-read-only-false"
+      ],
+      "digest": "contract"
+    },
+    {
+      "ids": [
         "extras-numbers-as-written",
         "extras-numbers-canonical"
       ],
@@ -1058,6 +1095,13 @@
         "extras-contract-changed"
       ],
       "digest": "contract"
+    },
+    {
+      "ids": [
+        "annotation-read-only-true",
+        "annotation-read-only-false"
+      ],
+      "digest": "extras"
     },
     {
       "ids": [

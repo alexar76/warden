@@ -1,3 +1,5 @@
+import { CanonicalizationError } from './jcs.js';
+import { pinToolsHash } from './pinning.js';
 import { readLock, type LockFile } from './scan-lock.js';
 import { displaySafe } from './sanitize.js';
 import { StaticScanGate, staticScanRulesetRef } from './static-scan.js';
@@ -99,11 +101,13 @@ export function interceptorDescriptors(version: string): Array<Record<string, un
               contract: { type: 'string', description: `The contract digest (${TOOL_SET_DIGEST_SPEC}).` },
               extras: { type: ['string', 'null'], description: 'The extras digest (annotations, title, _meta, …); null when the approved set had no extras.' },
               tools: { type: 'array', description: 'The approved tool definitions; with them the answer names each changed tool.' },
+              toolsHashV2: { type: 'string', description: 'A whole-definition WARDEN v2 pin (toolsHash from a pin with toolsHashVersion: 2). Supply it by itself.' },
             },
           },
           server: { type: 'string', description: 'The id of this server in the lock file the Interceptor Server was started with.' },
           firstSight: { type: 'string', enum: ['allow', 'warn', 'block'], description: 'When nothing is expected. Default: warn.' },
           extras: { type: 'string', enum: ['error', 'warn'], description: 'When only members outside the contract changed. Default: error.' },
+          requireFullCoverage: { type: 'boolean', description: 'Require a complete baseline and tool list for checking an existing approval. Default: false.' },
         },
       },
     },
@@ -151,7 +155,7 @@ function digestOrCode(compute: () => string): { digest?: string; code?: string; 
 }
 
 /** What was approved. `extras` is null when the approved set had none, undefined when nothing is known about them. */
-interface Expected { contract?: string; extras?: string | null; tools?: ToolDef[]; from: 'config' | 'lock' }
+interface Expected { contract?: string; extras?: string | null; tools?: ToolDef[]; toolsHashV2?: string; from: 'config' | 'lock' }
 
 /** The extras digest of approved definitions: a digest, null for "no extras", undefined when it cannot be computed. */
 function extrasOf(tools: readonly unknown[]): string | null | undefined {
@@ -166,7 +170,12 @@ function expectedFrom(config: Record<string, unknown>, lock: LockFile | undefine
   const given = config.expected;
   if (given !== undefined) {
     if (!isObject(given)) fail('config.expected must be an object');
-    for (const key of Object.keys(given)) if (!['contract', 'extras', 'tools'].includes(key)) fail(`config.expected.${displaySafe(key, 60)} is not a setting of this interceptor`);
+    for (const key of Object.keys(given)) if (!['contract', 'extras', 'tools', 'toolsHashV2'].includes(key)) fail(`config.expected.${displaySafe(key, 60)} is not a setting of this interceptor`);
+    if (given.toolsHashV2 !== undefined) {
+      if (typeof given.toolsHashV2 !== 'string' || !/^(?:rfc8785:)?[a-f0-9]{64}$/.test(given.toolsHashV2)) fail('config.expected.toolsHashV2 is not a WARDEN v2 pin hash');
+      if (Object.keys(given).length !== 1) fail('config.expected.toolsHashV2 must be supplied by itself');
+      return { from: 'config', toolsHashV2: given.toolsHashV2 };
+    }
     if (given.contract !== undefined && !digestBytes(given.contract)) fail('config.expected.contract is not sha256-<base64> or sha256:<hex>');
     if (given.extras !== undefined && given.extras !== null && !digestBytes(given.extras)) fail('config.expected.extras is not sha256-<base64>, sha256:<hex> or null');
     if (given.tools !== undefined && !Array.isArray(given.tools)) fail('config.expected.tools must be an array');
@@ -195,12 +204,40 @@ function expectedFrom(config: Record<string, unknown>, lock: LockFile | undefine
   const entry = lock.servers[config.server];
   if (!entry) return undefined;
   const tools = entry.tools as ToolDef[] | undefined;
+  if (config.requireFullCoverage === true && entry.toolsHashVersion === 2) {
+    // Only use the retained definitions for the diff if they describe the approved pin.
+    const matches = tools && !coverageProblem(tools) && pinHashOrCode(tools).digest === entry.toolsHash;
+    return { from: 'lock', tools: matches ? tools : undefined, toolsHashV2: entry.toolsHash };
+  }
   return {
     from: 'lock',
     tools,
     contract: entry.mtlDigest ?? (tools ? digestOrCode(() => contractDigest(tools)).digest : undefined),
     extras: tools ? extrasOf(tools) : undefined,
   };
+}
+
+/** Split digests bind extras to a name. Each name must identify exactly one declaration. */
+function coverageProblem(tools: readonly unknown[]): string | undefined {
+  const names = new Set<string>();
+  for (const t of tools) {
+    if (!isObject(t) || typeof t.name !== 'string' || !t.name || !isObject(t.inputSchema) ||
+        (Object.hasOwn(t, 'description') && typeof t.description !== 'string') ||
+        (Object.hasOwn(t, 'outputSchema') && !isObject(t.outputSchema))) {
+      return 'the list contains an invalid tool declaration';
+    }
+    if (names.has(t.name)) return 'the list contains duplicate tool names';
+    names.add(t.name);
+  }
+  return undefined;
+}
+
+function pinHashOrCode(tools: ToolDef[]): { digest?: string; code?: string } {
+  try { return { digest: pinToolsHash(tools) }; }
+  catch (err) {
+    if (!(err instanceof CanonicalizationError)) throw err;
+    return { code: err.code };
+  }
 }
 
 /**
@@ -233,16 +270,48 @@ function changes(before: readonly unknown[], after: readonly unknown[]): { added
 
 function integrity(payload: unknown, config: Record<string, unknown>, deps: InterceptorDeps, fail: (reason: string) => never): Omit<ValidationResult, 'interceptor' | 'type' | 'phase'> {
   for (const key of Object.keys(config)) {
-    if (!['expected', 'server', 'firstSight', 'extras'].includes(key)) fail(`config.${displaySafe(key, 60)} is not a setting of this interceptor`);
+    if (!['expected', 'server', 'firstSight', 'extras', 'requireFullCoverage'].includes(key)) fail(`config.${displaySafe(key, 60)} is not a setting of this interceptor`);
   }
   const firstSight = config.firstSight ?? 'warn', extras = config.extras ?? 'error';
   if (!['allow', 'warn', 'block'].includes(firstSight as string)) fail('config.firstSight must be allow, warn or block');
   if (!['error', 'warn'].includes(extras as string)) fail('config.extras must be error or warn');
+  if (config.requireFullCoverage !== undefined && typeof config.requireFullCoverage !== 'boolean') fail('config.requireFullCoverage must be a boolean');
   const expected = expectedFrom(config, deps.lock, fail);
+  const full = config.requireFullCoverage === true || expected?.toolsHashV2 !== undefined;
+  if (full && extras === 'warn') fail('full coverage cannot be combined with config.extras: warn');
+  if (full && config.expected !== undefined && config.server !== undefined) fail('full coverage requires one baseline source: config.expected or config.server');
 
   const tools = toolsOf(payload);
   if (!tools) {
     return { valid: false, severity: 'error', messages: [{ message: 'the payload holds no tools array: nothing was checked', severity: 'error' }] };
+  }
+  const refuse = (message: string, info?: Record<string, unknown>): Omit<ValidationResult, 'interceptor' | 'type' | 'phase'> => ({
+    valid: false, severity: 'error', ...(info ? { info } : {}), messages: [{ message, severity: 'error' }],
+  });
+  let approvedHash: string | undefined;
+  if (full) {
+    if (isObject(payload)) {
+      const result = isObject(payload.result) ? payload.result : undefined;
+      if (Object.hasOwn(payload, 'nextCursor') || (result && Object.hasOwn(result, 'nextCursor'))) {
+        return refuse('full coverage requires the entire tool list; the payload contains a pagination cursor');
+      }
+      if (result && Object.hasOwn(payload, 'tools')) {
+        return refuse('full coverage requires one unambiguous tools array');
+      }
+    }
+    const problem = coverageProblem(tools);
+    if (problem) return refuse(`full coverage cannot be verified: ${problem}`);
+    if (!expected || (expected.from === 'lock' && !expected.toolsHashV2) ||
+        (!expected.toolsHashV2 && !expected.tools && (!expected.contract || expected.extras === undefined))) {
+      return refuse('full coverage requires an approved WARDEN v2 pin, complete definitions, or both contract and extras baselines');
+    }
+    approvedHash = expected.toolsHashV2;
+    if (!approvedHash && expected.tools) {
+      const baselineProblem = coverageProblem(expected.tools);
+      if (baselineProblem) return refuse(`full coverage cannot be verified for the approved definitions: ${baselineProblem}`);
+      approvedHash = pinHashOrCode(expected.tools).digest;
+      if (!approvedHash) return refuse('the approved definitions have no whole-definition digest');
+    }
   }
   const contract = digestOrCode(() => contractDigest(tools));
   // The extras digest: a digest, null when no tool has extras, or the code of why it cannot be computed.
@@ -283,6 +352,15 @@ function integrity(payload: unknown, config: Record<string, unknown>, deps: Inte
   }
   if (diff) info.changed = diff;
 
+  if (approvedHash) {
+    const actual = pinHashOrCode(tools as ToolDef[]);
+    info.toolsHashV2 = actual.digest ?? { error: actual.code };
+    info.expected = { from: expected.from, toolsHashV2: approvedHash };
+    if (!actual.digest) return refuse(`this tool set has no whole-definition digest (${actual.code})`, info);
+    if (actual.digest !== approvedHash) return refuse('the whole-definition digest changed since approval', info);
+    return { valid: true, severity: 'info', info, messages: [{ message: 'the whole-definition digest matches the approved baseline', severity: 'info' }] };
+  }
+
   const contractSame = expected.contract ? sameDigest(expected.contract, contract.digest) : undefined;
   // Extras: equal digests, or both without extras. With the approved definitions at hand, the
   // definitions themselves decide, which also covers a set whose extras digest cannot be computed.
@@ -302,7 +380,8 @@ function integrity(payload: unknown, config: Record<string, unknown>, deps: Inte
     const level: Level = extras === 'warn' ? 'warn' : 'error';
     const now = extrasCode ? `cannot be computed (${extrasCode})` : extrasNow === null ? 'is absent (no tool has extras)' : `is ${extrasNow}`;
     const was = expected.extras === undefined ? '' : expected.extras === null ? ', expected none' : `, expected ${expected.extras}`;
-    messages.push({ message: `the contract digest is unchanged; the extras digest ${now}${was}: a member outside the contract changed`, severity: level });
+    const context = contractSame === true ? 'the contract digest is unchanged; ' : '';
+    messages.push({ message: `${context}the extras digest ${now}${was}: a member outside the contract changed`, severity: level });
     for (const name of diff?.extras ?? []) messages.push({ path: at(name), message: `tool ${named(name)}: a member outside the contract changed (annotations, title, _meta, …)`, severity: level });
     return { valid: level !== 'error', severity: level, info, messages: messages.slice(0, MAX_MESSAGES) };
   }
